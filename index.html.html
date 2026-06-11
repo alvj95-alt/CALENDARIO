@@ -1,0 +1,4083 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TrenTurnos v5</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif}
+:root{
+  /* ── Nueva paleta: Azul profesional + naranja de acento ── */
+  --bg:#07111F;         /* fondo principal muy oscuro */
+  --s1:#0D1B2E;         /* superficie card */
+  --s2:#132236;         /* superficie elevada */
+  --s3:#1A2D44;         /* superficie más elevada */
+  --div:#1E3350;        /* separadores */
+
+  /* Azul primario */
+  --acc:#2563EB;        /* azul profesional */
+  --acc2:#3B82F6;       /* azul medio */
+  --acc3:#93C5FD;       /* azul claro */
+
+  /* Naranja — acento y avisos */
+  --nar:#F97316;        /* naranja vibrante */
+  --nar2:#FB923C;       /* naranja medio */
+  --nar3:#FED7AA;       /* naranja claro */
+
+  /* Semáforo */
+  --green:#16A34A;--green2:#4ADE80;
+  --amber:#D97706;--amber2:#FCD34D;
+  --red:#DC2626;--red2:#FCA5A5;
+  --violet:#7C3AED;--violet2:#C4B5FD;
+  --cyan:#0891B2;--cyan2:#67E8F9;
+
+  /* Texto */
+  --tx:#F8FAFC;--tx2:#94A3B8;--tx3:#475569;
+
+  /* Colores por tipo de turno */
+  --c-ord:#2563EB;  /* azul */
+  --c-res:#D97706;  /* ámbar */
+  --c-des:#16A34A;  /* verde */
+  --c-baj:#DC2626;  /* rojo */
+  --c-tra:#7C3AED;  /* violeta */
+  --c-vac:#0ea5e9;--c-cmp:#0891B2;  /* cyan */
+
+  /* Sombras */
+  --sh-card:0 4px 24px rgba(0,0,0,.45);
+  --sh-btn: 0 4px 16px rgba(37,99,235,.45);
+  --sh-nar: 0 4px 16px rgba(249,115,22,.4);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh}
+@media(min-width:480px){body{background:#060D18;padding:20px}
+  body::before{content:'TrenTurnos v5';display:block;text-align:center;font-size:11px;letter-spacing:3px;color:var(--tx3);margin-bottom:10px}}
+
+/* ── PHONE SHELL ── */
+.ph{width:min(390px,100vw);height:min(844px,100vh);background:var(--bg);border-radius:clamp(0px,44px,44px);
+    border:1.5px solid #1a2f50;overflow:hidden;position:relative;display:flex;flex-direction:column;
+    box-shadow:0 40px 120px rgba(0,0,0,.85)}
+
+/* ── STATUS ── */
+.sb{height:44px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.sb-t{font-size:14px;font-weight:700}
+.sb-r{font-size:10px;color:var(--tx2);display:flex;gap:5px;align-items:center}
+
+/* ── HEADER ── */
+.hdr{padding:4px 18px 12px;border-bottom:1px solid var(--div);flex-shrink:0}
+.hdr-top{display:flex;align-items:center;justify-content:space-between}
+.hdr-titulo{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.hdr-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:.8px;margin-top:3px}
+.pill-t{background:rgba(37,99,235,.15);color:var(--acc2);border:1px solid rgba(37,99,235,.3)}
+.pill-a{background:rgba(249,115,22,.15);color:var(--nar2);border:1px solid rgba(249,115,22,.3)}
+.hdr-btns{display:flex;gap:5px}
+.hbtn{width:34px;height:34px;border-radius:9px;background:var(--s2);border:none;color:var(--tx2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .18s}
+.hbtn:hover{background:var(--acc);color:#fff}
+
+/* ── SCROLLABLE BODY ── */
+.body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;min-height:0}
+.body::-webkit-scrollbar{display:none}
+
+/* ── PANELS ── */
+.panel{display:none;flex-direction:column;padding-bottom:72px}
+.panel.on{display:flex}
+
+/* ── MES NAV — minimalista ── */
+.mes-nav{display:flex;align-items:center;padding:14px 18px 10px;gap:4px}
+.mn-btn{background:rgba(255,255,255,.06);border:none;color:var(--tx2);font-size:18px;
+        cursor:pointer;border-radius:10px;width:34px;height:34px;
+        display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0}
+.mn-btn:hover{background:rgba(37,99,235,.18);color:var(--acc2)}
+.mn-lbl-wrap{flex:1;text-align:center}
+.mn-lbl{font-size:17px;font-weight:800;letter-spacing:-.4px}
+.mn-sub{font-size:9px;color:var(--tx3);margin-top:1px}
+.mn-hoy{font-size:10px;color:var(--nar2);font-weight:700;cursor:pointer;
+        padding:3px 10px;background:rgba(249,115,22,.12);border-radius:20px;
+        border:1px solid rgba(249,115,22,.28);flex-shrink:0}
+
+/* ── SWIPE WRAPPER ──
+   touch-action:pan-y → el navegador gestiona scroll vertical nativamente.
+   Nuestro JS solo captura los gestos horizontales confirmados. */
+.cal-swipe{overflow:hidden;touch-action:pan-y;position:relative;padding:0 10px;user-select:none}
+.cal-track{display:flex;will-change:transform;transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.cal-slide{min-width:100%;flex-shrink:0}
+
+/* ── CALENDAR CARD — card con sombra ── */
+.cal-box{background:var(--s1);border-radius:20px;padding:12px 10px 10px;
+         border:1px solid var(--div);box-shadow:var(--sh-card)}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:7px}
+.dw{text-align:center;font-size:9px;color:var(--tx3);font-weight:700;letter-spacing:.5px;padding:3px 0}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dc{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;cursor:pointer;
+    border:1.5px solid transparent;transition:all .13s;
+    font-size:12px;font-weight:500;user-select:none}
+.dc:active{transform:scale(.88)}
+.dc-0{opacity:0;pointer-events:none}
+.dc-out{color:var(--tx3);opacity:.28}
+/* Hoy: anillo naranja */
+.dc-hoy{border-color:var(--nar)!important;color:var(--nar3)!important;font-weight:800}
+/* Seleccionado: fill azul */
+.dc-sel{background:var(--acc)!important;color:#fff!important;border-color:var(--acc)!important;font-weight:800!important}
+/* Tipos */
+.dc-ord{background:rgba(37,99,235,.2);border-color:rgba(37,99,235,.5);color:#93C5FD;font-weight:700}
+.dc-res{background:rgba(217,119,6,.2);border-color:rgba(217,119,6,.5);color:#FCD34D;font-weight:700}
+.dc-des{background:rgba(22,163,74,.2);border-color:rgba(22,163,74,.5);color:#86EFAC;font-weight:700}
+.dc-baj{background:rgba(220,38,38,.2);border-color:rgba(220,38,38,.5);color:#FCA5A5;font-weight:700}
+.dc-tra{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#C4B5FD;font-weight:700}
+.dc-cmp{background:rgba(8,145,178,.25);border-color:rgba(8,145,178,.6);color:#67E8F9;font-weight:700}
+
+/* ── COMPANION CALENDAR STYLES ── */
+.dc-comp-ordinario{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4)}
+.dc-comp-descanso{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
+.dc-comp-vacaciones{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.3)}
+.dc-comp-baja{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.3)}
+.dc-comp-reserva{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)}
+.dc-comp-only{background:rgba(168,85,247,.08);border:1.5px dashed rgba(168,85,247,.4)}
+.dc-split{background:linear-gradient(135deg,rgba(59,130,246,.18) 50%,rgba(168,85,247,.18) 50%)!important;border-color:#4f46e5!important}
+/* Vista toggle */
+.vista-toggle{display:flex;background:var(--s2);border-radius:10px;padding:3px;gap:3px;margin:6px 12px}
+.vista-btn{flex:1;padding:5px 2px;border:none;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:var(--tx3);transition:all .18s}
+.vista-btn.act{background:var(--s1);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.vista-btn.act-comp{background:rgba(168,85,247,.25);color:#c084fc}
+.vista-btn.act-both{background:rgba(99,102,241,.2);color:#a5b4fc}
+
+.dc-ico{font-size:14px;line-height:1;margin-top:0}
+
+/* ── LEYENDA ── */
+.leyenda{display:flex;gap:5px;overflow-x:auto;padding:8px 10px;scrollbar-width:none}
+.leyenda::-webkit-scrollbar{display:none}
+.leg{display:flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;
+     font-size:9px;font-weight:700;flex-shrink:0;border:1px solid;
+     box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* ── ACORDEÓN (historial por mes) ── */
+.acordeon{margin:6px 10px;border-radius:14px;overflow:hidden;border:1px solid var(--div);background:var(--s1)}
+.ac-item{border-bottom:1px solid var(--div)}
+.ac-item:last-child{border-bottom:none}
+.ac-hdr{display:flex;align-items:center;gap:8px;padding:10px 13px;cursor:pointer;transition:background .15s;user-select:none}
+.ac-hdr:hover{background:var(--s2)}
+.ac-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ac-fecha{font-size:11px;font-weight:700;flex:1}
+.ac-tipo{font-size:10px;color:var(--tx2)}
+.ac-arr{font-size:12px;color:var(--tx3);transition:transform .22s;flex-shrink:0}
+.ac-item.open .ac-arr{transform:rotate(90deg)}
+.ac-body{display:none;padding:0 13px 10px;font-size:11px;color:var(--tx2);line-height:1.6}
+.ac-item.open .ac-body{display:block}
+.ac-row{display:flex;justify-content:space-between;padding:2px 0}
+.ac-row .ak{color:var(--tx3)}
+.ac-row .av{color:var(--tx);font-weight:600}
+.ac-imp{margin-top:5px;padding:6px 10px;background:rgba(59,127,255,.08);border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+.ac-imp .al{font-size:10px;color:var(--tx2)}
+.ac-imp .ar{font-size:15px;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums}
+
+/* ── DÍA CARD ── */
+.dia-area{padding:7px 10px 10px}
+.dc-vacia{background:var(--s2);border:1.5px dashed var(--div);border-radius:14px;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          gap:6px;padding:18px;cursor:pointer;transition:all .18s}
+.dc-vacia:hover{border-color:var(--acc2)}
+.dcv-ico{font-size:28px;opacity:.3}
+.dcv-fecha{font-size:13px;font-weight:700}
+.dcv-hint{font-size:10px;color:var(--tx2)}
+.dcv-btn{margin-top:3px;background:var(--acc);color:#fff;border:none;border-radius:9px;
+         padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer}
+.dc-turno{border-radius:14px;overflow:hidden;border:1.5px solid;background:var(--s1)}
+.dct-hdr{padding:10px 14px;display:flex;align-items:center;gap:9px}
+.dct-ico{font-size:20px}
+.dct-info{flex:1;min-width:0}
+.dct-fecha{font-size:10px;color:rgba(255,255,255,.55);margin-bottom:1px}
+.dct-tipo{font-size:16px;font-weight:800;letter-spacing:-.3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dct-dur{padding:3px 9px;border-radius:7px;background:rgba(0,0,0,.2);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;flex-shrink:0}
+.dct-body{padding:8px 14px 10px}
+.tr-r{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:11px}
+.tr-r:last-child{border:none}
+.tr-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.tr-route{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr-time{font-size:10px;color:rgba(255,255,255,.45);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tr-hi{color:var(--acc3);font-weight:700}
+.dct-foot{padding:7px 14px;display:flex;align-items:center;gap:6px;border-top:1px solid rgba(255,255,255,.05);font-size:10px;color:rgba(255,255,255,.35)}
+.dct-del{background:rgba(239,68,68,.12);border:none;border-radius:6px;color:#FCA5A5;font-size:10px;font-weight:700;padding:3px 9px;cursor:pointer;transition:background .18s}
+.dct-del:hover{background:rgba(239,68,68,.28)}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:absolute;bottom:0;left:0;right:0;height:68px;background:var(--s1);
+      border-top:1px solid var(--div);display:flex;align-items:flex-start;padding-top:9px;z-index:40;flex-shrink:0}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--tx2);transition:color .18s;padding:2px}
+.bni.on{color:var(--nar2)}
+.bni .bi{font-size:19px}
+.bni .bl{font-size:9px;font-weight:700;letter-spacing:.3px}
+.bni .bd{width:4px;height:4px;background:var(--nar2);border-radius:2px;opacity:0;margin-top:1px}
+.bni.on .bd{opacity:1}
+
+/* ── OVERLAY (SingleChildScrollView equivalent) ── */
+.ov{display:none;position:absolute;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:flex-end;backdrop-filter:blur(5px)}
+.ov.on{display:flex}
+/* Sheet: flex column, max 82% height, inner body scrolls */
+.sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
+    max-height:82%;display:flex;flex-direction:column;overflow:hidden;
+    animation:sup .26s cubic-bezier(.32,.72,0,1)}
+@keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.sh-handle{width:34px;height:3px;background:var(--div);border-radius:2px;margin:9px auto 0;flex-shrink:0}
+.sh-hdr{padding:10px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--div);flex-shrink:0}
+.sh-ico{font-size:20px}
+.sh-tit{flex:1;font-size:14px;font-weight:800}
+.sh-sub{font-size:10px;color:var(--tx2);margin-top:1px}
+.sh-close{background:none;border:none;color:var(--tx2);font-size:18px;cursor:pointer;padding:3px}
+/* form-body: fills space, scrolls internally */
+/* U-01 FIX: explicit height:0 on flex child forces correct overflow-y:auto behavior
+   on all screen sizes. Without it, content overflows the 82% max-height on small phones. */
+#form-body{flex:1;min-height:0;height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#form-body::-webkit-scrollbar{display:none}
+.mfoot{padding:10px 14px 20px;border-top:1px solid var(--div);display:flex;gap:7px;flex-shrink:0;background:var(--s1)}
+.m-del{height:42px;padding:0 13px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;color:#FCA5A5;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.m-save{flex:1;height:42px;background:var(--acc);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;transition:background .18s}
+.m-save:hover{background:var(--acc2)}
+
+/* ── TIPO SELECTOR ── */
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 13px}
+.topt{border:1px solid var(--div);background:var(--s2);border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .18s}
+.to-ico{font-size:22px}
+.to-lbl{font-size:11px;font-weight:800;text-align:center}
+.to-sub{font-size:9px;text-align:center;line-height:1.3;opacity:.55}
+.topt.t-ord:hover{border-color:var(--c-ord);background:rgba(59,127,255,.1);color:#93C5FD}
+.topt.t-res:hover{border-color:var(--c-res);background:rgba(245,158,11,.1);color:#FCD34D}
+.topt.t-des:hover{border-color:var(--c-des);background:rgba(34,197,94,.1);color:#86EFAC}
+.topt.t-baj:hover{border-color:var(--c-baj);background:rgba(239,68,68,.1);color:#FCA5A5}
+
+/* ── FORMULARIO ── */
+.fsec{padding:8px 13px}
+.fsec-lbl{font-size:8px;font-weight:800;letter-spacing:1.2px;color:var(--tx3);margin-bottom:6px;text-transform:uppercase;display:flex;align-items:center;gap:5px}
+.fsec-lbl::after{content:'';flex:1;height:1px;background:var(--div)}
+.linea-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.lchip{padding:4px 10px;border-radius:16px;border:1px solid var(--div);background:var(--s2);font-size:10px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .16s}
+.lchip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+/* Selector fields — altura fija, nunca se expande */
+.sf{background:var(--s2);border-radius:9px;border:1px solid var(--div);
+    padding:7px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;
+    transition:border-color .16s;margin-bottom:5px;flex-shrink:0;
+    height:48px;min-height:48px;max-height:48px;overflow:hidden}
+.sf:hover{border-color:var(--acc2)}
+.sf.fil{border-color:rgba(59,127,255,.45)}
+.sf-i{font-size:13px;color:var(--acc2);flex-shrink:0}
+.sf-b{flex:1;min-width:0;overflow:hidden}
+.sf-lbl{font-size:8px;color:var(--tx3);letter-spacing:.4px;font-weight:700;white-space:nowrap}
+.sf-val{font-size:12px;font-weight:600;color:var(--tx);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.sf-val.ph{color:var(--tx3);font-weight:400;font-size:11px}
+.sf-val.hv{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.sf-base{font-size:8px;color:var(--acc2);font-weight:700;margin-top:1px;white-space:nowrap}
+.sf-arr{color:var(--tx3);font-size:12px;flex-shrink:0}
+.hora-row{display:flex;gap:6px;margin-bottom:5px}
+.hora-row .sf{flex:1;margin-bottom:0}
+.dur-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18);border-radius:7px;padding:3px 9px;font-size:10px;font-weight:700;color:var(--acc2);margin-bottom:7px}
+/* Descanso buttons */
+.da-btn{border:1px solid var(--div);background:var(--s2);border-radius:10px;padding:11px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .16s}
+.da-ico{font-size:20px}
+.da-lbl{font-size:11px;font-weight:800;text-align:center;line-height:1.2}
+.da-sub{font-size:9px;text-align:center;color:var(--tx2);line-height:1.3}
+.da-btn.w-verde:hover,.da-btn.w-verde.on{border-color:var(--green);background:rgba(34,197,94,.1);color:#86EFAC}
+.da-btn.w-amber:hover,.da-btn.w-amber.on{border-color:var(--amber);background:rgba(245,158,11,.1);color:#FCD34D}
+.da-btn.w-violet:hover,.da-btn.w-violet.on{border-color:var(--violet);background:rgba(139,92,246,.1);color:#C4B5FD}
+/* Comp choice */
+.cc-btn{flex:1;border:1px solid var(--div);background:var(--s2);border-radius:9px;padding:9px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .16s;color:var(--tx2)}
+.cc-btn .cci{font-size:16px}
+.cc-btn .ccl{font-size:10px;font-weight:700;text-align:center}
+.cc-btn .ccs{font-size:8px;text-align:center}
+.cc-btn.on{border-color:var(--acc2);background:rgba(59,127,255,.1);color:var(--acc2)}
+/* Resultado */
+.calc-result{margin:0 0 8px;background:rgba(59,127,255,.06);border:1px solid rgba(59,127,255,.2);border-radius:10px;padding:11px 12px}
+.cr-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+.cr-l{color:var(--tx2)}
+.cr-v{font-weight:700}
+.cr-div{height:1px;background:var(--div);margin:7px 0}
+.cr-total{display:flex;justify-content:space-between;align-items:center}
+.cr-tl{font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.cr-tv{font-size:22px;font-weight:900;color:var(--acc2);font-variant-numeric:tabular-nums}
+/* Notas */
+.notas-wrap{margin:0 13px 10px}
+.notas-inp{width:100%;background:var(--s2);border:1px solid var(--div);border-radius:9px;color:var(--tx);font-size:12px;padding:8px 11px;resize:none;outline:none;transition:border-color .18s}
+.notas-inp:focus{border-color:var(--acc2)}
+.notas-inp::placeholder{color:var(--tx3)}
+/* mini-cal */
+.mini-cal-wrap{margin:0 0 9px;background:var(--s2);border-radius:10px;padding:10px;border:1px solid var(--div)}
+.mc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.mc-mes{font-size:12px;font-weight:800}
+.mc-nav{background:none;border:none;color:var(--tx2);font-size:16px;cursor:pointer;padding:1px 5px;border-radius:5px}
+.mc-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.mc-dh{text-align:center;font-size:8px;color:var(--tx3);font-weight:700}
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mc-d{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:pointer;border:1px solid transparent;color:var(--tx2);transition:all .14s}
+.mc-d:hover:not(.mc-dis){border-color:var(--cyan);background:rgba(6,182,212,.1)}
+.mc-d.mc-sel{background:rgba(6,182,212,.22);border-color:var(--cyan);color:#67E8F9;font-weight:800}
+.mc-d.mc-dis{opacity:.2;pointer-events:none}
+.mc-count{font-size:9px;color:var(--tx2);text-align:center;margin-top:6px}
+.mc-count span{color:var(--cyan2);font-weight:700}
+/* ibox */
+.ibox{border-radius:10px;padding:10px 12px;display:flex;gap:8px;font-size:11px;margin-bottom:8px;line-height:1.45}
+.ibox.blue{background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.22)}
+.ibox.green{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.22)}
+.ibox.amber{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.22)}
+.ibox.red{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.22)}
+.ibox-i{font-size:16px;flex-shrink:0}
+/* Tramo header badge */
+.tramo-hdr{display:flex;align-items:center;gap:5px;margin-bottom:5px;padding:4px 8px;border-radius:7px}
+/* ── ALERTA DESCANSO / RETRASO ── */
+/* Badge de alerta en tarjeta del día */
+.alerta-descanso{display:flex;align-items:center;gap:7px;padding:7px 11px;
+                 background:rgba(220,38,38,.08);border:1.5px solid rgba(220,38,38,.3);
+                 border-radius:9px;margin-bottom:7px;font-size:11px;color:var(--red2);
+                 font-weight:600;animation:pulseRed 2s infinite}
+@keyframes pulseRed{0%,100%{border-color:rgba(220,38,38,.3)}50%{border-color:rgba(220,38,38,.7)}}
+.alerta-ico{font-size:16px;flex-shrink:0}
+/* Icono rojo sutil en celda del calendario */
+.dc-alerta::after{content:'⚠';position:absolute;top:1px;right:1px;font-size:7px;
+                  color:var(--red2);line-height:1}
+/* Input de retraso inline */
+.retraso-wrap{display:flex;align-items:center;gap:7px;padding:8px 11px;
+              background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);
+              border-radius:9px;margin-top:6px}
+.retraso-inp{background:var(--s2);border:1px solid var(--div);border-radius:7px;
+             color:var(--amber2);font-size:16px;font-weight:800;padding:4px 9px;
+             width:72px;text-align:center;outline:none;-moz-appearance:textfield;
+             font-variant-numeric:tabular-nums}
+.retraso-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.retraso-inp:focus{border-color:var(--amber2)}
+.ov-top{z-index:400!important}
+.tren-sug{background:var(--s1);border:1px solid var(--div);border-radius:11px;
+          margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);
+          max-height:220px;overflow-y:auto}
+.tren-sug-item{display:flex;align-items:center;gap:10px;padding:10px 13px;
+               cursor:pointer;transition:background .13s;border-bottom:1px solid var(--div)}
+.tren-sug-item:last-child{border-bottom:none}
+.tren-sug-item:active{background:var(--s2)}
+.tren-sug-num{font-size:18px;font-weight:900;color:var(--nar2);
+              font-variant-numeric:tabular-nums;min-width:52px}
+.tren-sug-ruta{flex:1;min-width:0}
+.tren-sug-est{font-size:11px;font-weight:600;color:var(--tx);
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tren-sug-hora{font-size:10px;color:var(--tx3);margin-top:2px;
+               font-variant-numeric:tabular-nums}
+.tren-sug-badge{font-size:9px;font-weight:700;color:var(--green2);
+                background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);
+                border-radius:5px;padding:1px 6px;white-space:nowrap}
+/* Campo numTren vuelta */
+.numtren-vuelta-wrap{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);
+                     border-radius:10px;padding:9px 12px;margin-bottom:10px;
+                     display:flex;align-items:center;gap:8px}
+.agenda-sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
+           max-height:78%;display:flex;flex-direction:column;
+           animation:sup .23s cubic-bezier(.32,.72,0,1)}
+.agenda-srch{background:var(--s2);border-radius:10px;padding:8px 12px;
+             display:flex;align-items:center;gap:7px;border:1px solid var(--div);
+             margin:10px 14px 6px}
+.agenda-srch input{background:none;border:none;color:var(--tx);font-size:13px;
+                   outline:none;flex:1}
+.agenda-srch input::placeholder{color:var(--tx3)}
+.agenda-list{flex:1;overflow-y:auto;padding:4px 12px 16px;scrollbar-width:thin}
+/* Tarjeta de contacto */
+.contacto-card{display:flex;align-items:center;gap:10px;padding:11px 13px;
+               background:var(--s2);border-radius:12px;border:1px solid var(--div);
+               margin-bottom:7px;cursor:pointer;transition:all .15s;user-select:none}
+.contacto-card:active{transform:scale(.97)}
+.contacto-card:hover{border-color:var(--acc2)}
+.contacto-av{width:38px;height:38px;border-radius:12px;background:rgba(37,99,235,.15);
+             display:flex;align-items:center;justify-content:center;
+             font-size:17px;font-weight:800;color:var(--acc2);flex-shrink:0;
+             border:1px solid rgba(37,99,235,.25)}
+.contacto-info{flex:1;min-width:0}
+.contacto-nombre{font-size:13px;font-weight:700;color:var(--tx);
+                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contacto-mat{font-size:10px;color:var(--tx3);margin-top:1px}
+.contacto-tren{font-size:10px;color:var(--nar2);font-weight:700;margin-top:1px}
+.contacto-del{background:none;border:none;color:var(--tx3);font-size:16px;
+              cursor:pointer;padding:4px;border-radius:6px;flex-shrink:0;
+              transition:color .15s}
+.contacto-del:active{color:var(--red2)}
+/* Sugerencias autocompletado */
+.sug-box{position:absolute;left:0;right:0;background:var(--s1);
+         border:1px solid var(--div);border-radius:11px;z-index:50;
+         box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden;
+         max-height:180px;overflow-y:auto}
+.sug-item{padding:10px 13px;font-size:12px;cursor:pointer;
+          display:flex;align-items:center;gap:8px;transition:background .13s}
+.sug-item:hover,.sug-item:active{background:var(--s2)}
+.sug-nombre{font-weight:700;color:var(--tx)}
+.sug-mat{color:var(--tx3);font-size:10px;margin-left:auto}
+.est-sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
+        height:76%;display:flex;flex-direction:column;
+        animation:sup .23s cubic-bezier(.32,.72,0,1)}
+.est-hdr{padding:12px 16px 10px;border-bottom:1px solid var(--div);flex-shrink:0}
+.est-tit{font-size:15px;font-weight:800;margin-bottom:8px;
+         display:flex;align-items:center;gap:7px}
+.est-srch{background:var(--s2);border-radius:10px;padding:8px 12px;
+          display:flex;align-items:center;gap:7px;border:1px solid var(--div);
+          transition:border-color .18s}
+.est-srch:focus-within{border-color:var(--acc2)}
+.est-srch input{background:none;border:none;color:var(--tx);font-size:13px;
+                outline:none;flex:1}
+.est-srch input::placeholder{color:var(--tx3)}
+.est-list{flex:1;overflow-y:auto;padding:8px 12px 16px;
+          scrollbar-width:thin;scrollbar-color:var(--div) transparent}
+.est-grp-hdr{padding:10px 4px 6px;font-size:9px;font-weight:800;
+             letter-spacing:1.2px;color:var(--tx3);text-transform:uppercase;
+             display:flex;align-items:center;gap:6px;position:sticky;top:0;
+             background:var(--s1);z-index:1}
+.est-grp-hdr::after{content:'';flex:1;height:1px;background:var(--div)}
+
+/* Card de estación — el corazón del nuevo diseño */
+.est-card{display:flex;align-items:center;gap:10px;padding:11px 13px;
+          background:var(--s2);border-radius:12px;border:1.5px solid var(--div);
+          cursor:pointer;transition:all .15s;margin-bottom:6px;user-select:none}
+.est-card:active{transform:scale(.97)}
+.est-card.sel{background:rgba(37,99,235,.12);border-color:var(--acc2);
+              box-shadow:0 0 0 2px rgba(37,99,235,.18)}
+/* Icono de tren dentro de la card */
+.est-card-ico{width:34px;height:34px;border-radius:9px;display:flex;
+              align-items:center;justify-content:center;font-size:16px;
+              flex-shrink:0;background:rgba(37,99,235,.1)}
+.est-card.sel .est-card-ico{background:rgba(37,99,235,.2)}
+/* Estación internacional — card dorada */
+.est-card.intl{border-color:rgba(249,115,22,.35);
+               background:rgba(249,115,22,.06)}
+.est-card.intl .est-card-ico{background:rgba(249,115,22,.15)}
+.est-card.intl.sel{border-color:var(--nar);background:rgba(249,115,22,.14);
+                   box-shadow:0 0 0 2px rgba(249,115,22,.22)}
+.est-card-info{flex:1;min-width:0}
+.est-card-name{font-size:13px;font-weight:600;color:var(--tx);
+               overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.est-card.sel .est-card-name{font-weight:800;color:var(--acc3)}
+.est-card.intl .est-card-name{color:var(--nar3)}
+.est-card.intl.sel .est-card-name{color:var(--nar2);font-weight:800}
+.est-card-badge{font-size:8px;font-weight:700;color:var(--nar2);
+                background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);
+                border-radius:5px;padding:1px 5px;margin-top:2px;display:inline-block}
+.est-card-check{font-size:16px;color:var(--acc2);flex-shrink:0}
+.est-card.intl .est-card-check{color:var(--nar2)}
+/* Badge Plus Internacional auto */
+.plus-intl-badge{display:flex;align-items:center;gap:6px;padding:7px 11px;
+                 background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);
+                 border-radius:9px;font-size:11px;font-weight:700;color:var(--nar2);
+                 margin:0 13px 10px;animation:fadeIn .25s ease}
+/* HORA SHEET — teclado numérico táctil */
+.hora-sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
+         padding:0 16px 22px;animation:sup .23s cubic-bezier(.32,.72,0,1);
+         display:flex;flex-direction:column;align-items:center}
+.hora-title{font-size:14px;font-weight:800;padding:11px 0 6px;
+            letter-spacing:-.3px;align-self:flex-start}
+
+/* Display grande de horas */
+.hora-display{display:flex;align-items:center;justify-content:center;
+              gap:4px;margin:6px 0 4px;width:100%}
+.hora-seg{font-size:52px;font-weight:900;font-variant-numeric:tabular-nums;
+          letter-spacing:-2px;color:var(--tx3);cursor:pointer;
+          background:var(--s2);border-radius:14px;padding:6px 20px;
+          border:2px solid var(--div);min-width:100px;text-align:center;
+          transition:all .15s;user-select:none}
+.hora-seg.activo{color:var(--tx);border-color:var(--acc2);
+                 background:rgba(59,127,255,.1);
+                 box-shadow:0 0 0 3px rgba(59,127,255,.15)}
+.hora-sep{font-size:44px;font-weight:900;color:var(--tx3);padding-bottom:4px}
+.hora-cursor-lbl{font-size:10px;color:var(--acc2);font-weight:700;
+                 letter-spacing:.5px;margin-bottom:12px;height:14px}
+
+/* Teclado numérico */
+.hora-pad{width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.hp-row{display:flex;gap:7px;justify-content:center}
+.hp-btn{flex:1;height:54px;border:none;border-radius:13px;
+        background:var(--s2);color:var(--tx);font-size:22px;font-weight:700;
+        cursor:pointer;transition:all .12s;border:1px solid var(--div);
+        -webkit-tap-highlight-color:transparent;user-select:none}
+.hp-btn:active{background:rgba(59,127,255,.18);border-color:var(--acc2);
+               transform:scale(.94)}
+.hp-alt{background:var(--s3);color:var(--tx2);font-size:18px}
+.hp-alt:active{background:rgba(59,127,255,.12)}
+
+/* Botón confirmar */
+.hora-conf{width:100%;height:46px;background:var(--acc);border:none;
+           border-radius:12px;color:#fff;font-size:14px;font-weight:800;
+           cursor:pointer;box-shadow:0 4px 14px rgba(59,127,255,.4);
+           letter-spacing:-.2px}
+/* Confirm sheet */
+.confirm-sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;padding:18px;animation:sup .23s cubic-bezier(.32,.72,0,1)}
+.conf-ico{font-size:38px;text-align:center;margin-bottom:8px}
+.conf-tit{font-size:16px;font-weight:800;text-align:center;margin-bottom:5px}
+.conf-txt{font-size:11px;color:var(--tx2);text-align:center;line-height:1.5;margin-bottom:18px}
+.conf-btns{display:flex;gap:7px}
+.conf-cancel{flex:1;height:42px;background:var(--s2);border:1px solid var(--div);border-radius:10px;color:var(--tx);font-size:13px;font-weight:700;cursor:pointer}
+.conf-del{flex:1;height:42px;background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.35);border-radius:10px;color:#FCA5A5;font-size:13px;font-weight:800;cursor:pointer}
+/* ── AJUSTES — rediseño completo ── */
+.aj-body{padding:14px 12px;padding-bottom:88px;display:flex;flex-direction:column;gap:10px}
+
+/* Tarjeta de sección */
+.aj-card{border-radius:18px;overflow:hidden;border:1px solid var(--div);background:var(--s1)}
+
+/* Cabecera de sección con gradiente */
+.aj-card-hdr{padding:13px 16px 11px;display:flex;align-items:center;gap:9px;
+             border-bottom:1px solid var(--div)}
+.aj-card-hdr.c-blue {background:linear-gradient(135deg,rgba(59,127,255,.14),rgba(59,127,255,.04))}
+.aj-card-hdr.c-gold {background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(245,158,11,.04))}
+.aj-card-hdr.c-green{background:linear-gradient(135deg,rgba(34,197,94,.14),rgba(34,197,94,.04))}
+.aj-card-hdr.c-red  {background:linear-gradient(135deg,rgba(239,68,68,.14),rgba(239,68,68,.04))}
+.aj-card-hdr-ico{font-size:19px}
+.aj-card-hdr-txt{flex:1}
+.aj-card-hdr-tit{font-size:13px;font-weight:800;letter-spacing:-.2px}
+.aj-card-hdr-sub{font-size:9px;margin-top:1px;opacity:.6}
+.aj-card-hdr.c-blue  .aj-card-hdr-tit{color:var(--acc2)}
+.aj-card-hdr.c-blue  .aj-card-hdr-sub{color:var(--acc3)}
+.aj-card-hdr.c-gold  .aj-card-hdr-tit{color:var(--amber2)}
+.aj-card-hdr.c-gold  .aj-card-hdr-sub{color:var(--amber2)}
+.aj-card-hdr.c-green .aj-card-hdr-tit{color:var(--green2)}
+.aj-card-hdr.c-green .aj-card-hdr-sub{color:var(--green2)}
+.aj-card-hdr.c-red   .aj-card-hdr-tit{color:var(--red2)}
+.aj-card-hdr.c-red   .aj-card-hdr-sub{color:var(--red2)}
+
+/* Contenido de la tarjeta */
+.aj-card-body{padding:12px 14px}
+
+/* Campo nombre */
+.aj-nombre-wrap{display:flex;align-items:center;gap:8px;
+                background:var(--s2);border-radius:10px;padding:9px 12px;
+                border:1px solid var(--div);margin-bottom:12px}
+.aj-nombre-ico{font-size:16px;opacity:.6}
+.aj-nombre-inp{flex:1;background:none;border:none;color:var(--tx);font-size:14px;
+               font-weight:700;outline:none;min-width:0}
+.aj-nombre-inp::placeholder{color:var(--tx3);font-weight:400;font-size:13px}
+
+/* Selector de rol */
+.aj-roles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0}
+.aj-rol-btn{border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;
+            flex-direction:column;align-items:center;gap:5px;transition:all .18s;
+            border:1.5px solid var(--div);background:var(--s2)}
+.aj-rol-btn .rol-ico{font-size:24px}
+.aj-rol-btn .rol-lbl{font-size:12px;font-weight:800;letter-spacing:-.2px}
+.aj-rol-btn .rol-sub{font-size:9px;opacity:.55;text-align:center}
+.aj-rol-btn.activo-t{border-color:var(--acc);background:rgba(59,127,255,.12);
+                     box-shadow:0 0 0 3px rgba(59,127,255,.15)}
+.aj-rol-btn.activo-a{border-color:var(--amber);background:rgba(245,158,11,.12);
+                     box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+.aj-rol-btn.activo-t .rol-lbl{color:var(--acc2)}
+.aj-rol-btn.activo-a .rol-lbl{color:var(--amber2)}
+
+/* Campo base */
+.aj-base-btn{display:flex;align-items:center;gap:10px;padding:11px 13px;
+             background:var(--s2);border-radius:11px;border:1px solid rgba(59,127,255,.3);
+             cursor:pointer;transition:border-color .18s;margin-bottom:0}
+.aj-base-btn:hover{border-color:var(--acc2)}
+.aj-base-ico{font-size:18px}
+.aj-base-info{flex:1;min-width:0}
+.aj-base-lbl{font-size:8px;color:var(--acc2);font-weight:800;letter-spacing:.8px}
+.aj-base-val{font-size:13px;font-weight:700;color:var(--tx);margin-top:2px;
+             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aj-base-val.ph{color:var(--tx3);font-weight:400;font-size:12px}
+
+/* Campos de valor numérico */
+.aj-num-row{display:flex;align-items:center;gap:10px;padding:10px 13px;
+            background:var(--s2);border-radius:10px;border:1px solid var(--div);margin-bottom:7px}
+.aj-num-ico{font-size:16px;flex-shrink:0}
+.aj-num-info{flex:1}
+.aj-num-lbl{font-size:11px;font-weight:700;color:var(--tx)}
+.aj-num-sub{font-size:9px;color:var(--tx3);margin-top:1px}
+.aj-num-right{display:flex;align-items:center;gap:5px}
+.aj-num-inp{background:var(--bg);border:1px solid var(--div);border-radius:8px;
+            color:var(--tx);font-size:15px;font-weight:800;padding:5px 9px;
+            width:70px;text-align:right;outline:none;transition:border-color .18s;
+            -moz-appearance:textfield}
+.aj-num-inp::-webkit-outer-spin-button,.aj-num-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.aj-num-inp:focus{border-color:var(--acc2)}
+.aj-num-unit{font-size:9px;color:var(--tx3);white-space:nowrap}
+
+/* Grid pluses */
+.aj-plus-hdr{font-size:8px;color:var(--tx3);font-weight:800;letter-spacing:1px;
+             margin-bottom:8px;margin-top:4px;display:flex;align-items:center;gap:6px}
+.aj-plus-hdr::after{content:'';flex:1;height:1px;background:var(--div)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:2px}
+.pf{background:var(--bg);border-radius:10px;padding:9px 10px;border:1px solid var(--div);
+    display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.pf-l{font-size:8px;color:var(--tx3);font-weight:700;letter-spacing:.2px;line-height:1.2}
+.pf-r{display:flex;align-items:center;gap:2px}
+.pf-i{background:none;border:none;color:var(--acc2);font-size:15px;font-weight:800;
+      width:52px;text-align:center;outline:none;font-variant-numeric:tabular-nums}
+.pf-u{font-size:8px;color:var(--tx3)}
+
+/* Fila info (offline) */
+.aj-info-row{display:flex;align-items:center;gap:10px;padding:9px 13px}
+.aj-info-row+.aj-info-row{border-top:1px solid var(--div)}
+.aj-info-ico{font-size:14px;width:22px;text-align:center;flex-shrink:0}
+.aj-info-txt{flex:1}
+.aj-info-t{font-size:12px;font-weight:600;color:var(--tx)}
+.aj-info-s{font-size:9px;color:var(--tx2);margin-top:1px}
+.aj-info-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:20px}
+.aj-info-badge.verde{color:var(--green2);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25)}
+
+/* Botón guardar — gran y llamativo */
+.aj-save-btn{width:100%;padding:14px;border-radius:14px;border:none;cursor:pointer;
+             font-size:14px;font-weight:800;letter-spacing:-.2px;
+             background:linear-gradient(135deg,var(--nar),var(--nar2));
+             color:#fff;box-shadow:var(--sh-nar);transition:all .2s}
+.aj-save-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.aj-save-btn:active{transform:scale(.98)}
+
+/* Botón borrar */
+.aj-del-btn{width:100%;padding:12px;border-radius:12px;cursor:pointer;
+            font-size:12px;font-weight:700;background:transparent;
+            border:1px solid rgba(239,68,68,.28);color:rgba(239,68,68,.7);
+            transition:all .18s}
+.aj-del-btn:hover{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.5);color:var(--red2)}
+
+/* Footer versión */
+.aj-ver{text-align:center;font-size:9px;color:var(--tx3);padding:4px 0 8px;
+        display:flex;align-items:center;justify-content:center;gap:6px}
+.aj-ver::before,.aj-ver::after{content:'';width:30px;height:1px;background:var(--div)}
+/* STATS */
+.st-body{padding:12px;padding-bottom:80px}
+.role-card{border-radius:13px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:11px}
+.role-card.trip{background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18)}
+.role-card.aux{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.18)}
+.rc-emo{font-size:26px}
+.rc-info{flex:1}
+.rc-name{font-size:13px;font-weight:800}
+.rc-sub{font-size:9px;color:var(--tx2);margin-top:2px}
+.rc-tasa{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.sc{background:var(--s1);border-radius:12px;padding:12px;border:1px solid var(--div);display:flex;flex-direction:column;gap:6px}
+.sc-i{font-size:18px}
+.sc-v{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
+.sc-l{font-size:9px;color:var(--tx2)}
+.cs-box{background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18);border-radius:12px;padding:14px;margin-bottom:10px}
+.cs-t{font-size:8px;font-weight:800;letter-spacing:1.2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px}
+.cs-r{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px}
+.cs-r .cl{color:var(--tx2)}
+.cs-r .cv{font-weight:800;font-size:14px}
+/* TOAST */
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%) translateY(6px);
+       background:var(--s3);color:var(--tx);padding:8px 16px;border-radius:20px;
+       font-size:11px;font-weight:700;z-index:999;border:1px solid var(--div);
+       white-space:nowrap;opacity:0;transition:all .28s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="ph" id="ph">
+
+<!-- STATUS BAR -->
+<div class="sb">
+  <div class="sb-t" id="sbt">--:--</div>
+  <div class="sb-r"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-titulo" id="hdr-nom">Mis Turnos</div>
+      <div class="hdr-pill pill-t" id="hdr-rol">🚆 TRIPULANTE</div>
+    </div>
+    <div class="hdr-btns">
+      <button class="hbtn" onclick="goP('stats')">📊</button>
+      <button class="hbtn" onclick="goP('ajustes')">⚙️</button>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- CALENDARIO -->
+  <div class="panel on" id="p-cal">
+    <!-- Navegación de mes -->
+    <div class="mes-nav">
+      <button class="mn-btn" onclick="chM(-1)" title="Mes anterior">‹</button>
+      <div class="mn-lbl-wrap">
+        <div class="mn-lbl" id="mn-lbl"></div>
+        <div class="mn-sub" id="mn-sub"></div>
+      </div>
+      <div class="vista-toggle" id="vista-toggle" style="display:none">
+        <button id="vista-mio"   class="vista-btn act" onclick="setVistaMode('mio')">📅 Mis turnos</button>
+        <button id="vista-comp"  class="vista-btn"     onclick="setVistaMode('comp')">👤 Compañero</button>
+        <button id="vista-ambos" class="vista-btn"     onclick="setVistaMode('ambos')">⚖ Comparar</button>
+      </div>
+      <div class="mn-hoy" onclick="irHoy()">Hoy</div>
+      <button class="mn-btn" onclick="chM(1)" title="Mes siguiente">›</button>
+    </div>
+
+    <!-- Contenedor con swipe táctil horizontal -->
+    <div class="cal-swipe" id="cal-swipe">
+      <div class="cal-track" id="cal-track">
+        <!-- Slide anterior (pre-renderizado para animación) -->
+        <div class="cal-slide" id="cal-prev">
+          <div class="cal-box">
+            <div class="dow"><div class="dw">L</div><div class="dw">M</div><div class="dw">X</div><div class="dw">J</div><div class="dw">V</div><div class="dw" style="color:#FCA5A5">S</div><div class="dw" style="color:#FCA5A5">D</div></div>
+            <div class="days" id="days-prev"></div>
+          </div>
+        </div>
+        <!-- Slide actual -->
+        <div class="cal-slide" id="cal-curr">
+          <div class="cal-box">
+            <div class="dow"><div class="dw">L</div><div class="dw">M</div><div class="dw">X</div><div class="dw">J</div><div class="dw">V</div><div class="dw" style="color:#FCA5A5">S</div><div class="dw" style="color:#FCA5A5">D</div></div>
+            <div class="days" id="days"></div>
+          </div>
+        </div>
+        <!-- Slide siguiente -->
+        <div class="cal-slide" id="cal-next">
+          <div class="cal-box">
+            <div class="dow"><div class="dw">L</div><div class="dw">M</div><div class="dw">X</div><div class="dw">J</div><div class="dw">V</div><div class="dw" style="color:#FCA5A5">S</div><div class="dw" style="color:#FCA5A5">D</div></div>
+            <div class="days" id="days-next"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores de mes (dots) -->
+    <div id="cal-dots" style="display:flex;justify-content:center;gap:5px;padding:6px 0 2px"></div>
+
+    <!-- Leyenda -->
+    <div class="leyenda">
+      <div class="leg" style="color:#93C5FD;border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.1)">🚂 Ordinario</div>
+      <div class="leg" style="color:#FCD34D;border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.1)">⏳ Reserva</div>
+      <div class="leg" style="color:#86EFAC;border-color:rgba(22,163,74,.4);background:rgba(22,163,74,.1)">🧘 Descanso</div>
+      <div class="leg" style="color:#FCA5A5;border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.1)">🏥 Baja</div>
+      <div class="leg" style="color:#67E8F9;border-color:rgba(8,145,178,.5);background:rgba(8,145,178,.12)">📅 Comp.</div>
+      <div class="leg" style="color:#FCD34D;border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.1)">🌙 Vuelta</div>
+    </div>
+
+    <!-- DÍA SELECCIONADO -->
+    <div id="dia-area" class="dia-area"></div>
+    <!-- ACORDEÓN HISTORIAL -->
+    <div style="padding:0 10px 4px;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-top:4px">Turnos del mes</div>
+    <div class="acordeon" id="acordeon"></div>
+  </div>
+
+  <!-- ESTADÍSTICAS -->
+  <div class="panel" id="p-stats">
+    <div class="mes-nav">
+      <button class="mn-btn" onclick="chSM(-1)">‹</button>
+      <div class="mn-lbl" id="smlbl"></div>
+      <div class="mn-hoy" onclick="statsM=new Date();renderStats()">Este mes</div>
+      <button class="mn-btn" onclick="chSM(1)">›</button>
+    </div>
+    <div class="st-body">
+      <div id="role-card"></div>
+      <div class="sg" id="sg"></div>
+      <div id="cs-box"></div>
+    </div>
+  </div>
+
+  <!-- AJUSTES -->
+  <div class="panel" id="p-ajustes">
+    <div class="aj-body">
+
+      <!-- ── PERFIL ── -->
+      <div class="aj-card">
+        <div class="aj-card-hdr c-blue">
+          <div class="aj-card-hdr-ico">👤</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit">Perfil</div>
+            <div class="aj-card-hdr-sub">Nombre, matrícula y rol activo</div>
+          </div>
+        </div>
+        <div class="aj-card-body">
+          <div class="aj-nombre-wrap">
+            <div class="aj-nombre-ico">✍️</div>
+            <input class="aj-nombre-inp" id="aj-nom" placeholder="Nombre completo…" autocomplete="off">
+          </div>
+          <div class="aj-nombre-wrap" style="margin-bottom:10px">
+            <div class="aj-nombre-ico">🪪</div>
+            <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
+              style="font-variant-numeric:tabular-nums">
+          </div>
+          <div class="aj-roles">
+            <div class="aj-rol-btn" id="rs-t" onclick="setRol('tripulante')">
+              <div class="rol-ico">🚆</div>
+              <div class="rol-lbl">Tripulante</div>
+              <div class="rol-sub">Jefe / Revisor</div>
+            </div>
+            <div class="aj-rol-btn" id="rs-a" onclick="setRol('auxiliar')">
+              <div class="rol-ico">🎫</div>
+              <div class="rol-lbl">Auxiliar</div>
+              <div class="rol-sub">Auxiliar de tripulante</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ESTACIÓN BASE ── -->
+      <div class="aj-card">
+        <div class="aj-card-hdr c-blue">
+          <div class="aj-card-hdr-ico">🏠</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit">Estación Base</div>
+            <div class="aj-card-hdr-sub">Salida autocompletada en cada turno</div>
+          </div>
+        </div>
+        <div class="aj-card-body">
+          <div class="aj-base-btn" onclick="openEstSheet('base')">
+            <div class="aj-base-ico">📍</div>
+            <div class="aj-base-info">
+              <div class="aj-base-lbl">ESTACIÓN BASE FIJA</div>
+              <div class="aj-base-val ph" id="aj-base-v">Toca para seleccionar</div>
+            </div>
+            <span style="color:var(--tx3);font-size:18px">⌄</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ECONOMÍA ── -->
+      <div class="aj-card">
+        <div class="aj-card-hdr c-gold">
+          <div class="aj-card-hdr-ico">💶</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit">Economía</div>
+            <div class="aj-card-hdr-sub">Tarifas y pluses por viaje</div>
+          </div>
+        </div>
+        <div class="aj-card-body">
+          <div class="aj-num-row">
+            <div class="aj-num-ico">⏱</div>
+            <div class="aj-num-info">
+              <div class="aj-num-lbl">Valor hora base</div>
+              <div class="aj-num-sub">Para cálculo de compensación</div>
+            </div>
+            <div class="aj-num-right">
+              <input class="aj-num-inp" id="aj-vh" type="number" step="0.50" min="0">
+              <span class="aj-num-unit">€/h</span>
+            </div>
+          </div>
+          <div class="aj-num-row">
+            <div class="aj-num-ico">🌙</div>
+            <div class="aj-num-info">
+              <div class="aj-num-lbl">Plus Nocturnidad</div>
+              <div class="aj-num-sub">22:00 – 06:00 · suma al valor hora</div>
+            </div>
+            <div class="aj-num-right">
+              <input class="aj-num-inp" id="aj-noc" type="number" step="0.10" min="0">
+              <span class="aj-num-unit">€/h</span>
+            </div>
+          </div>
+          <div class="aj-plus-hdr">PLUSES POR VIAJE — importes configurables</div>
+          <div style="font-size:9px;color:var(--tx3);margin-bottom:8px;line-height:1.4">
+            🔘 <strong style="color:var(--tx2)">Activación y JT</strong> — se activan manualmente en cada viaje<br>
+            🌍 <strong style="color:var(--cyan2)">Internacional</strong> — se activa automáticamente en líneas internacionales
+          </div>
+          <div class="pgrid" id="pgrid"></div>
+        </div>
+      </div>
+
+      <!-- ── IDIOMA ── -->
+      <div class="aj-card">
+        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(139,92,246,.04))">
+          <div class="aj-card-hdr-ico">🌐</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit" style="color:var(--violet2)" id="aj-idioma-tit">Idioma</div>
+            <div class="aj-card-hdr-sub" style="color:var(--violet2)" id="aj-idioma-sub">Cambia el idioma de la app al instante</div>
+          </div>
+        </div>
+        <div class="aj-card-body">
+          <div id="idioma-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
+        </div>
+      </div>
+
+      <!-- ── ALMACENAMIENTO ── -->
+      <div class="aj-card">
+        <div class="aj-card-hdr c-green">
+          <div class="aj-card-hdr-ico">🔒</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit">Almacenamiento</div>
+            <div class="aj-card-hdr-sub">100% local, sin internet</div>
+          </div>
+        </div>
+        <div class="aj-card-body" style="padding:8px 14px 10px">
+          <div class="aj-info-row">
+            <div class="aj-info-ico">📴</div>
+            <div class="aj-info-txt">
+              <div class="aj-info-t">Sin conexión a internet</div>
+              <div class="aj-info-s">Todos los datos en tu dispositivo</div>
+            </div>
+            <div class="aj-info-badge verde">ACTIVO</div>
+          </div>
+          <div class="aj-info-row">
+            <div class="aj-info-ico">⚡</div>
+            <div class="aj-info-txt">
+              <div class="aj-info-t">Guardado automático</div>
+              <div class="aj-info-s">Cada cambio persiste al instante</div>
+            </div>
+            <div class="aj-info-badge verde">ON</div>
+          </div>
+        </div>
+      </div>
+
+      
+      <!-- ── BOTONES ── -->
+      <button class="aj-save-btn" onclick="saveAj()">💾  Guardar ajustes</button>
+      <button class="aj-del-btn" onclick="pedirBorrarTodo()">🗑  Borrar todos los turnos</button>
+      <div class="aj-ver">TrenTurnos v5 · 100% local · Offline</div>
+
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="bni on" id="nav-cal" onclick="goP('cal')"><div class="bi">📅</div><div class="bl">CALENDARIO</div><div class="bd"></div></button>
+  <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
+  <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
+</div>
+
+<!-- OV: TIPO TURNO -->
+<div class="ov" id="ov-tipo">
+  <div class="sh">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📋</div>
+      <div><div class="sh-tit" id="tipo-fecha-lbl"></div><div class="sh-sub">Tipo de jornada</div></div>
+      <button class="sh-close" onclick="closeOv('ov-tipo');clearSelDay()">✕</button>
+    </div>
+    <div style="overflow-y:auto">
+      <div class="tipo-grid">
+        <div class="topt t-ord" onclick="elegirTipo('ordinario')"><div class="to-ico">🚂</div><div class="to-lbl">Ordinario</div><div class="to-sub">Turno normal de trabajo</div></div>
+        <div class="topt t-res" onclick="elegirTipo('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva</div><div class="to-sub">De guardia, sin tramo aún</div></div>
+        <div class="topt t-des" onclick="elegirTipo('descanso')"><div class="to-ico">🧘</div><div class="to-lbl">Descanso</div><div class="to-sub">Día libre o trabajado</div></div>
+        <div class="topt t-tra" onclick="elegirTipo('trabajado')"><div class="to-ico">💼</div><div class="to-lbl">Trabajado</div><div class="to-sub">Descanso trabajado</div></div>
+        <div class="topt t-baj" onclick="elegirTipo('baja')"><div class="to-ico">🏥</div><div class="to-lbl">Baja</div><div class="to-sub">Médica o laboral</div></div>
+        <div class="topt t-vac" onclick="elegirTipo('vacaciones')"><div class="to-ico">🏖</div><div class="to-lbl">Vacaciones</div><div class="to-sub">Días de vacaciones anuales</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OV: FORMULARIO -->
+<div class="ov" id="ov-form">
+  <div class="sh" id="sh-form">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico" id="form-ico">🚂</div>
+      <div><div class="sh-tit" id="form-tit"></div><div class="sh-sub" id="form-sub"></div></div>
+      <button class="sh-close" onclick="closeOv('ov-form')">✕</button>
+    </div>
+    <div id="form-body"></div>
+    <div class="mfoot">
+      <button class="m-del" id="m-del" onclick="pedirEliminar()" style="display:none">🗑 Eliminar</button>
+      <button class="m-save" onclick="guardarTurno()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OV: ESTACIÓN -->
+<div class="ov" id="ov-est">
+  <div class="est-sh">
+    <div class="sh-handle" style="margin-bottom:10px"></div>
+    <div class="est-hdr">
+      <div class="est-tit" id="est-tit">📍 Estación</div>
+      <div class="est-srch">🔍 <input type="text" id="est-srch-inp" placeholder="Buscar…" oninput="renderEstList(this.value)"></div>
+    </div>
+    <div class="est-list" id="est-list"></div>
+  </div>
+</div>
+
+<!-- OV: HORA — teclado numérico táctil, sin ruedas -->
+<div class="ov" id="ov-hora">
+  <div class="hora-sh">
+    <div class="sh-handle"></div>
+    <div class="hora-title" id="hora-tit">⏱ Hora</div>
+
+    <!-- Display principal de hora seleccionada -->
+    <div class="hora-display">
+      <div class="hora-seg" id="hd-h" onclick="horaFocus('h')">00</div>
+      <div class="hora-sep">:</div>
+      <div class="hora-seg" id="hd-m" onclick="horaFocus('m')">00</div>
+    </div>
+    <div class="hora-cursor-lbl" id="hora-cursor-lbl">Editando horas</div>
+
+    <!-- Teclado numérico -->
+    <div class="hora-pad">
+      <div class="hp-row">
+        <button class="hp-btn" onclick="hpNum(1)">1</button>
+        <button class="hp-btn" onclick="hpNum(2)">2</button>
+        <button class="hp-btn" onclick="hpNum(3)">3</button>
+      </div>
+      <div class="hp-row">
+        <button class="hp-btn" onclick="hpNum(4)">4</button>
+        <button class="hp-btn" onclick="hpNum(5)">5</button>
+        <button class="hp-btn" onclick="hpNum(6)">6</button>
+      </div>
+      <div class="hp-row">
+        <button class="hp-btn" onclick="hpNum(7)">7</button>
+        <button class="hp-btn" onclick="hpNum(8)">8</button>
+        <button class="hp-btn" onclick="hpNum(9)">9</button>
+      </div>
+      <div class="hp-row">
+        <button class="hp-btn hp-alt" onclick="hpTab()">⇄</button>
+        <button class="hp-btn" onclick="hpNum(0)">0</button>
+        <button class="hp-btn hp-alt" onclick="hpBorrar()">⌫</button>
+      </div>
+    </div>
+
+    <button class="hora-conf" onclick="confHora()">✓ Confirmar</button>
+  </div>
+</div>
+
+<!-- OV: CONFIRMAR ELIMINAR -->
+<div class="ov" id="ov-del">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">🗑️</div>
+    <div class="conf-tit">¿Eliminar turno?</div>
+    <div class="conf-txt">Se eliminarán también los días de compensación y la entrada de vuelta (si hay pernocta).</div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="closeOv('ov-del')">Cancelar</button>
+      <button class="conf-del" onclick="confirmarEliminar()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OV: BORRAR TODO -->
+<div class="ov" id="ov-borrar">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">⚠️</div>
+    <div class="conf-tit">¿Borrar todos los turnos?</div>
+    <div class="conf-txt">Se eliminarán todos los turnos del calendario. Los ajustes se conservan. Esta acción no se puede deshacer.</div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="closeOv('ov-borrar')">Cancelar</button>
+      <button class="conf-del" onclick="confirmarBorrarTodo()">Sí, borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<!-- OV: CAMBIO CON COMPAÑERO -->
+<div class="ov" id="ov-cambio">
+  <div class="sh" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔄</div>
+      <div>
+        <div class="sh-tit" id="cambio-tit">Cambio de Turno</div>
+        <div class="sh-sub">Genera el mensaje automáticamente</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-cambio')">✕</button>
+    </div>
+    <!-- SingleChildScrollView equivalent: overflow-y:auto en el body -->
+    <div id="cambio-body" style="overflow-y:auto;flex:1;min-height:0"></div>
+  </div>
+</div>
+
+<!-- OV: EDITAR DÍA COMPENSATORIO -->
+<div class="ov" id="ov-edit-comp">
+  <div class="sh" style="max-height:70%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📅</div>
+      <div>
+        <div class="sh-tit" id="edit-comp-tit">Día de Compensación</div>
+        <div class="sh-sub">Editar o cambiar este día</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-edit-comp')">✕</button>
+    </div>
+    <div id="edit-comp-body" style="overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- OV: AGENDA DE COMPAÑEROS -->
+<div class="ov" id="ov-agenda">
+  <div class="agenda-sh">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📒</div>
+      <div>
+        <div class="sh-tit">Agenda de Compañeros</div>
+        <div class="sh-sub">Toca un contacto para seleccionarlo</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-agenda')">✕</button>
+    </div>
+    <!-- Búsqueda dentro de la agenda -->
+    <div class="agenda-srch">
+      <span style="color:var(--tx3)">🔍</span>
+      <input type="text" id="agenda-srch-inp" placeholder="Buscar por nombre o matrícula…"
+        oninput="renderAgenda(this.value)" autocomplete="off">
+    </div>
+    <!-- Lista de contactos -->
+    <div class="agenda-list" id="agenda-list"></div>
+    <!-- Botón añadir manualmente -->
+    <div style="padding:8px 14px 18px;flex-shrink:0">
+      <button onclick="abrirNuevoContacto()"
+        style="width:100%;padding:11px;background:rgba(37,99,235,.1);
+        border:1.5px dashed rgba(37,99,235,.35);border-radius:11px;
+        color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer">
+        ➕ Añadir compañero manualmente
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- OV: NUEVO CONTACTO -->
+<div class="ov" id="ov-nuevo-contacto">
+  <div class="sh" style="max-height:55%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">👤</div>
+      <div><div class="sh-tit">Nuevo compañero</div><div class="sh-sub">Se guardará en tu agenda</div></div>
+      <button class="sh-close" onclick="closeOv('ov-nuevo-contacto')">✕</button>
+    </div>
+    <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;overflow-y:auto">
+      <div class="aj-nombre-wrap">
+        <span class="aj-nombre-ico">👤</span>
+        <input id="nc-nombre" class="aj-nombre-inp" placeholder="Nombre completo" autocomplete="off">
+      </div>
+      <div class="aj-nombre-wrap">
+        <span class="aj-nombre-ico">🪪</span>
+        <input id="nc-mat" class="aj-nombre-inp" placeholder="Número de matrícula" autocomplete="off">
+      </div>
+      <div class="aj-nombre-wrap">
+        <span class="aj-nombre-ico">🚆</span>
+        <input id="nc-tren" class="aj-nombre-inp" type="text" inputmode="numeric"
+          placeholder="Nº de tren frecuente (opcional)"
+          style="font-variant-numeric:tabular-nums">
+      </div>
+      <button onclick="guardarNuevoContacto()"
+        style="width:100%;padding:13px;background:var(--acc);border:none;
+        border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;
+        box-shadow:var(--sh-btn);margin-top:4px">
+        💾 Guardar en agenda
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- OV: CONFIRMAR ENVIO EMAIL -->
+<div class="ov" id="ov-email-confirm"><div class="sh" style="max-height:88%">
+  <div class="sh-handle"></div>
+  <div class="sh-hdr"><div class="sh-ico">✉️</div>
+    <div><div class="sh-tit" id="ec-tit">Confirmar envío</div><div class="sh-sub" id="ec-sub">Revisa antes de enviar</div></div>
+    <button class="sh-close" onclick="closeOv('ov-email-confirm')">✕</button>
+  </div>
+  <div style="padding:14px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:10px">
+    <div><div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">CORREO DE DESTINO</div>
+      <div class="aj-nombre-wrap"><span class="aj-nombre-ico">📧</span>
+        <input id="ec-dest" class="aj-nombre-inp" type="email" inputmode="email"
+          placeholder="programacion@renfe.com" autocomplete="email"
+          oninput="AJ.emailDestino=this.value.trim();localStorage.setItem('aj5',JSON.stringify(AJ))">
+      </div>
+      <div style="font-size:9px;color:var(--tx3);margin-top:4px">Se recuerda para la próxima vez</div>
+    </div>
+    <div><div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">ASUNTO</div>
+      <input id="ec-asunto" class="aj-nombre-inp" type="text" placeholder="Asunto">
+    </div>
+    <div><div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">MENSAJE</div>
+      <textarea id="ec-cuerpo" style="width:100%;background:var(--s2);border:1px solid var(--div);
+        border-radius:10px;padding:11px 13px;font-size:11px;color:var(--tx2);
+        line-height:1.65;resize:vertical;min-height:130px;outline:none;font-family:inherit"></textarea>
+    </div>
+    <button onclick="confirmarEnvioEmail()" style="width:100%;padding:14px;
+      background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;
+      border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">
+      ✉️ Enviar correo
+    </button>
+    <div style="font-size:9px;color:var(--tx3);text-align:center">Abre tu app de correo listo</div>
+  </div>
+</div></div>
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+</div><!-- /ph -->
+
+<script>
+/* ═══════════════════════════════════════
+   DATOS CONSTANTES
+═══════════════════════════════════════ */
+const LINEAS={
+  'AVE':['Madrid Puerta de Atocha','Madrid Chamartín','Zaragoza-Delicias','Barcelona Sants','Lleida-Pirineus','Camp de Tarragona','Tarragona','Sevilla Santa Justa','Córdoba','Málaga María Zambrano','Valencia Joaquín Sorolla','Alicante','Toledo','Puertollano','Ciudad Real','Cuenca F.Zóbel','Albacete-Los Llanos','Antequera-Santa Ana','Guadalajara-Yebes'],
+  'Renfe Larga Distancia':['Madrid Puerta de Atocha','Madrid Chamartín','Barcelona Sants','Valencia Nord','Alicante','Murcia del Carmen','Vigo-Urzáiz','Santiago de Compostela','A Coruña','Oviedo','Gijón','León','Bilbao Abando','San Sebastián/Donostia','Pamplona/Iruña','Salamanca','Zamora','Cáceres','Badajoz','Huelva','Almería','Granada'],
+  'Euromed':['Barcelona Sants','Camp de Tarragona','Tarragona','Vandellós','Cambrils','Salou','Reus','Tortosa','Vinaròs','Benicarló-Peñíscola','Oropesa del Mar','Castelló de la Plana','Sagunt','Valencia Joaquín Sorolla','Valencia Nord','Xàtiva','Gandia','Alicante'],
+  'Internacional (Lyon/Marsella)':['Madrid Puerta de Atocha','Barcelona Sants','Figueres-Vilafant','Girona','Perpignan','Narbonne','Montpellier St-Roch','Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles'],
+};
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MESES_C=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const DIAS_L=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+const TIPO_INFO={
+  ordinario:        {ico:'🚂',lbl:'Ordinario',    col:'var(--c-ord)',cls:'dc-ord'},
+  reserva:          {ico:'⏳',lbl:'Reserva',      col:'var(--c-res)',cls:'dc-res'},
+  descanso:         {ico:'🧘',lbl:'Descanso',     col:'var(--c-des)',cls:'dc-des'},
+  baja:             {ico:'🏥',lbl:'Baja',         col:'var(--c-baj)',cls:'dc-baj'},
+  trabajado:        {ico:'💼',lbl:'Trabajado',    col:'var(--c-tra)',cls:'dc-tra'},
+  comp:             {ico:'📅',lbl:'Comp.',        col:'var(--c-cmp)',cls:'dc-cmp'},
+  'vuelta-pernocta':{ico:'🌙',lbl:'Vuelta',       col:'var(--c-ord)',cls:'dc-res'},
+  vacaciones:       {ico:'✈',lbl:'Vacaciones',   col:'var(--c-vac)',cls:'dc-vac'},
+};
+// ── PLUSES: Activación, Internacional, JT — fijos por viaje ──
+const PLUS_DEF={
+  tripulante:{activacion:3.20,internacional:4.50,jt:2.80},
+  auxiliar:  {activacion:2.60,internacional:3.80,jt:2.20},
+};
+const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacional',jt:'Plus JT'};
+
+/* ═══════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════ */
+let AJ=Object.assign({
+  nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
+  pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)}
+},JSON.parse(localStorage.getItem('aj5')||'{}'));
+
+let TV=JSON.parse(localStorage.getItem('tv5')||'{}');
+let curM=new Date(), selDay=null, statsM=new Date();
+
+// ── Estado del formulario ──
+// REGLA: hF/hL/sal/lle = tramo IDA (día seleccionado)
+//        hF2/hL2/sal2/lle2 = tramo VUELTA
+let F={};
+let estField=null;
+let miniM=null, diasComp=[];
+
+// ── TimePicker state — teclado numérico ──
+// field: campo de F que se está editando
+// H/M: hora/minuto actual (strings "HH"/"MM")
+// foco: 'h' | 'm' — qué segmento se edita
+// buf: dígitos acumulados antes de confirmar
+let TP={field:null, H:'08', M:'00', foco:'h', buf:''};
+
+// ── Módulos declarados aquí para garantizar disponibilidad antes de init() ──
+// C-01 FIX: SF, AGENDA y ALERTAS deben estar en el bloque global,
+// no dentro de las funciones de cada módulo (evita ReferenceError)
+let SF              = JSON.parse(localStorage.getItem('sf5')     || '[]');
+let AGENDA          = JSON.parse(localStorage.getItem('agenda5') || '[]');
+let ALERTAS_DESCANSO = {};
+
+// ── Sistema Horario Compañero ─────────────────────────────────
+var COMP_DATA  = JSON.parse(localStorage.getItem('comp5') || '{}');
+var vistaMode  = 'mio'; // 'mio' | 'comp' | 'ambos'
+
+function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+function init(){
+  // Limpiar claves de versiones anteriores (ya no necesarias)
+  ['tv3','tv4','aj3','aj4'].forEach(k=>localStorage.removeItem(k));
+  // Detectar y limpiar datos con días comp en mes incorrecto
+  limpiarDatosObsoletos();
+
+  setInterval(()=>{const n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());},15000);
+  const n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
+  loadAjUI();
+  // Cargar idioma guardado (en tiempo real, sin reiniciar)
+  if(AJ.idioma && I18N[AJ.idioma]) aplicarIdioma(AJ.idioma);
+  renderCal();
+  renderStats();
+  initSwipe(); // activar swipe táctil en calendario
+}
+
+function limpiarDatosObsoletos(){
+  const stored=JSON.parse(localStorage.getItem('tv5')||'{}');
+  let stale=false;
+  Object.entries(stored).forEach(([k,v])=>{
+    if(v.tipo==='comp'&&v.origen){
+      const [oy,om]=v.origen.split('-').map(Number);
+      const [cy,cm]=k.split('-').map(Number);
+      const expM=om===12?1:om+1,expY=om===12?oy+1:oy;
+      if(cy!==expY||cm!==expM)stale=true;
+    }
+  });
+  if(stale){localStorage.removeItem('tv5');TV={};}
+}
+
+/* ═══════════════════════════════════════
+   CALENDARIO
+═══════════════════════════════════════ */
+/* ═══════════════════════════════════════
+   INTERNACIONALIZACIÓN (i18n)
+   Equivalente a flutter_localizations + intl
+   Idiomas: es, en, fr, ca, zh
+═══════════════════════════════════════ */
+const I18N = {
+  es: {
+    // App general
+    appTitulo:'Mis Turnos', idioma:'Idioma',
+    // Nav
+    navCal:'CALENDARIO', navStats:'STATS', navAjustes:'AJUSTES',
+    // Header pills
+    tripulante:'TRIPULANTE', auxiliar:'AUXILIAR',
+    // Tipos de turno
+    tipoOrdinario:'Ordinario', tipoReserva:'Reserva', tipoDescanso:'Descanso',
+    tipoBaja:'Baja', tipoTrabajado:'Trabajado', tipoComp:'Comp.', tipoVuelta:'Vuelta',
+    // Subtipos descripcion
+    descOrdinario:'Turno normal de trabajo', descReserva:'De guardia, sin tramo aún',
+    descDescanso:'Día libre o trabajado', descBaja:'Médica o laboral',
+    // Meses
+    meses:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+    mesesCorto:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
+    dias:['lunes','martes','miércoles','jueves','viernes','sábado','domingo'],
+    hoy:'Hoy',
+    // Formulario
+    guardar:'Guardar', eliminar:'Eliminar', cancelar:'Cancelar',
+    editar:'✏️ Editar', nuevoTurno:'Agregar turno', sinTurno:'Sin turno asignado',
+    // Tramos
+    tramoIda:'TRAMO IDA', tramoVuelta:'TRAMO VUELTA',
+    mismodia:'Mismo día', pernocta:'Pernocta',
+    vueltaMismodia:'Ida y vuelta hoy', vueltaDiaSig:'Vuelta al día siguiente',
+    salida:'SALIDA', llegada:'LLEGADA', firma:'FIRMA',
+    seleccionar:'Seleccionar', seleccionarEst:'Seleccionar estación',
+    horario:'Horario', trayecto:'Trayecto', linea:'Línea',
+    numTren:'Número de Tren', notas:'Notas opcionales…',
+    // Compensación
+    compensacion:'Compensación', enDinero:'En dinero', enDias:'días',
+    pagoEuro:'Pago €', mesSiguiente:'Mes siguiente',
+    totalCobrar:'Total a cobrar', horasIda:'Horas ida', horasVuelta:'Horas vuelta',
+    totalHoras:'Total horas', tarifa:'Tarifa',
+    seleccionaDias:'Selecciona', diasMesSig:'días en el mes siguiente',
+    // Pluses
+    plusActivacion:'Plus Activación', plusJT:'Plus JT', plusIntl:'Plus Internacional',
+    plusViaje:'€/viaje', nocturnidad:'Nocturnidad activa',
+    plusIntlAuto:'Plus Internacional activado automáticamente',
+    // Ajustes
+    perfil:'Perfil', nombreMatricula:'Nombre, matrícula y rol activo',
+    tuNombre:'Nombre completo…', tuMatricula:'Número de matrícula…',
+    estBase:'Estación Base', estBaseDesc:'Salida autocompletada en cada turno',
+    tocaSeleccionar:'Toca para seleccionar', estBaseLabel:'ESTACIÓN BASE FIJA',
+    economia:'Economía', tarifasPluses:'Tarifas y pluses por viaje',
+    valorHora:'Valor hora base', nocturno:'Plus Nocturnidad',
+    nocturnoDesc:'22:00 – 06:00 · suma al valor hora',
+    plusesViaje:'PLUSES FIJOS POR VIAJE',
+    plusManual:'se activan manualmente en cada viaje',
+    plusAutoIntl:'se activa automáticamente en líneas internacionales',
+    almacenamiento:'Almacenamiento', sinInternet:'100% local, sin internet',
+    offline:'Sin conexión a internet', offlineDesc:'Todos los datos en tu dispositivo',
+    autoguardado:'Guardado automático', autoguardadoDesc:'Cada cambio persiste al instante',
+    backup:'Backup de datos', backupDesc:'Exportar e importar todos tus turnos',
+    exportar:'📤 Exportar / Descargar backup', importar:'📥 Importar backup',
+    guardarAjustes:'💾  Guardar ajustes', borrarTurnos:'🗑  Borrar todos los turnos',
+    ajustesGuardados:'✅ Ajustes guardados',
+    // Agenda
+    agenda:'Agenda de Compañeros', agendaDesc:'Toca un contacto para seleccionarlo',
+    buscarAgenda:'Buscar por nombre o matrícula…', addContacto:'➕ Añadir compañero manualmente',
+    nuevoContacto:'Nuevo compañero', nuevoContactoDesc:'Se guardará en tu agenda',
+    guardarAgenda:'💾 Guardar en agenda', agendaVacia:'Tu agenda está vacía.',
+    // Cambio
+    cambio:'🔄 Cambio', solicitarCambio:'🔄 Solicitar Cambio de Turno',
+    cambioDesc:'Genera el mensaje automáticamente', miTurno:'MI TURNO',
+    datosCompanero:'DATOS DEL COMPAÑERO', btnAgenda:'📒 Agenda',
+    nombreCompleto:'Nombre completo', matriculaComp:'Matrícula del compañero',
+    nTrenComp:'Nº de tren del compañero', vistaPrevia:'VISTA PREVIA',
+    abrirCorreo:'✉️ Abrir en Correo',
+    // Mensajes
+    turnoGuardado:'✅ Turno guardado', turnoEliminado:'🗑 Turno eliminado',
+    diasLibres:'días compensación asignados', nDiasAsig:'días asignados',
+    // Búsqueda
+    buscar:'Buscar…', sinResultados:'Sin resultados',
+    // Confirmaciones
+    borrarTodo:'¿Borrar todos los turnos?',
+    borrarTodoDesc:'Se eliminarán todos los turnos del calendario. Los ajustes se conservan.',
+    si:'Sí, borrar todo', noCancelar:'Cancelar',
+    editarHoras:'Editando horas', editarMinutos:'Editando minutos',
+    confirmarHora:'✓ Confirmar',
+  },
+  en: {
+    appTitulo:'My Shifts', idioma:'Language',
+    navCal:'CALENDAR', navStats:'STATS', navAjustes:'SETTINGS',
+    tripulante:'CREW', auxiliar:'AUXILIARY',
+    tipoOrdinario:'Ordinary', tipoReserva:'Reserve', tipoDescanso:'Rest',
+    tipoBaja:'Sick leave', tipoTrabajado:'Worked', tipoComp:'Comp.', tipoVuelta:'Return',
+    descOrdinario:'Normal work shift', descReserva:'On call, no leg yet',
+    descDescanso:'Day off or worked', descBaja:'Medical or labour',
+    meses:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    mesesCorto:['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'],
+    dias:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+    hoy:'Today',
+    guardar:'Save', eliminar:'Delete', cancelar:'Cancel',
+    editar:'✏️ Edit', nuevoTurno:'Add shift', sinTurno:'No shift assigned',
+    tramoIda:'OUTBOUND LEG', tramoVuelta:'RETURN LEG',
+    mismodia:'Same day', pernocta:'Overnight',
+    vueltaMismodia:'Return same day', vueltaDiaSig:'Return next day',
+    salida:'DEPARTURE', llegada:'ARRIVAL', firma:'CHECK-IN',
+    seleccionar:'Select', seleccionarEst:'Select station',
+    horario:'Schedule', trayecto:'Route', linea:'Line',
+    numTren:'Train Number', notas:'Optional notes…',
+    compensacion:'Compensation', enDinero:'Cash', enDias:'days',
+    pagoEuro:'€ payment', mesSiguiente:'Next month',
+    totalCobrar:'Total payable', horasIda:'Outbound hours', horasVuelta:'Return hours',
+    totalHoras:'Total hours', tarifa:'Rate',
+    seleccionaDias:'Select', diasMesSig:'days in next month',
+    plusActivacion:'Activation Bonus', plusJT:'JT Bonus', plusIntl:'International Bonus',
+    plusViaje:'€/trip', nocturnidad:'Night shift active',
+    plusIntlAuto:'International bonus activated automatically',
+    perfil:'Profile', nombreMatricula:'Name, ID and active role',
+    tuNombre:'Full name…', tuMatricula:'Employee ID…',
+    estBase:'Home Station', estBaseDesc:'Auto-filled as departure in each shift',
+    tocaSeleccionar:'Tap to select', estBaseLabel:'HOME STATION',
+    economia:'Economics', tarifasPluses:'Rates and bonuses per trip',
+    valorHora:'Base hourly rate', nocturno:'Night bonus',
+    nocturnoDesc:'22:00 – 06:00 · added to hourly rate',
+    plusesViaje:'FIXED BONUSES PER TRIP',
+    plusManual:'activated manually per trip',
+    plusAutoIntl:'activated automatically on international lines',
+    almacenamiento:'Storage', sinInternet:'100% local, no internet',
+    offline:'No internet connection', offlineDesc:'All data on your device',
+    autoguardado:'Auto-save', autoguardadoDesc:'Every change saved instantly',
+    backup:'Data backup', backupDesc:'Export and import all your shifts',
+    exportar:'📤 Export / Download backup', importar:'📥 Import backup',
+    guardarAjustes:'💾  Save settings', borrarTurnos:'🗑  Delete all shifts',
+    ajustesGuardados:'✅ Settings saved',
+    agenda:'Colleagues Directory', agendaDesc:'Tap a contact to select',
+    buscarAgenda:'Search by name or ID…', addContacto:'➕ Add colleague manually',
+    nuevoContacto:'New colleague', nuevoContactoDesc:'Will be saved to your directory',
+    guardarAgenda:'💾 Save to directory', agendaVacia:'Your directory is empty.',
+    cambio:'🔄 Swap', solicitarCambio:'🔄 Request Shift Swap',
+    cambioDesc:'Generate the message automatically', miTurno:'MY SHIFT',
+    datosCompanero:'COLLEAGUE DATA', btnAgenda:'📒 Directory',
+    nombreCompleto:'Full name', matriculaComp:'Colleague ID',
+    nTrenComp:'Colleague train no.', vistaPrevia:'PREVIEW',
+    abrirCorreo:'✉️ Open in Mail',
+    turnoGuardado:'✅ Shift saved', turnoEliminado:'🗑 Shift deleted',
+    diasLibres:'comp days assigned', nDiasAsig:'days assigned',
+    buscar:'Search…', sinResultados:'No results',
+    borrarTodo:'Delete all shifts?',
+    borrarTodoDesc:'All calendar shifts will be deleted. Settings are kept.',
+    si:'Yes, delete all', noCancelar:'Cancel',
+    editarHoras:'Editing hours', editarMinutos:'Editing minutes',
+    confirmarHora:'✓ Confirm',
+    idioma:'Language',
+  },
+  fr: {
+    appTitulo:'Mes Services', idioma:'Langue',
+    navCal:'CALENDRIER', navStats:'STATS', navAjustes:'RÉGLAGES',
+    tripulante:'AGENT', auxiliar:'AUXILIAIRE',
+    tipoOrdinario:'Ordinaire', tipoReserva:'Réserve', tipoDescanso:'Repos',
+    tipoBaja:'Arrêt maladie', tipoTrabajado:'Travaillé', tipoComp:'Comp.', tipoVuelta:'Retour',
+    descOrdinario:'Service normal de travail', descReserva:'En attente, sans trajet',
+    descDescanso:'Jour de repos ou travaillé', descBaja:'Médicale ou professionnelle',
+    meses:['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
+    mesesCorto:['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'],
+    dias:['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'],
+    hoy:"Aujourd'hui",
+    guardar:'Enregistrer', eliminar:'Supprimer', cancelar:'Annuler',
+    editar:'✏️ Modifier', nuevoTurno:'Ajouter service', sinTurno:'Aucun service',
+    tramoIda:'TRAJET ALLER', tramoVuelta:'TRAJET RETOUR',
+    mismodia:'Même jour', pernocta:'Nuit sur place',
+    vueltaMismodia:'Aller-retour le même jour', vueltaDiaSig:'Retour le lendemain',
+    salida:'DÉPART', llegada:'ARRIVÉE', firma:'PRISE DE SERVICE',
+    seleccionar:'Sélectionner', seleccionarEst:'Sélectionner une gare',
+    horario:'Horaire', trayecto:'Trajet', linea:'Ligne',
+    numTren:'Numéro de train', notas:'Notes optionnelles…',
+    compensacion:'Compensation', enDinero:'Espèces', enDias:'jours',
+    pagoEuro:'Paiement €', mesSiguiente:'Mois suivant',
+    totalCobrar:'Total à percevoir', horasIda:'Heures aller', horasVuelta:'Heures retour',
+    totalHoras:'Total heures', tarifa:'Tarif',
+    seleccionaDias:'Sélectionnez', diasMesSig:'jours le mois prochain',
+    plusActivacion:'Prime activation', plusJT:'Prime JT', plusIntl:'Prime internationale',
+    plusViaje:'€/service', nocturnidad:'Nuit activée',
+    plusIntlAuto:'Prime internationale activée automatiquement',
+    perfil:'Profil', nombreMatricula:'Nom, matricule et rôle actif',
+    tuNombre:'Nom complet…', tuMatricula:'Numéro de matricule…',
+    estBase:'Gare de base', estBaseDesc:'Rempli automatiquement comme départ',
+    tocaSeleccionar:'Appuyer pour sélectionner', estBaseLabel:'GARE DE BASE',
+    economia:'Économie', tarifasPluses:'Tarifs et primes par service',
+    valorHora:'Taux horaire de base', nocturno:'Prime de nuit',
+    nocturnoDesc:'22h00 – 06h00 · ajoutée au taux horaire',
+    plusesViaje:'PRIMES FIXES PAR SERVICE',
+    plusManual:'activées manuellement par service',
+    plusAutoIntl:'activée automatiquement sur lignes internationales',
+    almacenamiento:'Stockage', sinInternet:'100% local, sans internet',
+    offline:'Sans connexion internet', offlineDesc:'Toutes les données sur votre appareil',
+    autoguardado:'Sauvegarde auto', autoguardadoDesc:'Chaque modification enregistrée instantanément',
+    backup:'Sauvegarde des données', backupDesc:'Exporter et importer vos services',
+    exportar:'📤 Exporter / Télécharger', importar:'📥 Importer sauvegarde',
+    guardarAjustes:'💾  Enregistrer les réglages', borrarTurnos:'🗑  Supprimer tous les services',
+    ajustesGuardados:'✅ Réglages enregistrés',
+    agenda:'Annuaire des collègues', agendaDesc:'Appuyez sur un contact pour sélectionner',
+    buscarAgenda:'Rechercher par nom ou matricule…', addContacto:'➕ Ajouter un collègue',
+    nuevoContacto:'Nouveau collègue', nuevoContactoDesc:'Sera enregistré dans votre annuaire',
+    guardarAgenda:'💾 Enregistrer dans l\'annuaire', agendaVacia:'Votre annuaire est vide.',
+    cambio:'🔄 Échange', solicitarCambio:'🔄 Demande d\'échange de service',
+    cambioDesc:'Générer le message automatiquement', miTurno:'MON SERVICE',
+    datosCompanero:'DONNÉES DU COLLÈGUE', btnAgenda:'📒 Annuaire',
+    nombreCompleto:'Nom complet', matriculaComp:'Matricule du collègue',
+    nTrenComp:'N° de train du collègue', vistaPrevia:'APERÇU',
+    abrirCorreo:'✉️ Ouvrir dans Mail',
+    turnoGuardado:'✅ Service enregistré', turnoEliminado:'🗑 Service supprimé',
+    diasLibres:'jours de compensation assignés', nDiasAsig:'jours assignés',
+    buscar:'Rechercher…', sinResultados:'Aucun résultat',
+    borrarTodo:'Supprimer tous les services?',
+    borrarTodoDesc:'Tous les services du calendrier seront supprimés.',
+    si:'Oui, tout supprimer', noCancelar:'Annuler',
+    editarHoras:'Édition heures', editarMinutos:'Édition minutes',
+    confirmarHora:'✓ Confirmer',
+  },
+  ca: {
+    appTitulo:'Els Meus Torns', idioma:'Idioma',
+    navCal:'CALENDARI', navStats:'STATS', navAjustes:'AJUSTOS',
+    tripulante:'TRIPULANT', auxiliar:'AUXILIAR',
+    tipoOrdinario:'Ordinari', tipoReserva:'Reserva', tipoDescanso:'Descans',
+    tipoBaja:'Baixa', tipoTrabajado:'Treballat', tipoComp:'Comp.', tipoVuelta:'Tornada',
+    descOrdinario:'Torn normal de treball', descReserva:'De guàrdia, sense tram',
+    descDescanso:'Dia lliure o treballat', descBaja:'Mèdica o laboral',
+    meses:['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'],
+    mesesCorto:['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'],
+    dias:['dilluns','dimarts','dimecres','dijous','divendres','dissabte','diumenge'],
+    hoy:'Avui',
+    guardar:'Desar', eliminar:'Eliminar', cancelar:'Cancel·lar',
+    editar:'✏️ Editar', nuevoTurno:'Afegir torn', sinTurno:'Sense torn assignat',
+    tramoIda:'TRAM ANADA', tramoVuelta:'TRAM TORNADA',
+    mismodia:'Mateix dia', pernocta:'Pernoctació',
+    vueltaMismodia:'Anada i tornada avui', vueltaDiaSig:'Tornada l\'endemà',
+    salida:'SORTIDA', llegada:'ARRIBADA', firma:'FITXATGE',
+    seleccionar:'Seleccionar', seleccionarEst:'Seleccionar estació',
+    horario:'Horari', trayecto:'Trajecte', linea:'Línia',
+    numTren:'Número de tren', notas:'Notes opcionals…',
+    compensacion:'Compensació', enDinero:'En diners', enDias:'dies',
+    pagoEuro:'Pagament €', mesSiguiente:'Mes següent',
+    totalCobrar:'Total a cobrar', horasIda:'Hores anada', horasVuelta:'Hores tornada',
+    totalHoras:'Total hores', tarifa:'Tarifa',
+    seleccionaDias:'Selecciona', diasMesSig:'dies al mes següent',
+    plusActivacion:'Plus activació', plusJT:'Plus JT', plusIntl:'Plus internacional',
+    plusViaje:'€/viatge', nocturnidad:'Nocturnitat activa',
+    plusIntlAuto:'Plus internacional activat automàticament',
+    perfil:'Perfil', nombreMatricula:'Nom, matrícula i rol actiu',
+    tuNombre:'Nom complet…', tuMatricula:'Número de matrícula…',
+    estBase:'Estació base', estBaseDesc:'Autoomplert com a sortida en cada torn',
+    tocaSeleccionar:'Toca per seleccionar', estBaseLabel:'ESTACIÓ BASE',
+    economia:'Economia', tarifasPluses:'Tarifes i plusos per viatge',
+    valorHora:'Valor hora base', nocturno:'Plus nocturnitat',
+    nocturnoDesc:'22:00 – 06:00 · suma al valor hora',
+    plusesViaje:'PLUSOS FIXOS PER VIATGE',
+    plusManual:'s\'activen manualment a cada viatge',
+    plusAutoIntl:'s\'activa automàticament a línies internacionals',
+    almacenamiento:'Emmagatzematge', sinInternet:'100% local, sense internet',
+    offline:'Sense connexió a internet', offlineDesc:'Totes les dades al teu dispositiu',
+    autoguardado:'Desat automàtic', autoguardadoDesc:'Cada canvi es desa a l\'instant',
+    backup:'Còpia de seguretat', backupDesc:'Exportar i importar tots els torns',
+    exportar:'📤 Exportar / Descarregar', importar:'📥 Importar còpia',
+    guardarAjustes:'💾  Desar ajustos', borrarTurnos:'🗑  Esborrar tots els torns',
+    ajustesGuardados:'✅ Ajustos desats',
+    agenda:'Agenda de companys', agendaDesc:'Toca un contacte per seleccionar',
+    buscarAgenda:'Cerca per nom o matrícula…', addContacto:'➕ Afegir company manualment',
+    nuevoContacto:'Nou company', nuevoContactoDesc:'Es desarà a la teva agenda',
+    guardarAgenda:'💾 Desar a l\'agenda', agendaVacia:'La teva agenda és buida.',
+    cambio:'🔄 Canvi', solicitarCambio:'🔄 Sol·licitar canvi de torn',
+    cambioDesc:'Genera el missatge automàticament', miTurno:'EL MEU TORN',
+    datosCompanero:'DADES DEL COMPANY', btnAgenda:'📒 Agenda',
+    nombreCompleto:'Nom complet', matriculaComp:'Matrícula del company',
+    nTrenComp:'Nº de tren del company', vistaPrevia:'PREVISUALITZACIÓ',
+    abrirCorreo:'✉️ Obrir al correu',
+    turnoGuardado:'✅ Torn desat', turnoEliminado:'🗑 Torn eliminat',
+    diasLibres:'dies de compensació assignats', nDiasAsig:'dies assignats',
+    buscar:'Cerca…', sinResultados:'Sense resultats',
+    borrarTodo:'Esborrar tots els torns?',
+    borrarTodoDesc:'S\'eliminaran tots els torns del calendari.',
+    si:'Sí, esborrar tot', noCancelar:'Cancel·lar',
+    editarHoras:'Editant hores', editarMinutos:'Editant minuts',
+    confirmarHora:'✓ Confirmar',
+  },
+  zh: {
+    appTitulo:'我的班次', idioma:'语言',
+    navCal:'日历', navStats:'统计', navAjustes:'设置',
+    tripulante:'乘务员', auxiliar:'辅助人员',
+    tipoOrdinario:'普通班', tipoReserva:'备班', tipoDescanso:'休息',
+    tipoBaja:'病假', tipoTrabajado:'已工作', tipoComp:'补偿', tipoVuelta:'返程',
+    descOrdinario:'正常工作班次', descReserva:'待命中，暂无行程',
+    descDescanso:'休息或工作日', descBaja:'医疗或劳动假',
+    meses:['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'],
+    mesesCorto:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    dias:['周一','周二','周三','周四','周五','周六','周日'],
+    hoy:'今天',
+    guardar:'保存', eliminar:'删除', cancelar:'取消',
+    editar:'✏️ 编辑', nuevoTurno:'添加班次', sinTurno:'未分配班次',
+    tramoIda:'去程', tramoVuelta:'返程',
+    mismodia:'当天', pernocta:'过夜',
+    vueltaMismodia:'当天往返', vueltaDiaSig:'次日返程',
+    salida:'出发', llegada:'到达', firma:'签到',
+    seleccionar:'选择', seleccionarEst:'选择车站',
+    horario:'时刻表', trayecto:'路线', linea:'线路',
+    numTren:'列车号', notas:'可选备注…',
+    compensacion:'补偿', enDinero:'现金', enDias:'天',
+    pagoEuro:'€支付', mesSiguiente:'下月',
+    totalCobrar:'应收合计', horasIda:'去程时间', horasVuelta:'返程时间',
+    totalHoras:'总时数', tarifa:'费率',
+    seleccionaDias:'选择', diasMesSig:'天（下月）',
+    plusActivacion:'激活津贴', plusJT:'JT津贴', plusIntl:'国际津贴',
+    plusViaje:'€/次', nocturnidad:'夜班已激活',
+    plusIntlAuto:'已自动激活国际津贴',
+    perfil:'个人资料', nombreMatricula:'姓名、工号及职务',
+    tuNombre:'全名…', tuMatricula:'员工工号…',
+    estBase:'基地车站', estBaseDesc:'每次班次自动填写为出发站',
+    tocaSeleccionar:'点击选择', estBaseLabel:'基地车站',
+    economia:'经济', tarifasPluses:'每次班次的费率和津贴',
+    valorHora:'基本小时费率', nocturno:'夜班津贴',
+    nocturnoDesc:'22:00 – 06:00 · 添加至小时费率',
+    plusesViaje:'每次班次固定津贴',
+    plusManual:'每次班次手动激活',
+    plusAutoIntl:'在国际线路上自动激活',
+    almacenamiento:'存储', sinInternet:'100%本地，无需网络',
+    offline:'无网络连接', offlineDesc:'所有数据在您的设备上',
+    autoguardado:'自动保存', autoguardadoDesc:'每次更改即时保存',
+    backup:'数据备份', backupDesc:'导出和导入所有班次',
+    exportar:'📤 导出/下载备份', importar:'📥 导入备份',
+    guardarAjustes:'💾  保存设置', borrarTurnos:'🗑  删除所有班次',
+    ajustesGuardados:'✅ 设置已保存',
+    agenda:'同事通讯录', agendaDesc:'点击联系人进行选择',
+    buscarAgenda:'按姓名或工号搜索…', addContacto:'➕ 手动添加同事',
+    nuevoContacto:'新同事', nuevoContactoDesc:'将保存到您的通讯录',
+    guardarAgenda:'💾 保存到通讯录', agendaVacia:'您的通讯录为空。',
+    cambio:'🔄 换班', solicitarCambio:'🔄 申请换班',
+    cambioDesc:'自动生成消息', miTurno:'我的班次',
+    datosCompanero:'同事信息', btnAgenda:'📒 通讯录',
+    nombreCompleto:'全名', matriculaComp:'同事工号',
+    nTrenComp:'同事列车号', vistaPrevia:'预览',
+    abrirCorreo:'✉️ 在邮件中打开',
+    turnoGuardado:'✅ 班次已保存', turnoEliminado:'🗑 班次已删除',
+    diasLibres:'已分配补偿天', nDiasAsig:'天已分配',
+    buscar:'搜索…', sinResultados:'无结果',
+    borrarTodo:'删除所有班次？',
+    borrarTodoDesc:'日历中的所有班次将被删除。',
+    si:'是，全部删除', noCancelar:'取消',
+    editarHoras:'编辑小时', editarMinutos:'编辑分钟',
+    confirmarHora:'✓ 确认',
+  }
+};
+
+// Idioma activo — se lee de AJ.idioma o por defecto 'es'
+let LANG = 'es';
+// Función de traducción: t('clave') → texto en idioma activo
+function t(k){ return (I18N[LANG] || I18N.es)[k] || I18N.es[k] || k; }
+
+// Aplicar traducciones a elementos estáticos del HTML
+function aplicarIdioma(lang){
+  LANG = lang;
+  AJ.idioma = lang;
+  // Actualizar MESES y DIAS con el idioma activo
+  Object.assign(MESES,    t('meses'));
+  Object.assign(MESES_C,  t('mesesCorto'));
+  Object.assign(DIAS_L,   t('dias'));
+  // Actualizar nav
+  document.querySelectorAll('.bl').forEach((el,i)=>{
+    const keys=['navCal','navStats','navAjustes'];
+    if(keys[i]) el.textContent=t(keys[i]);
+  });
+  // Actualizar botón guardar formulario
+  const ms=document.getElementById('m-del');
+  if(ms) ms.innerHTML='🗑 '+t('eliminar');
+  const msave=document.querySelector('.m-save');
+  if(msave) msave.textContent=t('guardar');
+  // Actualizar botones hora
+  const hconf=document.querySelector('.hora-conf');
+  if(hconf) hconf.textContent=t('confirmarHora');
+  // Placeholder búsqueda estaciones
+  const est=document.getElementById('est-srch-inp');
+  if(est) est.placeholder=t('buscar');
+  // Placeholder agenda
+  const ag=document.getElementById('agenda-srch-inp');
+  if(ag) ag.placeholder=t('buscarAgenda');
+  // Hora cursor label
+  horaRefresh();
+  // Rerender calendario y ajustes
+  renderCal();
+  updHeader();
+  renderIdiomaBtns();
+}
+
+/* ═══════════════════════════════════════
+   GESTIÓN DE JORNADA
+   checkRestTime(turnoA, turnoB) — verifica
+   tiempo de descanso entre jornadas.
+   Límites: 12h en base · 8h fuera de base
+   Retraso: se guarda en TV[k].retrasoMin
+═══════════════════════════════════════ */
+
+// ── checkRestTime ─────────────────────────────────────────────
+// L-01 FIX: ahora recibe las claves de fecha para calcular
+// el descanso real teniendo en cuenta el salto de día.
+// Funciona correctamente con pernocta y turnos consecutivos.
+function checkRestTime(turnoA, turnoB, keyA, keyB){
+  if(!turnoA || !turnoB) return {ok:true};
+
+  const horaFinA  = turnoA.hL2 || turnoA.hL;
+  const horaIniB  = turnoB.hF;
+  if(!horaFinA || !horaIniB) return {ok:true};
+
+  const retrasoA = parseInt(turnoA.retrasoMin)||0;
+
+  const toMin = h => { var _hm=h.split(':').map(Number);var hh=_hm[0],mm=_hm[1]; return hh*60+mm; };
+
+  // Convertir a minutos absolutos desde epoch (día × 1440 + hora)
+  const diaA = keyA ? (() => { var _ka=keyA.split('-').map(Number);var y=_ka[0],m=_ka[1],d=_ka[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
+  const diaB = keyB ? (() => { var _kb=keyB.split('-').map(Number);var y=_kb[0],m=_kb[1],d=_kb[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
+  const diasDif = Math.round(diaB - diaA); // 0 = mismo día, 1 = día siguiente, etc.
+
+  const finAbsoluto  = diasDif * 1440 * 0 + toMin(horaFinA)  + retrasoA;
+  const iniAbsoluto  = diasDif * 1440      + toMin(horaIniB);
+  let   descMin      = iniAbsoluto - finAbsoluto;
+
+  // Si siguen siendo negativos (cruce de medianoche dentro del mismo día)
+  if(descMin < 0) descMin += 1440;
+
+  const esEnBase  = AJ.base && turnoB.sal === AJ.base;
+  const limiteMin = esEnBase ? 720 : 480;
+  const incumple  = descMin < limiteMin;
+  const descH     = Math.floor(descMin/60);
+  const descM     = descMin % 60;
+  const limH      = limiteMin/60;
+
+  return {
+    ok:       !incumple,
+    incumple,
+    descMin,
+    limiteMin,
+    descStr:  descH+'h '+String(descM).padStart(2,'0')+'m',
+    limStr:   limH+'h',
+    esEnBase,
+    msg: incumple
+      ? `⚠️ Solo ${descH}h ${descM>0?descM+'m':''} de descanso (mín. ${limH}h ${esEnBase?'en base':'fuera de base'})`
+      : `✅ ${descH}h ${descM>0?descM+'m':''} de descanso`
+  };
+}
+
+// ── Verificar todos los turnos del mes visible ────────────────
+// L-02 FIX: también compara el último turno del mes anterior
+// con el primero del mes actual (cruce de límite de mes).
+function verificarDescansosMes(){
+  const y=curM.getFullYear(), m=curM.getMonth()+1;
+  const pref=key(y,m,1).substring(0,7);
+
+  // Obtener turnos del mes actual ordenados
+  const ksActual = Object.keys(TV).filter(k=>k.startsWith(pref)).sort();
+
+  // L-02: incluir el último turno del mes anterior para comparar con el primero
+  const mesAnt  = m===1 ? 12 : m-1;
+  const anioAnt = m===1 ? y-1 : y;
+  const prefAnt = key(anioAnt,mesAnt,1).substring(0,7);
+  const ksAnt   = Object.keys(TV).filter(k=>k.startsWith(prefAnt)).sort();
+  const ultimoAnt = ksAnt.length ? [ksAnt[ksAnt.length-1]] : [];
+
+  // Cadena completa: [últimoDelMesAnterior, ...turnosDelMesActual]
+  const ks = ultimoAnt.concat(ksActual);
+  const alertas={};
+
+  for(let i=1; i<ks.length; i++){
+    const kA=ks[i-1], kB=ks[i];
+    const tA=TV[kA], tB=TV[kB];
+    if(!tA||!tB) continue;
+    if(['descanso','baja','comp','reserva'].includes(tA.tipo)) continue;
+    if(['descanso','baja','comp','reserva'].includes(tB.tipo)) continue;
+    // L-01 FIX: pasamos las claves para cálculo correcto multi-día
+    const r=checkRestTime(tA, tB, kA, kB);
+    if(r.incumple){
+      alertas[kB]=Object.assign({},r,{kAnterior:kA});
+    }
+  }
+  return alertas;
+}
+
+// ALERTAS_DESCANSO declarada en bloque ESTADO GLOBAL (ver inicio del script)
+
+// ── Gestión de Retrasos ───────────────────────────────────────
+function abrirRetraso(){
+  if(!selDay||!selDay.t) return;
+  const t   = selDay.t;
+  const min = parseInt(t.retrasoMin)||0;
+
+  // U-03 FIX: El panel vive en .dc-turno que se regenera con renderDiaArea.
+  // Usamos un flag en F para saber si estaba abierto y restaurarlo tras re-render.
+  const area = document.getElementById('dia-area');
+  let wrap   = document.getElementById('retraso-panel');
+
+  // Toggle: si ya está visible, cerrarlo
+  if(wrap){ wrap.remove(); return; }
+
+  wrap    = document.createElement('div');
+  wrap.id = 'retraso-panel';
+  wrap.className = 'retraso-wrap';
+  wrap.innerHTML = `
+    <span style="font-size:14px">⏱</span>
+    <div style="flex:1">
+      <div style="font-size:9px;font-weight:800;color:var(--amber2);letter-spacing:.5px">RETRASO (minutos)</div>
+      <input class="retraso-inp" id="inp-retraso" type="number" inputmode="numeric"
+        min="0" max="999" value="${min}" placeholder="0"
+        oninput="previsualizarRetraso(this.value)">
+    </div>
+    <button onclick="guardarRetraso()"
+      style="padding:6px 13px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);
+      border-radius:8px;color:var(--amber2);font-size:11px;font-weight:800;cursor:pointer">
+      ✓ Aplicar
+    </button>
+    <button onclick="document.getElementById('retraso-panel').remove()"
+      style="padding:6px 10px;background:none;border:none;color:var(--tx3);font-size:14px;cursor:pointer">✕</button>
+  `;
+
+  const dct = area ? area.querySelector('.dc-turno') : null;
+  if(dct){
+    dct.appendChild(wrap);
+    // Focus al input para experiencia táctil más fluida
+    setTimeout(()=>{ const i=document.getElementById('inp-retraso'); if(i) i.focus(); }, 50);
+  }
+}
+
+function previsualizarRetraso(val){
+  // Mostrar impacto en descanso en tiempo real
+  const min  = parseInt(val)||0;
+  var t = selDay ? selDay.t : null;
+  if(!t) return;
+
+  // Encontrar el turno siguiente
+  const kActual = selDay.k;
+  const ks = Object.keys(TV).sort();
+  const idx = ks.indexOf(kActual);
+  if(idx < 0 || idx >= ks.length-1) return;
+  const kSig = ks[idx+1];
+  const tSig = TV[kSig];
+  if(!tSig) return;
+
+  // Simular con el retraso provisional
+  const tSimulado = Object.assign({},t,{retrasoMin:min});
+  const r = checkRestTime(tSimulado, tSig, kActual, kSig);
+
+  let prev = document.getElementById('retraso-preview');
+  if(!prev){
+    prev = document.createElement('div');
+    prev.id = 'retraso-preview';
+    prev.style.cssText = 'font-size:10px;margin-top:5px;padding:4px 8px;border-radius:7px;font-weight:600';
+    var rp=document.getElementById('retraso-panel');if(rp)rp.appendChild(prev);
+  }
+  if(r.incumple){
+    prev.style.cssText += 'color:var(--red2);background:rgba(220,38,38,.08)';
+    prev.textContent   = '⚠️ '+r.msg;
+  } else if(tSig.hF){
+    prev.style.cssText += 'color:var(--green2);background:rgba(22,163,74,.08)';
+    prev.textContent   = r.msg;
+  }
+}
+
+function guardarRetraso(){
+  if(!selDay||!selDay.t) return;
+  const inp = document.getElementById('inp-retraso');
+  if(!inp) return;
+  const min = Math.max(0, parseInt(inp.value)||0);
+
+  // Guardar en el turno
+  TV[selDay.k].retrasoMin = min > 0 ? min : undefined;
+  selDay.t = TV[selDay.k];
+  saveTV();
+
+  // L-05 FIX: recalcular alertas ANTES de renderizar para evitar caché stale
+  ALERTAS_DESCANSO = verificarDescansosMes();
+  renderCal();        // también recalcula internamente, pero ya está actualizado
+  renderDiaArea();    // usa el cache recién recalculado
+
+  if(min > 0)
+    toast('⏱ Retraso de '+min+' min registrado');
+  else
+    toast('✅ Retraso eliminado');
+}
+
+/* ═══════════════════════════════════════
+   SERVICIOS FRECUENTES — Smart Fill
+   ModeloServicio: {
+     numTren, linea, sal, lle, hF, hL,
+     sal2, lle2, hF2, hL2,
+     usos, ultimoUso
+   }
+   Persistencia: localStorage 'sf5'
+═══════════════════════════════════════ */
+// SF, AGENDA, ALERTAS_DESCANSO → declarados en bloque ESTADO GLOBAL (ver arriba)
+function saveSF(){ localStorage.setItem('sf5', JSON.stringify(SF)); }
+
+function searchByTrainNumber(n){
+  if(!n) return [];
+  const q = String(n).trim();
+  const exactas   = SF.filter(s => s.numTren === q);
+  const parciales = SF.filter(s => s.numTren !== q && s.numTren.startsWith(q));
+  return exactas.concat(parciales).slice(0,6);
+}
+
+function guardarServicioFrecuente(datos){
+  const {numTren,linea,sal,lle,hF,hL,sal2,lle2,hF2,hL2} = datos;
+  if(!numTren) return;
+  const key = String(numTren);
+  const existe = SF.find(s => s.numTren === key);
+  if(existe){
+    Object.assign(existe, {linea,sal,lle,hF,hL,sal2:sal2||'',lle2:lle2||'',hF2:hF2||'',hL2:hL2||''});
+    existe.usos      = (existe.usos||0)+1;
+    existe.ultimoUso = Date.now();
+  } else {
+    SF.unshift({numTren:key,linea:linea||'',sal:sal||'',lle:lle||'',
+                hF:hF||'',hL:hL||'',sal2:sal2||'',lle2:lle2||'',
+                hF2:hF2||'',hL2:hL2||'',usos:1,ultimoUso:Date.now()});
+    if(SF.length>50) SF.splice(50);
+  }
+  saveSF();
+}
+
+function autorellenarServicio(s){
+  if(s.linea) F.linea = s.linea;
+  if(s.sal)   F.sal   = s.sal;
+  if(s.lle)   F.lle   = s.lle;
+  if(s.hF)    F.hF    = s.hF;
+  if(s.hL)    F.hL    = s.hL;
+  if(s.sal2)  F.sal2  = s.sal2;
+  if(s.lle2)  F.lle2  = s.lle2;
+  if(s.hF2)   F.hF2   = s.hF2;
+  if(s.hL2)   F.hL2   = s.hL2;
+  // Actualizar plusIntlAuto si hay línea internacional
+  if(s.linea) F.plusIntlAuto = s.linea.includes('Internacional');
+  renderFormBody();
+  toast('⚡ Tren #'+s.numTren+' cargado automáticamente');
+}
+
+function mostrarSugTren(val){
+  const cont = document.getElementById('tren-sug-cont');
+  if(!cont) return;
+  const sugs = searchByTrainNumber(val);
+  if(!sugs.length || !val){ cont.innerHTML=''; return; }
+  cont.innerHTML = '<div class="tren-sug">'
+    + sugs.map(s=>{
+        const ruta = (s.sal&&s.lle) ? s.sal+' → '+s.lle : '';
+        const hora = (s.hF&&s.hL)  ? s.hF+' – '+s.hL   : '';
+        const badge= s.usos>1 ? `<span class="tren-sug-badge">${s.usos}x</span>` : '';
+        return `<div class="tren-sug-item" onclick="seleccionarSugTren('${s.numTren}')">
+          <div class="tren-sug-num">#${s.numTren}</div>
+          <div class="tren-sug-ruta">
+            ${ruta?`<div class="tren-sug-est">${ruta}</div>`:''}
+            ${hora?`<div class="tren-sug-hora">⏱ ${hora}</div>`:''}
+          </div>${badge}
+        </div>`;
+      }).join('')
+    + '</div>';
+}
+
+function seleccionarSugTren(numTren){
+  const s = SF.find(x => x.numTren === String(numTren));
+  if(!s) return;
+  F.numTren = numTren;
+  const inp = document.getElementById('inp-numtren');
+  if(inp){ inp.value=numTren; inp.style.borderColor='var(--acc2)'; }
+  const cont = document.getElementById('tren-sug-cont');
+  if(cont) cont.innerHTML='';
+  autorellenarServicio(s);
+}
+
+function initSwipe(){
+  const sw = document.getElementById('cal-swipe');
+  if(!sw) return;
+
+  let startX = 0, startY = 0;
+  let isDragging = false;   // gesto confirmado como horizontal
+  let isVertical = false;   // gesto confirmado como vertical → ignorar
+  let deltaX    = 0;
+
+  sw.addEventListener('touchstart', e=>{
+    const t = e.touches[0];
+    startX     = t.clientX;
+    startY     = t.clientY;
+    isDragging = false;
+    isVertical = false;
+    deltaX     = 0;
+  }, {passive:true});
+
+  sw.addEventListener('touchmove', e=>{
+    if(isVertical) return; // ya clasificado como scroll vertical → no hacer nada
+
+    const t  = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+
+    // Esperamos al menos 8px de movimiento para clasificar el gesto
+    if(!isDragging && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+
+    if(!isDragging){
+      // Primera vez que supera el umbral: decidir dirección
+      if(Math.abs(dy) > Math.abs(dx)){
+        // Movimiento predominantemente VERTICAL → scroll normal, no interferir
+        isVertical = true;
+        return;
+      }
+      // Movimiento predominantemente HORIZONTAL → swipe de mes
+      isDragging = true;
+    }
+
+    // Solo llegamos aquí si es gesto horizontal confirmado
+    deltaX = dx;
+  }, {passive:true});
+
+  sw.addEventListener('touchend', e=>{
+    if(!isDragging) return; // fue vertical o no llegó al umbral
+    const dx = e.changedTouches[0].clientX - startX;
+    // Umbral mínimo: 45px y que el ángulo sea mayoritariamente horizontal
+    const dy = e.changedTouches[0].clientY - startY;
+    const esHorizontal = Math.abs(dx) > Math.abs(dy) * 1.5; // ratio 1.5:1 mínimo
+    if(Math.abs(dx) > 45 && esHorizontal){
+      if(dx < 0) animSwipe(1);   // ← izquierda = mes siguiente
+      else       animSwipe(-1);  // → derecha   = mes anterior
+    }
+    isDragging = false;
+    isVertical = false;
+  }, {passive:true});
+}
+
+function animSwipe(dir){
+  const track=document.getElementById('cal-track');
+  // Animar el deslizamiento
+  const pct=dir>0?-200:-0; // 3 slides: prev(0%) curr(100%) next(200%)
+  track.style.transition='transform .28s cubic-bezier(.4,0,.2,1)';
+  track.style.transform=`translateX(${dir>0?'-200%':'0%'})`;
+  setTimeout(()=>{
+    track.style.transition='none';
+    track.style.transform='translateX(-100%)'; // volver al centro
+    curM.setMonth(curM.getMonth()+dir);
+    selDay=null;
+    renderCal();
+  },290);
+}
+
+function _keyAFechaLbl(k){
+  if(!k) return '';
+  var _km1=k.split('-').map(Number);var y=_km1[0],m=_km1[1],d=_km1[2];
+  return d+' '+MESES_C[m-1];
+}
+
+function renderCal(){
+  const y=curM.getFullYear(),m=curM.getMonth();
+  document.getElementById('mn-lbl').textContent=MESES[m]+' '+y;
+  document.getElementById('mn-sub').textContent=y;
+
+  // Recalcular alertas de descanso para el mes visible
+  ALERTAS_DESCANSO = verificarDescansosMes();
+
+  // Renderizar los 3 slides: prev, curr, next
+  renderSlide('days-prev', new Date(y,m-1,1));
+  renderSlide('days',      new Date(y,m,  1));
+  renderSlide('days-next', new Date(y,m+1,1));
+
+  // Posicionar el track en el slide central sin animación
+  const track=document.getElementById('cal-track');
+  track.style.transition='none';
+  track.style.transform='translateX(-100%)';
+
+  // Dots indicadores de mes (últimos 3 meses)
+  const dots=document.getElementById('cal-dots');
+  if(dots){
+    dots.innerHTML=[-1,0,1].map(i=>
+      `<div style="width:${i===0?16:5}px;height:5px;border-radius:3px;background:${i===0?'var(--acc)':'var(--div)'};transition:all .2s"></div>`
+    ).join('');
+  }
+
+  renderDiaArea();
+  renderAcordeon();
+  renderVistaToggle();
+}
+
+function renderSlide(gridId, fecha){
+  const grid=document.getElementById(gridId);
+  if(!grid) return;
+  const y=fecha.getFullYear(), m=fecha.getMonth();
+  const last=new Date(y,m+1,0).getDate();
+  let sd=new Date(y,m,1).getDay(); sd=sd===0?6:sd-1;
+  const hoy=new Date();
+  grid.innerHTML='';
+  for(let i=0;i<sd;i++){
+    const c=document.createElement('div');c.className='dc dc-0';grid.appendChild(c);
+  }
+  for(let d=1;d<=last;d++){
+    const k=key(y,m+1,d);
+    const t=TV[k];
+    const isH=y===hoy.getFullYear()&&m===hoy.getMonth()&&d===hoy.getDate();
+    const isS=selDay&&selDay.k===k;
+    const tieneAlerta = ALERTAS_DESCANSO[k];
+    let cls='dc';
+    if(isS) cls+=' dc-sel';
+    else if(t) cls+=' '+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'');
+    if(isH) cls+=' dc-hoy';
+    if(tieneAlerta) cls+=' dc-alerta';
+    const c=document.createElement('div');
+    c.className=cls;
+    c.style.position='relative'; // needed for ::after pseudo
+    c.innerHTML='<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    c.onclick=()=>clickDia(d,k,t);
+    grid.appendChild(c);
+  }
+}
+
+function abrirTipoDesdeCard(){
+  if(!selDay) return;
+  var d=selDay.d, k=selDay.k;
+  var mo=parseInt(k.split('-')[1]);
+  var dt=new Date(parseInt(k.split('-')[0]),mo-1,d);
+  var wd=(dt.getDay()+6)%7;
+  document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
+  openOv('ov-tipo');
+}
+
+function clickDia(d,k,t){
+  // Si ya estaba seleccionado y tiene turno → abrir edición (segundo toque)
+  if(selDay && selDay.k===k && t){
+    editarTurno();
+    return;
+  }
+  // Primer toque: seleccionar y mostrar tarjeta
+  selDay={d,k,t};
+  renderCal();
+  // Sin turno → abrir selector de tipo directamente
+  if(!t){
+    var _km2=k.split('-').map(Number);var y=_km2[0],mo=_km2[1];
+    var dt=new Date(y,mo-1,d);
+    const wd=(dt.getDay()+6)%7;
+    document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
+    openOv('ov-tipo');
+  }
+  // Con turno → solo muestra la tarjeta (el usuario puede tocar ✏️ Editar o 🔄 Cambio)
+}
+
+function irHoy(){
+  curM=new Date();
+  const h=new Date();
+  const k=key(h.getFullYear(),h.getMonth()+1,h.getDate());
+  selDay={d:h.getDate(),k,t:TV[k]};
+  renderCal();
+}
+
+function chM(dir){
+  animSwipe(dir);
+}
+
+function renderDiaArea(){
+  const area=document.getElementById('dia-area');
+  if(!selDay){area.innerHTML='';return;}
+  var d=selDay.d;var k=selDay.k;var t=selDay.t;;
+  var _km3=k.split('-').map(Number);var y=_km3[0],mo=_km3[1];
+  var dt=new Date(y,mo-1,d);
+  const wd=(dt.getDay()+6)%7;
+  const fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
+
+  if(!t){
+    area.innerHTML='<div class="dc-vacia" onclick="abrirTipo()">'
+      +'<div class="dcv-ico">📋</div>'
+      +'<div class="dcv-fecha">'+fstr+'</div>'
+      +'<div class="dcv-hint">Sin turno asignado</div>'
+      +'<button class="dcv-btn" onclick="abrirTipoDesdeCard()">➕ Agregar turno</button>'
+      +'</div>';
+    return;
+  }
+
+  const ti  = TIPO_INFO[t.tipo] || {ico:'❓', lbl:t.tipo||'Desconocido', col:'var(--tx2)', cls:''};
+  const col = ti.col;
+
+  // ── Verificar incumplimiento de descanso para este día ───────
+  const alerta = ALERTAS_DESCANSO[k];
+  let alertaBanner = '';
+  if(alerta){
+    alertaBanner = '<div class="alerta-descanso">'
+      +'<span class="alerta-ico">🔴</span>'
+      +'<div><div style="font-weight:800">Incumplimiento de descanso mínimo</div>'
+      +'<div style="font-size:10px;opacity:.8">'+alerta.msg+'</div>'
+      +'<div style="font-size:9px;color:var(--tx3);margin-top:2px">'
+      +'Turno anterior: '+_keyAFechaLbl(alerta.kAnterior||'')+'</div>'
+      +'</div></div>';
+  }
+
+  // Retraso registrado
+  const retrasoMin = parseInt(t.retrasoMin)||0;
+  const retrasoTag = retrasoMin > 0
+    ? '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,.1);'
+      +'border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:2px 8px;'
+      +'font-size:10px;font-weight:700;color:var(--amber2);margin-left:5px">⏱ +'+retrasoMin+'min</div>'
+    : '';
+
+  let body='';
+  // Si es ordinario/trabajado, mostrar alerta arriba del cuerpo
+  const bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado')) ? alertaBanner : '';
+
+  if(t.tipo==='ordinario'||t.tipo==='trabajado'){
+    if(t.numTren){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--nar)"></div>'
+        +'<div class="tr-route" style="font-weight:800">🚆 Tren '+t.numTren+'</div>'
+        +'<div class="tr-time" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</div></div>';
+    }
+    if(t.sal&&t.lle){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:'+col+'"></div><div class="tr-route">🚂 '+t.sal+' → '+t.lle+'</div><div class="tr-time">'+t.hF+'–'+t.hL+'</div></div>';
+      body+='<div class="tr-r"><div class="tr-dot" style="background:transparent"></div><div class="tr-route" style="opacity:.55;font-size:10px">'+(t.linea||'')+'</div><div class="tr-time tr-hi">'+calcDur(t.hF,t.hL)+'</div></div>';
+    }
+    // Nocturnidad — automática para todos los tipos
+    if(t.nocturno){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber)"></div>'
+        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad activa (22:00–06:00)</div></div>';
+    }
+    // Plus Internacional automático
+    if(t.plusIntlAuto){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div>'
+        +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional aplicado</div></div>';
+    }
+    if(t.sal2&&t.lle2){
+      const esP=t.modo==='pernocta';
+      body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
+        +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+'</div>'
+        +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
+    }
+    if(t.comp==='dinero'&&t.importe)body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div><div class="tr-route">Compensación económica</div><div class="tr-time tr-hi">'+t.importe.toFixed(2)+' €</div></div>';
+    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length))body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div><div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
+  } else if(t.tipo==='vuelta-pernocta'){
+    body='<div class="ibox amber"><span class="ibox-i">🌙</span><span>Tramo de vuelta (pernocta). Salida: <strong>'+t.sal+'</strong> → <strong>'+t.lle+'</strong><br>'+t.hF+' – '+t.hL+'</span></div>';
+  } else if(t.tipo==='reserva'){
+    body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva guardada. Usa <strong>"Verificar"</strong> si trabajas.</span></div>'
+      +'<button onclick="verificarReserva()" style="width:100%;padding:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#FCD34D;font-size:12px;font-weight:700;cursor:pointer">✅ Verificar reserva</button>';
+  } else if(t.tipo==='descanso'){
+    body='<div class="ibox green"><span class="ibox-i">🧘</span><span>Día de descanso.</span></div>'
+      +'<button onclick="convertirDescanso()" style="width:100%;padding:9px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:9px;color:#C4B5FD;font-size:12px;font-weight:700;cursor:pointer">💼 He trabajado este descanso</button>';
+  } else if(t.tipo==='baja'){
+    body='<div class="ibox red"><span class="ibox-i">🏥</span><span>Baja médica o laboral registrada.</span></div>';
+  } else if(t.tipo==='comp'){
+    body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>Día de compensación marcado automáticamente.</span></div>';
+  }
+
+  area.innerHTML='<div class="dc-turno" style="border-color:'+(alerta?'rgba(220,38,38,.5)':col+'44')+'">'
+    +'<div class="dct-hdr" style="background:'+(alerta?'rgba(220,38,38,.08)':col+'14')+';border-bottom:1px solid '+col+'20">'
+    +'<div class="dct-ico">'+ti.ico+'</div>'
+    +'<div class="dct-info"><div class="dct-fecha">'+fstr+'</div>'
+    +'<div class="dct-tipo" style="color:'+(alerta?'var(--red2)':col)+'">'+ti.lbl+(alerta?' ⚠️':'')+'</div></div>'
+    +(t.hF?'<div class="dct-dur" style="color:'+col+'">'+calcDur(t.hF,t.hL)+'</div>':'')
+    +(t.numTren?'<div style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--nar2);margin-left:4px">#'+t.numTren+'</div>':'')
+    +(t.cambioSolicitado?'<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--nar2);margin-left:3px">🔄 Enviado</div>':'')
+    +retrasoTag
+    +'</div>'
+    +'<div class="dct-body">'+bodyPrefix+body+'</div>'
+    +'<div class="dct-foot">'
+    +'<span onclick="editarTurno()" style="cursor:pointer;color:var(--acc2);flex:1">✏️ Editar</span>'
+    +((t.tipo==='ordinario'||t.tipo==='trabajado')
+      ? '<button onclick="abrirRetraso()" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);border-radius:7px;color:var(--amber2);font-size:10px;font-weight:800;padding:4px 9px;cursor:pointer;margin-right:4px">⏱'+(retrasoMin>0?' +'+retrasoMin+'m':' Retraso')+'</button>'
+      : '')
+    +'<button onclick="abrirCambio()" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:7px;color:var(--nar2);font-size:10px;font-weight:800;padding:4px 10px;cursor:pointer;margin-right:4px">🔄 Cambio</button>'
+    +'<button class="dct-del" onclick="pedirEliminar()">🗑 Eliminar</button>'
+    +'</div></div>';
+}
+
+/* ─── ACORDEÓN — historial del mes (ExpansionTile) ─── */
+function renderAcordeon(){
+  const y=curM.getFullYear(),m=curM.getMonth()+1;
+  const pref=key(y,m,1).substring(0,7);
+  const items=Object.entries(TV)
+    .filter(([k])=>k.startsWith(pref))
+    .sort(([a],[b])=>a.localeCompare(b));
+  const ac=document.getElementById('acordeon');
+  if(!items.length){ac.innerHTML='<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3)">Sin turnos este mes</div>';return;}
+  ac.innerHTML=items.map(([k,t])=>{
+    var dd=k.split('-')[2];
+    const ti=TIPO_INFO[t.tipo]||{ico:'?',lbl:t.tipo,col:'var(--tx2)'};
+    const dot='<div class="ac-dot" style="background:'+ti.col+'"></div>';
+    // Detalles expandibles
+    let det='';
+    if(t.retrasoMin) det+='<div class="ac-row"><span class="ak">⏱ Retraso</span><span class="av" style="color:var(--amber2)">+'+t.retrasoMin+' min</span></div>';
+    if(ALERTAS_DESCANSO[k]) det+='<div class="ac-row"><span class="ak">🔴 Descanso</span><span class="av" style="color:var(--red2)">'+ALERTAS_DESCANSO[k].msg+'</span></div>';
+    if(t.cambioSolicitado) det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
+    if(t.numTren)  det+='<div class="ac-row"><span class="ak">🚆 Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
+    if(t.numTrenVuelta) det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'🌙':'↩')+' Tren Vuelta</span><span class="av" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</span></div>';
+    if(t.sal) det+='<div class="ac-row"><span class="ak">🚂 Ida</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
+    if(t.hF) det+='<div class="ac-row"><span class="ak">⏱ Firma/llegada</span><span class="av">'+t.hF+' – '+(t.hL||'')+'</span></div>';
+    if(t.sal2) det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'🌙 Vuelta':'↩ Vuelta')+'</span><span class="av">'+t.sal2+' → '+(t.lle2||'')+'</span></div>';
+    if(t.hF2) det+='<div class="ac-row"><span class="ak">⏱ Vuelta</span><span class="av">'+t.hF2+' – '+(t.hL2||'')+'</span></div>';
+    if(t.linea) det+='<div class="ac-row"><span class="ak">Línea</span><span class="av">'+t.linea+'</span></div>';
+    if(t.nocturno) det+='<div class="ac-row"><span class="ak">🌙 Nocturnidad</span><span class="av" style="color:var(--amber2)">Activa · 22:00–06:00</span></div>';
+    if(t.plusIntlAuto) det+='<div class="ac-row"><span class="ak">🌍 Plus Intl.</span><span class="av" style="color:var(--cyan2)">Aplicado automáticamente</span></div>';
+    if(t.modo) det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'🌙 Pernocta':'🔄 Ida y vuelta')+'</span></div>';
+    if(t.comp==='dinero'&&t.importe) det+='<div class="ac-imp"><span class="al">💶 Compensación económica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length)) det+='<div class="ac-row"><span class="ak">📅 Días comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' días asignados</span></div>';
+    return '<div class="ac-item" id="ac-'+k+'">'
+      +'<div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'
+      +dot+'<div class="ac-fecha"><strong>'+parseInt(dd)+' '+MESES_C[m-1]+'</strong></div>'
+      +'<div class="ac-tipo">'+ti.ico+' '+ti.lbl+'</div>'
+      +'<div class="ac-arr">›</div>'
+      +'</div>'
+      +'<div class="ac-body">'+(det||'<span style="color:var(--tx3)">Sin detalles</span>')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleAc(id){
+  const el=document.getElementById(id);
+  if(el)el.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════
+   TIPO TURNO
+═══════════════════════════════════════ */
+function resetF(tipo){
+  F={tipo:tipo,linea:null,sal:AJ.base||null,lle:null,hF:null,hL:null,
+     sal2:null,lle2:null,hF2:null,hL2:null,
+     modo:null,comp:null,horas:0,diasComp:[],notas:'',
+     numTren:'', numTrenVuelta:'',
+     plusAct:false,plusJT:false,plusIntlAuto:false};
+}
+
+function abrirTipo(){
+  if(!selDay)return;
+  var _sm=selDay.k.split('-').map(Number);var y=_sm[0],mo=_sm[1];
+  const dt=new Date(y,mo-1,selDay.d);
+  const wd=(dt.getDay()+6)%7;
+  document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+selDay.d+' '+MESES_C[mo-1];
+  openOv('ov-tipo');
+}
+
+function elegirTipo(tipo){
+  closeOv('ov-tipo');
+
+  // Tipos simples: guardar directo sin abrir formulario
+  if(tipo==='vacaciones'||tipo==='descanso'||tipo==='baja'||tipo==='reserva'){
+    if(selDay){
+      var k=selDay.k;
+      if(TV[k]&&TV[k].tipo!==tipo){
+        if(!confirm('Este día ya tiene un turno asignado. ¿Cambiar a '+tipo+'?')){
+          clearSelDay(); return;
+        }
+      }
+      TV[k]={tipo:tipo,simple:true};
+      saveTV();
+      ALERTAS_DESCANSO=verificarDescansosMes();
+    }
+    clearSelDay(); // seguro: ya guardamos, no necesitamos selDay
+    renderCal();
+    renderStats();
+    return;
+  }
+
+  // Tipos con formulario: ordinario, trabajado, comp
+  // CRÍTICO: NO llamar clearSelDay aquí — abrirForm necesita selDay
+  resetF(tipo);
+  abrirForm(false);
+  // clearSelDay se llamará cuando el usuario cierre el formulario
+}
+
+function editarTurno(){
+  if(!selDay||!selDay.t) return;
+  const t=selDay.t;
+
+  // ── Día de compensación → popup especial ─────────────────────
+  if(t.tipo==='comp'){
+    abrirEditComp();
+    return;
+  }
+
+  // ── Vuelta pernocta → ir al día de ida y editarlo ─────────────
+  if(t.tipo==='vuelta-pernocta'){
+    if(t.origenPernocta && TV[t.origenPernocta]){
+      const kOri=t.origenPernocta;
+      var _ko=kOri.split('-').map(Number);var y=_ko[0],mo=_ko[1],dd=_ko[2];
+      const tOri=TV[kOri];
+      // C-02 FIX: No llamada recursiva — cargamos F directamente con el turno origen
+      // y abrimos el formulario. Evita el bucle infinito si selDay no se actualiza a tiempo.
+      selDay={d:dd, k:kOri, t:tOri};
+      curM=new Date(y,mo-1,1);
+      F={tipo:tOri.tipo, linea:tOri.linea||null,
+         sal:tOri.sal||(AJ.base||null), lle:tOri.lle||null,
+         hF:tOri.hF||null, hL:tOri.hL||null,
+         sal2:tOri.sal2||null, lle2:tOri.lle2||null,
+         hF2:tOri.hF2||null, hL2:tOri.hL2||null,
+         modo:tOri.modo||null, comp:tOri.comp||null,
+         horas:tOri.horas||0, diasComp:(tOri.diasComp||[]).slice(), notas:tOri.notas||'',
+         numTren:tOri.numTren||'', numTrenVuelta:tOri.numTrenVuelta||'',
+         plusAct:tOri.plusAct||false, plusJT:tOri.plusJT||false,
+         plusIntlAuto:(tOri.linea||'').includes('Internacional')};
+      renderCal();
+      abrirForm(true);
+    } else {
+      toast('⚠️ El turno de ida ya no existe');
+    }
+    return;
+  }
+
+  // ── Cualquier otro tipo → edición normal ─────────────────────
+  F={tipo:t.tipo,linea:t.linea||null,
+     sal:t.sal||(AJ.base||null),lle:t.lle||null,hF:t.hF||null,hL:t.hL||null,
+     sal2:t.sal2||null,lle2:t.lle2||null,hF2:t.hF2||null,hL2:t.hL2||null,
+     modo:t.modo||null,comp:t.comp||null,
+     horas:t.horas||0,diasComp:(t.diasComp||[]).slice(),notas:t.notas||'',
+     numTren:t.numTren||'', numTrenVuelta:t.numTrenVuelta||'',
+     plusAct:t.plusAct||false,plusJT:t.plusJT||false,
+     plusIntlAuto:(t.linea||'').includes('Internacional')};
+  abrirForm(true);
+}
+
+function verificarReserva(){
+  if(!selDay)return;
+  resetF('ordinario');
+  abrirForm(false,true);
+}
+
+function convertirDescanso(){
+  if(!selDay)return;
+  resetF('trabajado');
+  abrirForm(false);
+}
+
+/* ═══════════════════════════════════════
+   EDICIÓN DE DÍA COMPENSATORIO
+   Permite convertirlo en turno real o eliminarlo
+═══════════════════════════════════════ */
+function abrirEditComp(){
+  if(!selDay||!selDay.t) return;
+  const t=selDay.t;
+  const k=selDay.k;
+  var _kd=k.split('-').map(Number);var y=_kd[0],mo=_kd[1],dd=_kd[2];
+  var dt=new Date(y,mo-1,dd);
+  const wd=(dt.getDay()+6)%7;
+  const fstr=DIAS_L[wd]+' '+dd+' de '+MESES[mo-1].toLowerCase();
+
+  // Buscar el turno origen (el trabajado que generó este comp)
+  const origenInfo=t.origen&&TV[t.origen]
+    ? `<div style="font-size:10px;color:var(--tx3);margin-top:4px">
+         Generado por turno del <strong style="color:var(--tx2)">${(k=>{var _kl=k.split('-').map(Number);var y=_kl[0],m=_kl[1],d=_kl[2];return d+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m-1]+' '+y;})(t.origen)}</strong>
+       </div>`
+    : '';
+
+  document.getElementById('edit-comp-tit').textContent=fstr;
+  document.getElementById('edit-comp-body').innerHTML=`
+    <div style="padding:14px 16px">
+      <div class="ibox" style="background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.25);margin-bottom:12px">
+        <span class="ibox-i">📅</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--cyan2)">Día de Compensación</div>
+          ${origenInfo}
+        </div>
+      </div>
+
+      <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:8px">¿QUÉ QUIERES HACER?</div>
+
+      <!-- Opción 1: Convertir en turno trabajado -->
+      <div onclick="compConvertir('ordinario')" style="
+        display:flex;align-items:center;gap:11px;padding:13px 14px;
+        background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);
+        border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .18s"
+        onmouseover="this.style.background='rgba(37,99,235,.16)'"
+        onmouseout="this.style.background='rgba(37,99,235,.08)'">
+        <span style="font-size:22px">🚂</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--acc2)">Trabajar este día</div>
+          <div style="font-size:10px;color:var(--tx3)">Convertir en turno ordinario y registrar tramo</div>
+        </div>
+        <span style="color:var(--tx3);font-size:16px">›</span>
+      </div>
+
+      <!-- Opción 2: Convertir en descanso -->
+      <div onclick="compConvertir('descanso')" style="
+        display:flex;align-items:center;gap:11px;padding:13px 14px;
+        background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);
+        border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .18s"
+        onmouseover="this.style.background='rgba(22,163,74,.16)'"
+        onmouseout="this.style.background='rgba(22,163,74,.08)'">
+        <span style="font-size:22px">🧘</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--green2)">Marcar como descanso</div>
+          <div style="font-size:10px;color:var(--tx3)">El día sigue libre, sin turno activo</div>
+        </div>
+        <span style="color:var(--tx3);font-size:16px">›</span>
+      </div>
+
+      <!-- Opción 3: Eliminar compensación -->
+      <div onclick="compEliminar()" style="
+        display:flex;align-items:center;gap:11px;padding:13px 14px;
+        background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);
+        border-radius:12px;cursor:pointer;transition:all .18s"
+        onmouseover="this.style.background='rgba(220,38,38,.14)'"
+        onmouseout="this.style.background='rgba(220,38,38,.06)'">
+        <span style="font-size:22px">🗑</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--red2)">Quitar compensación</div>
+          <div style="font-size:10px;color:var(--tx3)">Liberar este día (se descuenta del turno origen)</div>
+        </div>
+        <span style="color:var(--tx3);font-size:16px">›</span>
+      </div>
+    </div>
+  `;
+  openOv('ov-edit-comp');
+}
+
+// Convertir día comp en turno real (ordinario o descanso)
+function compConvertir(nuevoTipo){
+  // NO cerrar el overlay todavía — primero guardar el dato
+  var k = selDay.k;
+  var t = TV[k];
+
+  // Desvincular este día del turno origen
+  if(t.origen && TV[t.origen]){
+    var ori = TV[t.origen];
+    if(ori.diasComp){
+      ori.diasComp = ori.diasComp.filter(function(d){ return d !== k; });
+    }
+  }
+
+  if(nuevoTipo === 'descanso'){
+    // 1. Guardar primero
+    TV[k] = {tipo:'descanso'};
+    selDay.t = TV[k];
+    saveTV();
+    // 2. Cerrar después de guardar exitosamente
+    closeOv('ov-edit-comp');
+    closeOv('ov-form');
+    renderCal();
+    renderStats();
+    toast('Día convertido a descanso');
+  } else {
+    // Convertir a ordinario → abrir formulario (cerrará al guardar)
+    closeOv('ov-edit-comp');
+    resetF('ordinario');
+    abrirForm(false);
+  }
+}
+
+// Eliminar la compensación de este día
+function compEliminar(){
+  const k=selDay.k;
+  const t=TV[k];
+
+  // Desvincularlo del turno origen
+  if(t.origen && TV[t.origen]){
+    const ori=TV[t.origen];
+    if(ori.diasComp) ori.diasComp=ori.diasComp.filter(d=>d!==k);
+  }
+
+  // Borrar este día del calendario
+  delete TV[k];
+  selDay.t=null;
+  saveTV();
+  closeOv('ov-edit-comp');
+  renderCal();
+  renderStats();
+  toast('📅 Compensación eliminada');
+}
+
+/* ═══════════════════════════════════════
+   CAMBIO CON COMPAÑERO — universal
+═══════════════════════════════════════ */
+function abrirCambio(){
+  if(!selDay) return;
+  const t  = selDay.t || {};
+  const k  = selDay.k;
+  var _kw=k.split('-').map(Number);var y=_kw[0],mo=_kw[1],dd=_kw[2];
+  var wd =(new Date(y,mo-1,dd).getDay()+6)%7;
+  const fLarga = DIAS_L[wd]+', '+dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const tipoLbl= (TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].lbl:'Sin tipo') || 'Sin tipo';
+
+  document.getElementById('cambio-tit').textContent='🔄 Solicitar Cambio de Turno';
+  document.getElementById('cambio-body').innerHTML=
+    `<div style="padding:14px 16px">
+      <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);
+           border-radius:12px;padding:11px 13px;margin-bottom:14px">
+        <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--acc2);margin-bottom:5px">MI TURNO</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+          <span style="font-size:12px;color:var(--tx2)">${fLarga}</span>
+          <span style="font-size:9px;color:var(--tx3);background:var(--s2);padding:1px 7px;border-radius:6px">${tipoLbl}</span>
+        </div>
+        ${t.numTren
+          ? `<div style="font-size:20px;font-weight:900;color:var(--nar2)">🚆 #${t.numTren}</div>`
+          : `<div style="font-size:10px;color:var(--amber2);margin-top:2px">⚠️ Sin nº de tren — edita el turno para añadirlo</div>`}
+        ${(t.sal||t.lle) ? `<div style="font-size:11px;color:var(--tx2);margin-top:2px">${t.sal||'—'} ${t.lle?'→ '+t.lle:''}</div>` : ''}
+        <div style="font-size:10px;color:var(--tx3);margin-top:3px">
+          👤 ${AJ.nombre||'—'} &nbsp;·&nbsp; 🪪 ${AJ.matricula||'—'}
+        </div>
+        ${!AJ.nombre||!AJ.matricula
+          ? `<div style="font-size:9px;color:var(--amber2);margin-top:3px">⚠️ Configura nombre y matrícula en Ajustes ⚙️</div>`:''}
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3)">DATOS DEL COMPAÑERO</div>
+        <button onclick="abrirAgenda()"
+          style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);
+          border-radius:8px;color:var(--acc2);font-size:11px;font-weight:700;
+          padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px">
+          📒 Agenda
+        </button>
+      </div>
+      <!-- Campo nombre con autocompletado -->
+      <div style="position:relative;margin-bottom:7px">
+        <div class="aj-nombre-wrap">
+          <span class="aj-nombre-ico">👤</span>
+          <input id="cbio-nombre" class="aj-nombre-inp" placeholder="Nombre completo"
+            oninput="actualizarPrevCambio();sugerirContacto('nombre',this.value)"
+            autocomplete="off">
+        </div>
+        <div id="sug-nombre" class="sug-box" style="display:none"></div>
+      </div>
+      <!-- Campo matrícula con autocompletado -->
+      <div style="position:relative;margin-bottom:7px">
+        <div class="aj-nombre-wrap">
+          <span class="aj-nombre-ico">🪪</span>
+          <input id="cbio-mat" class="aj-nombre-inp" placeholder="Matrícula del compañero"
+            oninput="actualizarPrevCambio();sugerirContacto('mat',this.value)"
+            autocomplete="off">
+        </div>
+        <div id="sug-mat" class="sug-box" style="display:none"></div>
+      </div>
+      <div class="aj-nombre-wrap" style="margin-bottom:14px">
+        <span class="aj-nombre-ico">🚆</span>
+        <input id="cbio-tren" class="aj-nombre-inp" inputmode="numeric"
+          placeholder="Nº de tren del compañero"
+          oninput="actualizarPrevCambio()"
+          style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums">
+      </div>
+
+      <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">VISTA PREVIA</div>
+      <div id="cbio-prev" style="background:var(--s2);border:1px solid var(--div);
+           border-radius:10px;padding:11px 13px;font-size:11px;color:var(--tx2);
+           line-height:1.65;margin-bottom:14px;white-space:pre-wrap;
+           max-height:150px;overflow-y:auto"></div>
+
+      <button onclick="enviarCambio()"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,var(--nar),var(--nar2));
+        border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;
+        cursor:pointer;box-shadow:var(--sh-nar)">✉️ Abrir en Correo</button>
+      <div style="font-size:9px;color:var(--tx3);text-align:center;margin-top:7px">
+        Abre tu app de correo con el mensaje completo
+      </div>
+    </div>`;
+  actualizarPrevCambio();
+  openOv('ov-cambio');
+}
+
+function actualizarPrevCambio(){
+  var t=(selDay&&selDay.t)||{};
+  var k=selDay?selDay.k:null;
+  if(!k) return;
+  var _kf1=k.split('-').map(Number);var y=_kf1[0],mo=_kf1[1],dd=_kf1[2];
+  var fstr = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const hora = new Date().getHours();
+  const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
+  const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'[Nombre compañero]');
+  const mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'[Matrícula]');
+  const trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'[Nº tren]');
+  const miNombre = AJ.nombre||'[Mi nombre]';
+  const miMat    = AJ.matricula||'[Mi matrícula]';
+  const miTren   = t.numTren||'[Mi Nº tren]';
+  const prev = document.getElementById('cbio-prev');
+  if(prev) prev.textContent = generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo});
+}
+
+function generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}){
+  return `Hola, ${saludo}.
+
+Me gustaría solicitar un cambio de turno para el día ${fstr}.
+
+Quiero intercambiar mi turno (Tren: ${miTren}) con el compañero ${nombre} (Matrícula: ${mat}), quien realiza el servicio en el tren ${trenComp}.
+
+Yo realizaré su turno y él realizará el mío. Quedo a la espera de su aprobación.
+
+Atentamente,
+${miNombre} (Matrícula: ${miMat})`;
+}
+
+function enviarCambio(){
+  var t=(selDay&&selDay.t)||{};
+  var k=selDay?selDay.k:null;
+  if(!k) return;
+  var _kf2=k.split('-').map(Number);var y=_kf2[0],mo=_kf2[1],dd=_kf2[2];
+  var fstr   = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const hora   = new Date().getHours();
+  const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
+  const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'—');
+  const mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'—');
+  const trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
+  const miNombre = AJ.nombre||'—';
+  const miMat    = AJ.matricula||'—';
+  const miTren   = t.numTren||'—';
+  const asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
+  const cuerpo   = encodeURIComponent(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}));
+  // Marcar que se solicitó cambio en este turno (persiste en localStorage)
+  if(TV[k]){ TV[k].cambioSolicitado=true; saveTV(); renderDiaArea(); renderAcordeon(); }
+
+  // Abrir correo
+  window.location.href=`mailto:?subject=${asunto}&body=${cuerpo}`;
+
+  // Guardado automático: preguntar si guardar al compañero en la agenda
+  // Pequeño delay para que el mailto se procese primero
+  setTimeout(()=>{
+    preguntarGuardarContacto(
+      nombre  || '',
+      mat     || '',
+      trenComp|| ''
+    );
+  }, 800);
+}
+
+/* ═══════════════════════════════════════
+   FORMULARIO
+═══════════════════════════════════════ */
+function abrirForm(edicion,verificando){
+  if(verificando===undefined) verificando=false;
+  if(!selDay)return;
+  var d=selDay.d;
+  var k=selDay.k;
+  var _km4=k.split('-').map(Number);
+  var y=_km4[0],mo=_km4[1];
+  var dt=new Date(y,mo-1,d);
+  var wd=(dt.getDay()+6)%7;
+  var ti=TIPO_INFO[F.tipo] || {ico:'📋',lbl:F.tipo||'Turno',col:'var(--acc)',cls:''};
+  document.getElementById('form-ico').textContent=verificando?'✅':ti.ico;
+  document.getElementById('form-tit').textContent=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
+  document.getElementById('form-sub').textContent=verificando?'Verificar reserva':(edicion?'Editando '+ti.lbl.toLowerCase():'Nuevo '+ti.lbl.toLowerCase());
+  document.getElementById('m-del').style.display=edicion?'flex':'none';
+  var mc=mo===12?new Date(y+1,0,1):new Date(y,mo,1);
+  miniM=mc;
+  diasComp=(F.diasComp||[]).slice();
+  renderFormBody();
+  openOv('ov-form');
+}
+
+function secPlusesViaje(){
+  var p = AJ.pluses[AJ.rol] || PLUS_DEF[AJ.rol];
+  var pAct  = parseFloat(p.activacion   || 0);
+  var pJT   = parseFloat(p.jt          || 0);
+  var pIntl = parseFloat(p.internacional|| 0);
+  var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
+    + '<div class="fsec-lbl" style="margin-bottom:8px">Pluses por viaje</div>';
+  h += plusToggle('plusAct', F.plusAct, 'Plus Activación', pAct,
+    '€ fijo × viaje', "togglePlus('plusAct')");
+  h += plusToggle('plusJT',  F.plusJT,  'Plus JT',         pJT,
+    '€ fijo × viaje', "togglePlus('plusJT')");
+  if(F.plusIntlAuto){
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+      + 'background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);'
+      + 'border-radius:9px;margin-top:4px">'
+      + '<span style="font-size:13px">🌍</span>'
+      + '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--cyan2)">Plus Internacional</div>'
+      + '<div style="font-size:9px;color:var(--tx3)">Activado automáticamente</div></div>'
+      + '<span style="font-size:11px;font-weight:800;color:var(--cyan2)">+'
+      + pIntl.toFixed(2) + ' €</span></div>';
+  }
+  return h + '</div>';
+}
+
+function renderFormBody(){
+  const b=document.getElementById('form-body');
+  const t=F.tipo;let h='';
+
+  if(t==='ordinario'||t==='trabajado'){
+    h+=secLinea();
+    h+=secPreguntaPernocta();
+    h+=secTramo('ida');
+    if(F.modo) h+=secTramo('vuelta');
+    if(t==='trabajado') h+=secDescFlow();
+  } else if(t==='reserva'){
+    h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
+  } else if(t==='descanso'){
+    h+=secDescansoOpciones();
+  } else if(t==='baja'){
+    h+='<div class="fsec"><div class="ibox red"><span class="ibox-i">🏥</span><span>Baja médica o laboral. Se registra en el calendario.</span></div></div>';
+  }
+  h+=secPlusesViaje();
+  h+='<div class="notas-wrap"><textarea class="notas-inp" rows="2" placeholder="Notas opcionales…" oninput="F.notas=this.value">'+( F.notas||'')+'</textarea></div>';
+  b.innerHTML=h;
+  if(F.comp==='dias') renderMiniCal();
+}
+
+function secLinea(){
+  const numTrenVal  = F.numTren||'';
+  const numTren2Val = F.numTrenVuelta||'';
+  const modoActivo  = F.modo;
+  const bCol = numTrenVal?'var(--acc2)':'var(--div)';
+  let h = '<div class="fsec">';
+  h += '<div class="fsec-lbl">'+t('numTren')+' (Ida) <span style="color:var(--nar2)">*</span></div>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+  h += '<div style="font-size:20px">🚆</div>';
+  h += '<input id="inp-numtren" type="text" inputmode="numeric" placeholder="Ej: 2080"'
+     + ' value="'+numTrenVal+'"'
+     + ' oninput="F.numTren=this.value.trim();mostrarSugTren(this.value)"'
+     + ' onblur="setTimeout(()=>{const c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
+     + ' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value)"'
+     + ' style="flex:1;background:var(--s2);border:1.5px solid '+bCol+';border-radius:10px;'
+     + 'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
+     + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">';
+  h += '</div>';
+  h += '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
+  if(modoActivo){
+    const esP = modoActivo==='pernocta';
+    h += '<div class="numtren-vuelta-wrap">';
+    h += '<span style="font-size:16px">'+(esP?'🌙':'↩')+'</span>';
+    h += '<div style="flex:1">';
+    h += '<div style="font-size:8px;font-weight:800;color:var(--amber2);letter-spacing:.5px;margin-bottom:3px">';
+    h += 'Nº TREN '+(esP?'VUELTA (día siguiente)':'VUELTA')+'</div>';
+    h += '<input id="inp-numtren2" type="text" inputmode="numeric" placeholder="Ej: 2081"'
+       + ' value="'+numTren2Val+'"'
+       + ' oninput="F.numTrenVuelta=this.value.trim()"'
+       + ' style="width:100%;background:transparent;border:none;color:var(--tx);'
+       + 'font-size:18px;font-weight:800;padding:2px 0;outline:none;'
+       + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield">';
+    h += '</div></div>';
+  }
+  h += '<div class="fsec-lbl">'+t('linea')+'</div>';
+  h += '<div class="linea-chips">'
+     + Object.keys(LINEAS).map(l=>'<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>').join('')
+     + '</div></div>';
+  return h;
+}
+
+function secPreguntaPernocta(){
+  return '<div class="fsec" style="padding-bottom:5px"><div class="fsec-lbl">¿Cuándo vuelves?</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +'<div class="da-btn w-verde '+(F.modo==='ida'?'on':'')+'" onclick="setModo(\'ida\')">'
+    +'<div class="da-ico">🔄</div><div class="da-lbl">Mismo día</div><div class="da-sub">Ida y vuelta hoy</div></div>'
+    +'<div class="da-btn w-amber '+(F.modo==='pernocta'?'on':'')+'" onclick="setModo(\'pernocta\')">'
+    +'<div class="da-ico">🌙</div><div class="da-lbl">Pernocta</div><div class="da-sub">Vuelta al día siguiente</div></div>'
+    +'</div></div>';
+}
+
+function secTramo(tramo){
+  const esV=tramo==='vuelta';
+  const sk=esV?'sal2':'sal',lk=esV?'lle2':'lle',hFk=esV?'hF2':'hF',hLk=esV?'hL2':'hL';
+  const sv=F[sk]||'',lv=F[lk]||'',hFv=F[hFk]||'',hLv=F[hLk]||'';
+  const isBase=!esV&&sv&&sv===AJ.base;
+  // Sugerir estaciones invertidas en vuelta
+  const sShow=sv||(esV?F.lle:'');
+  const lShow=lv||(esV?F.sal:'');
+  const esPernocta=F.modo==='pernocta';
+  const hdrColor=esV?(esPernocta?'rgba(245,158,11,.12)':'rgba(59,127,255,.1)'):'rgba(59,127,255,.08)';
+  const hdrTxtColor=esV?(esPernocta?'var(--amber2)':'var(--acc2)'):'var(--acc2)';
+  const hdrIco=esV?(esPernocta?'🌙':'↩'):'🚂';
+  const hdrTxt=esV?(esPernocta?'TRAMO VUELTA — día siguiente':'TRAMO VUELTA — mismo día'):'TRAMO IDA';
+  const dur=hFv&&hLv?'<div class="dur-badge" id="dur-'+(esV?'v':'i')+'">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-'+(esV?'v':'i')+'"></div>';
+  // Indicador nocturnidad automático — para todos los tipos de turno
+  const hayNocIda  = (F.hF && esHoraNocturna(F.hF))  || (F.hL  && esHoraNocturna(F.hL));
+  const hayNocVuel = (F.hF2&& esHoraNocturna(F.hF2)) || (F.hL2 && esHoraNocturna(F.hL2));
+  const hayNocEste = esV ? hayNocVuel : hayNocIda;
+  const nocBadge = hayNocEste
+    ? '<div style="display:inline-flex;align-items:center;gap:5px;'
+      +'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);'
+      +'border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;'
+      +'color:var(--amber2);margin-bottom:6px">'
+      +'🌙 Nocturnidad activa · +'+parseFloat(AJ.nocturnidad||0).toFixed(2)+' €/h</div>'
+    : '';
+
+  return '<div class="fsec" style="border-top:1px solid var(--div)">'
+    +'<div class="tramo-hdr" style="background:'+hdrColor+';margin-bottom:5px">'
+    +'<span>'+hdrIco+'</span>'
+    +'<span style="font-size:9px;font-weight:800;color:'+hdrTxtColor+'">'+hdrTxt+'</span>'
+    +'</div>'
+    +'<div class="fsec-lbl">Trayecto</div>'
+    +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\''+sk+'\')">'
+    +'<div class="sf-i">🚉</div><div class="sf-b"><div class="sf-lbl">SALIDA</div>'
+    +'<div class="sf-val '+(sShow?'':'ph')+'" data-f="'+sk+'">'+(sShow||'Seleccionar')+'</div>'
+    +(isBase?'<div class="sf-base">🏠 Base</div>':'')
+    +'</div><span class="sf-arr">⌄</span></div>'
+    +'<div class="sf '+(lShow?'fil':'')+'" onclick="openEstSheet(\''+lk+'\')">'
+    +'<div class="sf-i">🏁</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+    +'<div class="sf-val '+(lShow?'':'ph')+'" data-f="'+lk+'">'+(lShow||'Seleccionar')+'</div>'
+    +'</div><span class="sf-arr">⌄</span></div>'
+    +'<div class="fsec-lbl" style="margin-top:5px">Horario</div>'
+    +'<div class="hora-row">'
+    +'<div class="sf '+(hFv?'fil':'')+'" onclick="openHora(\''+hFk+'\')">'
+    +'<div class="sf-i">⏱</div><div class="sf-b"><div class="sf-lbl">FIRMA</div>'
+    +'<div class="sf-val '+(hFv?'hv':'ph')+'" data-hora="'+hFk+'">'+(hFv||'--:--')+'</div>'
+    +'</div></div>'
+    +'<div class="sf '+(hLv?'fil':'')+'" onclick="openHora(\''+hLk+'\')">'
+    +'<div class="sf-i">🔚</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+    +'<div class="sf-val '+(hLv?'hv':'ph')+'" data-hora="'+hLk+'">'+(hLv||'--:--')+'</div>'
+    +'</div></div>'
+    +'</div>'+nocBadge+dur+'</div>';
+}
+
+function secDescansoOpciones(){
+  return '<div class="fsec"><div class="ibox green"><span class="ibox-i">🧘</span>'
+    +'<span>Día de descanso. ¿Lo has trabajado?</span></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
+    +'<div class="da-btn w-verde" onclick="guardarDescansoSimple()">'
+    +'<div class="da-ico">✅</div><div class="da-lbl">Solo descanso</div><div class="da-sub">Día libre</div></div>'
+    +'<div class="da-btn w-violet" onclick="abrirTrabajoEnDescanso()">'
+    +'<div class="da-ico">💼</div><div class="da-lbl">He trabajado</div><div class="da-sub">Con compensación</div></div>'
+    +'</div></div>';
+}
+
+function secDescFlow(){
+  if(!F.modo) return '';
+
+  const vh    = parseFloat(AJ.vh)||12.5;
+  const noc   = parseFloat(AJ.nocturnidad)||0;
+  const p     = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  const nDias = F.modo==='pernocta'?4:2;
+
+  // Solo calculamos si eligió "dinero"
+  const hayNoc  = F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
+  const tasa    = vh+(hayNoc?noc:0);
+  const hIda    = F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+  const hVuelta = F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+  const hTotal  = Math.round((hIda+hVuelta)*100)/100;
+
+  // Pluses:
+  // - Activación y JT: solo si el usuario los activó manualmente (toggle)
+  // - Internacional: automático si la línea es Internacional
+  const pAct  = F.plusAct      ? parseFloat(p.activacion||0)    : 0;
+  const pJT   = F.plusJT       ? parseFloat(p.jt||0)            : 0;
+  const pIntl = F.plusIntlAuto ? parseFloat(p.internacional||0) : 0;
+  const imp   = Math.round((hTotal*tasa + pAct + pJT + pIntl)*100)/100;
+
+  let h = '<div class="fsec" style="border-top:1px solid var(--div)">'
+    +'<div class="fsec-lbl">Compensación — '+nDias+' días en mes siguiente</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+    +'<div class="cc-btn '+(F.comp==='dinero'?'on':'')+'" onclick="setComp(\'dinero\')">'
+    +'<div class="cci">💶</div><div class="ccl">En dinero</div><div class="ccs">Pago €</div></div>'
+    +'<div class="cc-btn '+(F.comp==='dias'?'on':'')+'" onclick="setComp(\'dias\')">'
+    +'<div class="cci">📅</div><div class="ccl">'+nDias+' días</div><div class="ccs">Mes siguiente</div></div>'
+    +'</div>';
+
+  // ── Solo muestra cálculo si eligió DINERO ────────────────────
+  if(F.comp==='dinero'){
+    // Info tarifa
+    h+='<div style="background:rgba(59,127,255,.06);border:1px solid rgba(59,127,255,.15);'
+      +'border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:10px;color:var(--acc2);'
+      +'display:flex;align-items:center;gap:6px">'
+      +'<span>'+(AJ.rol==='tripulante'?'🚆':'🎫')+'</span>'
+      +'<span>'+vh.toFixed(2)+' €/h'
+      +(hayNoc?' <span style="color:var(--amber2)">+ noc '+noc.toFixed(2)+' €/h</span>':'')
+      +' · Límite '+limiteHoras(F.sal)+'h</span></div>';
+
+    // ── Toggles de pluses manuales ────────────────────────────
+    h+='<div style="margin-bottom:10px">'
+      +'<div style="font-size:8px;font-weight:800;letter-spacing:1px;color:var(--tx3);'
+      +'margin-bottom:7px;text-transform:uppercase">Pluses activos este viaje</div>';
+
+    // Toggle Plus Activación
+    h+=plusToggle('plusAct', F.plusAct, 'Plus Activación',
+      parseFloat(p.activacion||0), '€ fijo × viaje',
+      'togglePlus(\'plusAct\')');
+
+    // Toggle Plus JT
+    h+=plusToggle('plusJT', F.plusJT, 'Plus JT',
+      parseFloat(p.jt||0), '€ fijo × viaje',
+      'togglePlus(\'plusJT\')');
+
+    // Plus Internacional — automático, no toggle
+    if(F.plusIntlAuto){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+        +'background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);'
+        +'border-radius:9px;margin-bottom:6px">'
+        +'<span style="font-size:13px">🌍</span>'
+        +'<div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--cyan2)">Plus Internacional</div>'
+        +'<div style="font-size:9px;color:var(--tx3)">Activado automáticamente · línea Internacional</div></div>'
+        +'<span style="font-size:12px;font-weight:800;color:var(--cyan2)">+'+parseFloat(p.internacional||0).toFixed(2)+' €</span>'
+        +'</div>';
+    }
+
+    h+='</div>';
+
+    // ── Resultado ────────────────────────────────────────────
+    h+='<div id="calc-result-cont" class="calc-result">';
+    if(hTotal>0){
+      h+='<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>';
+      if(hVuelta>0) h+='<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>';
+      h+='<div class="cr-row"><span class="cr-l"><strong>Total horas</strong></span><span class="cr-v"><strong>'+hTotal+' h</strong></span></div>';
+      h+='<div class="cr-row"><span class="cr-l">Tarifa'+(hayNoc?' + nocturnidad':'')+'</span><span class="cr-v">'+tasa.toFixed(2)+' €/h</span></div>';
+      if(pAct>0)  h+='<div class="cr-row"><span class="cr-l">Plus Activación</span><span class="cr-v">+'+pAct.toFixed(2)+' €</span></div>';
+      if(pJT>0)   h+='<div class="cr-row"><span class="cr-l">Plus JT</span><span class="cr-v">+'+pJT.toFixed(2)+' €</span></div>';
+      if(pIntl>0) h+='<div class="cr-row"><span class="cr-l">Plus Internacional</span><span class="cr-v">+'+pIntl.toFixed(2)+' €</span></div>';
+      h+='<div class="cr-div"></div>'
+        +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span>'
+        +'<span class="cr-tv">'+imp.toFixed(2)+' €</span></div>';
+    } else {
+      h+='<div style="font-size:10px;color:var(--tx3);padding:3px 0">'
+        +'⚠️ Completa los tramos para ver el cálculo</div>';
+    }
+    h+='</div>';
+  }
+
+  // ── Días de compensación (NO muestra cálculo económico) ──────
+  if(F.comp==='dias'){
+    h+='<div style="font-size:10px;color:var(--tx2);background:rgba(6,182,212,.06);'
+      +'border:1px solid rgba(6,182,212,.18);border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+      +'📅 Selecciona <strong style="color:var(--cyan2)">'+nDias+' días</strong> en el mes siguiente. '
+      +(F.modo==='pernocta'?'Pernocta → 4 días.':'Ida y vuelta → 2 días.')
+      +'<br><span style="color:var(--tx3);font-size:9px">Solo días del mes posterior.</span></div>'
+      +'<div id="mini-cal-cont"></div>';
+  }
+
+  h+='</div>';
+  return h;
+}
+
+// Helper: genera un toggle de plus manual
+function plusToggle(campo, activo, lbl, valor, sub, onclick){
+  const col = activo ? 'var(--green)' : 'var(--div)';
+  const bgCol = activo ? 'rgba(34,197,94,.1)' : 'var(--s2)';
+  const txtCol = activo ? 'var(--green2)' : 'var(--tx2)';
+  return '<div onclick="'+onclick+'" style="display:flex;align-items:center;gap:9px;'
+    +'padding:9px 11px;background:'+bgCol+';border:1px solid '+col+';'
+    +'border-radius:9px;cursor:pointer;transition:all .18s;margin-bottom:6px;user-select:none">'
+    +'<div style="flex:1">'
+    +'<div style="font-size:11px;font-weight:700;color:'+txtCol+'">'+lbl+'</div>'
+    +'<div style="font-size:9px;color:var(--tx3)">'+valor.toFixed(2)+' '+sub+'</div>'
+    +'</div>'
+    +'<div style="width:40px;height:22px;border-radius:11px;background:'
+    +(activo?'var(--green)':'var(--div)')+';position:relative;transition:background .2s;flex-shrink:0">'
+    +'<div style="position:absolute;top:3px;left:'+(activo?'19px':'3px')
+    +';width:16px;height:16px;border-radius:8px;background:#fff;transition:left .2s"></div>'
+    +'</div></div>';
+}
+
+// Toggle manual de plus
+function togglePlus(campo){
+  F[campo]=!F[campo];
+  renderFormBody();
+}
+
+/* ── Mini-cal compensación ── */
+function renderMiniCal(){
+  const cont=document.getElementById('mini-cal-cont');
+  if(!cont||!miniM)return;
+  // Asegurar que miniM es el mes siguiente al del turno
+  if(selDay){
+    var _ssm=selDay.k.split('-').map(Number);var sy=_ssm[0],sm=_ssm[1];
+    var mExp=sm===12?1:sm+1,yExp=sm===12?sy+1:sy;
+    if(miniM.getFullYear()<yExp||(miniM.getFullYear()===yExp&&miniM.getMonth()+1<mExp))
+      miniM=new Date(yExp,mExp-1,1);
+  }
+  const y=miniM.getFullYear(),m=miniM.getMonth();
+  const ultimo=new Date(y,m+1,0).getDate();
+  const nDias=F.modo==='pernocta'?4:2;
+  let sd=new Date(y,m,1).getDay();sd=sd===0?6:sd-1;
+  let cells='';
+  for(let i=0;i<sd;i++)cells+='<div class="mc-d mc-dis">·</div>';
+  for(let d=1;d<=ultimo;d++){
+    const iso=key(y,m+1,d);
+    const sel=diasComp.includes(iso);
+    const bloq=TV[iso]&&TV[iso].tipo!=='descanso'&&!sel;
+    cells+='<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis':'')+'" onclick="toggleComp(\''+iso+'\','+nDias+')">'+d+'</div>';
+  }
+  var _ss3=selDay?selDay.k.split('-').map(Number):[y,m+1];var sy=_ss3[0],sm=_ss3[1];
+  const mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
+  const puedeRetro=y>yMin||(y===yMin&&m+1>mMin);
+  cont.innerHTML='<div class="mini-cal-wrap">'
+    +'<div class="mc-hdr">'
+    +'<button class="mc-nav" onclick="chMiniCal(-1)" '+(puedeRetro?'':'style="opacity:.3;pointer-events:none"')+'>‹</button>'
+    +'<div class="mc-mes">'+MESES[m]+' '+y+'</div>'
+    +'<button class="mc-nav" onclick="chMiniCal(1)">›</button>'
+    +'</div>'
+    +'<div class="mc-dow"><div class="mc-dh">L</div><div class="mc-dh">M</div><div class="mc-dh">X</div><div class="mc-dh">J</div><div class="mc-dh">V</div><div class="mc-dh">S</div><div class="mc-dh">D</div></div>'
+    +'<div class="mc-grid">'+cells+'</div>'
+    +'<div class="mc-count"><span>'+diasComp.length+'/'+nDias+'</span> días '+MESES[m]+' '+y+(diasComp.length===nDias?' ✅':'')+'</div>'
+    +'</div>';
+}
+
+function chMiniCal(dir){
+  if(!selDay)return;
+  miniM.setMonth(miniM.getMonth()+dir);
+  var _ssm2=selDay.k.split('-').map(Number);var sy=_ssm2[0],sm=_ssm2[1];
+  var mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
+  if(miniM.getFullYear()<yMin||(miniM.getFullYear()===yMin&&miniM.getMonth()+1<mMin))
+    miniM=new Date(yMin,mMin-1,1);
+  renderMiniCal();
+}
+
+function toggleComp(iso,max){
+  const idx=diasComp.indexOf(iso);
+  if(idx>=0)diasComp.splice(idx,1);
+  else if(diasComp.length<max)diasComp.push(iso);
+  F.diasComp=diasComp.slice();
+  renderMiniCal();
+}
+
+/* ── Setters ── */
+function setLinea(l){
+  F.linea=l;
+  // Plus Internacional: activar si la línea es Internacional
+  // (también se puede activar por estación individual en selEst)
+  if(l.includes('Internacional')){
+    F.plusIntlAuto=true;
+  } else {
+    // Si cambia a línea no internacional, re-evaluar por estaciones
+    const todasEstaciones=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean);
+    F.plusIntlAuto=todasEstaciones.some(e=>ESTACIONES_INTERNACIONALES.has(e));
+  }
+  renderFormBody();
+}
+function setModo(m){
+  // L-03 FIX: avisar antes de perder días de compensación ya seleccionados
+  if(F.comp==='dias' && diasComp.length>0 && F.modo && F.modo!==m){
+    if(!confirm('¿Cambiar el modo? Se perderán los días de compensación seleccionados.')){
+      return;
+    }
+    diasComp=[]; F.diasComp=[];
+  }
+  F.modo=m; F.comp=null;
+  if(m==='pernocta'){if(!F.sal2&&F.lle)F.sal2=F.lle;if(!F.lle2&&F.sal)F.lle2=F.sal;}
+  renderFormBody();
+}
+function setComp(c){F.comp=c;renderFormBody();if(c==='dias')setTimeout(renderMiniCal,50);}
+function guardarDescansoSimple(){
+  if(!selDay)return;
+  TV[selDay.k]={tipo:'descanso'};selDay.t=TV[selDay.k];saveTV();
+  closeOv('ov-form');renderCal();toast('🧘 Descanso guardado');
+}
+function abrirTrabajoEnDescanso(){F.tipo='trabajado';renderFormBody();}
+
+/* ═══════════════════════════════════════
+   GUARDAR TURNO
+═══════════════════════════════════════ */
+function guardarTurno(){
+  if(!selDay)return;
+  var k=selDay.k, t=F.tipo;
+  var d={tipo:t};
+
+  if(t==='ordinario'||t==='trabajado'){
+    d.linea=F.linea;d.sal=F.sal;d.lle=F.lle;d.hF=F.hF;d.hL=F.hL;
+    d.modo=F.modo||'ida';
+    d.numTren=F.numTren||'';
+    d.numTrenVuelta=F.numTrenVuelta||'';
+    d.sal2=F.sal2||(F.lle||null);
+    d.lle2=F.lle2||(F.sal||null);
+    d.hF2=F.hF2;d.hL2=F.hL2;
+    var hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+    var hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+    d.horas=Math.round((hIda+hVuelta)*100)/100;
+
+    d.nocturno = !!(
+      (F.hF && esHoraNocturna(F.hF)) ||
+      (F.hL && esHoraNocturna(F.hL)) ||
+      (F.hF2 && esHoraNocturna(F.hF2)) ||
+      (F.hL2 && esHoraNocturna(F.hL2))
+    );
+    d.plusIntlAuto = F.plusIntlAuto || false;
+
+    if(F.modo==='pernocta'){
+      var _ks2=k.split('-').map(Number);var y=_ks2[0],mo=_ks2[1],dd=_ks2[2];
+      var sig=new Date(y,mo-1,dd);sig.setDate(sig.getDate()+1);
+      var kSig=key(sig.getFullYear(),sig.getMonth()+1,sig.getDate());
+      if(TV[kSig]&&TV[kSig].origenPernocta===k) delete TV[kSig];
+      TV[kSig]={tipo:'vuelta-pernocta',linea:F.linea,
+        sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
+        nocturno:d.nocturno,origenPernocta:k};
+      d.diaSiguiente=kSig;
+    } else {
+      if(selDay.t&&selDay.t.diaSiguiente) delete TV[selDay.t.diaSiguiente];
+    }
+  }
+
+  if(t==='trabajado'){
+    d.comp=F.comp;
+    if(F.comp==='dinero'){
+      d.importe=calcImp(d.horas,F.hF,F.hL,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
+      d.plusAct=F.plusAct; d.plusJT=F.plusJT;
+    }
+    if(F.comp==='dias'&&diasComp.length>0){
+      var _km5=k.split('-').map(Number);var y2=_km5[0],mo2=_km5[1];
+      var mC=mo2===12?1:mo2+1, yC=mo2===12?y2+1:y2;
+      var nE=F.modo==='pernocta'?4:2;
+      var dv=diasComp.filter(function(iso){
+        var _di=iso.split('-').map(Number);var dy=_di[0],dm=_di[1];
+        return dy===yC&&dm===mC;
+      }).slice(0,nE);
+      d.diasComp=dv;
+      if(selDay.t&&selDay.t.diasComp) selDay.t.diasComp.forEach(function(iso){
+        if(TV[iso]&&TV[iso].origen===k) delete TV[iso];
+      });
+      dv.forEach(function(iso){ TV[iso]={tipo:'comp',origen:k}; });
+    }
+  }
+
+  if(t==='descanso'||t==='vacaciones') d.simple=true;
+  if(F.notas) d.notas=F.notas;
+  d.plusAct=F.plusAct||false;
+  d.plusJT=F.plusJT||false;
+
+  var anterior=TV[k];
+  if(anterior&&anterior.tipo==='comp'&&anterior.origen){
+    var ori=TV[anterior.origen];
+    if(ori&&ori.diasComp) ori.diasComp=ori.diasComp.filter(function(iso){return iso!==k;});
+  }
+
+  // GUARDAR — primero datos, luego cerrar
+  TV[k]=d; selDay.t=d; saveTV();
+
+  if(d.numTren&&(t==='ordinario'||t==='trabajado')){
+    guardarServicioFrecuente({
+      numTren:d.numTren, linea:d.linea,
+      sal:d.sal, lle:d.lle, hF:d.hF, hL:d.hL,
+      sal2:d.sal2, lle2:d.lle2, hF2:d.hF2, hL2:d.hL2
+    });
+    if(d.numTrenVuelta&&d.numTrenVuelta!==d.numTren){
+      guardarServicioFrecuente({
+        numTren:d.numTrenVuelta, linea:d.linea,
+        sal:d.sal2||d.lle, lle:d.lle2||d.sal,
+        hF:d.hF2, hL:d.hL2
+      });
+    }
+  }
+
+  // CERRAR solo después de guardar exitosamente
+  closeOv('ov-form');
+  renderCal();
+  renderStats();
+  toast('Turno guardado');
+}
+/* (calcImp, esHoraNocturna, limiteHoras → ver sección HELPERS al final) */
+
+/* ═══════════════════════════════════════
+   ELIMINAR
+═══════════════════════════════════════ */
+function pedirEliminar(){if(!selDay||!selDay.t)return;openOv('ov-del');}
+function confirmarEliminar(){
+  if(!selDay)return;
+  var k=selDay.k, t=TV[k];
+  if(t && t.diasComp && t.diasComp.length){
+    t.diasComp.forEach(function(iso){
+      if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+    });
+  }
+  if(t && t.diaSiguiente && TV[t.diaSiguiente] && TV[t.diaSiguiente].origenPernocta===k){
+    delete TV[t.diaSiguiente];
+  }
+  delete TV[k]; selDay.t=null; saveTV();
+  closeOv('ov-del'); closeOv('ov-form');
+  renderCal(); renderStats(); toast('Turno eliminado');
+}
+/* ═══════════════════════════════════════
+   BACKUP — Exportar / Importar datos
+   Guarda turnos + ajustes en un .json
+   y los restaura sin tocar el código.
+═══════════════════════════════════════ */
+function pedirBorrarTodo(){openOv('ov-borrar');}
+function confirmarBorrarTodo(){
+  TV={};localStorage.removeItem('tv5');selDay=null;
+  closeOv('ov-borrar');renderCal();renderStats();
+  document.getElementById('dia-area').innerHTML='';
+  toast('🗑 Todos los turnos eliminados');
+}
+
+/* ═══════════════════════════════════════
+   ESTACIONES — Selector tipo Card
+   onStationSelected: si la estación es Internacional
+   → plusIntlAuto = true automáticamente
+═══════════════════════════════════════ */
+
+// Estaciones internacionales que activan el plus automáticamente
+const ESTACIONES_INTERNACIONALES = new Set([
+  'Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles',
+  'Perpignan','Narbonne','Montpellier St-Roch'
+]);
+
+function openEstSheet(field){
+  estField=field;
+  const labs={sal:'Estación de Salida',lle:'Estación de Llegada',
+              sal2:'Salida Vuelta',lle2:'Llegada Vuelta',base:'Estación Base'};
+  const icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',base:'🏠'};
+  const tit=document.getElementById('est-tit');
+  tit.innerHTML='<span style="font-size:20px">'+(icos[field]||'📍')+'</span>'
+    +'<span>'+(labs[field]||'Estación')+'</span>';
+  document.getElementById('est-srch-inp').value='';
+  renderEstList('');
+  openOv('ov-est');
+  // NO hacemos focus automático — no queremos que el teclado aparezca
+}
+
+function renderEstList(q){
+  const lista=document.getElementById('est-list');
+  const cur = estField==='base' ? AJ.base : F[estField];
+  const lin = estField==='base' ? null : F.linea;
+  const grupos = lin ? {[lin]:LINEAS[lin]} : LINEAS;
+  let html = '';
+
+  Object.entries(grupos).forEach(([l, ests])=>{
+    const filtradas = q
+      ? ests.filter(e=>e.toLowerCase().includes(q.toLowerCase()))
+      : ests;
+    if(!filtradas.length) return;
+
+    // Cabecera de grupo con icono de línea
+    const esIntl = l.includes('Internacional');
+    html += '<div class="est-grp-hdr">'
+      + (esIntl?'🌍':'🚆') + ' ' + l
+      + '</div>';
+
+    filtradas.forEach(e=>{
+      const selec   = e === cur;
+      const esIntlEst = ESTACIONES_INTERNACIONALES.has(e);
+      const cardCls = 'est-card'
+        + (selec  ? ' sel'  : '')
+        + (esIntlEst ? ' intl' : '');
+      const ico = esIntlEst ? '🌍' : '🚂';
+
+      html += `<div class="${cardCls}" onclick="selEst('${e.replace(/'/g,"\\'")}')">
+        <div class="est-card-ico">${ico}</div>
+        <div class="est-card-info">
+          <div class="est-card-name">${e}</div>
+          ${esIntlEst ? '<div class="est-card-badge">+Plus Internacional</div>' : ''}
+        </div>
+        ${selec ? '<div class="est-card-check">✓</div>' : ''}
+      </div>`;
+    });
+  });
+
+  lista.innerHTML = html
+    || '<div style="padding:24px;text-align:center;color:var(--tx3)">Sin resultados</div>';
+}
+
+/* ── onStationSelected ───────────────────────────────────────
+   Lógica central: detecta si la estación es internacional
+   y activa esPlusInternacional automáticamente.
+   Se aplica tanto en turno nuevo como en edición.
+──────────────────────────────────────────────────────────── */
+function selEst(e){
+  if(estField==='base'){
+    AJ.base=e;
+    const bv=document.getElementById('aj-base-v');
+    bv.textContent=e; bv.className='aj-base-val';
+    closeOv('ov-est');
+    return;
+  }
+
+  // 1. Guardar estación en F
+  F[estField]=e;
+
+  // 2. AUTOMATIZACIÓN PLUS INTERNACIONAL
+  //    Si cualquier estación (sal, lle, sal2, lle2) es internacional
+  //    → plusIntlAuto = true. Si se cambia y ya no hay ninguna intl → false.
+  const todasEstaciones = [F.sal, F.lle, F.sal2, F.lle2].filter(Boolean);
+  const hayIntl = todasEstaciones.some(est => ESTACIONES_INTERNACIONALES.has(est));
+  const anteriorIntl = F.plusIntlAuto;
+  F.plusIntlAuto = hayIntl;
+
+  // 3. Actualizar campo visual in-place (sin reconstruir todo el formulario)
+  const el = document.querySelector('[data-f="'+estField+'"]');
+  if(el){
+    el.textContent = e;
+    el.className   = 'sf-val';
+    const sfP = el.closest('.sf');
+    if(sfP) sfP.classList.add('fil');
+
+    // Si cambió el estado del plus internacional, actualizar el badge
+    if(hayIntl !== anteriorIntl){
+      actualizarBadgeIntl();
+    }
+    // Actualizar cálculo si está visible
+    if(F.tipo==='trabajado' && F.comp==='dinero') actualizarCalculo();
+  } else {
+    renderFormBody();
+  }
+
+  closeOv('ov-est');
+}
+
+// Muestra/oculta el badge de Plus Internacional en el formulario
+function actualizarBadgeIntl(){
+  // Buscar si ya existe el badge
+  let badge = document.getElementById('badge-plus-intl');
+  if(F.plusIntlAuto){
+    if(!badge){
+      // Insertar justo antes del primer secTramo
+      const formBody = document.getElementById('form-body');
+      const primerTramo = formBody ? formBody.querySelector('.fsec[style*="border-top"]') : null;
+      const div = document.createElement('div');
+      div.id = 'badge-plus-intl';
+      div.className = 'plus-intl-badge';
+      div.innerHTML = '🌍 <span><strong>Plus Internacional</strong> activado automáticamente</span>';
+      if(primerTramo) primerTramo.insertAdjacentElement('beforebegin', div);
+      else if(formBody) formBody.appendChild(div);
+    }
+  } else {
+    if(badge) badge.remove();
+  }
+}
+
+/* ═══════════════════════════════════════
+   HORA — TECLADO NUMÉRICO TÁCTIL
+   Sin ruedas, sin scroll, sin bugs Android.
+   Estado: TP.field, TP.H, TP.M, TP.foco ('h'|'m'), TP.buf
+═══════════════════════════════════════ */
+function openHora(field){
+  TP.field = field;
+  // Leer valor actual del campo en F (preserva lo que ya había)
+  const ex = F[field];
+  if(ex && ex.includes(':')){
+    const p = ex.split(':');
+    TP.H = p[0]; TP.M = p[1];
+  } else {
+    TP.H = '08'; TP.M = '00';
+  }
+  // Empezar editando horas
+  TP.foco = 'h';
+  TP.buf  = '';
+
+  // Label
+  const labs = {hF:'⏱ Firma — ida', hL:'🔚 Llegada — ida',
+                hF2:'🌙 Firma — vuelta', hL2:'🔚 Llegada — vuelta'};
+  document.getElementById('hora-tit').textContent = labs[field] || '⏱ Hora';
+
+  horaRefresh();
+  openOv('ov-hora');
+}
+
+// Actualiza el display y el resaltado
+function horaRefresh(){
+  const dh = document.getElementById('hd-h');
+  const dm = document.getElementById('hd-m');
+  const lbl= document.getElementById('hora-cursor-lbl');
+  if(!dh||!dm) return;
+
+  dh.textContent = TP.buf && TP.foco==='h' ? TP.buf.padStart(2,'0') : TP.H;
+  dm.textContent = TP.buf && TP.foco==='m' ? TP.buf.padStart(2,'0') : TP.M;
+
+  dh.className = 'hora-seg' + (TP.foco==='h' ? ' activo' : '');
+  dm.className = 'hora-seg' + (TP.foco==='m' ? ' activo' : '');
+
+  lbl.textContent = TP.foco==='h' ? 'Editando horas' : 'Editando minutos';
+}
+
+// Cambiar foco con toque en el segmento
+function horaFocus(f){
+  TP.foco = f;
+  TP.buf  = '';
+  horaRefresh();
+}
+
+// Tecla numérica — lógica limpia y sin bugs
+function hpNum(n){
+  TP.buf += String(n);
+
+  if(TP.foco === 'h'){
+    const v = parseInt(TP.buf);
+    if(TP.buf.length === 1){
+      if(v >= 3){
+        // 3–9 como primer dígito de hora: solo puede ser 3–9 sin segundo → confirmar ya
+        TP.H   = pad(Math.min(v, 23));
+        TP.buf = '';
+        TP.foco= 'm';
+      }
+      // 0,1,2 → esperamos el segundo dígito
+    } else {
+      // Segundo dígito de hora
+      TP.H   = pad(v >= 0 && v <= 23 ? v : Math.min(parseInt(String(n)), 9));
+      TP.buf = '';
+      TP.foco= 'm';
+    }
+  } else {
+    // Minutos
+    const v = parseInt(TP.buf);
+    if(TP.buf.length === 1){
+      if(v >= 6){
+        // 6–9 como primer dígito: no puede haber decena válida (60+ > 59)
+        // Lo guardamos directamente como 06–09
+        TP.M   = pad(v);
+        TP.buf = '';
+        // No pasamos el foco — el usuario puede seguir editando minutos
+      }
+      // 0–5 → esperamos el segundo dígito
+    } else {
+      // Segundo dígito de minutos
+      TP.M   = pad(v >= 0 && v <= 59 ? v : Math.min(v, 59));
+      TP.buf = '';
+    }
+  }
+  horaRefresh();
+}
+
+// Cambiar entre horas y minutos
+function hpTab(){
+  TP.foco = TP.foco==='h' ? 'm' : 'h';
+  TP.buf  = '';
+  horaRefresh();
+}
+
+// Borrar último dígito del buffer
+function hpBorrar(){
+  if(TP.buf.length > 0){
+    TP.buf = TP.buf.slice(0, -1);
+  } else {
+    // Sin buffer: limpiar el campo actual
+    if(TP.foco==='h') TP.H='00'; else TP.M='00';
+  }
+  horaRefresh();
+}
+
+// Confirmar — guarda en F y actualiza UI
+function confHora(){
+  // Aplicar cualquier buffer pendiente
+  if(TP.buf){
+    const v = parseInt(TP.buf);
+    if(TP.foco==='h') TP.H = pad(Math.min(v,23));
+    else              TP.M = pad(Math.min(v,59));
+    TP.buf = '';
+  }
+
+  const hora = TP.H + ':' + TP.M;
+  F[TP.field] = hora;
+  closeOv('ov-hora');
+
+  // Actualizar elemento visual in-place
+  const elVal = document.querySelector('[data-hora="'+TP.field+'"]');
+  if(elVal){
+    elVal.textContent = hora;
+    elVal.className   = 'sf-val hv';
+    const sfParent = elVal.closest('.sf');
+    if(sfParent) sfParent.classList.add('fil');
+    // Badge duración
+    const esV  = TP.field==='hF2'||TP.field==='hL2';
+    const hFk  = esV?'hF2':'hF', hLk = esV?'hL2':'hL';
+    const badge= document.getElementById('dur-'+(esV?'v':'i'));
+    if(badge && F[hFk] && F[hLk]){
+      badge.textContent  = '⏱ '+calcDur(F[hFk],F[hLk]);
+      badge.style.display= 'inline-flex';
+    }
+    if(F.tipo==='trabajado' && F.comp==='dinero') actualizarCalculo();
+  } else {
+    // Fallback: elemento no encontrado en DOM (cambio de modo, etc.) → reconstruir
+    renderFormBody();
+  }
+}
+
+function actualizarCalculo(){
+  const cont=document.getElementById('calc-result-cont');
+  if(!cont)return;
+  const vh=parseFloat(AJ.vh)||12.5;
+  const noc=parseFloat(AJ.nocturnidad)||0;
+  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  const hayNoc=F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
+  const tasa=vh+(hayNoc?noc:0);
+  const hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+  const hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+  const hT=Math.round((hIda+hVuelta)*100)/100;
+  const pAct=F.plusAct     ? parseFloat(p.activacion||0)   : 0;
+  const pJT =F.plusJT      ? parseFloat(p.jt||0)           : 0;
+  const pIntl=F.plusIntlAuto? parseFloat(p.internacional||0): 0;
+  const imp=Math.round((hT*tasa+pAct+pJT+pIntl)*100)/100;
+  if(hT>0){
+    cont.innerHTML='<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>'
+      +(hVuelta>0?'<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>':'')
+      +'<div class="cr-row"><span class="cr-l">Total horas</span><span class="cr-v"><strong>'+hT+' h</strong></span></div>'
+      +'<div class="cr-row"><span class="cr-l">Tarifa</span><span class="cr-v">'+tasa.toFixed(2)+' €/h</span></div>'
+      +(pAct>0?'<div class="cr-row"><span class="cr-l">Plus Activación</span><span class="cr-v">+'+pAct.toFixed(2)+' €</span></div>':'')
+      +(pJT>0?'<div class="cr-row"><span class="cr-l">Plus JT</span><span class="cr-v">+'+pJT.toFixed(2)+' €</span></div>':'')
+      +(pIntl>0?'<div class="cr-row"><span class="cr-l">Plus Intl.</span><span class="cr-v">+'+pIntl.toFixed(2)+' €</span></div>':'')
+      +'<div class="cr-div"></div>'
+      +'<div class="cr-total"><span class="cr-tl">Total</span><span class="cr-tv">'+imp.toFixed(2)+' €</span></div>';
+  } else {
+    cont.innerHTML='<div style="font-size:10px;color:var(--tx3)">⚠️ Completa los tramos para ver el cálculo</div>';
+  }
+}
+
+/* ═══════════════════════════════════════
+   AJUSTES
+═══════════════════════════════════════ */
+const IDIOMAS = [
+  {code:'es', flag:'🇪🇸', nombre:'Español'},
+  {code:'en', flag:'🇬🇧', nombre:'English'},
+  {code:'fr', flag:'🇫🇷', nombre:'Français'},
+  {code:'ca', flag:'🏴󠁥󠁳󠁣󠁴󠁿', nombre:'Català'},
+  {code:'zh', flag:'🇨🇳', nombre:'中文'},
+];
+
+function renderIdiomaBtns(){
+  const cont = document.getElementById('idioma-btns');
+  if(!cont) return;
+  cont.innerHTML = IDIOMAS.map(({code,flag,nombre})=>{
+    const activo = LANG === code;
+    return `<div onclick="setIdioma('${code}')"
+      style="display:flex;align-items:center;gap:8px;padding:10px 12px;
+      background:${activo?'rgba(139,92,246,.15)':'var(--s2)'};
+      border:1.5px solid ${activo?'var(--violet2)':'var(--div)'};
+      border-radius:11px;cursor:pointer;transition:all .18s;user-select:none;
+      ${activo?'box-shadow:0 0 0 2px rgba(139,92,246,.2)':''}">
+      <span style="font-size:18px">${flag}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:${activo?'800':'600'};
+          color:${activo?'var(--violet2)':'var(--tx2)'}">${nombre}</div>
+        ${activo?'<div style="font-size:9px;color:var(--violet2);margin-top:1px">✓ Activo</div>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setIdioma(code){
+  aplicarIdioma(code);
+  localStorage.setItem('aj5', JSON.stringify(AJ));
+  toast('🌐 '+(IDIOMAS.find(function(i){return i.code===code;})||{}).nombre);
+}
+
+function loadAjUI(){
+  document.getElementById('aj-nom').value=AJ.nombre||'';
+  document.getElementById('aj-mat').value=AJ.matricula||'';
+  document.getElementById('aj-vh').value=AJ.vh||12.5;
+  document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
+  const bv=document.getElementById('aj-base-v');
+  if(AJ.base){bv.textContent=AJ.base;bv.className='aj-base-val';}
+  else{bv.textContent=t('tocaSeleccionar');bv.className='aj-base-val ph';}
+  setRolUI(AJ.rol||'tripulante');
+  renderPlusGrid();
+  updHeader();
+  renderIdiomaBtns();
+}
+function setRol(r){AJ.rol=r;setRolUI(r);renderPlusGrid();}
+function setRolUI(r){
+  document.getElementById('rs-t').className='aj-rol-btn'+(r==='tripulante'?' activo-t':'');
+  document.getElementById('rs-a').className='aj-rol-btn'+(r==='auxiliar'?' activo-a':'');
+}
+function renderPlusGrid(){
+  const r=AJ.rol||'tripulante',p=AJ.pluses[r]||PLUS_DEF[r];
+  const labs={activacion:'Plus\nActivación',internacional:'Plus\nIntl.',jt:'Plus\nJT'};
+  document.getElementById('pgrid').innerHTML=Object.entries(PLUS_LABELS).map(([k,lbl])=>
+    '<div class="pf">'
+    +'<div class="pf-l">'+labs[k]+'</div>'
+    +'<div class="pf-r">'
+    +'<input class="pf-i" type="number" step="0.10" min="0" value="'+(p[k]||0)+'" oninput="setPlus(\''+k+'\',this.value)">'
+    +'</div>'
+    +'<div class="pf-u">€/viaje</div>'
+    +'</div>'
+  ).join('');
+}
+function setPlus(k,v){const r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={};AJ.pluses[r][k]=parseFloat(v)||0;}
+function saveAj(){
+  AJ.nombre=document.getElementById('aj-nom').value.trim()||'Mis Turnos';
+  AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
+  AJ.vh=parseFloat(document.getElementById('aj-vh').value)||12.5;
+  AJ.nocturnidad=parseFloat(document.getElementById('aj-noc').value)||1.80;
+  // idioma ya está en AJ.idioma actualizado por setIdioma()
+  localStorage.setItem('aj5',JSON.stringify(AJ));
+  updHeader();toast(t('ajustesGuardados'));
+}
+function updHeader(){
+  document.getElementById('hdr-nom').textContent=AJ.nombre||'Mis Turnos';
+  const rp=document.getElementById('hdr-rol');
+  const mat=AJ.matricula?` · ${AJ.matricula}`:'';
+  if(AJ.rol==='auxiliar'){
+    rp.className='hdr-pill pill-a';
+    rp.textContent='🎫 AUXILIAR'+mat;
+  } else {
+    rp.className='hdr-pill pill-t';
+    rp.textContent='🚆 TRIPULANTE'+mat;
+  }
+}
+
+/* ═══════════════════════════════════════
+   ESTADÍSTICAS
+═══════════════════════════════════════ */
+function renderStats(){
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  document.getElementById('smlbl').textContent=MESES[m-1]+' '+y;
+  var pref=y+'-'+pad(m);
+  var ks=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
+  var ct={ordinario:0,reserva:0,descanso:0,baja:0,trabajado:0,comp:0,vacaciones:0};
+  ks.forEach(function(k){var t=TV[k];if(t&&ct[t.tipo]!==undefined)ct[t.tipo]++;});
+  var e=calculateEarnings(ks);
+  var rolCls=AJ.rol==='tripulante'?'trip':'aux';
+  var rolIco=AJ.rol==='tripulante'?'🚆':'🎫';
+  var rolNom=AJ.rol==='tripulante'?'Tripulante':'Auxiliar';
+  var rolCol=AJ.rol==='tripulante'?'var(--acc2)':'var(--amber2)';
+  document.getElementById('role-card').innerHTML=
+    '<div class="role-card '+rolCls+'">'
+    +'<div class="rc-emo">'+rolIco+'</div>'
+    +'<div class="rc-info"><div class="rc-name">'+rolNom+'</div>'
+    +'<div class="rc-sub">HTDL '+e.HTDL.toFixed(2)+'€ · Noc '+e.NOC.toFixed(2)+'€ · Límites 8h/12h</div></div>'
+    +'<div class="rc-tasa" style="color:'+rolCol+'">'+e.HTDL.toFixed(2)+' €/h</div></div>';
+  document.getElementById('sg').innerHTML=[
+    {i:'🚂',v:ct.ordinario, l:'Ordinarios', c:'var(--c-ord)'},
+    {i:'⏳',v:ct.reserva,   l:'Reservas',   c:'var(--c-res)'},
+    {i:'🧘',v:ct.descanso,  l:'Descansos',  c:'var(--c-des)'},
+    {i:'🏥',v:ct.baja,      l:'Bajas',      c:'var(--c-baj)'},
+    {i:'💼',v:ct.trabajado, l:'Trabajados', c:'var(--c-tra)'},
+    {i:'⏱', v:e.totalHoras.toFixed(1)+'h', l:'Horas', c:'var(--acc2)'},
+  ].map(function(x){
+    return '<div class="sc" style="border-color:'+x.c+'33"><div class="sc-i">'+x.i+'</div>'
+      +'<div class="sc-v" style="color:'+x.c+'">'+x.v+'</div>'
+      +'<div class="sc-l">'+x.l+'</div></div>';
+  }).join('');
+  var cs=document.getElementById('cs-box');
+  var dT=function(d){return d.length?'<div style="font-size:9px;color:var(--tx3)">📅 '+d.join(', ')+'</div>':'';};
+  var row=function(lbl,val,col,dias){
+    return '<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px">'
+      +'<div style="display:flex;width:100%"><span class="cl">'+lbl+'</span>'
+      +'<span class="cv" style="color:'+col+'">'+val+'</span></div>'
+      +dT(dias||[])+'</div>';
+  };
+  var des='';
+  if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
+    des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
+    if(e.totalHTDL>0)
+      des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
+    else if(e.totalHoras>0)
+      des+='<div class="cs-r"><span class="cl" style="color:var(--tx3)">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv" style="color:var(--tx3)">En nómina</span></div>';
+    if(e.totalNoc>0)  des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)',e.diasNoc);
+    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','var(--green2)',e.diasAct);
+    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','var(--green2)',e.diasJT);
+    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','var(--cyan2)',e.diasIntl);
+    if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv" style="color:var(--cyan2)">'+ct.comp+' días</span></div>';
+    if(e.totalBruto>0)
+      des+='<div class="cr-div" style="margin:6px 0"></div>'
+        +'<div class="cs-r"><span class="cl" style="font-weight:800">💰 Total estimado mes</span>'
+        +'<span class="cv" style="color:var(--green2);font-size:15px;font-weight:900">'+e.totalBruto.toFixed(2)+' €</span></div>';
+    des+='</div>';
+    cs.innerHTML=des;
+  } else cs.innerHTML='';
+}
+
+function chSM(d){statsM.setMonth(statsM.getMonth()+d);renderStats();}
+
+/* ═══════════════════════════════════════
+   AGENDA DE COMPAÑEROS
+   ModeloContacto: {id, nombre, matricula, tren, ultimoUso}
+   Persistencia: localStorage key 'agenda5'
+═══════════════════════════════════════ */
+
+// ── Base de datos de contactos (independiente de TV) ──
+// AGENDA declarada en bloque ESTADO GLOBAL
+
+function saveAgenda(){ localStorage.setItem('agenda5', JSON.stringify(AGENDA)); }
+
+// ── CRUD Contactos ────────────────────────────────────────────
+function agregarContacto(nombre, matricula, tren){
+  if(tren===undefined)tren='';
+  // Evitar duplicados por matrícula
+  const existe = AGENDA.find(c => c.matricula === matricula && matricula);
+  if(existe){
+    // Actualizar datos si ya existe
+    existe.nombre    = nombre;
+    existe.tren      = tren || existe.tren;
+    existe.ultimoUso = Date.now();
+    saveAgenda();
+    return existe;
+  }
+  const contacto = {
+    id:        Date.now().toString(),
+    nombre:    nombre.trim(),
+    matricula: matricula.trim(),
+    tren:      tren.trim(),
+    ultimoUso: Date.now()
+  };
+  AGENDA.unshift(contacto); // Más reciente primero
+  saveAgenda();
+  return contacto;
+}
+
+function eliminarContacto(id){
+  AGENDA = AGENDA.filter(c => c.id !== id);
+  saveAgenda();
+}
+
+function buscarContactos(q){
+  if(!q) return AGENDA.slice().sort((a,b)=> b.ultimoUso - a.ultimoUso);
+  const lq = q.toLowerCase();
+  return AGENDA.filter(c =>
+    c.nombre.toLowerCase().includes(lq) ||
+    c.matricula.toLowerCase().includes(lq) ||
+    c.tren.includes(q)
+  );
+}
+
+// ── Abrir agenda desde formulario de cambio ───────────────────
+function abrirAgenda(){
+  document.getElementById('agenda-srch-inp').value = '';
+  renderAgenda('');
+  openOv('ov-agenda');
+}
+
+function renderAgenda(q){
+  const lista   = document.getElementById('agenda-list');
+  const contactos = buscarContactos(q);
+
+  if(!contactos.length){
+    lista.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12px">'
+      + (q ? 'Sin resultados para "'+q+'"' : 'Tu agenda está vacía.<br>Añade compañeros para agilizar los cambios.')
+      + '</div>';
+    return;
+  }
+
+  lista.innerHTML = contactos.map(c => {
+    // Inicial del nombre para el avatar
+    const inicial = c.nombre ? c.nombre[0].toUpperCase() : '?';
+    return `<div class="contacto-card" onclick="seleccionarContacto('${c.id}')">
+      <div class="contacto-av">${inicial}</div>
+      <div class="contacto-info">
+        <div class="contacto-nombre">${c.nombre}</div>
+        <div class="contacto-mat">🪪 ${c.matricula||'—'}</div>
+        ${c.tren ? `<div class="contacto-tren">🚆 Tren frecuente: #${c.tren}</div>` : ''}
+      </div>
+      <button class="contacto-del" onclick="event.stopPropagation();borrarContactoAgenda('${c.id}')" title="Eliminar">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// Rellenar formulario de cambio con el contacto seleccionado
+function seleccionarContacto(id){
+  const c = AGENDA.find(x => x.id === id);
+  if(!c) return;
+  // Actualizar último uso
+  c.ultimoUso = Date.now();
+  saveAgenda();
+  // Rellenar campos del formulario de cambio
+  const nom = document.getElementById('cbio-nombre');
+  const mat = document.getElementById('cbio-mat');
+  const tren= document.getElementById('cbio-tren');
+  if(nom)  nom.value  = c.nombre;
+  if(mat)  mat.value  = c.matricula;
+  if(tren && c.tren) tren.value = c.tren;
+  closeOv('ov-agenda');
+  actualizarPrevCambio();
+  ocultarSugerencias();
+  toast('👤 '+c.nombre+' seleccionado');
+}
+
+function borrarContactoAgenda(id){
+  const c = AGENDA.find(x => x.id === id);
+  if(!c) return;
+  if(!confirm('¿Eliminar a '+c.nombre+' de la agenda?')) return;
+  eliminarContacto(id);
+  renderAgenda(document.getElementById('agenda-srch-inp').value || '');
+  toast('🗑 Contacto eliminado');
+}
+
+// ── Añadir contacto manualmente ───────────────────────────────
+function abrirNuevoContacto(){
+  document.getElementById('nc-nombre').value = '';
+  document.getElementById('nc-mat').value    = '';
+  document.getElementById('nc-tren').value   = '';
+  closeOv('ov-agenda');
+  openOv('ov-nuevo-contacto');
+}
+
+function guardarNuevoContacto(){
+  const nombre = document.getElementById('nc-nombre').value.trim();
+  const mat    = document.getElementById('nc-mat').value.trim();
+  const tren   = document.getElementById('nc-tren').value.trim();
+  if(!nombre){ toast('⚠️ Escribe un nombre'); return; }
+  agregarContacto(nombre, mat, tren);
+  closeOv('ov-nuevo-contacto');
+  toast('✅ '+nombre+' guardado en agenda');
+}
+
+// ── Autocompletado en formulario de cambio ─────────────────────
+function sugerirContacto(campo, q){
+  const boxNom = document.getElementById('sug-nombre');
+  const boxMat = document.getElementById('sug-mat');
+  const box    = campo === 'nombre' ? boxNom : boxMat;
+  const otra   = campo === 'nombre' ? boxMat : boxNom;
+  if(otra) otra.style.display = 'none';
+  if(!q || q.length < 1){ if(box) box.style.display='none'; return; }
+
+  const sugs = buscarContactos(q).slice(0, 5);
+  if(!sugs.length){ if(box) box.style.display='none'; return; }
+
+  if(box){
+    box.innerHTML = sugs.map(c =>
+      `<div class="sug-item" onclick="seleccionarContacto('${c.id}')">
+        <span style="font-size:14px">👤</span>
+        <span class="sug-nombre">${c.nombre}</span>
+        <span class="sug-mat">${c.matricula||''}</span>
+      </div>`
+    ).join('');
+    box.style.display = 'block';
+  }
+}
+
+function ocultarSugerencias(){
+  const b1 = document.getElementById('sug-nombre');
+  const b2 = document.getElementById('sug-mat');
+  if(b1) b1.style.display = 'none';
+  if(b2) b2.style.display = 'none';
+}
+
+// ── Guardado automático tras enviar cambio ─────────────────────
+// Se llama desde enviarCambio() después de abrir el mailto:
+function preguntarGuardarContacto(nombre, matricula, tren){
+  if(!nombre) return;
+  // ¿Ya existe en la agenda?
+  const existe = AGENDA.find(c =>
+    c.matricula === matricula ||
+    c.nombre.toLowerCase() === nombre.toLowerCase()
+  );
+  if(existe){ existe.ultimoUso = Date.now(); saveAgenda(); return; }
+  // Preguntar al usuario
+  const ok = confirm('¿Guardar a "'+nombre+'" en tu agenda de compañeros?\n\nLa próxima vez se autocompletará automáticamente.');
+  if(ok) agregarContacto(nombre, matricula, tren);
+}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function key(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
+function pad(n){return String(n).padStart(2,'0');}
+
+// Convierte "YYYY-MM-DD" → [year, month, day] como Numbers
+function parseKey(k){return k.split('-').map(Number);}
+
+function calcMins(h1,h2){
+  var _h1=h1.split(':').map(Number);var a=_h1[0],b=_h1[1];var _h2r=h2.split(':').map(Number);var c=_h2r[0],d=_h2r[1];
+  let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
+}
+function calcDur(h1,h2){if(!h1||!h2)return '--';const m=calcMins(h1,h2);return Math.floor(m/60)+'h '+pad(m%60)+'m';}
+
+// Calcula horas (decimal) entre dos strings "HH:MM"
+function horasDec(hF,hL){
+  if(!hF||!hL) return 0;
+  return Math.round(calcMins(hF,hL)/60*100)/100;
+}
+
+// Calcula importe completo de un turno (horas × tarifa + pluses activos)
+function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
+  const vh  = parseFloat(AJ.vh)||12.5;
+  const noc = parseFloat(AJ.nocturnidad)||0;
+  const p   = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  const hayNoc = hF ? esHoraNocturna(hF)||(hL?esHoraNocturna(hL):false) : false;
+  const tasa   = vh+(hayNoc?noc:0);
+  const pA = plusAct      ? parseFloat(p.activacion||0)   : 0;
+  const pJ = plusJT       ? parseFloat(p.jt||0)           : 0;
+  const pI = plusIntlAuto ? parseFloat(p.internacional||0) : 0;
+  return Math.round((horas*tasa+pA+pJ+pI)*100)/100;
+}
+
+function esHoraNocturna(h){var hr=parseInt(h.split(':')[0]);return hr>=22||hr<6;}
+function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
+function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
+function openOv(id){document.getElementById(id).classList.add('on');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
+function goP(n){
+  ['cal','stats','ajustes'].forEach(p=>{
+    document.getElementById('p-'+p).className='panel'+(p===n?' on':'');
+    document.getElementById('nav-'+p).className='bni'+(p===n?' on':'');
+  });
+  if(n==='stats')renderStats();
+  if(n==='ajustes')loadAjUI();
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500);}
+// Cerrar overlays al tocar fuera
+['ov-tipo','ov-form','ov-est','ov-hora','ov-del','ov-borrar','ov-edit-comp','ov-cambio','ov-agenda','ov-nuevo-contacto'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeOv(id);});
+});
+
+
+function calculateEarnings(ks){
+  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  const HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
+  const P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
+  let tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
+  let dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
+  const cn=(hF,hL)=>{
+    if(!hF||!hL)return 0;
+    const tm=h=>{var _hm2=h.split(':').map(Number);var hh=_hm2[0],mm=_hm2[1];return hh*60+mm;};
+    const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;
+    let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));
+    n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));
+    if(i<360)n+=Math.max(0,Math.min(f,360)-i);
+    return Math.round(n/60*100)/100;
+  };
+  ks.forEach(k=>{
+    const t=TV[k];if(!t)return;
+    var _ks=k.split('-');var mo=parseInt(_ks[1]),dd=_ks[2];
+    const dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
+    const hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
+    const hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
+    const h=Math.round((hI+hV)*100)/100;
+    if(t.tipo==='ordinario'){tHr+=h;
+      if(t.nocturno&&h>0){const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0){tN+=n*NOC;dN.push(dL);}}
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+    if(t.tipo==='trabajado'){tHr+=h;
+      if(t.comp==='dinero'){
+        // Escala = tiempo entre llegada ida (hL) y firma vuelta (hF2)
+        // Según protocolo HTDL: Ida + Escala + Vuelta — la escala computa
+        const hEscala = (t.hL && t.hF2) ? Math.round(calcMins(t.hL, t.hF2)/60*100)/100 : 0;
+        const hTotalHTDL = Math.round((h + hEscala)*100)/100;
+        hHTDL += hTotalHTDL;
+        tH    += hTotalHTDL * HTDL;
+        dHTDL.push(dL);
+      }
+      const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0&&t.nocturno){tN+=n*NOC;dN.push(dL);}
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+    if(['reserva','descanso','baja'].includes(t.tipo)){
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+  });
+  return{HTDL,NOC,
+    totalHTDL:Math.round(tH*100)/100,totalNoc:Math.round(tN*100)/100,
+    totalAct:Math.round(tA*100)/100,totalJT:Math.round(tJ*100)/100,totalIntl:Math.round(tI*100)/100,
+    totalBruto:Math.round((tH+tN+tA+tJ+tI)*100)/100,
+    totalHoras:Math.round(tHr*100)/100,horasHTDL:Math.round(hHTDL*100)/100,
+    diasNoc:dN,diasAct:dA,diasJT:dJ,diasIntl:dI,diasHTDL:dHTDL};
+}
+
+function clearCompData() {
+  if (!confirm('¿Eliminar el horario del compañero?')) return;
+  COMP_DATA = {};
+  saveComp();
+  vistaMode = 'mio';
+  renderCal();
+  toast('👤 Horario compañero eliminado');
+}
+
+
+function clearSelDay(){
+  selDay=null;
+  renderCal();
+}
+
+
+function closeOvTop(id){const el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
+
+function confirmarEnvioEmail(){
+  const dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
+  const asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
+  const cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
+  if(dest){AJ.emailDestino=dest;localStorage.setItem('aj5',JSON.stringify(AJ));}
+  const ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
+  closeOv('ov-email-confirm');
+  setTimeout(()=>{window.location.href=ml;},150);
+}
+
+function enviarSolicitudCompensacion(k){
+  const t=TV[k];if(!t)return;
+  var _kf3=k.split('-').map(Number);var y=_kf3[0],mo=_kf3[1],dd=_kf3[2];
+  var fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
+  const nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
+  const hora=new Date().getHours();
+  const sal=hora<13?'Buenos días':hora<20?'Buenas tardes':'Buenas noches';
+  const cuerpo=sal+'.\n\nMediante el presente solicito la compensación de '
+    +nDias+' día'+(nDias===1?'':'s')+' por el servicio realizado el día '+fstr
+    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validación.\n\n'
+    +'Atentamente,\n'+mn+'\nMatrícula: '+mm;
+  const asunto='Solicitud de Compensación - '+fstr+(nt?' - Tren '+nt:'');
+  handleEmailSubmission('Solicitud de Compensación',
+    nDias+' día'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,()=>{
+    TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;
+    if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();
+  });
+}
+
+
+function guardarCompanero(nombre,mat){
+  const e=AGENDA.find(c=>c.matricula===mat&&mat);
+  if(e){e.nombre=nombre;e.ultimoUso=Date.now();saveAgenda();return e;}
+  const c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
+  AGENDA.unshift(c);saveAgenda();return c;
+}
+
+function handleEmailSubmission(tit,sub,asunto,cuerpo,cb){
+  _emailCB=cb;
+  document.getElementById('ec-tit').textContent=tit;
+  document.getElementById('ec-sub').textContent=sub;
+  document.getElementById('ec-asunto').value=asunto;
+  document.getElementById('ec-cuerpo').value=cuerpo;
+  const d=document.getElementById('ec-dest');
+  if(d) d.value=AJ.emailDestino||'';
+  const ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
+  if(ca) openOvTop('ov-email-confirm'); else openOv('ov-email-confirm');
+}
+
+function openOvTop(id){const el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
+
+function renderVistaToggle() {
+  var wrap = document.getElementById('vista-toggle');
+  if (!wrap) return;
+  var hasComp = Object.keys(COMP_DATA).length > 0;
+  if (!hasComp) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+}
+
+// ── Import modal — selector destino ─────────────────────────
+
+
+
+
+
+
+function setVistaMode(mode) {
+  vistaMode = mode;
+  var btns = document.querySelectorAll('.vista-btn');
+  btns.forEach(function(b) { b.classList.remove('act'); });
+  var active = document.getElementById('vista-' + mode);
+  if (active) active.classList.add('act');
+  renderCal();
+}
+
+// ── Render toggle bar ────────────────────────────────────────
+
+init();
+</script>
+</body>
+</html>
