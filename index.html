@@ -126,6 +126,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dc-baj{background:rgba(220,38,38,.2);border-color:rgba(220,38,38,.5);color:#FCA5A5;font-weight:700}
 .dc-tra{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#C4B5FD;font-weight:700}
 .dc-cmp{background:rgba(8,145,178,.25);border-color:rgba(8,145,178,.6);color:#67E8F9;font-weight:700}
+
+/* ── COMPANION CALENDAR STYLES ── */
+.dc-comp-ordinario{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4)}
+.dc-comp-descanso{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3)}
+.dc-comp-vacaciones{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.3)}
+.dc-comp-baja{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.3)}
+.dc-comp-reserva{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.25)}
+.dc-comp-only{background:rgba(168,85,247,.08);border:1.5px dashed rgba(168,85,247,.4)}
+.dc-split{background:linear-gradient(135deg,rgba(59,130,246,.18) 50%,rgba(168,85,247,.18) 50%)!important;border-color:#4f46e5!important}
+/* Vista toggle */
+.vista-toggle{display:flex;background:var(--s2);border-radius:10px;padding:3px;gap:3px;margin:6px 12px}
+.vista-btn{flex:1;padding:5px 2px;border:none;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;background:transparent;color:var(--tx3);transition:all .18s}
+.vista-btn.act{background:var(--s1);color:var(--tx);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.vista-btn.act-comp{background:rgba(168,85,247,.25);color:#c084fc}
+.vista-btn.act-both{background:rgba(99,102,241,.2);color:#a5b4fc}
+
 .dc-ico{font-size:14px;line-height:1;margin-top:0}
 
 /* ── LEYENDA ── */
@@ -676,6 +692,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="mn-lbl" id="mn-lbl"></div>
         <div class="mn-sub" id="mn-sub"></div>
       </div>
+      <div class="vista-toggle" id="vista-toggle" style="display:none">
+        <button id="vista-mio"   class="vista-btn act" onclick="setVistaMode('mio')">📅 Mis turnos</button>
+        <button id="vista-comp"  class="vista-btn"     onclick="setVistaMode('comp')">👤 Compañero</button>
+        <button id="vista-ambos" class="vista-btn"     onclick="setVistaMode('ambos')">⚖ Comparar</button>
+      </div>
       <div class="mn-hoy" onclick="irHoy()">Hoy</div>
       <button class="mn-btn" onclick="chM(1)" title="Mes siguiente">›</button>
     </div>
@@ -885,40 +906,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
-      <!-- ── BACKUP & RESTAURAR ── -->
-      <div class="aj-card">
-        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(124,58,237,.04))">
-          <div class="aj-card-hdr-ico">💾</div>
-          <div class="aj-card-hdr-txt">
-            <div class="aj-card-hdr-tit" style="color:var(--violet2)">Backup de datos</div>
-            <div class="aj-card-hdr-sub" style="color:var(--violet2)">Exportar e importar todos tus turnos</div>
-          </div>
-        </div>
-        <div class="aj-card-body" style="display:flex;flex-direction:column;gap:8px">
-          <div style="font-size:10px;color:var(--tx2);line-height:1.5">
-            📤 <strong>Exportar</strong> — descarga un archivo con todos tus turnos y ajustes.<br>
-            📥 <strong>Importar</strong> — restaura un backup anterior sin perder nada.
-          </div>
-          <button onclick="exportarDatos()"
-            style="width:100%;padding:12px;background:rgba(124,58,237,.12);
-            border:1.5px solid rgba(124,58,237,.35);border-radius:11px;
-            color:var(--violet2);font-size:13px;font-weight:800;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;gap:7px">
-            📤 Exportar / Descargar backup
-          </button>
-          <button onclick="document.getElementById('inp-import').click()"
-            style="width:100%;padding:12px;background:rgba(124,58,237,.06);
-            border:1.5px solid rgba(124,58,237,.2);border-radius:11px;
-            color:var(--violet2);font-size:13px;font-weight:700;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;gap:7px">
-            📥 Importar backup
-          </button>
-          <!-- Input file oculto para importar -->
-          <input type="file" id="inp-import" accept=".json" style="display:none"
-            onchange="importarDatos(this)">
-        </div>
-      </div>
-
+      
       <!-- ── BOTONES ── -->
       <button class="aj-save-btn" onclick="saveAj()">💾  Guardar ajustes</button>
       <button class="aj-del-btn" onclick="pedirBorrarTodo()">🗑  Borrar todos los turnos</button>
@@ -950,6 +938,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="topt t-ord" onclick="elegirTipo('ordinario')"><div class="to-ico">🚂</div><div class="to-lbl">Ordinario</div><div class="to-sub">Turno normal de trabajo</div></div>
         <div class="topt t-res" onclick="elegirTipo('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva</div><div class="to-sub">De guardia, sin tramo aún</div></div>
         <div class="topt t-des" onclick="elegirTipo('descanso')"><div class="to-ico">🧘</div><div class="to-lbl">Descanso</div><div class="to-sub">Día libre o trabajado</div></div>
+        <div class="topt t-tra" onclick="elegirTipo('trabajado')"><div class="to-ico">💼</div><div class="to-lbl">Trabajado</div><div class="to-sub">Descanso trabajado</div></div>
         <div class="topt t-baj" onclick="elegirTipo('baja')"><div class="to-ico">🏥</div><div class="to-lbl">Baja</div><div class="to-sub">Médica o laboral</div></div>
         <div class="topt t-vac" onclick="elegirTipo('vacaciones')"><div class="to-ico">🏖</div><div class="to-lbl">Vacaciones</div><div class="to-sub">Días de vacaciones anuales</div></div>
       </div>
@@ -1155,6 +1144,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+
 <!-- OV: CONFIRMAR ENVIO EMAIL -->
 <div class="ov" id="ov-email-confirm"><div class="sh" style="max-height:88%">
   <div class="sh-handle"></div>
@@ -1226,7 +1216,7 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
 ═══════════════════════════════════════ */
 let AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
-  pluses:{tripulante:{...PLUS_DEF.tripulante},auxiliar:{...PLUS_DEF.auxiliar}}
+  pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)}
 },JSON.parse(localStorage.getItem('aj5')||'{}'));
 
 let TV=JSON.parse(localStorage.getItem('tv5')||'{}');
@@ -1253,6 +1243,12 @@ let SF              = JSON.parse(localStorage.getItem('sf5')     || '[]');
 let AGENDA          = JSON.parse(localStorage.getItem('agenda5') || '[]');
 let ALERTAS_DESCANSO = {};
 
+// ── Sistema Horario Compañero ─────────────────────────────────
+var COMP_DATA  = JSON.parse(localStorage.getItem('comp5') || '{}');
+var vistaMode  = 'mio'; // 'mio' | 'comp' | 'ambos'
+
+function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
+
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
@@ -1267,7 +1263,6 @@ function init(){
   loadAjUI();
   // Cargar idioma guardado (en tiempo real, sin reiniciar)
   if(AJ.idioma && I18N[AJ.idioma]) aplicarIdioma(AJ.idioma);
-  demoData();
   renderCal();
   renderStats();
   initSwipe(); // activar swipe táctil en calendario
@@ -1285,34 +1280,6 @@ function limpiarDatosObsoletos(){
     }
   });
   if(stale){localStorage.removeItem('tv5');TV={};}
-}
-
-function demoData(){
-  if(Object.keys(TV).length>0)return;
-  const h=new Date(),y=h.getFullYear(),m=h.getMonth()+1;
-  const mk=(d,t,ex)=>{if(d<=28)TV[key(y,m,d)]={tipo:t,...ex};};
-  mk(3,'ordinario',{linea:'AVE',sal:'Madrid Puerta de Atocha',lle:'Barcelona Sants',hF:'06:30',hL:'09:20',modo:'ida',sal2:'Barcelona Sants',lle2:'Madrid Puerta de Atocha',hF2:'17:00',hL2:'19:50'});
-  mk(6,'reserva',{});
-  mk(8,'descanso',{});
-  mk(11,'ordinario',{linea:'Euromed',sal:'Barcelona Sants',lle:'Valencia Joaquín Sorolla',hF:'10:00',hL:'13:15',modo:'ida',sal2:'Valencia Joaquín Sorolla',lle2:'Barcelona Sants',hF2:'18:00',hL2:'21:10'});
-  mk(13,'baja',{});
-  mk(17,'trabajado',{linea:'Renfe Larga Distancia',sal:'Madrid Puerta de Atocha',lle:'Vigo-Urzáiz',hF:'07:00',hL:'11:30',modo:'pernocta',comp:'dinero',horas:4.5,importe:Math.round(4.5*(AJ.vh||12.5)*100)/100});
-  // vuelta pernocta día 18
-  const k17=key(y,m,17),k18=key(y,m,18);
-  if(m<=12&&18<=28){
-    TV[k18]={tipo:'vuelta-pernocta',linea:'Renfe Larga Distancia',sal:'Vigo-Urzáiz',lle:'Madrid Puerta de Atocha',hF:'09:00',hL:'13:30',origenPernocta:k17};
-    TV[k17].diaSiguiente=k18;
-  }
-  mk(20,'descanso',{});
-  mk(24,'ordinario',{linea:'Internacional (Lyon/Marsella)',sal:'Barcelona Sants',lle:'Lyon Part-Dieu',hF:'08:15',hL:'13:50',modo:'ida',sal2:'Lyon Part-Dieu',lle2:'Barcelona Sants',hF2:'15:00',hL2:'20:30'});
-  // Comp ejemplo: 2 días en mes siguiente para turno de ida/vuelta trabajado
-  mk(27,'trabajado',{linea:'AVE',sal:'Madrid Puerta de Atocha',lle:'Sevilla Santa Justa',hF:'09:00',hL:'11:30',modo:'ida',comp:'dias',horas:2.5,diasComp:[]});
-  const mc=m===12?1:m+1,yc=m===12?y+1:y;
-  const k27=key(y,m,27);
-  TV[key(yc,mc,5)]={tipo:'comp',origen:k27};
-  TV[key(yc,mc,6)]={tipo:'comp',origen:k27};
-  TV[k27].diasComp=[key(yc,mc,5),key(yc,mc,6)];
-  saveTV();
 }
 
 /* ═══════════════════════════════════════
@@ -1729,11 +1696,11 @@ function checkRestTime(turnoA, turnoB, keyA, keyB){
 
   const retrasoA = parseInt(turnoA.retrasoMin)||0;
 
-  const toMin = h => { const[hh,mm]=h.split(':').map(Number); return hh*60+mm; };
+  const toMin = h => { var _hm=h.split(':').map(Number);var hh=_hm[0],mm=_hm[1]; return hh*60+mm; };
 
   // Convertir a minutos absolutos desde epoch (día × 1440 + hora)
-  const diaA = keyA ? (() => { const[y,m,d]=keyA.split('-').map(Number); return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
-  const diaB = keyB ? (() => { const[y,m,d]=keyB.split('-').map(Number); return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
+  const diaA = keyA ? (() => { var _ka=keyA.split('-').map(Number);var y=_ka[0],m=_ka[1],d=_ka[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
+  const diaB = keyB ? (() => { var _kb=keyB.split('-').map(Number);var y=_kb[0],m=_kb[1],d=_kb[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
   const diasDif = Math.round(diaB - diaA); // 0 = mismo día, 1 = día siguiente, etc.
 
   const finAbsoluto  = diasDif * 1440 * 0 + toMin(horaFinA)  + retrasoA;
@@ -1782,7 +1749,7 @@ function verificarDescansosMes(){
   const ultimoAnt = ksAnt.length ? [ksAnt[ksAnt.length-1]] : [];
 
   // Cadena completa: [últimoDelMesAnterior, ...turnosDelMesActual]
-  const ks = [...ultimoAnt, ...ksActual];
+  const ks = ultimoAnt.concat(ksActual);
   const alertas={};
 
   for(let i=1; i<ks.length; i++){
@@ -1794,7 +1761,7 @@ function verificarDescansosMes(){
     // L-01 FIX: pasamos las claves para cálculo correcto multi-día
     const r=checkRestTime(tA, tB, kA, kB);
     if(r.incumple){
-      alertas[kB]={...r, kAnterior:kA};
+      alertas[kB]=Object.assign({},r,{kAnterior:kA});
     }
   }
   return alertas;
@@ -1847,7 +1814,7 @@ function abrirRetraso(){
 function previsualizarRetraso(val){
   // Mostrar impacto en descanso en tiempo real
   const min  = parseInt(val)||0;
-  const t    = selDay ? selDay.t : null;
+  var t = selDay ? selDay.t : null;
   if(!t) return;
 
   // Encontrar el turno siguiente
@@ -1860,7 +1827,7 @@ function previsualizarRetraso(val){
   if(!tSig) return;
 
   // Simular con el retraso provisional
-  const tSimulado = {...t, retrasoMin: min};
+  const tSimulado = Object.assign({},t,{retrasoMin:min});
   const r = checkRestTime(tSimulado, tSig, kActual, kSig);
 
   let prev = document.getElementById('retraso-preview');
@@ -1868,7 +1835,7 @@ function previsualizarRetraso(val){
     prev = document.createElement('div');
     prev.id = 'retraso-preview';
     prev.style.cssText = 'font-size:10px;margin-top:5px;padding:4px 8px;border-radius:7px;font-weight:600';
-    (document.getElementById('retraso-panel') ? document.getElementById('retraso-panel').appendChild(prev) : null);
+    var rp=document.getElementById('retraso-panel');if(rp)rp.appendChild(prev);
   }
   if(r.incumple){
     prev.style.cssText += 'color:var(--red2);background:rgba(220,38,38,.08)';
@@ -1918,7 +1885,7 @@ function searchByTrainNumber(n){
   const q = String(n).trim();
   const exactas   = SF.filter(s => s.numTren === q);
   const parciales = SF.filter(s => s.numTren !== q && s.numTren.startsWith(q));
-  return [...exactas, ...parciales].slice(0, 6);
+  return exactas.concat(parciales).slice(0,6);
 }
 
 function guardarServicioFrecuente(datos){
@@ -1940,24 +1907,19 @@ function guardarServicioFrecuente(datos){
 }
 
 function autorellenarServicio(s){
-  try{
-    if(s.linea) F.linea=s.linea;
-    if(s.sal)   F.sal  =s.sal;
-    if(s.lle)   F.lle  =s.lle;
-    if(s.hF)    F.hF   =s.hF;
-    if(s.hL)    F.hL   =s.hL;
-    if(s.sal2)  F.sal2 =s.sal2;
-    if(s.lle2)  F.lle2 =s.lle2;
-    if(s.hF2)   F.hF2  =s.hF2;
-    if(s.hL2)   F.hL2  =s.hL2;
-    if(s.linea) F.plusIntlAuto=s.linea.includes('Internacional');
-    renderFormBody();
-    toast('Tren #'+s.numTren+' cargado');
-  }catch(e){
-    console.warn('SF corrupted:',e);
-    toast('No se pudo autocompletar');
-    renderFormBody();
-  }
+  if(s.linea) F.linea = s.linea;
+  if(s.sal)   F.sal   = s.sal;
+  if(s.lle)   F.lle   = s.lle;
+  if(s.hF)    F.hF    = s.hF;
+  if(s.hL)    F.hL    = s.hL;
+  if(s.sal2)  F.sal2  = s.sal2;
+  if(s.lle2)  F.lle2  = s.lle2;
+  if(s.hF2)   F.hF2   = s.hF2;
+  if(s.hL2)   F.hL2   = s.hL2;
+  // Actualizar plusIntlAuto si hay línea internacional
+  if(s.linea) F.plusIntlAuto = s.linea.includes('Internacional');
+  renderFormBody();
+  toast('⚡ Tren #'+s.numTren+' cargado automáticamente');
 }
 
 function mostrarSugTren(val){
@@ -2067,7 +2029,7 @@ function animSwipe(dir){
 
 function _keyAFechaLbl(k){
   if(!k) return '';
-  const[y,m,d]=k.split('-').map(Number);
+  var _km1=k.split('-').map(Number);var y=_km1[0],m=_km1[1],d=_km1[2];
   return d+' '+MESES_C[m-1];
 }
 
@@ -2099,6 +2061,7 @@ function renderCal(){
 
   renderDiaArea();
   renderAcordeon();
+  renderVistaToggle();
 }
 
 function renderSlide(gridId, fecha){
@@ -2117,56 +2080,49 @@ function renderSlide(gridId, fecha){
     const t=TV[k];
     const isH=y===hoy.getFullYear()&&m===hoy.getMonth()&&d===hoy.getDate();
     const isS=selDay&&selDay.k===k;
-    const tieneAlerta=ALERTAS_DESCANSO[k];
-    const tienePending=t&&t.pendienteEnvio;
-
+    const tieneAlerta = ALERTAS_DESCANSO[k];
     let cls='dc';
-    // dc-sel solo días SIN turno (selector abierto)
-    if(isS && !t) cls+=' dc-sel';
-    // Color del tipo: SIEMPRE se aplica aunque el día esté seleccionado
-    if(t) cls+=' '+((TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'')||'');
+    if(isS) cls+=' dc-sel';
+    else if(t) cls+=' '+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'');
     if(isH) cls+=' dc-hoy';
     if(tieneAlerta) cls+=' dc-alerta';
-
     const c=document.createElement('div');
     c.className=cls;
-    c.style.position='relative';
-
-    // Icono SIEMPRE visible — nunca suprimido por selección (prioridad visual fija)
-    const ico=t?((TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')||''):'';
-    const penIcon=tienePending?'<span style="position:absolute;top:1px;left:1px;font-size:8px;line-height:1">\uD83D\uDCE7</span>':'';
-    c.innerHTML=penIcon+'<span>'+d+'</span>'+(ico?'<span class="dc-ico">'+ico+'</span>':'');
+    c.style.position='relative'; // needed for ::after pseudo
+    c.innerHTML='<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
     c.onclick=()=>clickDia(d,k,t);
     grid.appendChild(c);
   }
+}
 
-
+function abrirTipoDesdeCard(){
+  if(!selDay) return;
+  var d=selDay.d, k=selDay.k;
+  var mo=parseInt(k.split('-')[1]);
+  var dt=new Date(parseInt(k.split('-')[0]),mo-1,d);
+  var wd=(dt.getDay()+6)%7;
+  document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
+  openOv('ov-tipo');
 }
 
 function clickDia(d,k,t){
-  // Siempre actualizamos selDay para que renderDiaArea muestre la tarjeta
+  // Si ya estaba seleccionado y tiene turno → abrir edición (segundo toque)
+  if(selDay && selDay.k===k && t){
+    editarTurno();
+    return;
+  }
+  // Primer toque: seleccionar y mostrar tarjeta
   selDay={d,k,t};
-
+  renderCal();
+  // Sin turno → abrir selector de tipo directamente
   if(!t){
-    // Sin turno: abrir selector de tipo — al cerrarlo selDay se limpia
-    const[y,mo]=k.split('-').map(Number);
-    const dt=new Date(y,mo-1,d);
+    var _km2=k.split('-').map(Number);var y=_km2[0],mo=_km2[1];
+    var dt=new Date(y,mo-1,d);
     const wd=(dt.getDay()+6)%7;
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
-    renderCal(); // renderiza sin dc-sel (se limpiará al cerrar)
     openOv('ov-tipo');
-  } else {
-    // Con turno: mostrar tarjeta. Segundo toque sobre el mismo día → editar
-    renderCal();
-    // Si pulsamos el mismo día con turno por segunda vez, editamos
-    // (la primera vez selDay.k === k pero t existía desde antes)
   }
-}
-
-// Limpia el estado seleccionado visualmente cuando se cierra ov-tipo
-function clearSelDay(){
-  selDay=null;
-  renderCal();
+  // Con turno → solo muestra la tarjeta (el usuario puede tocar ✏️ Editar o 🔄 Cambio)
 }
 
 function irHoy(){
@@ -2184,9 +2140,9 @@ function chM(dir){
 function renderDiaArea(){
   const area=document.getElementById('dia-area');
   if(!selDay){area.innerHTML='';return;}
-  const{d,k,t}=selDay;
-  const[y,mo]=k.split('-').map(Number);
-  const dt=new Date(y,mo-1,d);
+  var d=selDay.d;var k=selDay.k;var t=selDay.t;;
+  var _km3=k.split('-').map(Number);var y=_km3[0],mo=_km3[1];
+  var dt=new Date(y,mo-1,d);
   const wd=(dt.getDay()+6)%7;
   const fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
 
@@ -2195,15 +2151,15 @@ function renderDiaArea(){
       +'<div class="dcv-ico">📋</div>'
       +'<div class="dcv-fecha">'+fstr+'</div>'
       +'<div class="dcv-hint">Sin turno asignado</div>'
-      +'<button class="dcv-btn">➕ Agregar turno</button>'
+      +'<button class="dcv-btn" onclick="abrirTipoDesdeCard()">➕ Agregar turno</button>'
       +'</div>';
     return;
   }
 
   const ti  = TIPO_INFO[t.tipo] || {ico:'❓', lbl:t.tipo||'Desconocido', col:'var(--tx2)', cls:''};
   const col = ti.col;
-  const pendiente  = t.pendienteEnvio === true;
-  const solicitada = t.compensacionSolicitada === true;  // ── Verificar incumplimiento de descanso para este día ───────
+
+  // ── Verificar incumplimiento de descanso para este día ───────
   const alerta = ALERTAS_DESCANSO[k];
   let alertaBanner = '';
   if(alerta){
@@ -2234,104 +2190,29 @@ function renderDiaArea(){
         +'<div class="tr-route" style="font-weight:800">🚆 Tren '+t.numTren+'</div>'
         +'<div class="tr-time" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</div></div>';
     }
-    // Tramo IDA
     if(t.sal&&t.lle){
-      body+='<div class="tr-r"><div class="tr-dot" style="background:'+col+'"></div>'
-        +'<div class="tr-route">🚂 '+t.sal+' → '+t.lle+'</div>'
-        +'<div class="tr-time">'+t.hF+'–'+t.hL+'</div></div>';
-      body+='<div class="tr-r"><div class="tr-dot" style="background:transparent"></div>'
-        +'<div class="tr-route" style="opacity:.55;font-size:10px">'+(t.linea||'')+'</div>'
-        +'<div class="tr-time tr-hi">'+calcDur(t.hF,t.hL)+'</div></div>';
+      body+='<div class="tr-r"><div class="tr-dot" style="background:'+col+'"></div><div class="tr-route">🚂 '+t.sal+' → '+t.lle+'</div><div class="tr-time">'+t.hF+'–'+t.hL+'</div></div>';
+      body+='<div class="tr-r"><div class="tr-dot" style="background:transparent"></div><div class="tr-route" style="opacity:.55;font-size:10px">'+(t.linea||'')+'</div><div class="tr-time tr-hi">'+calcDur(t.hF,t.hL)+'</div></div>';
     }
-    // Escala (solo HTDL con vuelta)
-    if(t.hL&&t.hF2&&t.comp==='dinero'){
-      const minE=calcMins(t.hL,t.hF2);
-      const hE=Math.floor(minE/60),mE=minE%60;
-      const impE=Math.round((minE/60)*(parseFloat(AJ.vh)||12.5)*100)/100;
-      body+='<div class="tr-r"><div class="tr-dot" style="background:rgba(139,92,246,.6)"></div>'
-        +'<div class="tr-route" style="color:var(--violet2);font-size:10px;font-weight:700">'
-        +'⏸ Escala '+t.hL+' – '+t.hF2+'</div>'
-        +'<div class="tr-time" style="color:var(--violet2);font-weight:800">'
-        +hE+'h'+(mE>0?' '+String(mE).padStart(2,'0')+'m':'')+' · '+impE.toFixed(2)+' €</div></div>';
-    }
-    // Nocturnidad con importe
+    // Nocturnidad — automática para todos los tipos
     if(t.nocturno){
-      const NOCd=parseFloat(AJ.nocturnidad||0);
-      const cnD=(hF,hL)=>{if(!hF||!hL)return 0;const tm=h=>{const[hh,mm]=h.split(':').map(Number);return hh*60+mm;};const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));if(i<360)n+=Math.max(0,Math.min(f,360)-i);return Math.round(n/60*100)/100;};
-      const hNd=cnD(t.hF,t.hL)+cnD(t.hF2,t.hL2);
-      const impNd=Math.round(hNd*NOCd*100)/100;
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber)"></div>'
-        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad '+hNd.toFixed(2)+'h</div>'
-        +'<div class="tr-time" style="color:var(--amber2);font-weight:800">'+impNd.toFixed(2)+' €</div></div>';
+        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad activa (22:00–06:00)</div></div>';
     }
-    // Plus Internacional
+    // Plus Internacional automático
     if(t.plusIntlAuto){
-      const pD=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div>'
-        +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional</div>'
-        +'<div class="tr-time" style="color:var(--cyan2);font-weight:800">'+parseFloat(pD.internacional||0).toFixed(2)+' €</div></div>';
+        +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional aplicado</div></div>';
     }
-    // Plus Activación
-    if(t.plusAct){
-      const pD=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--green)"></div>'
-        +'<div class="tr-route" style="color:var(--green2);font-size:10px">✅ Plus Activación</div>'
-        +'<div class="tr-time" style="color:var(--green2);font-weight:800">'+parseFloat(pD.activacion||0).toFixed(2)+' €</div></div>';
-    }
-    // Plus JT
-    if(t.plusJT){
-      const pD=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--green)"></div>'
-        +'<div class="tr-route" style="color:var(--green2);font-size:10px">✅ Plus JT</div>'
-        +'<div class="tr-time" style="color:var(--green2);font-weight:800">'+parseFloat(pD.jt||0).toFixed(2)+' €</div></div>';
-    }
-    // Tramo VUELTA
     if(t.sal2&&t.lle2){
       const esP=t.modo==='pernocta';
       body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
         +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+'</div>'
         +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
-      if(t.hF2&&t.hL2){
-        body+='<div class="tr-r"><div class="tr-dot" style="background:transparent"></div>'
-          +'<div class="tr-route" style="opacity:.55;font-size:10px">&nbsp;</div>'
-          +'<div class="tr-time tr-hi">'+calcDur(t.hF2,t.hL2)+'</div></div>';
-      }
     }
-    // TOTAL COMPUTABLE del día (HTDL)
-    if(t.comp==='dinero'){
-      const HTDLd=parseFloat(AJ.vh||12.5),NOCd2=parseFloat(AJ.nocturnidad||0);
-      const pD=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-      const hId=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
-      const hVd=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
-      const hEd=(t.hL&&t.hF2)?Math.round(calcMins(t.hL,t.hF2)/60*100)/100:0;
-      const hTd=Math.round((hId+hVd+hEd)*100)/100;
-      const cnD2=(hF,hL)=>{if(!hF||!hL)return 0;const tm=h=>{const[hh,mm]=h.split(':').map(Number);return hh*60+mm;};const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));if(i<360)n+=Math.max(0,Math.min(f,360)-i);return Math.round(n/60*100)/100;};
-      const hNd2=cnD2(t.hF,t.hL)+cnD2(t.hF2,t.hL2);
-      const impHd=Math.round(hTd*HTDLd*100)/100;
-      const impNd2=Math.round(hNd2*NOCd2*100)/100;
-      const impAd=t.plusAct?parseFloat(pD.activacion||0):0;
-      const impJd=t.plusJT?parseFloat(pD.jt||0):0;
-      const impId2=t.plusIntlAuto?parseFloat(pD.internacional||0):0;
-      const totDia=Math.round((impHd+impNd2+impAd+impJd+impId2)*100)/100;
-      body+='<div style="margin-top:8px;padding:8px 10px;background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.2);border-radius:9px">'
-        +'<div style="font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--acc2);margin-bottom:4px">COMPUTABLE HTDL</div>'
-        +'<div style="font-size:9px;color:var(--tx3);margin-bottom:5px">'
-        +hId.toFixed(2)+'h ida'+(hEd>0?' + '+hEd.toFixed(2)+'h escala':'')+(hVd>0?' + '+hVd.toFixed(2)+'h vuelta':'')
-        +' = <strong style="color:var(--tx)">'+hTd.toFixed(2)+'h × '+HTDLd.toFixed(2)+'€</strong></div>'
-        +'<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<div style="font-size:10px;color:var(--tx2)">'
-        +(impNd2>0?'🌙 '+impNd2.toFixed(2)+'€  ':'')
-        +(impAd>0?'✅ Act. '+impAd.toFixed(2)+'€  ':'')
-        +(impJd>0?'✅ JT '+impJd.toFixed(2)+'€  ':'')
-        +(impId2>0?'🌍 '+impId2.toFixed(2)+'€':'')
-        +'</div>'
-        +'<div style="font-size:15px;font-weight:900;color:var(--acc2)">'+totDia.toFixed(2)+' €</div>'
-        +'</div></div>';
-    }
-    if(t.comp==='dias'&&(t.diasComp?t.diasComp.length:0))
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div>'
-        +'<div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
-} else if(t.tipo==='vuelta-pernocta'){
+    if(t.comp==='dinero'&&t.importe)body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div><div class="tr-route">Compensación económica</div><div class="tr-time tr-hi">'+t.importe.toFixed(2)+' €</div></div>';
+    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length))body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div><div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
+  } else if(t.tipo==='vuelta-pernocta'){
     body='<div class="ibox amber"><span class="ibox-i">🌙</span><span>Tramo de vuelta (pernocta). Salida: <strong>'+t.sal+'</strong> → <strong>'+t.lle+'</strong><br>'+t.hF+' – '+t.hL+'</span></div>';
   } else if(t.tipo==='reserva'){
     body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva guardada. Usa <strong>"Verificar"</strong> si trabajas.</span></div>'
@@ -2341,11 +2222,6 @@ function renderDiaArea(){
       +'<button onclick="convertirDescanso()" style="width:100%;padding:9px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:9px;color:#C4B5FD;font-size:12px;font-weight:700;cursor:pointer">💼 He trabajado este descanso</button>';
   } else if(t.tipo==='baja'){
     body='<div class="ibox red"><span class="ibox-i">🏥</span><span>Baja médica o laboral registrada.</span></div>';
-  } else if(t.tipo==='vacaciones'){
-    body='<div class="ibox" style="background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.25)">'
-      +'<span class="ibox-i">🏖</span>'
-      +'<span>Día de vacaciones. <strong style="color:var(--c-vac)">¡Disfrútalo!</strong></span>'
-      +'</div>';
   } else if(t.tipo==='comp'){
     body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>Día de compensación marcado automáticamente.</span></div>';
   }
@@ -2360,7 +2236,6 @@ function renderDiaArea(){
     +(t.cambioSolicitado?'<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--nar2);margin-left:3px">🔄 Enviado</div>':'')
     +retrasoTag
     +'</div>'
-    +(pendiente?'<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(139,92,246,.1);border-bottom:1px solid rgba(139,92,246,.2)"><span style="font-size:15px">📧</span><div style="flex:1;font-size:11px;font-weight:700;color:var(--violet2)">Solicitud de compensación pendiente</div><button onclick="enviarSolicitudCompensacion('+"'"+k+"'"+')" style="background:rgba(139,92,246,.8);border:none;border-radius:8px;color:#fff;font-size:10px;font-weight:800;padding:5px 10px;cursor:pointer">✉️ Enviar ahora</button></div>':'')
     +'<div class="dct-body">'+bodyPrefix+body+'</div>'
     +'<div class="dct-foot">'
     +'<span onclick="editarTurno()" style="cursor:pointer;color:var(--acc2);flex:1">✏️ Editar</span>'
@@ -2382,7 +2257,7 @@ function renderAcordeon(){
   const ac=document.getElementById('acordeon');
   if(!items.length){ac.innerHTML='<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3)">Sin turnos este mes</div>';return;}
   ac.innerHTML=items.map(([k,t])=>{
-    const[,, dd]=k.split('-');
+    var dd=k.split('-')[2];
     const ti=TIPO_INFO[t.tipo]||{ico:'?',lbl:t.tipo,col:'var(--tx2)'};
     const dot='<div class="ac-dot" style="background:'+ti.col+'"></div>';
     // Detalles expandibles
@@ -2401,7 +2276,7 @@ function renderAcordeon(){
     if(t.plusIntlAuto) det+='<div class="ac-row"><span class="ak">🌍 Plus Intl.</span><span class="av" style="color:var(--cyan2)">Aplicado automáticamente</span></div>';
     if(t.modo) det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'🌙 Pernocta':'🔄 Ida y vuelta')+'</span></div>';
     if(t.comp==='dinero'&&t.importe) det+='<div class="ac-imp"><span class="al">💶 Compensación económica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
-    if(t.comp==='dias'&&(t.diasComp ? t.diasComp.length : 0)) det+='<div class="ac-row"><span class="ak">📅 Días comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' días asignados</span></div>';
+    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length)) det+='<div class="ac-row"><span class="ak">📅 Días comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' días asignados</span></div>';
     return '<div class="ac-item" id="ac-'+k+'">'
       +'<div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'
       +dot+'<div class="ac-fecha"><strong>'+parseInt(dd)+' '+MESES_C[m-1]+'</strong></div>'
@@ -2422,7 +2297,7 @@ function toggleAc(id){
    TIPO TURNO
 ═══════════════════════════════════════ */
 function resetF(tipo){
-  F={tipo,linea:null,sal:AJ.base||null,lle:null,hF:null,hL:null,
+  F={tipo:tipo,linea:null,sal:AJ.base||null,lle:null,hF:null,hL:null,
      sal2:null,lle2:null,hF2:null,hL2:null,
      modo:null,comp:null,horas:0,diasComp:[],notas:'',
      numTren:'', numTrenVuelta:'',
@@ -2431,7 +2306,7 @@ function resetF(tipo){
 
 function abrirTipo(){
   if(!selDay)return;
-  const[y,mo]=selDay.k.split('-').map(Number);
+  var _sm=selDay.k.split('-').map(Number);var y=_sm[0],mo=_sm[1];
   const dt=new Date(y,mo-1,selDay.d);
   const wd=(dt.getDay()+6)%7;
   document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+selDay.d+' '+MESES_C[mo-1];
@@ -2440,13 +2315,12 @@ function abrirTipo(){
 
 function elegirTipo(tipo){
   closeOv('ov-tipo');
-  // Para vacaciones: guardado directo sin abrir formulario
+
+  // Tipos simples: guardar directo sin abrir formulario
   if(tipo==='vacaciones'||tipo==='descanso'||tipo==='baja'||tipo==='reserva'){
     if(selDay){
-      const k=selDay.k;
-      // Verificar si el día está libre antes de registrar
+      var k=selDay.k;
       if(TV[k]&&TV[k].tipo!==tipo){
-        // Ya tiene otro tipo — confirmar cambio
         if(!confirm('Este día ya tiene un turno asignado. ¿Cambiar a '+tipo+'?')){
           clearSelDay(); return;
         }
@@ -2455,14 +2329,17 @@ function elegirTipo(tipo){
       saveTV();
       ALERTAS_DESCANSO=verificarDescansosMes();
     }
-    clearSelDay();
+    clearSelDay(); // seguro: ya guardamos, no necesitamos selDay
     renderCal();
     renderStats();
     return;
   }
-  clearSelDay();
+
+  // Tipos con formulario: ordinario, trabajado, comp
+  // CRÍTICO: NO llamar clearSelDay aquí — abrirForm necesita selDay
   resetF(tipo);
   abrirForm(false);
+  // clearSelDay se llamará cuando el usuario cierre el formulario
 }
 
 function editarTurno(){
@@ -2479,7 +2356,7 @@ function editarTurno(){
   if(t.tipo==='vuelta-pernocta'){
     if(t.origenPernocta && TV[t.origenPernocta]){
       const kOri=t.origenPernocta;
-      const[y,mo,dd]=kOri.split('-').map(Number);
+      var _ko=kOri.split('-').map(Number);var y=_ko[0],mo=_ko[1],dd=_ko[2];
       const tOri=TV[kOri];
       // C-02 FIX: No llamada recursiva — cargamos F directamente con el turno origen
       // y abrimos el formulario. Evita el bucle infinito si selDay no se actualiza a tiempo.
@@ -2491,7 +2368,7 @@ function editarTurno(){
          sal2:tOri.sal2||null, lle2:tOri.lle2||null,
          hF2:tOri.hF2||null, hL2:tOri.hL2||null,
          modo:tOri.modo||null, comp:tOri.comp||null,
-         horas:tOri.horas||0, diasComp:[...(tOri.diasComp||[])], notas:tOri.notas||'',
+         horas:tOri.horas||0, diasComp:(tOri.diasComp||[]).slice(), notas:tOri.notas||'',
          numTren:tOri.numTren||'', numTrenVuelta:tOri.numTrenVuelta||'',
          plusAct:tOri.plusAct||false, plusJT:tOri.plusJT||false,
          plusIntlAuto:(tOri.linea||'').includes('Internacional')};
@@ -2508,7 +2385,7 @@ function editarTurno(){
      sal:t.sal||(AJ.base||null),lle:t.lle||null,hF:t.hF||null,hL:t.hL||null,
      sal2:t.sal2||null,lle2:t.lle2||null,hF2:t.hF2||null,hL2:t.hL2||null,
      modo:t.modo||null,comp:t.comp||null,
-     horas:t.horas||0,diasComp:[...(t.diasComp||[])],notas:t.notas||'',
+     horas:t.horas||0,diasComp:(t.diasComp||[]).slice(),notas:t.notas||'',
      numTren:t.numTren||'', numTrenVuelta:t.numTrenVuelta||'',
      plusAct:t.plusAct||false,plusJT:t.plusJT||false,
      plusIntlAuto:(t.linea||'').includes('Internacional')};
@@ -2535,15 +2412,15 @@ function abrirEditComp(){
   if(!selDay||!selDay.t) return;
   const t=selDay.t;
   const k=selDay.k;
-  const[y,mo,dd]=k.split('-').map(Number);
-  const dt=new Date(y,mo-1,dd);
+  var _kd=k.split('-').map(Number);var y=_kd[0],mo=_kd[1],dd=_kd[2];
+  var dt=new Date(y,mo-1,dd);
   const wd=(dt.getDay()+6)%7;
   const fstr=DIAS_L[wd]+' '+dd+' de '+MESES[mo-1].toLowerCase();
 
   // Buscar el turno origen (el trabajado que generó este comp)
   const origenInfo=t.origen&&TV[t.origen]
     ? `<div style="font-size:10px;color:var(--tx3);margin-top:4px">
-         Generado por turno del <strong style="color:var(--tx2)">${(k=>{const[y,m,d]=k.split('-').map(Number);return d+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m-1]+' '+y;})(t.origen)}</strong>
+         Generado por turno del <strong style="color:var(--tx2)">${(k=>{var _kl=k.split('-').map(Number);var y=_kl[0],m=_kl[1],d=_kl[2];return d+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m-1]+' '+y;})(t.origen)}</strong>
        </div>`
     : '';
 
@@ -2611,30 +2488,33 @@ function abrirEditComp(){
 
 // Convertir día comp en turno real (ordinario o descanso)
 function compConvertir(nuevoTipo){
-  closeOv('ov-edit-comp');
-  const k=selDay.k;
-  const t=TV[k];
+  // NO cerrar el overlay todavía — primero guardar el dato
+  var k = selDay.k;
+  var t = TV[k];
 
-  // Actualizar la referencia en el turno origen (quitar este día de su lista de comp)
+  // Desvincular este día del turno origen
   if(t.origen && TV[t.origen]){
-    const ori=TV[t.origen];
-    if(ori.diasComp) ori.diasComp=ori.diasComp.filter(d=>d!==k);
-    // No borramos el turno origen, solo desvinculamos este día
+    var ori = TV[t.origen];
+    if(ori.diasComp){
+      ori.diasComp = ori.diasComp.filter(function(d){ return d !== k; });
+    }
   }
 
-  if(nuevoTipo==='descanso'){
-    // Reemplazar directamente con descanso
-    TV[k]={tipo:'descanso'};
-    selDay.t=TV[k];
+  if(nuevoTipo === 'descanso'){
+    // 1. Guardar primero
+    TV[k] = {tipo:'descanso'};
+    selDay.t = TV[k];
     saveTV();
+    // 2. Cerrar después de guardar exitosamente
+    closeOv('ov-edit-comp');
     closeOv('ov-form');
     renderCal();
     renderStats();
-    toast('🧘 Día convertido a descanso');
+    toast('Día convertido a descanso');
   } else {
-    // Convertir a turno ordinario → abrir formulario
+    // Convertir a ordinario → abrir formulario (cerrará al guardar)
+    closeOv('ov-edit-comp');
     resetF('ordinario');
-    // El día ya no es comp — se sobreescribirá al guardar
     abrirForm(false);
   }
 }
@@ -2667,10 +2547,10 @@ function abrirCambio(){
   if(!selDay) return;
   const t  = selDay.t || {};
   const k  = selDay.k;
-  const[y,mo,dd]=k.split('-').map(Number);
-  const wd =(new Date(y,mo-1,dd).getDay()+6)%7;
+  var _kw=k.split('-').map(Number);var y=_kw[0],mo=_kw[1],dd=_kw[2];
+  var wd =(new Date(y,mo-1,dd).getDay()+6)%7;
   const fLarga = DIAS_L[wd]+', '+dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const tipoLbl= (TIPO_INFO[t.tipo] ? TIPO_INFO[t.tipo].lbl : '') || 'Sin tipo';
+  const tipoLbl= (TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].lbl:'Sin tipo') || 'Sin tipo';
 
   document.getElementById('cambio-tit').textContent='🔄 Solicitar Cambio de Turno';
   document.getElementById('cambio-body').innerHTML=
@@ -2749,11 +2629,11 @@ function abrirCambio(){
 }
 
 function actualizarPrevCambio(){
-  const t  = (selDay ? selDay.t : null) || {};
-  const k  = selDay ? selDay.k : null;
+  var t=(selDay&&selDay.t)||{};
+  var k=selDay?selDay.k:null;
   if(!k) return;
-  const[y,mo,dd]=k.split('-').map(Number);
-  const fstr = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  var _kf1=k.split('-').map(Number);var y=_kf1[0],mo=_kf1[1],dd=_kf1[2];
+  var fstr = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
   const hora = new Date().getHours();
   const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
   const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'[Nombre compañero]');
@@ -2779,98 +2659,87 @@ Atentamente,
 ${miNombre} (Matrícula: ${miMat})`;
 }
 
-let _emailCB=null;
-function handleEmailSubmission(tit,sub,asunto,cuerpo,cb){
-  _emailCB=cb;
-  document.getElementById('ec-tit').textContent=tit;
-  document.getElementById('ec-sub').textContent=sub;
-  document.getElementById('ec-asunto').value=asunto;
-  document.getElementById('ec-cuerpo').value=cuerpo;
-  const d=document.getElementById('ec-dest');
-  if(d) d.value=AJ.emailDestino||'';
-  const ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
-  if(ca) openOvTop('ov-email-confirm'); else openOv('ov-email-confirm');
-}
-function confirmarEnvioEmail(){
-  const dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
-  const asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
-  const cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
-  if(dest){AJ.emailDestino=dest;localStorage.setItem('aj5',JSON.stringify(AJ));}
-  const ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
-  if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
-  closeOv('ov-email-confirm');
-  setTimeout(()=>{window.location.href=ml;},150);
-}
-function guardarCompanero(nombre,mat){
-  const e=AGENDA.find(c=>c.matricula===mat&&mat);
-  if(e){e.nombre=nombre;e.ultimoUso=Date.now();saveAgenda();return e;}
-  const c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
-  AGENDA.unshift(c);saveAgenda();return c;
-}
 function enviarCambio(){
-  const t=(selDay?selDay.t:null)||{},k=selDay?selDay.k:null;if(!k)return;
-  const[y,mo,dd]=k.split('-').map(Number);
-  const fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const miTren=t.numTren||'';
-  const pv=document.getElementById('cbio-prev');
-  const cuerpo=(pv?(pv.value||pv.textContent):'');
-  const asunto='Solicitud de Cambio de Turno'+(miTren?' - Tren '+miTren:'')+' - '+fstr;
-  const nombre=(document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'');
-  const mat=(document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'');
-  handleEmailSubmission('Cambio de Turno','Revisa el mensaje',asunto,cuerpo,()=>{
-    if(TV[k]){TV[k].cambioSolicitado=true;saveTV();renderDiaArea();renderAcordeon();}
-    setTimeout(()=>{preguntarGuardarContacto(nombre,mat);},900);
-  });
-}
-function enviarSolicitudCompensacion(k){
-  const t=TV[k];if(!t)return;
-  const[y,mo,dd]=k.split('-').map(Number);
-  const fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
-  const nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
-  const hora=new Date().getHours();
-  const sal=hora<13?'Buenos días':hora<20?'Buenas tardes':'Buenas noches';
-  const cuerpo=sal+'.\n\nMediante el presente solicito la compensación de '
-    +nDias+' día'+(nDias===1?'':'s')+' por el servicio realizado el día '+fstr
-    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validación.\n\n'
-    +'Atentamente,\n'+mn+'\nMatrícula: '+mm;
-  const asunto='Solicitud de Compensación - '+fstr+(nt?' - Tren '+nt:'');
-  handleEmailSubmission('Solicitud de Compensación',
-    nDias+' día'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,()=>{
-    TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;
-    if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();
-  });
+  var t=(selDay&&selDay.t)||{};
+  var k=selDay?selDay.k:null;
+  if(!k) return;
+  var _kf2=k.split('-').map(Number);var y=_kf2[0],mo=_kf2[1],dd=_kf2[2];
+  var fstr   = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const hora   = new Date().getHours();
+  const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
+  const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'—');
+  const mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'—');
+  const trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
+  const miNombre = AJ.nombre||'—';
+  const miMat    = AJ.matricula||'—';
+  const miTren   = t.numTren||'—';
+  const asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
+  const cuerpo   = encodeURIComponent(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}));
+  // Marcar que se solicitó cambio en este turno (persiste en localStorage)
+  if(TV[k]){ TV[k].cambioSolicitado=true; saveTV(); renderDiaArea(); renderAcordeon(); }
+
+  // Abrir correo
+  window.location.href=`mailto:?subject=${asunto}&body=${cuerpo}`;
+
+  // Guardado automático: preguntar si guardar al compañero en la agenda
+  // Pequeño delay para que el mailto se procese primero
+  setTimeout(()=>{
+    preguntarGuardarContacto(
+      nombre  || '',
+      mat     || '',
+      trenComp|| ''
+    );
+  }, 800);
 }
 
-function abrirForm(edicion,verificando=false){
+/* ═══════════════════════════════════════
+   FORMULARIO
+═══════════════════════════════════════ */
+function abrirForm(edicion,verificando){
+  if(verificando===undefined) verificando=false;
   if(!selDay)return;
-  const{d,k}=selDay;const[y,mo]=k.split('-').map(Number);
-  const dt=new Date(y,mo-1,d);const wd=(dt.getDay()+6)%7;
-  const ti=TIPO_INFO[F.tipo];
+  var d=selDay.d;
+  var k=selDay.k;
+  var _km4=k.split('-').map(Number);
+  var y=_km4[0],mo=_km4[1];
+  var dt=new Date(y,mo-1,d);
+  var wd=(dt.getDay()+6)%7;
+  var ti=TIPO_INFO[F.tipo] || {ico:'📋',lbl:F.tipo||'Turno',col:'var(--acc)',cls:''};
   document.getElementById('form-ico').textContent=verificando?'✅':ti.ico;
   document.getElementById('form-tit').textContent=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
   document.getElementById('form-sub').textContent=verificando?'Verificar reserva':(edicion?'Editando '+ti.lbl.toLowerCase():'Nuevo '+ti.lbl.toLowerCase());
   document.getElementById('m-del').style.display=edicion?'flex':'none';
-  const mc=mo===12?new Date(y+1,0,1):new Date(y,mo,1);
-  miniM=mc;diasComp=[...(F.diasComp||[])];
+  var mc=mo===12?new Date(y+1,0,1):new Date(y,mo,1);
+  miniM=mc;
+  diasComp=(F.diasComp||[]).slice();
   renderFormBody();
   openOv('ov-form');
 }
 
 function secPlusesViaje(){
-  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  let h='<div class="fsec" style="border-top:1px solid var(--div)"><div class="fsec-lbl" style="margin-bottom:8px">Pluses por viaje</div>';
-  h+=plusToggle('plusAct',F.plusAct,'Plus Activación',parseFloat(p.activacion||0),'€ fijo × viaje',"togglePlus('plusAct')");
-  h+=plusToggle('plusJT',F.plusJT,'Plus JT',parseFloat(p.jt||0),'€ fijo × viaje',"togglePlus('plusJT')");
+  var p = AJ.pluses[AJ.rol] || PLUS_DEF[AJ.rol];
+  var pAct  = parseFloat(p.activacion   || 0);
+  var pJT   = parseFloat(p.jt          || 0);
+  var pIntl = parseFloat(p.internacional|| 0);
+  var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
+    + '<div class="fsec-lbl" style="margin-bottom:8px">Pluses por viaje</div>';
+  h += plusToggle('plusAct', F.plusAct, 'Plus Activación', pAct,
+    '€ fijo × viaje', "togglePlus('plusAct')");
+  h += plusToggle('plusJT',  F.plusJT,  'Plus JT',         pJT,
+    '€ fijo × viaje', "togglePlus('plusJT')");
   if(F.plusIntlAuto){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);border-radius:9px;margin-top:4px">'
-      +'<span style="font-size:13px">🌍</span>'
-      +'<div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--cyan2)">Plus Internacional</div>'
-      +'<div style="font-size:9px;color:var(--tx3)">Activado automáticamente</div></div>'
-      +'<span style="font-size:11px;font-weight:800;color:var(--cyan2)">+'+parseFloat(p.internacional||0).toFixed(2)+' €</span></div>';
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+      + 'background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);'
+      + 'border-radius:9px;margin-top:4px">'
+      + '<span style="font-size:13px">🌍</span>'
+      + '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--cyan2)">Plus Internacional</div>'
+      + '<div style="font-size:9px;color:var(--tx3)">Activado automáticamente</div></div>'
+      + '<span style="font-size:11px;font-weight:800;color:var(--cyan2)">+'
+      + pIntl.toFixed(2) + ' €</span></div>';
   }
-  return h+'</div>';
+  return h + '</div>';
 }
+
 function renderFormBody(){
   const b=document.getElementById('form-body');
   const t=F.tipo;let h='';
@@ -3147,8 +3016,8 @@ function renderMiniCal(){
   if(!cont||!miniM)return;
   // Asegurar que miniM es el mes siguiente al del turno
   if(selDay){
-    const[sy,sm]=selDay.k.split('-').map(Number);
-    const mExp=sm===12?1:sm+1,yExp=sm===12?sy+1:sy;
+    var _ssm=selDay.k.split('-').map(Number);var sy=_ssm[0],sm=_ssm[1];
+    var mExp=sm===12?1:sm+1,yExp=sm===12?sy+1:sy;
     if(miniM.getFullYear()<yExp||(miniM.getFullYear()===yExp&&miniM.getMonth()+1<mExp))
       miniM=new Date(yExp,mExp-1,1);
   }
@@ -3164,7 +3033,7 @@ function renderMiniCal(){
     const bloq=TV[iso]&&TV[iso].tipo!=='descanso'&&!sel;
     cells+='<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis':'')+'" onclick="toggleComp(\''+iso+'\','+nDias+')">'+d+'</div>';
   }
-  const[sy,sm]=selDay?selDay.k.split('-').map(Number):[y,m+1];
+  var _ss3=selDay?selDay.k.split('-').map(Number):[y,m+1];var sy=_ss3[0],sm=_ss3[1];
   const mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
   const puedeRetro=y>yMin||(y===yMin&&m+1>mMin);
   cont.innerHTML='<div class="mini-cal-wrap">'
@@ -3182,8 +3051,8 @@ function renderMiniCal(){
 function chMiniCal(dir){
   if(!selDay)return;
   miniM.setMonth(miniM.getMonth()+dir);
-  const[sy,sm]=selDay.k.split('-').map(Number);
-  const mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
+  var _ssm2=selDay.k.split('-').map(Number);var sy=_ssm2[0],sm=_ssm2[1];
+  var mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
   if(miniM.getFullYear()<yMin||(miniM.getFullYear()===yMin&&miniM.getMonth()+1<mMin))
     miniM=new Date(yMin,mMin-1,1);
   renderMiniCal();
@@ -3193,7 +3062,7 @@ function toggleComp(iso,max){
   const idx=diasComp.indexOf(iso);
   if(idx>=0)diasComp.splice(idx,1);
   else if(diasComp.length<max)diasComp.push(iso);
-  F.diasComp=[...diasComp];
+  F.diasComp=diasComp.slice();
   renderMiniCal();
 }
 
@@ -3236,46 +3105,40 @@ function abrirTrabajoEnDescanso(){F.tipo='trabajado';renderFormBody();}
 ═══════════════════════════════════════ */
 function guardarTurno(){
   if(!selDay)return;
-  const k=selDay.k,t=F.tipo;
-  const d={tipo:t};
+  var k=selDay.k, t=F.tipo;
+  var d={tipo:t};
 
   if(t==='ordinario'||t==='trabajado'){
     d.linea=F.linea;d.sal=F.sal;d.lle=F.lle;d.hF=F.hF;d.hL=F.hL;
     d.modo=F.modo||'ida';
     d.numTren=F.numTren||'';
-    d.numTrenVuelta=F.numTrenVuelta||'';  // ← nº tren del tramo vuelta
+    d.numTrenVuelta=F.numTrenVuelta||'';
     d.sal2=F.sal2||(F.lle||null);
     d.lle2=F.lle2||(F.sal||null);
     d.hF2=F.hF2;d.hL2=F.hL2;
-    const hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
-    const hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+    var hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+    var hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
     d.horas=Math.round((hIda+hVuelta)*100)/100;
 
-    // ── NOCTURNIDAD AUTOMÁTICA — todos los tipos de turno ──
-    // Se activa si la firma o llegada caen entre 22:00 y 06:00
     d.nocturno = !!(
       (F.hF && esHoraNocturna(F.hF)) ||
       (F.hL && esHoraNocturna(F.hL)) ||
       (F.hF2 && esHoraNocturna(F.hF2)) ||
       (F.hL2 && esHoraNocturna(F.hL2))
     );
-
-    // ── PLUS INTERNACIONAL AUTOMÁTICO ──
     d.plusIntlAuto = F.plusIntlAuto || false;
 
-    // PERNOCTA: crear entrada del día siguiente
     if(F.modo==='pernocta'){
-      const[y,mo,dd]=k.split('-').map(Number);
-      const sig=new Date(y,mo-1,dd);sig.setDate(sig.getDate()+1);
-      const kSig=key(sig.getFullYear(),sig.getMonth()+1,sig.getDate());
+      var _ks2=k.split('-').map(Number);var y=_ks2[0],mo=_ks2[1],dd=_ks2[2];
+      var sig=new Date(y,mo-1,dd);sig.setDate(sig.getDate()+1);
+      var kSig=key(sig.getFullYear(),sig.getMonth()+1,sig.getDate());
       if(TV[kSig]&&TV[kSig].origenPernocta===k) delete TV[kSig];
       TV[kSig]={tipo:'vuelta-pernocta',linea:F.linea,
         sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
-        nocturno:d.nocturno,
-        origenPernocta:k};
+        nocturno:d.nocturno,origenPernocta:k};
       d.diaSiguiente=kSig;
     } else {
-      if((selDay.t && selDay.t.diaSiguiente)) delete TV[selDay.t.diaSiguiente];
+      if(selDay.t&&selDay.t.diaSiguiente) delete TV[selDay.t.diaSiguiente];
     }
   }
 
@@ -3286,43 +3149,42 @@ function guardarTurno(){
       d.plusAct=F.plusAct; d.plusJT=F.plusJT;
     }
     if(F.comp==='dias'&&diasComp.length>0){
-      const[y,mo]=k.split('-').map(Number);
-      const mC=mo===12?1:mo+1,yC=mo===12?y+1:y;
-      const nE=F.modo==='pernocta'?4:2;
-      const dv=diasComp.filter(iso=>{
-        const[dy,dm]=iso.split('-').map(Number);
+      var _km5=k.split('-').map(Number);var y2=_km5[0],mo2=_km5[1];
+      var mC=mo2===12?1:mo2+1, yC=mo2===12?y2+1:y2;
+      var nE=F.modo==='pernocta'?4:2;
+      var dv=diasComp.filter(function(iso){
+        var _di=iso.split('-').map(Number);var dy=_di[0],dm=_di[1];
         return dy===yC&&dm===mC;
       }).slice(0,nE);
       d.diasComp=dv;
-      if((selDay.t && selDay.t.diasComp)) selDay.t.diasComp.forEach(iso=>{if((TV[iso] && TV[iso].origen)===k)delete TV[iso];});
-      dv.forEach(iso=>{TV[iso]={tipo:'comp',origen:k};});
+      if(selDay.t&&selDay.t.diasComp) selDay.t.diasComp.forEach(function(iso){
+        if(TV[iso]&&TV[iso].origen===k) delete TV[iso];
+      });
+      dv.forEach(function(iso){ TV[iso]={tipo:'comp',origen:k}; });
     }
   }
+
   if(t==='descanso'||t==='vacaciones') d.simple=true;
-  if(F.notas)d.notas=F.notas;
+  if(F.notas) d.notas=F.notas;
   d.plusAct=F.plusAct||false;
   d.plusJT=F.plusJT||false;
-  d.plusIntlAuto=F.plusIntlAuto||false;
 
-  // Si el día anterior era un comp, desvincularlo del origen antes de sobrescribir
-  const anterior=TV[k];
+  var anterior=TV[k];
   if(anterior&&anterior.tipo==='comp'&&anterior.origen){
-    const ori=TV[anterior.origen];
-    if((ori && ori.diasComp)) ori.diasComp=ori.diasComp.filter(iso=>iso!==k);
+    var ori=TV[anterior.origen];
+    if(ori&&ori.diasComp) ori.diasComp=ori.diasComp.filter(function(iso){return iso!==k;});
   }
 
-  TV[k]=d;selDay.t=d;saveTV();
+  // GUARDAR — primero datos, luego cerrar
+  TV[k]=d; selDay.t=d; saveTV();
 
-  // ── Guardar en base de Servicios Frecuentes ──────────────────
-  // Se actualiza cada vez que se guarda un turno con número de tren
-  if(d.numTren && (t==='ordinario'||t==='trabajado')){
+  if(d.numTren&&(t==='ordinario'||t==='trabajado')){
     guardarServicioFrecuente({
       numTren:d.numTren, linea:d.linea,
       sal:d.sal, lle:d.lle, hF:d.hF, hL:d.hL,
       sal2:d.sal2, lle2:d.lle2, hF2:d.hF2, hL2:d.hL2
     });
-    // Si hay tren de vuelta diferente, guardarlo también
-    if(d.numTrenVuelta && d.numTrenVuelta !== d.numTren){
+    if(d.numTrenVuelta&&d.numTrenVuelta!==d.numTren){
       guardarServicioFrecuente({
         numTren:d.numTrenVuelta, linea:d.linea,
         sal:d.sal2||d.lle, lle:d.lle2||d.sal,
@@ -3331,10 +3193,12 @@ function guardarTurno(){
     }
   }
 
-  closeOv('ov-form');renderCal();renderStats();
-  toast('✅ Turno guardado');
+  // CERRAR solo después de guardar exitosamente
+  closeOv('ov-form');
+  renderCal();
+  renderStats();
+  toast('Turno guardado');
 }
-
 /* (calcImp, esHoraNocturna, limiteHoras → ver sección HELPERS al final) */
 
 /* ═══════════════════════════════════════
@@ -3343,101 +3207,24 @@ function guardarTurno(){
 function pedirEliminar(){if(!selDay||!selDay.t)return;openOv('ov-del');}
 function confirmarEliminar(){
   if(!selDay)return;
-  const k=selDay.k,t=TV[k];
-  if((t && t.diasComp && t.diasComp.length)) t.diasComp.forEach(iso=>{if((TV[iso] && TV[iso].origen)===k)delete TV[iso];});
-  if((t && t.diaSiguiente)&&(TV[t.diaSiguiente] && TV[t.diaSiguiente].origenPernocta)===k) delete TV[t.diaSiguiente];
-  delete TV[k];selDay.t=null;saveTV();
-  closeOv('ov-del');closeOv('ov-form');
-  renderCal();renderStats();toast('🗑 Turno eliminado');
+  var k=selDay.k, t=TV[k];
+  if(t && t.diasComp && t.diasComp.length){
+    t.diasComp.forEach(function(iso){
+      if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+    });
+  }
+  if(t && t.diaSiguiente && TV[t.diaSiguiente] && TV[t.diaSiguiente].origenPernocta===k){
+    delete TV[t.diaSiguiente];
+  }
+  delete TV[k]; selDay.t=null; saveTV();
+  closeOv('ov-del'); closeOv('ov-form');
+  renderCal(); renderStats(); toast('Turno eliminado');
 }
 /* ═══════════════════════════════════════
    BACKUP — Exportar / Importar datos
    Guarda turnos + ajustes en un .json
    y los restaura sin tocar el código.
 ═══════════════════════════════════════ */
-function exportarDatos(){
-  const datos = {
-    version:  'v5',
-    fecha:    new Date().toISOString(),
-    turnos:   localStorage.getItem('tv5')     || '{}',
-    ajustes:  localStorage.getItem('aj5')     || '{}',
-    agenda:   localStorage.getItem('agenda5') || '[]',
-    servicios:localStorage.getItem('sf5')     || '[]'
-  };
-  const json = JSON.stringify(datos, null, 2);
-  const blob = new Blob([json], {type:'application/json'});
-  const url  = URL.createObjectURL(blob);
-
-  // Nombre del archivo con la fecha de hoy
-  const hoy  = new Date();
-  const fecha= hoy.getFullYear()+'-'+pad(hoy.getMonth()+1)+'-'+pad(hoy.getDate());
-  const nombre = 'trenturnos_backup_'+fecha+'.json';
-
-  // Crear enlace invisible y simular click para descargar
-  const a  = document.createElement('a');
-  a.href   = url;
-  a.download = nombre;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
-  toast('📤 Backup descargado: '+nombre);
-}
-
-function importarDatos(input){
-  const file = input.files[0];
-  if(!file){ return; }
-
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try {
-      const datos = JSON.parse(e.target.result);
-
-      // Validar estructura mínima
-      if(!datos.turnos || !datos.ajustes){
-        toast('❌ Archivo no válido');
-        return;
-      }
-
-      // Confirmar antes de sobrescribir
-      const ok = confirm(
-        '¿Restaurar backup del '+
-        (datos.fecha ? datos.fecha.substring(0,10) : 'archivo')+
-        '?\n\nSe reemplazarán todos los turnos y ajustes actuales.'
-      );
-      if(!ok){ input.value=''; return; }
-
-      // Restaurar datos
-      localStorage.setItem('tv5', datos.turnos);
-      localStorage.setItem('aj5', datos.ajustes);
-      if(datos.agenda)    localStorage.setItem('agenda5', datos.agenda);
-      if(datos.servicios) localStorage.setItem('sf5',     datos.servicios);
-
-      // Recargar estado de la app
-      TV     = JSON.parse(datos.turnos);
-      AGENDA = JSON.parse(datos.agenda    || '[]');
-      SF     = JSON.parse(datos.servicios || '[]');
-      AJ  = Object.assign({
-        nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
-        pluses:{tripulante:{...PLUS_DEF.tripulante},auxiliar:{...PLUS_DEF.auxiliar}}
-      }, JSON.parse(datos.ajustes));
-
-      selDay = null;
-      input.value = '';
-
-      loadAjUI();
-      renderCal();
-      renderStats();
-      toast('✅ Backup restaurado correctamente');
-
-    } catch(err){
-      toast('❌ Error al leer el archivo');
-      console.error(err);
-    }
-  };
-  reader.readAsText(file);
-}
 function pedirBorrarTodo(){openOv('ov-borrar');}
 function confirmarBorrarTodo(){
   TV={};localStorage.removeItem('tv5');selDay=null;
@@ -3852,92 +3639,60 @@ function updHeader(){
 /* ═══════════════════════════════════════
    ESTADÍSTICAS
 ═══════════════════════════════════════ */
-function calculateEarnings(ks){
-  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  const HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
-  const P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
-  let tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
-  let dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
-  const cn=(hF,hL)=>{
-    if(!hF||!hL)return 0;
-    const tm=h=>{const[hh,mm]=h.split(':').map(Number);return hh*60+mm;};
-    const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;
-    let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));
-    n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));
-    if(i<360)n+=Math.max(0,Math.min(f,360)-i);
-    return Math.round(n/60*100)/100;
-  };
-  ks.forEach(k=>{
-    const t=TV[k];if(!t)return;
-    const[,mo,dd]=k.split('-');
-    const dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
-    const hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
-    const hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
-    const h=Math.round((hI+hV)*100)/100;
-    if(t.tipo==='ordinario'){tHr+=h;
-      if(t.nocturno&&h>0){const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0){tN+=n*NOC;dN.push(dL);}}
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
-    if(t.tipo==='trabajado'){tHr+=h;
-      if(t.comp==='dinero'){
-        // Escala = tiempo entre llegada ida (hL) y firma vuelta (hF2)
-        // Según protocolo HTDL: Ida + Escala + Vuelta — la escala computa
-        const hEscala = (t.hL && t.hF2) ? Math.round(calcMins(t.hL, t.hF2)/60*100)/100 : 0;
-        const hTotalHTDL = Math.round((h + hEscala)*100)/100;
-        hHTDL += hTotalHTDL;
-        tH    += hTotalHTDL * HTDL;
-        dHTDL.push(dL);
-      }
-      const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0&&t.nocturno){tN+=n*NOC;dN.push(dL);}
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
-    if(['reserva','descanso','baja'].includes(t.tipo)){
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
-  });
-  return{HTDL,NOC,
-    totalHTDL:Math.round(tH*100)/100,totalNoc:Math.round(tN*100)/100,
-    totalAct:Math.round(tA*100)/100,totalJT:Math.round(tJ*100)/100,totalIntl:Math.round(tI*100)/100,
-    totalBruto:Math.round((tH+tN+tA+tJ+tI)*100)/100,
-    totalHoras:Math.round(tHr*100)/100,horasHTDL:Math.round(hHTDL*100)/100,
-    diasNoc:dN,diasAct:dA,diasJT:dJ,diasIntl:dI,diasHTDL:dHTDL};
-}
 function renderStats(){
-  const y=statsM.getFullYear(),m=statsM.getMonth()+1;
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
   document.getElementById('smlbl').textContent=MESES[m-1]+' '+y;
-  const pref=y+'-'+pad(m);
-  const ks=Object.keys(TV).filter(k=>k.startsWith(pref));
-  let ct={ordinario:0,reserva:0,descanso:0,baja:0,trabajado:0,comp:0,vacaciones:0},totalI=0;
-  ks.forEach(k=>{const t=TV[k];if(ct[t.tipo]!==undefined)ct[t.tipo]++;if(t.importe)totalI+=t.importe;});
-  const e=calculateEarnings(ks);
-  const rc=AJ.rol==='tripulante'?'var(--acc2)':'var(--amber2)';
-  const rcl=AJ.rol==='tripulante'?'trip':'aux';
-  const rn=AJ.rol==='tripulante'?'Tripulante':'Auxiliar';
-  const ri=AJ.rol==='tripulante'?'🚆':'🎫';
-  document.getElementById('role-card').innerHTML='<div class="role-card '+rcl+'">'
-    +'<div class="rc-emo">'+ri+'</div>'
-    +'<div class="rc-info"><div class="rc-name">'+rn+'</div>'
+  var pref=y+'-'+pad(m);
+  var ks=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
+  var ct={ordinario:0,reserva:0,descanso:0,baja:0,trabajado:0,comp:0,vacaciones:0};
+  ks.forEach(function(k){var t=TV[k];if(t&&ct[t.tipo]!==undefined)ct[t.tipo]++;});
+  var e=calculateEarnings(ks);
+  var rolCls=AJ.rol==='tripulante'?'trip':'aux';
+  var rolIco=AJ.rol==='tripulante'?'🚆':'🎫';
+  var rolNom=AJ.rol==='tripulante'?'Tripulante':'Auxiliar';
+  var rolCol=AJ.rol==='tripulante'?'var(--acc2)':'var(--amber2)';
+  document.getElementById('role-card').innerHTML=
+    '<div class="role-card '+rolCls+'">'
+    +'<div class="rc-emo">'+rolIco+'</div>'
+    +'<div class="rc-info"><div class="rc-name">'+rolNom+'</div>'
     +'<div class="rc-sub">HTDL '+e.HTDL.toFixed(2)+'€ · Noc '+e.NOC.toFixed(2)+'€ · Límites 8h/12h</div></div>'
-    +'<div class="rc-tasa" style="color:'+rc+'">'+e.HTDL.toFixed(2)+' €/h</div></div>';
+    +'<div class="rc-tasa" style="color:'+rolCol+'">'+e.HTDL.toFixed(2)+' €/h</div></div>';
   document.getElementById('sg').innerHTML=[
-    {i:'🚂',v:ct.ordinario,l:'Ordinarios',c:'var(--c-ord)'},{i:'⏳',v:ct.reserva,l:'Reservas',c:'var(--c-res)'},
-    {i:'🧘',v:ct.descanso,l:'Descansos',c:'var(--c-des)'},{i:'🏥',v:ct.baja,l:'Bajas',c:'var(--c-baj)'},
-    {i:'💼',v:ct.trabajado,l:'Trabajados',c:'var(--c-tra)'},{i:'⏱',v:e.totalHoras.toFixed(1)+'h',l:'Horas',c:'var(--acc2)'},
-    {i:'🏖',v:ct.vacaciones,l:'Vacaciones',c:'var(--c-vac)'},
-  ].map(x=>'<div class="sc" style="border-color:'+x.c+'33"><div class="sc-i">'+x.i+'</div><div class="sc-v" style="color:'+x.c+'">'+x.v+'</div><div class="sc-l">'+x.l+'</div></div>').join('');
-  const cs=document.getElementById('cs-box');
-  const dT=d=>d.length?'<div style="font-size:9px;color:var(--tx3);margin-top:2px">📅 '+d.join(', ')+'</div>':'';
-  const row=(l,v,c)=>'<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px">'
-    +'<div style="display:flex;width:100%"><span class="cl">'+l+'</span>'
-    +'<span class="cv" style="color:'+c+'">'+v+'</span></div>';
-  let des='';
-  if(e.totalHoras>0||e.totalBruto>0||totalI>0||ct.comp>0){
+    {i:'🚂',v:ct.ordinario, l:'Ordinarios', c:'var(--c-ord)'},
+    {i:'⏳',v:ct.reserva,   l:'Reservas',   c:'var(--c-res)'},
+    {i:'🧘',v:ct.descanso,  l:'Descansos',  c:'var(--c-des)'},
+    {i:'🏥',v:ct.baja,      l:'Bajas',      c:'var(--c-baj)'},
+    {i:'💼',v:ct.trabajado, l:'Trabajados', c:'var(--c-tra)'},
+    {i:'⏱', v:e.totalHoras.toFixed(1)+'h', l:'Horas', c:'var(--acc2)'},
+  ].map(function(x){
+    return '<div class="sc" style="border-color:'+x.c+'33"><div class="sc-i">'+x.i+'</div>'
+      +'<div class="sc-v" style="color:'+x.c+'">'+x.v+'</div>'
+      +'<div class="sc-l">'+x.l+'</div></div>';
+  }).join('');
+  var cs=document.getElementById('cs-box');
+  var dT=function(d){return d.length?'<div style="font-size:9px;color:var(--tx3)">📅 '+d.join(', ')+'</div>':'';};
+  var row=function(lbl,val,col,dias){
+    return '<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px">'
+      +'<div style="display:flex;width:100%"><span class="cl">'+lbl+'</span>'
+      +'<span class="cv" style="color:'+col+'">'+val+'</span></div>'
+      +dT(dias||[])+'</div>';
+  };
+  var des='';
+  if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
-    if(e.totalHTDL>0) des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',e.totalHTDL.toFixed(2)+' €','var(--acc2)')+dT(e.diasHTDL)+'</div>';
-    else if(e.totalHoras>0) des+='<div class="cs-r"><span class="cl" style="color:var(--tx3)">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv" style="color:var(--tx3)">En nómina</span></div>';
-    if(e.totalNoc>0)  des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)')+dT(e.diasNoc)+'</div>';
-    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','var(--green2)')+dT(e.diasAct)+'</div>';
-    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','var(--green2)')+dT(e.diasJT)+'</div>';
-    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','var(--cyan2)')+dT(e.diasIntl)+'</div>';
-        if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días comp.</span><span class="cv" style="color:var(--cyan2)">'+ct.comp+' días</span></div>';
-    if(e.totalBruto>0) des+='<div class="cr-div" style="margin:6px 0"></div><div class="cs-r"><span class="cl" style="font-weight:800">💰 Total estimado</span><span class="cv" style="color:var(--green2);font-size:15px;font-weight:900">'+e.totalBruto.toFixed(2)+' €</span></div>';
+    if(e.totalHTDL>0)
+      des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
+    else if(e.totalHoras>0)
+      des+='<div class="cs-r"><span class="cl" style="color:var(--tx3)">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv" style="color:var(--tx3)">En nómina</span></div>';
+    if(e.totalNoc>0)  des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)',e.diasNoc);
+    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','var(--green2)',e.diasAct);
+    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','var(--green2)',e.diasJT);
+    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','var(--cyan2)',e.diasIntl);
+    if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv" style="color:var(--cyan2)">'+ct.comp+' días</span></div>';
+    if(e.totalBruto>0)
+      des+='<div class="cr-div" style="margin:6px 0"></div>'
+        +'<div class="cs-r"><span class="cl" style="font-weight:800">💰 Total estimado mes</span>'
+        +'<span class="cv" style="color:var(--green2);font-size:15px;font-weight:900">'+e.totalBruto.toFixed(2)+' €</span></div>';
     des+='</div>';
     cs.innerHTML=des;
   } else cs.innerHTML='';
@@ -3957,7 +3712,8 @@ function chSM(d){statsM.setMonth(statsM.getMonth()+d);renderStats();}
 function saveAgenda(){ localStorage.setItem('agenda5', JSON.stringify(AGENDA)); }
 
 // ── CRUD Contactos ────────────────────────────────────────────
-function agregarContacto(nombre, matricula, tren=''){
+function agregarContacto(nombre, matricula, tren){
+  if(tren===undefined)tren='';
   // Evitar duplicados por matrícula
   const existe = AGENDA.find(c => c.matricula === matricula && matricula);
   if(existe){
@@ -3986,7 +3742,7 @@ function eliminarContacto(id){
 }
 
 function buscarContactos(q){
-  if(!q) return [...AGENDA].sort((a,b)=> b.ultimoUso - a.ultimoUso);
+  if(!q) return AGENDA.slice().sort((a,b)=> b.ultimoUso - a.ultimoUso);
   const lq = q.toLowerCase();
   return AGENDA.filter(c =>
     c.nombre.toLowerCase().includes(lq) ||
@@ -3999,8 +3755,7 @@ function buscarContactos(q){
 function abrirAgenda(){
   document.getElementById('agenda-srch-inp').value = '';
   renderAgenda('');
-  var cambioActivo = document.getElementById('ov-cambio') && document.getElementById('ov-cambio').classList.contains('on');
-  if(cambioActivo) openOvTop('ov-agenda'); else openOv('ov-agenda');
+  openOv('ov-agenda');
 }
 
 function renderAgenda(q){
@@ -4133,7 +3888,7 @@ function pad(n){return String(n).padStart(2,'0');}
 function parseKey(k){return k.split('-').map(Number);}
 
 function calcMins(h1,h2){
-  const[a,b]=h1.split(':').map(Number),[c,d]=h2.split(':').map(Number);
+  var _h1=h1.split(':').map(Number);var a=_h1[0],b=_h1[1];var _h2r=h2.split(':').map(Number);var c=_h2r[0],d=_h2r[1];
   let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
 }
 function calcDur(h1,h2){if(!h1||!h2)return '--';const m=calcMins(h1,h2);return Math.floor(m/60)+'h '+pad(m%60)+'m';}
@@ -4157,13 +3912,11 @@ function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
   return Math.round((horas*tasa+pA+pJ+pI)*100)/100;
 }
 
-function esHoraNocturna(h){const[hr]=h.split(':').map(Number);return hr>=22||hr<6;}
+function esHoraNocturna(h){var hr=parseInt(h.split(':')[0]);return hr>=22||hr<6;}
 function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
 function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
 function openOv(id){document.getElementById(id).classList.add('on');}
-function closeOv(id){const el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
-function openOvTop(id){const el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
-function closeOvTop(id){const el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
+function closeOv(id){document.getElementById(id).classList.remove('on');}
 function goP(n){
   ['cal','stats','ajustes'].forEach(p=>{
     document.getElementById('p-'+p).className='panel'+(p===n?' on':'');
@@ -4177,6 +3930,152 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 ['ov-tipo','ov-form','ov-est','ov-hora','ov-del','ov-borrar','ov-edit-comp','ov-cambio','ov-agenda','ov-nuevo-contacto'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeOv(id);});
 });
+
+
+function calculateEarnings(ks){
+  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  const HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
+  const P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
+  let tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
+  let dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
+  const cn=(hF,hL)=>{
+    if(!hF||!hL)return 0;
+    const tm=h=>{var _hm2=h.split(':').map(Number);var hh=_hm2[0],mm=_hm2[1];return hh*60+mm;};
+    const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;
+    let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));
+    n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));
+    if(i<360)n+=Math.max(0,Math.min(f,360)-i);
+    return Math.round(n/60*100)/100;
+  };
+  ks.forEach(k=>{
+    const t=TV[k];if(!t)return;
+    var _ks=k.split('-');var mo=parseInt(_ks[1]),dd=_ks[2];
+    const dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
+    const hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
+    const hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
+    const h=Math.round((hI+hV)*100)/100;
+    if(t.tipo==='ordinario'){tHr+=h;
+      if(t.nocturno&&h>0){const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0){tN+=n*NOC;dN.push(dL);}}
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+    if(t.tipo==='trabajado'){tHr+=h;
+      if(t.comp==='dinero'){
+        // Escala = tiempo entre llegada ida (hL) y firma vuelta (hF2)
+        // Según protocolo HTDL: Ida + Escala + Vuelta — la escala computa
+        const hEscala = (t.hL && t.hF2) ? Math.round(calcMins(t.hL, t.hF2)/60*100)/100 : 0;
+        const hTotalHTDL = Math.round((h + hEscala)*100)/100;
+        hHTDL += hTotalHTDL;
+        tH    += hTotalHTDL * HTDL;
+        dHTDL.push(dL);
+      }
+      const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0&&t.nocturno){tN+=n*NOC;dN.push(dL);}
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+    if(['reserva','descanso','baja'].includes(t.tipo)){
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+  });
+  return{HTDL,NOC,
+    totalHTDL:Math.round(tH*100)/100,totalNoc:Math.round(tN*100)/100,
+    totalAct:Math.round(tA*100)/100,totalJT:Math.round(tJ*100)/100,totalIntl:Math.round(tI*100)/100,
+    totalBruto:Math.round((tH+tN+tA+tJ+tI)*100)/100,
+    totalHoras:Math.round(tHr*100)/100,horasHTDL:Math.round(hHTDL*100)/100,
+    diasNoc:dN,diasAct:dA,diasJT:dJ,diasIntl:dI,diasHTDL:dHTDL};
+}
+
+function clearCompData() {
+  if (!confirm('¿Eliminar el horario del compañero?')) return;
+  COMP_DATA = {};
+  saveComp();
+  vistaMode = 'mio';
+  renderCal();
+  toast('👤 Horario compañero eliminado');
+}
+
+
+function clearSelDay(){
+  selDay=null;
+  renderCal();
+}
+
+
+function closeOvTop(id){const el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
+
+function confirmarEnvioEmail(){
+  const dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
+  const asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
+  const cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
+  if(dest){AJ.emailDestino=dest;localStorage.setItem('aj5',JSON.stringify(AJ));}
+  const ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
+  closeOv('ov-email-confirm');
+  setTimeout(()=>{window.location.href=ml;},150);
+}
+
+function enviarSolicitudCompensacion(k){
+  const t=TV[k];if(!t)return;
+  var _kf3=k.split('-').map(Number);var y=_kf3[0],mo=_kf3[1],dd=_kf3[2];
+  var fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  const nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
+  const nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
+  const hora=new Date().getHours();
+  const sal=hora<13?'Buenos días':hora<20?'Buenas tardes':'Buenas noches';
+  const cuerpo=sal+'.\n\nMediante el presente solicito la compensación de '
+    +nDias+' día'+(nDias===1?'':'s')+' por el servicio realizado el día '+fstr
+    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validación.\n\n'
+    +'Atentamente,\n'+mn+'\nMatrícula: '+mm;
+  const asunto='Solicitud de Compensación - '+fstr+(nt?' - Tren '+nt:'');
+  handleEmailSubmission('Solicitud de Compensación',
+    nDias+' día'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,()=>{
+    TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;
+    if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();
+  });
+}
+
+
+function guardarCompanero(nombre,mat){
+  const e=AGENDA.find(c=>c.matricula===mat&&mat);
+  if(e){e.nombre=nombre;e.ultimoUso=Date.now();saveAgenda();return e;}
+  const c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
+  AGENDA.unshift(c);saveAgenda();return c;
+}
+
+function handleEmailSubmission(tit,sub,asunto,cuerpo,cb){
+  _emailCB=cb;
+  document.getElementById('ec-tit').textContent=tit;
+  document.getElementById('ec-sub').textContent=sub;
+  document.getElementById('ec-asunto').value=asunto;
+  document.getElementById('ec-cuerpo').value=cuerpo;
+  const d=document.getElementById('ec-dest');
+  if(d) d.value=AJ.emailDestino||'';
+  const ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
+  if(ca) openOvTop('ov-email-confirm'); else openOv('ov-email-confirm');
+}
+
+function openOvTop(id){const el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
+
+function renderVistaToggle() {
+  var wrap = document.getElementById('vista-toggle');
+  if (!wrap) return;
+  var hasComp = Object.keys(COMP_DATA).length > 0;
+  if (!hasComp) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+}
+
+// ── Import modal — selector destino ─────────────────────────
+
+
+
+
+
+
+function setVistaMode(mode) {
+  vistaMode = mode;
+  var btns = document.querySelectorAll('.vista-btn');
+  btns.forEach(function(b) { b.classList.remove('act'); });
+  var active = document.getElementById('vista-' + mode);
+  if (active) active.classList.add('act');
+  renderCal();
+}
+
+// ── Render toggle bar ────────────────────────────────────────
 
 init();
 </script>
