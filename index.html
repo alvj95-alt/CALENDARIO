@@ -1770,45 +1770,54 @@ function verificarDescansosMes(){
 // ALERTAS_DESCANSO declarada en bloque ESTADO GLOBAL (ver inicio del script)
 
 // ── Gestión de Retrasos ───────────────────────────────────────
+
+function cerrarRetrasoPanel(){var rp=document.getElementById('retraso-panel');if(rp)rp.remove();}
 function abrirRetraso(){
   if(!selDay||!selDay.t) return;
-  const t   = selDay.t;
-  const min = parseInt(t.retrasoMin)||0;
-
-  // U-03 FIX: El panel vive en .dc-turno que se regenera con renderDiaArea.
-  // Usamos un flag en F para saber si estaba abierto y restaurarlo tras re-render.
-  const area = document.getElementById('dia-area');
-  let wrap   = document.getElementById('retraso-panel');
-
-  // Toggle: si ya está visible, cerrarlo
-  if(wrap){ wrap.remove(); return; }
-
-  wrap    = document.createElement('div');
-  wrap.id = 'retraso-panel';
-  wrap.className = 'retraso-wrap';
-  wrap.innerHTML = `
-    <span style="font-size:14px">⏱</span>
-    <div style="flex:1">
-      <div style="font-size:9px;font-weight:800;color:var(--amber2);letter-spacing:.5px">RETRASO (minutos)</div>
-      <input class="retraso-inp" id="inp-retraso" type="number" inputmode="numeric"
-        min="0" max="999" value="${min}" placeholder="0"
-        oninput="previsualizarRetraso(this.value)">
-    </div>
-    <button onclick="guardarRetraso()"
-      style="padding:6px 13px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);
-      border-radius:8px;color:var(--amber2);font-size:11px;font-weight:800;cursor:pointer">
-      ✓ Aplicar
-    </button>
-    <button onclick="document.getElementById('retraso-panel').remove()"
-      style="padding:6px 10px;background:none;border:none;color:var(--tx3);font-size:14px;cursor:pointer">✕</button>
-  `;
-
-  const dct = area ? area.querySelector('.dc-turno') : null;
-  if(dct){
-    dct.appendChild(wrap);
-    // Focus al input para experiencia táctil más fluida
-    setTimeout(()=>{ const i=document.getElementById('inp-retraso'); if(i) i.focus(); }, 50);
-  }
+  var t=selDay.t;
+  var area=document.getElementById('dia-area');
+  var wrap=document.getElementById('retraso-panel');
+  if(wrap){wrap.remove();return;}
+  var retrasos=t.retrasos||[];
+  var r1=retrasos.filter(function(r){return r.tramo===1;})[0]||{minutos:parseInt(t.retrasoMin)||0,tren:t.numTren||''};
+  var r2=retrasos.filter(function(r){return r.tramo===2;})[0]||{minutos:0,tren:t.numTrenVuelta||''};
+  wrap=document.createElement('div');
+  wrap.id='retraso-panel';
+  wrap.className='retraso-wrap';
+  wrap.style.cssText='flex-direction:column;gap:8px;padding:10px 12px';
+  wrap.innerHTML=
+    '<div style="font-size:10px;font-weight:800;color:var(--amber2)">RETRASO</div>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<span style="font-size:10px;color:var(--tx3);width:52px">Tramo</span>'
+    +'<select id="sel-tramo-ret" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
+    +'<option value="1">1 Tramo ida</option>'
+    +'<option value="2">2 Tramo vuelta</option>'
+    +'</select></div>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<span style="font-size:10px;color:var(--tx3);width:52px">Minutos</span>'
+    +'<input id="inp-retraso" class="retraso-inp" type="number" inputmode="numeric" min="0" max="999" value="'+r1.minutos+'" placeholder="0" oninput="previsualizarRetraso(this.value)" style="flex:1">'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<span style="font-size:10px;color:var(--tx3);width:52px">Tren</span>'
+    +'<input id="inp-tren-ret" type="text" inputmode="numeric" placeholder="Num tren" value="'+r1.tren+'" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
+    +'</div>'
+    +'<div id="retraso-preview" style="font-size:10px;color:var(--tx3)"></div>'
+    +'<div style="display:flex;gap:6px">'
+    +'<button onclick="guardarRetraso()" style="flex:1;padding:7px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);border-radius:8px;color:var(--amber2);font-size:11px;font-weight:800;cursor:pointer">Aplicar</button>'
+    +'<button onclick="cerrarRetrasoPanel()" style="padding:7px 12px;background:none;border:1px solid var(--div);border-radius:8px;color:var(--tx3);font-size:12px;cursor:pointer">X</button>'
+    +'</div>';
+  var selEl=wrap.querySelector('[id=sel-tramo-ret]');
+  if(selEl) selEl.onchange=function(){
+    var tv=parseInt(this.value);
+    var rv=tv===1?r1:r2;
+    var ii=document.getElementById('inp-retraso');
+    var ti=document.getElementById('inp-tren-ret');
+    if(ii)ii.value=rv.minutos||0;
+    if(ti)ti.value=rv.tren||'';
+    previsualizarRetraso(rv.minutos||0);
+  };
+  var dct=area?area.querySelector('.dc-turno'):null;
+  if(dct){dct.appendChild(wrap);setTimeout(function(){var i=document.getElementById('inp-retraso');if(i)i.focus();},50);}
 }
 
 function previsualizarRetraso(val){
@@ -1848,24 +1857,25 @@ function previsualizarRetraso(val){
 
 function guardarRetraso(){
   if(!selDay||!selDay.t) return;
-  const inp = document.getElementById('inp-retraso');
+  var inp=document.getElementById('inp-retraso');
   if(!inp) return;
-  const min = Math.max(0, parseInt(inp.value)||0);
-
-  // Guardar en el turno
-  TV[selDay.k].retrasoMin = min > 0 ? min : undefined;
-  selDay.t = TV[selDay.k];
+  var min=Math.max(0,parseInt(inp.value)||0);
+  var tramEl=document.getElementById('sel-tramo-ret');
+  var trenEl=document.getElementById('inp-tren-ret');
+  var tramo=tramEl?parseInt(tramEl.value)||1:1;
+  var tren=trenEl?(trenEl.value.trim()||''):'';
+  TV[selDay.k].retrasoMin=min>0?min:undefined;
+  if(!TV[selDay.k].retrasos) TV[selDay.k].retrasos=[];
+  TV[selDay.k].retrasos=TV[selDay.k].retrasos.filter(function(r){return r.tramo!==tramo;});
+  if(min>0) TV[selDay.k].retrasos.push({tramo:tramo,minutos:min,tren:tren});
+  if(TV[selDay.k].retrasos.length===0) delete TV[selDay.k].retrasos;
+  selDay.t=TV[selDay.k];
   saveTV();
-
-  // L-05 FIX: recalcular alertas ANTES de renderizar para evitar caché stale
-  ALERTAS_DESCANSO = verificarDescansosMes();
-  renderCal();        // también recalcula internamente, pero ya está actualizado
-  renderDiaArea();    // usa el cache recién recalculado
-
-  if(min > 0)
-    toast('⏱ Retraso de '+min+' min registrado');
-  else
-    toast('✅ Retraso eliminado');
+  ALERTAS_DESCANSO=verificarDescansosMes();
+  renderCal();
+  renderDiaArea();
+  if(min>0) toast('Retraso '+min+'min - Tren '+(tren||'?')+' Tramo '+tramo);
+  else toast('Retraso eliminado');
 }
 
 /* ═══════════════════════════════════════
@@ -1922,36 +1932,56 @@ function autorellenarServicio(s){
   toast('⚡ Tren #'+s.numTren+' cargado automáticamente');
 }
 
-function mostrarSugTren(val){
-  const cont = document.getElementById('tren-sug-cont');
+function mostrarSugTren(val, campo){
+  var contId=(campo==='vuelta')?'tren-sug-cont2':'tren-sug-cont';
+  var cont=document.getElementById(contId);
   if(!cont) return;
-  const sugs = searchByTrainNumber(val);
-  if(!sugs.length || !val){ cont.innerHTML=''; return; }
-  cont.innerHTML = '<div class="tren-sug">'
-    + sugs.map(s=>{
-        const ruta = (s.sal&&s.lle) ? s.sal+' → '+s.lle : '';
-        const hora = (s.hF&&s.hL)  ? s.hF+' – '+s.hL   : '';
-        const badge= s.usos>1 ? `<span class="tren-sug-badge">${s.usos}x</span>` : '';
-        return `<div class="tren-sug-item" onclick="seleccionarSugTren('${s.numTren}')">
-          <div class="tren-sug-num">#${s.numTren}</div>
-          <div class="tren-sug-ruta">
-            ${ruta?`<div class="tren-sug-est">${ruta}</div>`:''}
-            ${hora?`<div class="tren-sug-hora">⏱ ${hora}</div>`:''}
-          </div>${badge}
-        </div>`;
-      }).join('')
-    + '</div>';
+  var sugs=searchByTrainNumber(val);
+  if(!sugs.length||!val){cont.innerHTML='';return;}
+  var html='<div class="tren-sug">';
+  sugs.forEach(function(s){
+    var ruta=(s.sal&&s.lle)?s.sal+' → '+s.lle:'';
+    var hora=(s.hF&&s.hL)?s.hF+' – '+s.hL:'';
+    var badge=s.usos>1?'<span class="tren-sug-badge">'+s.usos+'x</span>':'';
+    var rutaD=ruta?'<div class="tren-sug-est">'+ruta+'</div>':'';
+    var horaD=hora?'<div class="tren-sug-hora">'+hora+'</div>':'';
+    html+='<div class="tren-sug-item" onclick="seleccionarSugTren(\''+s.numTren+'\',\''+campo+'\')">';
+    html+='<div class="tren-sug-num">#'+s.numTren+'</div>';
+    html+='<div class="tren-sug-ruta">'+rutaD+horaD+'</div>'+badge+'</div>';
+  });
+  html+='</div>';
+  cont.innerHTML=html;
 }
 
-function seleccionarSugTren(numTren){
-  const s = SF.find(x => x.numTren === String(numTren));
+function seleccionarSugTren(numTren, campo){
+  var s = SF.filter(function(x){ return x.numTren === String(numTren); })[0];
   if(!s) return;
-  F.numTren = numTren;
-  const inp = document.getElementById('inp-numtren');
-  if(inp){ inp.value=numTren; inp.style.borderColor='var(--acc2)'; }
-  const cont = document.getElementById('tren-sug-cont');
-  if(cont) cont.innerHTML='';
-  autorellenarServicio(s);
+
+  if(campo === 'vuelta'){
+    // ── MÓDULO 2A: rellena solo el campo VUELTA ──────────────
+    F.numTrenVuelta = numTren;
+    var inp2 = document.getElementById('inp-numtren2');
+    if(inp2){ inp2.value=numTren; inp2.style.borderColor='var(--acc2)'; }
+    var cont2 = document.getElementById('tren-sug-cont2');
+    if(cont2) cont2.innerHTML='';
+    // Rellenar solo datos del tramo vuelta (sal2,lle2,hF2,hL2)
+    // Si el SF tiene datos de tramo vuelta, usarlos; si solo tiene tramo ida, invertir
+    if(s.hF2&&s.hL2){
+      F.sal2=s.sal2||s.sal; F.lle2=s.lle2||s.lle; F.hF2=s.hF2; F.hL2=s.hL2;
+    } else if(s.hF&&s.hL){
+      // El SF solo tiene datos de ida — usarlos como vuelta
+      F.sal2=s.lle||s.sal; F.lle2=s.sal||s.lle; F.hF2=s.hF; F.hL2=s.hL;
+    }
+    renderFormBody();
+  } else {
+    // ── Campo IDA: comportamiento original ───────────────────
+    F.numTren = numTren;
+    var inp = document.getElementById('inp-numtren');
+    if(inp){ inp.value=numTren; inp.style.borderColor='var(--acc2)'; }
+    var cont = document.getElementById('tren-sug-cont');
+    if(cont) cont.innerHTML='';
+    autorellenarServicio(s);
+  }
 }
 
 function initSwipe(){
@@ -2089,7 +2119,9 @@ function renderSlide(gridId, fecha){
     const c=document.createElement('div');
     c.className=cls;
     c.style.position='relative'; // needed for ::after pseudo
-    c.innerHTML='<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
+    var retBadge=tieneRetraso2?'<span style="position:absolute;top:1px;right:1px;font-size:8px;line-height:1">!</span>':'';
+    c.innerHTML=retBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
     c.onclick=()=>clickDia(d,k,t);
     grid.appendChild(c);
   }
@@ -2196,8 +2228,16 @@ function renderDiaArea(){
     }
     // Nocturnidad — automática para todos los tipos
     if(t.nocturno){
+      var NOCd=parseFloat(AJ.nocturnidad||1.80);
+      var calcNocH=function(hF,hL){if(!hF||!hL)return 0;var p1=hF.split(':').map(Number);var p2=hL.split(':').map(Number);var ii=p1[0]*60+p1[1];var ff=p2[0]*60+p2[1];if(ff<=ii)ff+=1440;var nn=Math.max(0,Math.min(ff,1440)-Math.max(ii,1320));nn+=Math.max(0,Math.min(ff,1800)-Math.max(ii,1440));if(ii<360)nn+=Math.max(0,Math.min(ff,360)-ii);return Math.round(nn/60*100)/100;};
+      var hNd1=calcNocH(t.hF,t.hL), hNd2=calcNocH(t.hF2,t.hL2);
+      var hNdTot=Math.round((hNd1+hNd2)*100)/100;
+      var impNd=Math.round(hNdTot*NOCd*100)/100;
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber)"></div>'
-        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad activa (22:00–06:00)</div></div>';
+        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad';
+      if(hNd1>0&&t.hF&&t.hL) body+=' · '+t.hF+'-'+t.hL+' ('+hNd1.toFixed(2)+'h)';
+      if(hNd2>0&&t.hF2&&t.hL2) body+=' · '+t.hF2+'-'+t.hL2+' ('+hNd2.toFixed(2)+'h)';
+      body+='</div><div class="tr-time" style="color:var(--amber2);font-weight:800">'+impNd.toFixed(2)+'€</div></div>';
     }
     // Plus Internacional automático
     if(t.plusIntlAuto){
@@ -2212,6 +2252,35 @@ function renderDiaArea(){
     }
     if(t.comp==='dinero'&&t.importe)body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div><div class="tr-route">Compensación económica</div><div class="tr-time tr-hi">'+t.importe.toFixed(2)+' €</div></div>';
     if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length))body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div><div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
+    // ── MÓDULO B: Retrasos en tarjeta con impacto económico ──────
+    if(t.retrasos&&t.retrasos.length){
+      var HTDLd2=parseFloat(AJ.vh||12.5);
+      body+='<div style="margin-top:6px;padding:7px 10px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:9px">';
+      body+='<div style="font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--amber2);margin-bottom:4px">RETRASOS REGISTRADOS</div>';
+      t.retrasos.forEach(function(r){
+        var impacta=(t.comp==='dinero')&&r.tramo===2;
+        var impEco=impacta?Math.round((r.minutos/60)*HTDLd2*100)/100:0;
+        body+='<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(245,158,11,.1)">';
+        body+='<div style="font-size:10px;color:var(--tx2)">';
+        body+=(r.tren?'🚆 #'+r.tren+' · ':'');
+        body+='Tramo '+r.tramo+' · +'+r.minutos+' min';
+        body+='</div>';
+        body+='<div style="display:flex;gap:5px;align-items:center">';
+        if(impacta){
+          body+='<span style="font-size:9px;font-weight:800;color:var(--green2)">+'+impEco.toFixed(2)+'€</span>';
+          body+='<span style="font-size:8px;background:rgba(34,197,94,.15);color:var(--green2);border-radius:4px;padding:1px 5px;font-weight:700">HTDL</span>';
+        }else{
+          body+='<span style="font-size:8px;background:rgba(100,116,139,.15);color:var(--tx3);border-radius:4px;padding:1px 5px;font-weight:700">INFO</span>';
+        }
+        body+='</div></div>';
+      });
+      body+='</div>';
+    }else if(t.retrasoMin>0){
+      body+='<div style="margin-top:6px;padding:5px 8px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;display:flex;justify-content:space-between">';
+      body+='<span style="font-size:10px;color:var(--amber2)">Retraso +'+t.retrasoMin+' min</span>';
+      body+='<span style="font-size:8px;color:var(--tx3)">'+((t.comp==='dinero')?'HTDL':'INFO')+'</span>';
+      body+='</div>';
+    }
   } else if(t.tipo==='vuelta-pernocta'){
     body='<div class="ibox amber"><span class="ibox-i">🌙</span><span>Tramo de vuelta (pernocta). Salida: <strong>'+t.sal+'</strong> → <strong>'+t.lle+'</strong><br>'+t.hF+' – '+t.hL+'</span></div>';
   } else if(t.tipo==='reserva'){
@@ -2262,7 +2331,14 @@ function renderAcordeon(){
     const dot='<div class="ac-dot" style="background:'+ti.col+'"></div>';
     // Detalles expandibles
     let det='';
-    if(t.retrasoMin) det+='<div class="ac-row"><span class="ak">⏱ Retraso</span><span class="av" style="color:var(--amber2)">+'+t.retrasoMin+' min</span></div>';
+    if(t.retrasos && t.retrasos.length){
+      t.retrasos.forEach(function(r){
+        det+='<div class="ac-row"><span class="ak">⏱ T'+r.tramo+(r.tren?' #'+r.tren:'')+'</span>'
+           +'<span class="av" style="color:var(--amber2)">+'+r.minutos+' min</span></div>';
+      });
+    } else if(t.retrasoMin){
+      det+='<div class="ac-row"><span class="ak">⏱ Retraso</span><span class="av" style="color:var(--amber2)">+'+t.retrasoMin+' min</span></div>';
+    }
     if(ALERTAS_DESCANSO[k]) det+='<div class="ac-row"><span class="ak">🔴 Descanso</span><span class="av" style="color:var(--red2)">'+ALERTAS_DESCANSO[k].msg+'</span></div>';
     if(t.cambioSolicitado) det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
     if(t.numTren)  det+='<div class="ac-row"><span class="ak">🚆 Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
@@ -3680,15 +3756,69 @@ function renderStats(){
   var des='';
   if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
-    if(e.totalHTDL>0)
-      des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
+    if(e.totalHTDL>0){
+      des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
+        e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
+      // Desglose por día HTDL: fecha, tren, horas ida+escala+vuelta
+      if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
+        e.diasHTDLdetail.forEach(function(d){
+          des+='<div class="cs-r" style="padding-left:12px;opacity:.8">'
+            +'<span class="cl" style="font-size:10px">'
+            +d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+            +'<span class="cv" style="font-size:10px;color:var(--acc2)">'
+            +d.hIda.toFixed(2)+'h'
+            +(d.hEscala>0?'+'+d.hEscala.toFixed(2)+'h':'')
+            +(d.hVuelta>0?'+'+d.hVuelta.toFixed(2)+'h':'')
+            +' = '+d.hTotal.toFixed(2)+'h</span></div>';
+        });
+      }
+    }
     else if(e.totalHoras>0)
       des+='<div class="cs-r"><span class="cl" style="color:var(--tx3)">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv" style="color:var(--tx3)">En nómina</span></div>';
-    if(e.totalNoc>0)  des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)',e.diasNoc);
+    if(e.totalNoc>0){
+      des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)',[]);
+      // Desglose detallado por día — acordeón
+      if(e.diasNocDetail&&e.diasNocDetail.length){
+        e.diasNocDetail.forEach(function(d){
+          if(typeof d!=='object') return;
+          des+='<div class="cs-r" style="padding-left:12px;flex-direction:column;gap:1px">';
+          des+='<div style="display:flex;width:100%">';
+          des+='<span class="cl" style="font-size:10px">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
+          des+='<span class="cv" style="font-size:10px;color:var(--amber2)">'+d.hNoc.toFixed(2)+'h · '+d.importe.toFixed(2)+'€</span>';
+          des+='</div>';
+          // Detalle horario de los tramos nocturnos
+          var tramosTxt=[];
+          if(d.hF1&&d.hL1) tramosTxt.push(d.hF1+' → '+d.hL1);
+          if(d.hF2&&d.hL2) tramosTxt.push(d.hF2+' → '+d.hL2);
+          if(tramosTxt.length){
+            des+='<div style="font-size:9px;color:var(--tx3);padding-left:4px">'+tramosTxt.join(' · ')+'</div>';
+          }
+          des+='</div>';
+        });
+      }
+    }
     if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','var(--green2)',e.diasAct);
     if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','var(--green2)',e.diasJT);
     if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','var(--cyan2)',e.diasIntl);
     if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv" style="color:var(--cyan2)">'+ct.comp+' días</span></div>';
+    // Retrasos del mes
+    if(e.retrasos&&e.retrasos.length){
+      des+='<div class="cr-div" style="margin:4px 0"></div>'
+        +'<div class="cs-r"><span class="cl" style="color:var(--amber2);font-weight:800">⚠️ Retrasos del mes</span>'
+        +'<span class="cv" style="color:var(--amber2)">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
+      e.retrasos.forEach(function(r){
+        // MÓDULO C: Impacto económico SI/NO según tramo y tipo compensación
+        var impacta=r.esHTDL&&r.tramo===2;
+        var impEco=impacta?Math.round((r.minutos/60)*e.HTDL*100)/100:0;
+        des+='<div class="cs-r" style="padding-left:12px;flex-wrap:wrap;gap:2px">';
+        des+='<span class="cl" style="font-size:10px">';
+        des+=r.fecha+(r.tren||r.numTren?' · #'+(r.tren||r.numTren):'')+(r.tramo>0?' · T'+r.tramo:'')+'</span>';
+        des+='<span class="cv" style="font-size:10px;color:var(--amber2)">+'+r.minutos+'min';
+        if(impacta) des+=' · <strong style="color:var(--green2)">+'+impEco.toFixed(2)+'€ HTDL</strong>';
+        else        des+=' · <span style="color:var(--tx3)">informativo</span>';
+        des+='</span></div>';
+      });
+    }
     if(e.totalBruto>0)
       des+='<div class="cr-div" style="margin:6px 0"></div>'
         +'<div class="cs-r"><span class="cl" style="font-weight:800">💰 Total estimado mes</span>'
@@ -3947,37 +4077,96 @@ function calculateEarnings(ks){
     if(i<360)n+=Math.max(0,Math.min(f,360)-i);
     return Math.round(n/60*100)/100;
   };
-  ks.forEach(k=>{
-    const t=TV[k];if(!t)return;
+  // retrasos del mes
+  var retMes=[];
+  ks.forEach(function(k){
+    var t=TV[k];if(!t)return;
+    var _ks2=k.split('-');var mo2=parseInt(_ks2[1]),dd2=_ks2[2];
+    var dL2=parseInt(dd2)+' '+MESES_C[parseInt(mo2)-1];
+    // Retrasos nuevos (con tramo+tren)
+    if(t.retrasos&&t.retrasos.length){
+      t.retrasos.forEach(function(r){
+        retMes.push({fecha:dL2,tramo:r.tramo,minutos:r.minutos,tren:r.tren||'',numTren:t.numTren||'',esHTDL:t.comp==='dinero'});
+      });
+    } else if(t.retrasoMin>0){
+      // Retrasos antiguos (solo minutos)
+      retMes.push({fecha:dL2,tramo:0,minutos:t.retrasoMin,tren:'',numTren:t.numTren||'',esHTDL:t.comp==='dinero'});
+    }
+  });
+
+  ks.forEach(function(k){
+    var t=TV[k];if(!t)return;
     var _ks=k.split('-');var mo=parseInt(_ks[1]),dd=_ks[2];
-    const dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
-    const hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
-    const hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
-    const h=Math.round((hI+hV)*100)/100;
+    var dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
+    var hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
+    var hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
+    var h=Math.round((hI+hV)*100)/100;
     if(t.tipo==='ordinario'){tHr+=h;
-      if(t.nocturno&&h>0){const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0){tN+=n*NOC;dN.push(dL);}}
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+      if(t.nocturno&&h>0){
+        var nOrd1=cn(t.hF,t.hL), nOrd2=cn(t.hF2,t.hL2);
+        var nOrd=nOrd1+nOrd2;
+        if(nOrd>0){
+          tN+=nOrd*NOC;
+          dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nOrd,importe:Math.round(nOrd*NOC*100)/100});
+        }
+      }
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
+    }
     if(t.tipo==='trabajado'){tHr+=h;
       if(t.comp==='dinero'){
-        // Escala = tiempo entre llegada ida (hL) y firma vuelta (hF2)
-        // Según protocolo HTDL: Ida + Escala + Vuelta — la escala computa
-        const hEscala = (t.hL && t.hF2) ? Math.round(calcMins(t.hL, t.hF2)/60*100)/100 : 0;
-        const hTotalHTDL = Math.round((h + hEscala)*100)/100;
-        hHTDL += hTotalHTDL;
-        tH    += hTotalHTDL * HTDL;
-        dHTDL.push(dL);
+        var hEscala=(t.hL&&t.hF2)?Math.round(calcMins(t.hL,t.hF2)/60*100)/100:0;
+        // MÓDULO A: Retraso T2 en HTDL suma al computable
+        // T1 = solo informativo. T2 = suma económica.
+        var minRetT2=0;
+        if(t.retrasos&&t.retrasos.length){
+          t.retrasos.forEach(function(r){
+            if(r.tramo===2) minRetT2+=r.minutos||0;
+          });
+        } else if(t.retrasoMin>0 && !t.retrasos){
+          // retraso legacy (sin tramo) — tratamos como T2 para no perder datos
+          minRetT2=t.retrasoMin;
+        }
+        var hRetT2=Math.round(minRetT2/60*100)/100;
+        var hTotalHTDL=Math.round((h+hEscala+hRetT2)*100)/100;
+        hHTDL+=hTotalHTDL;
+        tH+=hTotalHTDL*HTDL;
+        // Guardar detalle: fecha, tren, horas desglosadas
+        dHTDL.push({
+          lbl:dL,
+          tren:t.numTren||'',
+          hIda:hI,
+          hEscala:hEscala,
+          hVuelta:hV,
+          hRetT2:hRetT2,
+          minRetT2:minRetT2,
+          hTotal:hTotalHTDL,
+          importe:Math.round(hTotalHTDL*HTDL*100)/100
+        });
       }
-      const n=cn(t.hF,t.hL)+cn(t.hF2,t.hL2);if(n>0&&t.nocturno){tN+=n*NOC;dN.push(dL);}
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+      var nTrab1=cn(t.hF,t.hL), nTrab2=cn(t.hF2,t.hL2);
+      var nTrab=nTrab1+nTrab2;
+      if(nTrab>0&&t.nocturno){
+        tN+=nTrab*NOC;
+        dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nTrab,importe:Math.round(nTrab*NOC*100)/100});
+      }
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
+    }
     if(['reserva','descanso','baja'].includes(t.tipo)){
-      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}}
+      if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
+    }
   });
-  return{HTDL,NOC,
+  // diasHTDL is now array of objects with detail
+  var diasHTDLlbl=dHTDL.map(function(d){return d.tren?d.lbl+' #'+d.tren:d.lbl;});
+  return{HTDL:HTDL,NOC:NOC,
     totalHTDL:Math.round(tH*100)/100,totalNoc:Math.round(tN*100)/100,
     totalAct:Math.round(tA*100)/100,totalJT:Math.round(tJ*100)/100,totalIntl:Math.round(tI*100)/100,
     totalBruto:Math.round((tH+tN+tA+tJ+tI)*100)/100,
     totalHoras:Math.round(tHr*100)/100,horasHTDL:Math.round(hHTDL*100)/100,
-    diasNoc:dN,diasAct:dA,diasJT:dJ,diasIntl:dI,diasHTDL:dHTDL};
+    diasNocDetail:dN,
+    diasNoc:dN.map(function(d){return typeof d==='object'?d.lbl+(d.tren?' #'+d.tren:''):d;}),
+    diasAct:dA,diasJT:dJ,diasIntl:dI,
+    diasHTDL:diasHTDLlbl,diasHTDLdetail:dHTDL,
+    retrasos:retMes};
 }
 
 function clearCompData() {
