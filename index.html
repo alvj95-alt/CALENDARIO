@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -655,6 +656,48 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
        font-size:11px;font-weight:700;z-index:999;border:1px solid var(--div);
        white-space:nowrap;opacity:0;transition:all .28s;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.panel.on.anim-in{animation:tabFade .22s ease both;}
+
+/* ══ MÓDULO ANIMACIONES ══════════════════════════════════ */
+@keyframes slideUpIn{from{opacity:0;transform:translateY(44px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUpOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(44px)}}
+@keyframes fadeInOv{from{opacity:0}to{opacity:1}}
+@keyframes fadeOutOv{from{opacity:1}to{opacity:0}}
+@keyframes popIn{0%{opacity:0;transform:scale(.91)}70%{transform:scale(1.02)}100%{opacity:1;transform:scale(1)}}
+@keyframes tabFade{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+
+/* Overlay backdrop */
+.ov.on{animation:fadeInOv .17s ease both}
+/* Sheet slide up */
+.ov.on .sh{animation:slideUpIn .28s cubic-bezier(.32,1,.32,1) both}
+/* Cierre animado */
+.ov.closing{display:flex!important;animation:fadeOutOv .14s ease both;pointer-events:none}
+.ov.closing .sh{animation:slideUpOut .14s cubic-bezier(.4,0,1,1) both}
+/* Tarjeta del día */
+.dc-turno{animation:popIn .2s cubic-bezier(.32,1,.32,1) both}
+/* Tab fade */
+.panel.on.anim-in{animation:tabFade .22s ease both}
+/* Celdas táctiles */
+.dc{transition:background .14s,border-color .14s,transform .1s}
+.dc:active{transform:scale(.92)}
+/* Botones */
+.topt{transition:transform .11s,background .14s}
+.topt:active{transform:scale(.93)}
+.dcv-btn{transition:background .14s,transform .1s}
+.dcv-btn:active{transform:scale(.95)}
+/* ══════════════════════════════════════════════════════════ */
+
+/* ══ MODAL TARJETA DÍA ════════════════════════════════════ */
+#ov-dia-card .sh{
+  max-height:88vh;
+  overflow-y:auto;
+}
+.dia-card-modal{
+  width:100%;
+  padding:0;
+}
+/* ════════════════════════════════════════════════════════= */
 </style>
 </head>
 <body>
@@ -925,6 +968,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- OV: TIPO TURNO -->
+
+<!-- OV: TARJETA DÍA SELECCIONADO -->
+<div class="ov" id="ov-dia-card" onclick="closeOv('ov-dia-card');clearSelDay()">
+  <div class="sh" style="padding:0" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div style="display:flex;justify-content:flex-end;padding:6px 12px 0">
+      <button class="sh-close" onclick="closeOv('ov-dia-card');clearSelDay()">✕</button>
+    </div>
+    <div id="dia-card-body" class="dia-card-modal"></div>
+  </div>
+</div>
+
 <div class="ov" id="ov-tipo">
   <div class="sh">
     <div class="sh-handle"></div>
@@ -964,22 +1019,26 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- OV: ESTACIÓN -->
-<div class="ov" id="ov-est">
-  <div class="est-sh">
+<div class="ov" id="ov-est" onclick="closeOv('ov-est')">
+  <div class="est-sh" onclick="event.stopPropagation()">
     <div class="sh-handle" style="margin-bottom:10px"></div>
     <div class="est-hdr">
       <div class="est-tit" id="est-tit">📍 Estación</div>
-      <div class="est-srch">🔍 <input type="text" id="est-srch-inp" placeholder="Buscar…" oninput="renderEstList(this.value)"></div>
+      <button class="sh-close btn-cerrar" onclick="closeOv('ov-est')" style="margin-left:auto">✕</button>
     </div>
+    <div class="est-srch">🔍 <input type="text" id="est-srch-inp" placeholder="Buscar…" oninput="renderEstList(this.value)"></div>
     <div class="est-list" id="est-list"></div>
   </div>
 </div>
 
 <!-- OV: HORA — teclado numérico táctil, sin ruedas -->
-<div class="ov" id="ov-hora">
-  <div class="hora-sh">
+<div class="ov" id="ov-hora" onclick="closeOv('ov-hora')">
+  <div class="hora-sh" onclick="event.stopPropagation()">
     <div class="sh-handle"></div>
-    <div class="hora-title" id="hora-tit">⏱ Hora</div>
+    <div style="display:flex;align-items:center;margin-bottom:4px">
+      <div class="hora-title" id="hora-tit" style="flex:1;margin-bottom:0">⏱ Hora</div>
+      <button class="sh-close btn-cerrar" onclick="closeOv('ov-hora')">✕</button>
+    </div>
 
     <!-- Display principal de hora seleccionada -->
     <div class="hora-display">
@@ -1186,10 +1245,93 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
    DATOS CONSTANTES
 ═══════════════════════════════════════ */
 const LINEAS={
-  'AVE':['Madrid Puerta de Atocha','Madrid Chamartín','Zaragoza-Delicias','Barcelona Sants','Lleida-Pirineus','Camp de Tarragona','Tarragona','Sevilla Santa Justa','Córdoba','Málaga María Zambrano','Valencia Joaquín Sorolla','Alicante','Toledo','Puertollano','Ciudad Real','Cuenca F.Zóbel','Albacete-Los Llanos','Antequera-Santa Ana','Guadalajara-Yebes'],
-  'Renfe Larga Distancia':['Madrid Puerta de Atocha','Madrid Chamartín','Barcelona Sants','Valencia Nord','Alicante','Murcia del Carmen','Vigo-Urzáiz','Santiago de Compostela','A Coruña','Oviedo','Gijón','León','Bilbao Abando','San Sebastián/Donostia','Pamplona/Iruña','Salamanca','Zamora','Cáceres','Badajoz','Huelva','Almería','Granada'],
-  'Euromed':['Barcelona Sants','Camp de Tarragona','Tarragona','Vandellós','Cambrils','Salou','Reus','Tortosa','Vinaròs','Benicarló-Peñíscola','Oropesa del Mar','Castelló de la Plana','Sagunt','Valencia Joaquín Sorolla','Valencia Nord','Xàtiva','Gandia','Alicante'],
-  'Internacional (Lyon/Marsella)':['Madrid Puerta de Atocha','Barcelona Sants','Figueres-Vilafant','Girona','Perpignan','Narbonne','Montpellier St-Roch','Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles'],
+  'AVE':[
+    'Madrid Puerta de Atocha','Madrid Chamartín',
+    'Zaragoza-Delicias','Barcelona Sants','Lleida-Pirineus',
+    'Camp de Tarragona','Tarragona',
+    'Sevilla Santa Justa','Córdoba Central','Málaga María Zambrano',
+    'Valencia Joaquín Sorolla','Alicante Terminal',
+    'Toledo','Puertollano','Ciudad Real',
+    'Cuenca F.Zóbel','Albacete-Los Llanos',
+    'Antequera-Santa Ana','Granada','Jaén',
+    'Guadalajara-Yebes','Segovia-Guiomar',
+    'Valladolid Campo Grande','Burgos Rosa de Lima',
+    'Palencia','León',
+    'Ourense','Pontevedra','Vigo-Urzáiz',
+    'Huesca','Logroño',
+    'Vitoria-Gasteiz','San Sebastián/Donostia Internazional',
+    'Murcia del Carmen','Elche','Orihuela',
+    'Almería','Huelva',
+    'Cádiz','Jerez de la Frontera','El Puerto de Santa María',
+    'Requena-Utiel','Castelló de la Plana'
+  ],
+  'Renfe Larga Distancia':[
+    'Madrid Puerta de Atocha','Madrid Chamartín',
+    'Barcelona Sants','Valencia Nord','Alicante Terminal',
+    'Murcia del Carmen','Cartagena',
+    'Vigo-Urzáiz','Pontevedra','Ourense',
+    'Santiago de Compostela','A Coruña','Ferrol',
+    'Oviedo','Gijón','Avilés',
+    'Santander',
+    'León','Palencia',
+    'Valladolid Campo Grande','Burgos Rosa de Lima',
+    'Bilbao Abando','San Sebastián/Donostia',
+    'Vitoria-Gasteiz','Pamplona/Iruña','Logroño',
+    'Salamanca','Zamora','Ávila',
+    'Cáceres','Badajoz','Mérida','Plasencia',
+    'Huelva','Cádiz','Jerez de la Frontera',
+    'El Puerto de Santa María',
+    'Almería','Granada','Jaén',
+    'Zaragoza-Delicias','Tarragona',
+    'Castelló de la Plana',
+    'Córdoba Central','Sevilla Santa Justa',
+    'Málaga María Zambrano','Antequera-Santa Ana',
+    'Toledo','Cuenca F.Zóbel','Albacete-Los Llanos'
+  ],
+  'AVE Avant (Media Distancia)':[
+    'Madrid Puerta de Atocha',
+    'Segovia-Guiomar','Valladolid Campo Grande',
+    'Toledo','Cuenca F.Zóbel',
+    'Ciudad Real','Puertollano',
+    'Córdoba Central','Antequera-Santa Ana',
+    'Camp de Tarragona','Lleida-Pirineus',
+    'Guadalajara-Yebes',
+    'Alicante Terminal','Murcia del Carmen',
+    'Granada','Jaén'
+  ],
+  'Euromed':[
+    'Barcelona Sants',
+    'Camp de Tarragona','Tarragona','Vandellós',
+    'Cambrils','Salou','Reus','Tortosa',
+    'Vinaròs','Benicarló-Peñíscola','Oropesa del Mar',
+    'Castelló de la Plana','Sagunt',
+    'Valencia Joaquín Sorolla','Valencia Nord',
+    'Xàtiva','Gandia','Alicante Terminal'
+  ],
+  'Alvia / Intercity':[
+    'Madrid Puerta de Atocha','Madrid Chamartín',
+    'Valladolid Campo Grande','Palencia',
+    'Burgos Rosa de Lima','Vitoria-Gasteiz',
+    'San Sebastián/Donostia','Bilbao Abando',
+    'Santander','Oviedo','Gijón','Avilés',
+    'A Coruña','Santiago de Compostela',
+    'Vigo-Urzáiz','Pontevedra','Ourense',
+    'Lugo','Ferrol',
+    'Salamanca','Zamora','León',
+    'Ávila','Segovia-Guiomar',
+    'Cáceres','Badajoz','Mérida','Plasencia',
+    'Huelva','Cádiz','Jerez de la Frontera',
+    'Almería','Granada','Jaén',
+    'Logroño','Pamplona/Iruña',
+    'Zaragoza-Delicias','Huesca',
+    'Castelló de la Plana','Tarragona'
+  ],
+  'Internacional (Lyon/Marsella)':[
+    'Madrid Puerta de Atocha','Barcelona Sants',
+    'Figueres-Vilafant','Girona',
+    'Perpignan','Narbonne','Montpellier St-Roch',
+    'Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles'
+  ],
 };
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const MESES_C=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -1214,6 +1356,7 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
 /* ═══════════════════════════════════════
    ESTADO GLOBAL
 ═══════════════════════════════════════ */
+var _emailCB = null; // callback email — declarado globalmente para evitar implicit global
 let AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
   pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)}
@@ -1892,25 +2035,55 @@ function saveSF(){ localStorage.setItem('sf5', JSON.stringify(SF)); }
 
 function searchByTrainNumber(n){
   if(!n) return [];
-  const q = String(n).trim();
-  const exactas   = SF.filter(s => s.numTren === q);
-  const parciales = SF.filter(s => s.numTren !== q && s.numTren.startsWith(q));
+  var q = String(n).trim();
+  var exactas   = [];
+  var parciales = [];
+  for(var si=0; si<SF.length; si++){
+    var s = SF[si];
+    if(s.numTren === q)               exactas.push(s);
+    else if(s.numTren.indexOf(q)===0) parciales.push(s);
+  }
   return exactas.concat(parciales).slice(0,6);
 }
 
 function guardarServicioFrecuente(datos){
-  const {numTren,linea,sal,lle,hF,hL,sal2,lle2,hF2,hL2} = datos;
+  var numTren  = datos.numTren;
+  var linea    = datos.linea;
+  var sal      = datos.sal;
+  var lle      = datos.lle;
+  var hF       = datos.hF;
+  var hL       = datos.hL;
+  var sal2     = datos.sal2;
+  var lle2     = datos.lle2;
+  var hF2      = datos.hF2;
+  var hL2      = datos.hL2;
   if(!numTren) return;
-  const key = String(numTren);
-  const existe = SF.find(s => s.numTren === key);
+  var key    = String(numTren);
+  var existe = null;
+  for(var si=0; si<SF.length; si++){
+    if(SF[si].numTren===key){ existe=SF[si]; break; }
+  }
   if(existe){
-    Object.assign(existe, {linea,sal,lle,hF,hL,sal2:sal2||'',lle2:lle2||'',hF2:hF2||'',hL2:hL2||''});
+    existe.linea=linea||existe.linea;
+    existe.sal  =sal  ||existe.sal;
+    existe.lle  =lle  ||existe.lle;
+    existe.hF   =hF   ||existe.hF;
+    existe.hL   =hL   ||existe.hL;
+    existe.sal2 =sal2!==undefined?sal2:existe.sal2;
+    existe.lle2 =lle2!==undefined?lle2:existe.lle2;
+    existe.hF2  =hF2 !==undefined?hF2 :existe.hF2;
+    existe.hL2  =hL2 !==undefined?hL2 :existe.hL2;
     existe.usos      = (existe.usos||0)+1;
     existe.ultimoUso = Date.now();
   } else {
-    SF.unshift({numTren:key,linea:linea||'',sal:sal||'',lle:lle||'',
-                hF:hF||'',hL:hL||'',sal2:sal2||'',lle2:lle2||'',
-                hF2:hF2||'',hL2:hL2||'',usos:1,ultimoUso:Date.now()});
+    SF.unshift({
+      numTren:key, linea:linea||'',
+      sal:sal||'',   lle:lle||'',
+      hF:hF||'',     hL:hL||'',
+      sal2:sal2||'', lle2:lle2||'',
+      hF2:hF2||'',   hL2:hL2||'',
+      usos:1, ultimoUso:Date.now()
+    });
     if(SF.length>50) SF.splice(50);
   }
   saveSF();
@@ -2043,12 +2216,12 @@ function initSwipe(){
 }
 
 function animSwipe(dir){
-  const track=document.getElementById('cal-track');
+  var track=document.getElementById('cal-track');
   // Animar el deslizamiento
-  const pct=dir>0?-200:-0; // 3 slides: prev(0%) curr(100%) next(200%)
+  var pct=dir>0?-200:-0; // 3 slides: prev(0%) curr(100%) next(200%)
   track.style.transition='transform .28s cubic-bezier(.4,0,.2,1)';
-  track.style.transform=`translateX(${dir>0?'-200%':'0%'})`;
-  setTimeout(()=>{
+  track.style.transform='translateX('+(dir>0?'-200%':'0%')+')';
+  setTimeout(function(){
     track.style.transition='none';
     track.style.transform='translateX(-100%)'; // volver al centro
     curM.setMonth(curM.getMonth()+dir);
@@ -2064,7 +2237,7 @@ function _keyAFechaLbl(k){
 }
 
 function renderCal(){
-  const y=curM.getFullYear(),m=curM.getMonth();
+  var y=curM.getFullYear(),m=curM.getMonth();
   document.getElementById('mn-lbl').textContent=MESES[m]+' '+y;
   document.getElementById('mn-sub').textContent=y;
 
@@ -2077,16 +2250,16 @@ function renderCal(){
   renderSlide('days-next', new Date(y,m+1,1));
 
   // Posicionar el track en el slide central sin animación
-  const track=document.getElementById('cal-track');
+  var track=document.getElementById('cal-track');
   track.style.transition='none';
   track.style.transform='translateX(-100%)';
 
   // Dots indicadores de mes (últimos 3 meses)
-  const dots=document.getElementById('cal-dots');
+  var dots=document.getElementById('cal-dots');
   if(dots){
-    dots.innerHTML=[-1,0,1].map(i=>
-      `<div style="width:${i===0?16:5}px;height:5px;border-radius:3px;background:${i===0?'var(--acc)':'var(--div)'};transition:all .2s"></div>`
-    ).join('');
+    dots.innerHTML=[-1,0,1].map(function(i){
+      return '<div style="width:'+(i===0?16:5)+'px;height:5px;border-radius:3px;background:'+(i===0?'var(--acc)':'var(--div)')+';transition:all .2s"></div>';
+    }).join('');
   }
 
   renderDiaArea();
@@ -2122,7 +2295,7 @@ function renderSlide(gridId, fecha){
     var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
     var retBadge=tieneRetraso2?'<span style="position:absolute;top:1px;right:1px;font-size:8px;line-height:1">!</span>':'';
     c.innerHTML=retBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
-    c.onclick=()=>clickDia(d,k,t);
+    c.onclick=function(){clickDia(d,k,t);};
     grid.appendChild(c);
   }
 }
@@ -2143,18 +2316,21 @@ function clickDia(d,k,t){
     editarTurno();
     return;
   }
-  // Primer toque: seleccionar y mostrar tarjeta
+  // Primer toque: seleccionar
   selDay={d,k,t};
   renderCal();
-  // Sin turno → abrir selector de tipo directamente
   if(!t){
+    // Sin turno → abrir selector de tipo directamente
     var _km2=k.split('-').map(Number);var y=_km2[0],mo=_km2[1];
     var dt=new Date(y,mo-1,d);
-    const wd=(dt.getDay()+6)%7;
+    var wd=(dt.getDay()+6)%7;
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
     openOv('ov-tipo');
+  } else {
+    // Con turno → abrir modal centrado con la tarjeta
+    openOv('ov-dia-card');
+    renderDiaArea();
   }
-  // Con turno → solo muestra la tarjeta (el usuario puede tocar ✏️ Editar o 🔄 Cambio)
 }
 
 function irHoy(){
@@ -2170,8 +2346,18 @@ function chM(dir){
 }
 
 function renderDiaArea(){
-  const area=document.getElementById('dia-area');
-  if(!selDay){area.innerHTML='';return;}
+  var ovCard=document.getElementById('ov-dia-card');
+  var useModal=ovCard&&ovCard.classList.contains('on');
+  var area=useModal
+    ?document.getElementById('dia-card-body')
+    :document.getElementById('dia-area');
+  if(!area) area=document.getElementById('dia-area');
+  if(!selDay){
+    if(area) area.innerHTML='';
+    var fb=document.getElementById('dia-area');
+    if(fb) fb.innerHTML='';
+    return;
+  }
   var d=selDay.d;var k=selDay.k;var t=selDay.t;;
   var _km3=k.split('-').map(Number);var y=_km3[0],mo=_km3[1];
   var dt=new Date(y,mo-1,d);
@@ -2312,6 +2498,14 @@ function renderDiaArea(){
       ? '<button onclick="abrirRetraso()" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);border-radius:7px;color:var(--amber2);font-size:10px;font-weight:800;padding:4px 9px;cursor:pointer;margin-right:4px">⏱'+(retrasoMin>0?' +'+retrasoMin+'m':' Retraso')+'</button>'
       : '')
     +'<button onclick="abrirCambio()" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:7px;color:var(--nar2);font-size:10px;font-weight:800;padding:4px 10px;cursor:pointer;margin-right:4px">🔄 Cambio</button>'
+    // NOTAS — visible si el turno tiene nota escrita
+    +(t&&t.notas&&t.notas.trim().length>0
+      ? '<div style="margin:6px 0;padding:7px 10px;background:rgba(99,102,241,.07);'
+        +'border:1px solid rgba(99,102,241,.2);border-radius:9px">'
+        +'<div style="font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--acc);margin-bottom:3px">📝 NOTA</div>'
+        +'<div style="font-size:11px;color:var(--tx2);line-height:1.5">'+t.notas.trim()+'</div>'
+        +'</div>'
+      : '')
     +'<button class="dct-del" onclick="pedirEliminar()">🗑 Eliminar</button>'
     +'</div></div>';
 }
@@ -2353,6 +2547,17 @@ function renderAcordeon(){
     if(t.modo) det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'🌙 Pernocta':'🔄 Ida y vuelta')+'</span></div>';
     if(t.comp==='dinero'&&t.importe) det+='<div class="ac-imp"><span class="al">💶 Compensación económica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
     if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length)) det+='<div class="ac-row"><span class="ak">📅 Días comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' días asignados</span></div>';
+    // BLOQUE A — Días HTDL Compensación
+    if(t.tipo==='comp'&&t.origen){
+      det+='<div class="ac-row"><span class="ak">📅 HTDL Comp.</span><span class="av" style="color:var(--cyan2)">Descanso trabajado por compensación</span></div>';
+    }
+    // BLOQUE B — Notas del registro
+    if(t.notas&&t.notas.trim().length>0){
+      det+='<div class="ac-row" style="flex-direction:column;align-items:flex-start;gap:2px">'
+        +'<span class="ak">📝 Nota</span>'
+        +'<span style="font-size:10px;color:var(--tx2);padding-left:4px;line-height:1.4">'+t.notas.trim()+'</span>'
+        +'</div>';
+    }
     return '<div class="ac-item" id="ac-'+k+'">'
       +'<div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'
       +dot+'<div class="ac-fecha"><strong>'+parseInt(dd)+' '+MESES_C[m-1]+'</strong></div>'
@@ -2741,25 +2946,25 @@ function enviarCambio(){
   if(!k) return;
   var _kf2=k.split('-').map(Number);var y=_kf2[0],mo=_kf2[1],dd=_kf2[2];
   var fstr   = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const hora   = new Date().getHours();
-  const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
-  const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'—');
-  const mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'—');
-  const trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
-  const miNombre = AJ.nombre||'—';
-  const miMat    = AJ.matricula||'—';
-  const miTren   = t.numTren||'—';
-  const asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
-  const cuerpo   = encodeURIComponent(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}));
+  var hora   = new Date().getHours();
+  var saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
+  var nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'—');
+  var mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'—');
+  var trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
+  var miNombre = AJ.nombre||'—';
+  var miMat    = AJ.matricula||'—';
+  var miTren   = t.numTren||'—';
+  var asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
+  var cuerpo   = encodeURIComponent(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}));
   // Marcar que se solicitó cambio en este turno (persiste en localStorage)
   if(TV[k]){ TV[k].cambioSolicitado=true; saveTV(); renderDiaArea(); renderAcordeon(); }
 
   // Abrir correo
-  window.location.href=`mailto:?subject=${asunto}&body=${cuerpo}`;
+  window.location.href='mailto:?subject='+asunto+'&body='+cuerpo;
 
   // Guardado automático: preguntar si guardar al compañero en la agenda
   // Pequeño delay para que el mailto se procese primero
-  setTimeout(()=>{
+  setTimeout(function(){
     preguntarGuardarContacto(
       nombre  || '',
       mat     || '',
@@ -2840,10 +3045,10 @@ function renderFormBody(){
 }
 
 function secLinea(){
-  const numTrenVal  = F.numTren||'';
-  const numTren2Val = F.numTrenVuelta||'';
-  const modoActivo  = F.modo;
-  const bCol = numTrenVal?'var(--acc2)':'var(--div)';
+  var numTrenVal  = F.numTren||'';
+  var numTren2Val = F.numTrenVuelta||'';
+  var modoActivo  = F.modo;
+  var bCol = numTrenVal?'var(--acc2)':'var(--div)';
   let h = '<div class="fsec">';
   h += '<div class="fsec-lbl">'+t('numTren')+' (Ida) <span style="color:var(--nar2)">*</span></div>';
   h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
@@ -2851,7 +3056,7 @@ function secLinea(){
   h += '<input id="inp-numtren" type="text" inputmode="numeric" placeholder="Ej: 2080"'
      + ' value="'+numTrenVal+'"'
      + ' oninput="F.numTren=this.value.trim();mostrarSugTren(this.value)"'
-     + ' onblur="setTimeout(()=>{const c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
+     + ' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
      + ' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value)"'
      + ' style="flex:1;background:var(--s2);border:1.5px solid '+bCol+';border-radius:10px;'
      + 'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
@@ -2859,7 +3064,7 @@ function secLinea(){
   h += '</div>';
   h += '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
   if(modoActivo){
-    const esP = modoActivo==='pernocta';
+    var esP = modoActivo==='pernocta';
     h += '<div class="numtren-vuelta-wrap">';
     h += '<span style="font-size:16px">'+(esP?'🌙':'↩')+'</span>';
     h += '<div style="flex:1">';
@@ -2875,7 +3080,7 @@ function secLinea(){
   }
   h += '<div class="fsec-lbl">'+t('linea')+'</div>';
   h += '<div class="linea-chips">'
-     + Object.keys(LINEAS).map(l=>'<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>').join('')
+     + Object.keys(LINEAS).map(function(l){return '<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>';}).join('')
      + '</div></div>';
   return h;
 }
@@ -3784,7 +3989,7 @@ function renderStats(){
           des+='<div class="cs-r" style="padding-left:12px;flex-direction:column;gap:1px">';
           des+='<div style="display:flex;width:100%">';
           des+='<span class="cl" style="font-size:10px">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
-          des+='<span class="cv" style="font-size:10px;color:var(--amber2)">'+d.hNoc.toFixed(2)+'h · '+d.importe.toFixed(2)+'€</span>';
+          des+='<span class="cv" style="font-size:10px;color:var(--tx3)">'+d.hNoc.toFixed(2)+'h · <span style="color:var(--amber2);font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
           des+='</div>';
           // Detalle horario de los tramos nocturnos
           var tramosTxt=[];
@@ -3817,6 +4022,26 @@ function renderStats(){
         if(impacta) des+=' · <strong style="color:var(--green2)">+'+impEco.toFixed(2)+'€ HTDL</strong>';
         else        des+=' · <span style="color:var(--tx3)">informativo</span>';
         des+='</span></div>';
+      });
+    }
+    // NOTAS DEL MES — muestra turnos que tienen nota escrita
+    var notasMes=[];
+    ks.forEach(function(k){
+      var t=TV[k];
+      if(t&&t.notas&&t.notas.trim().length>0){
+        var _kn=k.split('-');var dN2=parseInt(_kn[2])+' '+MESES_C[parseInt(_kn[1])-1];
+        notasMes.push({lbl:dN2, tipo:(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'📋'), nota:t.notas.trim()});
+      }
+    });
+    if(notasMes.length){
+      des+='<div class="cr-div" style="margin:4px 0"></div>';
+      des+='<div class="cs-r"><span class="cl" style="color:var(--acc);font-weight:800">📝 Notas del mes</span>'
+        +'<span class="cv" style="color:var(--acc)">'+notasMes.length+' turno'+(notasMes.length>1?'s':'')+'</span></div>';
+      notasMes.forEach(function(n){
+        des+='<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px;padding-left:12px">'
+          +'<span class="cl" style="font-size:10px">'+n.tipo+' '+n.lbl+'</span>'
+          +'<span style="font-size:10px;color:var(--tx2);line-height:1.4">'+n.nota+'</span>'
+          +'</div>';
       });
     }
     if(e.totalBruto>0)
@@ -4046,12 +4271,22 @@ function esHoraNocturna(h){var hr=parseInt(h.split(':')[0]);return hr>=22||hr<6;
 function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
 function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
 function openOv(id){document.getElementById(id).classList.add('on');}
-function closeOv(id){document.getElementById(id).classList.remove('on');}
+function closeOv(id){
+  var el=document.getElementById(id);
+  if(!el||!el.classList.contains('on')) return;
+  el.classList.add('closing');
+  setTimeout(function(){
+    el.classList.remove('on');
+    el.classList.remove('closing');
+  },140);
+}
 function goP(n){
-  ['cal','stats','ajustes'].forEach(p=>{
+  ['cal','stats','ajustes'].forEach(function(p){
     document.getElementById('p-'+p).className='panel'+(p===n?' on':'');
     document.getElementById('nav-'+p).className='bni'+(p===n?' on':'');
   });
+  var ap=document.getElementById('p-'+n);
+  if(ap){ap.classList.remove('anim-in');void ap.offsetWidth;ap.classList.add('anim-in');}
   if(n==='stats')renderStats();
   if(n==='ajustes')loadAjUI();
 }
@@ -4063,19 +4298,23 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 
 
 function calculateEarnings(ks){
-  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  const HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
-  const P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
+  var p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
+  var P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
   let tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
   let dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
-  const cn=(hF,hL)=>{
-    if(!hF||!hL)return 0;
-    const tm=h=>{var _hm2=h.split(':').map(Number);var hh=_hm2[0],mm=_hm2[1];return hh*60+mm;};
-    const i=tm(hF);let f=tm(hL);if(f<=i)f+=1440;
-    let n=Math.max(0,Math.min(f,1440)-Math.max(i,1320));
-    n+=Math.max(0,Math.min(f,1800)-Math.max(i,1440));
-    if(i<360)n+=Math.max(0,Math.min(f,360)-i);
-    return Math.round(n/60*100)/100;
+  var cn = function(hF, hL){
+    if(!hF||!hL) return 0;
+    var tm = function(h){
+      var p = h.split(':').map(Number);
+      return p[0]*60 + p[1];
+    };
+    var ii=tm(hF); var ff=tm(hL);
+    if(ff<=ii) ff+=1440;
+    var nn=Math.max(0, Math.min(ff,1440) - Math.max(ii,1320));
+    nn += Math.max(0, Math.min(ff,1800) - Math.max(ii,1440));
+    if(ii<360) nn += Math.max(0, Math.min(ff,360) - ii);
+    return Math.round(nn/60*100)/100;
   };
   // retrasos del mes
   var retMes=[];
@@ -4181,6 +4420,7 @@ function clearCompData() {
 
 function clearSelDay(){
   selDay=null;
+  closeOv('ov-dia-card');
   renderCal();
 }
 
@@ -4195,7 +4435,7 @@ function confirmarEnvioEmail(){
   const ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
   if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
   closeOv('ov-email-confirm');
-  setTimeout(()=>{window.location.href=ml;},150);
+  setTimeout(function(){window.location.href=ml;},150);
 }
 
 function enviarSolicitudCompensacion(k){
@@ -4269,4 +4509,3 @@ function setVistaMode(mode) {
 init();
 </script>
 </body>
-</html>
