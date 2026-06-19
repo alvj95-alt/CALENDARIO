@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -108,11 +107,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
          border:1px solid var(--div);box-shadow:var(--sh-card)}
 .dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:7px}
 .dw{text-align:center;font-size:9px;color:var(--tx3);font-weight:700;letter-spacing:.5px;padding:3px 0}
-.days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.dc{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
+.days{display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:3px;height:258px}
+.dc{border-radius:10px;display:flex;flex-direction:column;
     align-items:center;justify-content:center;cursor:pointer;
     border:1.5px solid transparent;transition:all .13s;
-    font-size:12px;font-weight:500;user-select:none}
+    font-size:12px;font-weight:500;user-select:none;min-height:0;overflow:hidden}
 .dc:active{transform:scale(.88)}
 .dc-0{opacity:0;pointer-events:none}
 .dc-out{color:var(--tx3);opacity:.28}
@@ -163,8 +162,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ac-tipo{font-size:10px;color:var(--tx2)}
 .ac-arr{font-size:12px;color:var(--tx3);transition:transform .22s;flex-shrink:0}
 .ac-item.open .ac-arr{transform:rotate(90deg)}
-.ac-body{display:none;padding:0 13px 10px;font-size:11px;color:var(--tx2);line-height:1.6}
-.ac-item.open .ac-body{display:block}
+.ac-body{padding:0 13px 10px;font-size:11px;color:var(--tx2);line-height:1.6}
 .ac-row{display:flex;justify-content:space-between;padding:2px 0}
 .ac-row .ak{color:var(--tx3)}
 .ac-row .av{color:var(--tx);font-weight:600}
@@ -174,10 +172,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 /* ── DÍA CARD ── */
 .dia-area{padding:7px 10px 10px}
-.dc-vacia{background:var(--s2);border:1.5px dashed var(--div);border-radius:14px;
+.dc-vac{background:var(--s2);border:1.5px dashed var(--div);border-radius:14px;
           display:flex;flex-direction:column;align-items:center;justify-content:center;
           gap:6px;padding:18px;cursor:pointer;transition:all .18s}
-.dc-vacia:hover{border-color:var(--acc2)}
+.dc-vac:hover{border-color:var(--acc2)}
 .dcv-ico{font-size:28px;opacity:.3}
 .dcv-fecha{font-size:13px;font-weight:700}
 .dcv-hint{font-size:10px;color:var(--tx2)}
@@ -698,6 +696,413 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   padding:0;
 }
 /* ════════════════════════════════════════════════════════= */
+
+/* ── BOTONES TARJETA DÍA — diseño 2 filas v2 ── */
+.dct-foot-v2{
+  padding:10px 14px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  border-top:1px solid rgba(255,255,255,.07);
+}
+.dct-row-main{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.dct-row-sec{
+  display:flex;
+  gap:8px;
+  justify-content:flex-start;
+}
+.dct-btn-edit{
+  padding:9px 0;
+  background:rgba(59,130,246,.12);
+  border:1px solid rgba(59,130,246,.3);
+  border-radius:10px;
+  color:var(--acc2);
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .1s, background .15s;
+}
+.dct-btn-edit:active{transform:scale(.96);}
+.dct-btn-del2{
+  padding:9px 0;
+  background:rgba(239,68,68,.1);
+  border:1px solid rgba(239,68,68,.28);
+  border-radius:10px;
+  color:#f87171;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .1s, background .15s;
+}
+.dct-btn-del2:active{transform:scale(.96);}
+.dct-btn-sec{
+  padding:6px 14px;
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:8px;
+  color:var(--tx2);
+  font-size:11px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .1s;
+}
+.dct-btn-sec:active{transform:scale(.95);}
+/* ─────────────────────────────────────────────── */
+
+/* ── BOTONES TARJETA DÍA v3 ── */
+.dct-btn-cambio{
+  padding:10px 0;
+  background:rgba(249,115,22,.1);
+  border:1px solid rgba(249,115,22,.28);
+  border-radius:10px;
+  color:var(--nar2);
+  font-size:12px;font-weight:800;
+  cursor:pointer;
+  transition:transform .1s,background .15s;
+}
+.dct-btn-cambio:active{transform:scale(.96);}
+.dct-btn-add{
+  padding:10px 0;
+  background:rgba(99,102,241,.12);
+  border:1px solid rgba(99,102,241,.3);
+  border-radius:10px;
+  color:var(--acc);
+  font-size:12px;font-weight:800;
+  cursor:pointer;
+  transition:transform .1s,background .15s;
+}
+.dct-btn-add:active{transform:scale(.96);}
+.dct-row-sec{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  margin-top:-2px;
+}
+.dct-btn-sec{
+  padding:5px 16px;
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:8px;
+  color:var(--tx3);
+  font-size:10px;font-weight:700;
+  cursor:pointer;
+  transition:transform .1s;
+}
+.dct-btn-sec:active{transform:scale(.95);}
+/* ─────────────────────────── */
+
+/* ══ ACORDEÓN — mejoras visuales ═══════════════════════════ */
+.ac-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .28s cubic-bezier(.4,0,.2,1),
+             padding .22s ease;
+  padding-top:0;
+  padding-bottom:0;
+}
+.ac-item.open .ac-body{
+  max-height:2000px;
+  padding-bottom:10px;
+}
+.ac-hdr:active{background:var(--s2);}
+.ac-arr{transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.ac-item.open .ac-arr{transform:rotate(90deg);}
+
+/* ══ TARJETA DÍA ACTUAL (panel hoy) ════════════════════════ */
+#panel-hoy{
+  margin:0 10px 12px;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid var(--div);
+  background:var(--s1);
+  box-shadow:var(--sh-card);
+  animation:popIn .22s cubic-bezier(.32,1,.32,1) both;
+}
+.hoy-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px 8px;
+  border-bottom:1px solid var(--div);
+  background:var(--s2);
+}
+.hoy-fecha{
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.6px;
+  color:var(--acc);
+  text-transform:uppercase;
+}
+.hoy-tipo{
+  font-size:13px;
+  font-weight:700;
+  color:var(--tx);
+  flex:1;
+}
+.hoy-ico{
+  font-size:22px;
+}
+.hoy-cards{
+  display:flex;
+  flex-direction:column;
+  gap:0;
+}
+.hoy-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 14px;
+  border-bottom:1px solid var(--div);
+}
+.hoy-card:last-child{border-bottom:none;}
+.hoy-card-lbl{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.5px;
+  color:var(--tx3);
+  min-width:52px;
+  text-transform:uppercase;
+}
+.hoy-card-val{
+  font-size:12px;
+  font-weight:600;
+  color:var(--tx2);
+  flex:1;
+}
+.hoy-card-val.hi{color:var(--acc2);font-weight:800;}
+.hoy-vacio{
+  padding:16px 14px;
+  font-size:11px;
+  color:var(--tx3);
+  text-align:center;
+}
+/* ═══════════════════════════════════════════════════════════ */
+
+/* ── MÓDULO ALARMAS — CSS ─────────────────────────── */
+.c-amber .aj-card-hdr-ico,.c-amber .aj-card-hdr-tit{color:var(--amber2);}
+.alarm-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--div);
+}
+.alarm-row:last-child{border-bottom:none;}
+.alarm-main-row{padding:12px 0;}
+.alarm-sub-row{padding:8px 0 8px 10px;opacity:.6;pointer-events:none;}
+.alarm-sw-active .alarm-sub-row{opacity:1;pointer-events:auto;}
+.alarm-title{font-size:12px;font-weight:700;color:var(--tx);}
+.alarm-sub{font-size:10px;color:var(--tx3);margin-top:2px;}
+/* Toggle switch */
+.alarm-toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;}
+.alarm-toggle input{opacity:0;width:0;height:0;}
+.alarm-slider{
+  position:absolute;inset:0;background:var(--div);
+  border-radius:24px;transition:background .2s;cursor:pointer;
+}
+.alarm-slider:before{
+  content:'';position:absolute;width:18px;height:18px;
+  left:3px;top:3px;background:#fff;border-radius:50%;
+  transition:transform .2s;
+}
+.alarm-toggle input:checked + .alarm-slider{background:var(--amber2);}
+.alarm-toggle input:checked + .alarm-slider:before{transform:translateX(20px);}
+.alarm-toggle-sm{width:36px;height:20px;}
+.alarm-toggle-sm .alarm-slider:before{width:14px;height:14px;}
+.alarm-toggle-sm input:checked + .alarm-slider:before{transform:translateX(16px);}
+/* ─────────────────────────────────────────────────── */
+
+.alarm-test-btn{
+  width:100%;padding:11px;
+  background:rgba(245,158,11,.12);
+  border:1.5px solid rgba(245,158,11,.4);
+  border-radius:10px;
+  color:var(--amber2);
+  font-size:13px;font-weight:800;
+  cursor:pointer;
+  transition:transform .1s, background .15s;
+}
+.alarm-test-btn:active{transform:scale(.97);background:rgba(245,158,11,.22);}
+
+/* ── MÓDULO ALARMA PERSISTENTE — CSS ── */
+@keyframes alarmPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.25);}
+}
+/* Botón stop ya tiene estilos inline; esto añade hover/active */
+#alarma-stop-btn:active{transform:translateX(-50%) scale(.97) !important;}
+/* ─────────────────────────────────────── */
+
+/* ── FIRMA DISCRETA EN STATUS BAR ── */
+.sb-firma{
+  font-size:9px;
+  font-weight:400;
+  letter-spacing:.5px;
+  color:var(--tx3);
+  opacity:.55;
+  font-style:italic;
+}
+/* ── BOTÓN PARADA DE ALARMA (header) ── */
+.hbtn-stop-alarma{
+  background:rgba(220,38,38,.15) !important;
+  color:#f87171 !important;
+  animation:hbtnAlarmPulse 0.9s infinite;
+}
+@keyframes hbtnAlarmPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.45);}
+  50%{box-shadow:0 0 0 6px rgba(220,38,38,0);}
+}
+
+/* ── FOOTER EXTENDIDO AJUSTES (autoría + legal) ── */
+.aj-footer-ext{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--div);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+.aj-footer-autor{
+  font-size:11px;
+  color:var(--tx2);
+}
+.aj-footer-autor strong{
+  color:var(--acc2);
+  font-weight:700;
+}
+.aj-footer-legal{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:10px;
+}
+.aj-footer-link{
+  color:var(--tx3);
+  text-decoration:underline;
+  text-decoration-color:rgba(148,163,184,.35);
+  text-underline-offset:2px;
+  cursor:pointer;
+  transition:color .15s;
+}
+.aj-footer-link:active{color:var(--acc2);}
+.aj-footer-dot{color:var(--tx3);opacity:.4;}
+.aj-footer-meta{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:10px;
+  padding:10px 13px;
+}
+.aj-footer-meta-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:9.5px;
+}
+.aj-footer-meta-row span:first-child{
+  color:var(--tx3);
+  font-weight:700;
+  letter-spacing:.3px;
+}
+.aj-footer-meta-row span:last-child{
+  color:var(--tx2);
+  text-align:right;
+}
+.aj-footer-copy{
+  font-size:8.5px;
+  color:var(--tx3);
+  opacity:.6;
+  margin-top:2px;
+}
+
+/* ── MODALES LEGALES ── */
+.legal-sh{
+  max-height:75vh;
+  display:flex;
+  flex-direction:column;
+}
+.legal-body{
+  padding:6px 18px 24px;
+  overflow-y:auto;
+  font-size:12px;
+  line-height:1.65;
+  color:var(--tx2);
+}
+.legal-body p{
+  margin-bottom:12px;
+}
+.legal-body p:last-child{
+  margin-bottom:0;
+}
+
+/* ── ACORDEÓN AJUSTES ── */
+.aj-acc-item{
+  border-radius:16px;
+  overflow:hidden;
+  margin-bottom:10px;
+  background:var(--s1);
+  border:1px solid var(--div);
+  transition:border-color .2s;
+}
+.aj-acc-item.aj-acc-open{
+  border-color:rgba(99,102,241,.35);
+}
+.aj-acc-hdr{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 16px;
+  cursor:pointer;
+  user-select:none;
+  transition:background .15s;
+}
+.aj-acc-hdr:active{
+  background:var(--s2);
+}
+.aj-acc-hdr-ico{
+  font-size:19px;
+  flex-shrink:0;
+}
+.aj-acc-hdr-tit{
+  flex:1;
+  font-size:13px;
+  font-weight:700;
+  color:var(--tx);
+}
+.aj-acc-hdr-arr{
+  font-size:16px;
+  color:var(--tx3);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+  flex-shrink:0;
+}
+.aj-acc-item.aj-acc-open .aj-acc-hdr-arr{
+  transform:rotate(90deg);
+  color:var(--acc);
+}
+.aj-acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .32s cubic-bezier(.4,0,.2,1);
+}
+.aj-acc-item.aj-acc-open .aj-acc-body{
+  max-height:2000px;
+}
+/* La tarjeta original (.aj-card) pierde su propio margen/sombra exterior
+   porque ahora vive dentro del acordeón — su contenido interno NO se toca */
+.aj-acc-body .aj-card{
+  border:none;
+  border-radius:0;
+  box-shadow:none;
+  margin:0;
+  background:transparent;
+}
+.aj-acc-body .aj-card-hdr{
+  display:none; /* el header propio de la tarjeta se oculta — el acordeón ya muestra título e icono */
+}
 </style>
 </head>
 <body>
@@ -706,7 +1111,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- STATUS BAR -->
 <div class="sb">
   <div class="sb-t" id="sbt">--:--</div>
-  <div class="sb-r"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  <div class="sb-r"><span class="sb-firma">@ALVJ95</span><span>🔋</span></div>
 </div>
 
 <!-- HEADER -->
@@ -717,11 +1122,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="hdr-pill pill-t" id="hdr-rol">🚆 TRIPULANTE</div>
     </div>
     <div class="hdr-btns">
-      <button class="hbtn" onclick="goP('stats')">📊</button>
-      <button class="hbtn" onclick="goP('ajustes')">⚙️</button>
+      <button class="hbtn hbtn-stop-alarma" id="hbtn-stop-alarma" onclick="detenerAlarma()" style="display:none">🔕</button>
     </div>
   </div>
 </div>
+
+<!-- TURNO DE HOY — FIJO, SIEMPRE VISIBLE -->
+<div id="panel-hoy-top" style="padding:0 10px 10px"></div>
 
 <!-- BODY -->
 <div class="body">
@@ -786,7 +1193,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
     <!-- DÍA SELECCIONADO -->
     <div id="dia-area" class="dia-area"></div>
-    <!-- ACORDEÓN HISTORIAL -->
+        <!-- TURNOS DEL MES — lista simple, siempre visible -->
     <div style="padding:0 10px 4px;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-top:4px">Turnos del mes</div>
     <div class="acordeon" id="acordeon"></div>
   </div>
@@ -811,7 +1218,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="aj-body">
 
       <!-- ── PERFIL ── -->
-      <div class="aj-card">
+      
+      <!-- ── ACORDEÓN: Perfil ── -->
+      <div class="aj-acc-item" id="aj-acc-perfil">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-perfil')">
+          <span class="aj-acc-hdr-ico">👤</span>
+          <span class="aj-acc-hdr-tit">Perfil</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
         <div class="aj-card-hdr c-blue">
           <div class="aj-card-hdr-ico">👤</div>
           <div class="aj-card-hdr-txt">
@@ -843,9 +1259,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <!-- ── ESTACIÓN BASE ── -->
-      <div class="aj-card">
+      <!-- ── ACORDEÓN: Estación Base ── -->
+      <div class="aj-acc-item" id="aj-acc-base">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-base')">
+          <span class="aj-acc-hdr-ico">📍</span>
+          <span class="aj-acc-hdr-tit">Estación Base</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
         <div class="aj-card-hdr c-blue">
           <div class="aj-card-hdr-ico">🏠</div>
           <div class="aj-card-hdr-txt">
@@ -864,9 +1289,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <!-- ── ECONOMÍA ── -->
-      <div class="aj-card">
+      <!-- ── ACORDEÓN: Economía ── -->
+      <div class="aj-acc-item" id="aj-acc-economia">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-economia')">
+          <span class="aj-acc-hdr-ico">💶</span>
+          <span class="aj-acc-hdr-tit">Economía</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
         <div class="aj-card-hdr c-gold">
           <div class="aj-card-hdr-ico">💶</div>
           <div class="aj-card-hdr-txt">
@@ -905,9 +1339,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="pgrid" id="pgrid"></div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <!-- ── IDIOMA ── -->
-      <div class="aj-card">
+      <!-- ── ACORDEÓN: Idiomas ── -->
+      <div class="aj-acc-item" id="aj-acc-idiomas">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-idiomas')">
+          <span class="aj-acc-hdr-ico">🌐</span>
+          <span class="aj-acc-hdr-tit">Idiomas</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
         <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(139,92,246,.04))">
           <div class="aj-card-hdr-ico">🌐</div>
           <div class="aj-card-hdr-txt">
@@ -919,9 +1362,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div id="idioma-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
         </div>
       </div>
+        </div>
+      </div>
 
-      <!-- ── ALMACENAMIENTO ── -->
-      <div class="aj-card">
+      <!-- ── ACORDEÓN: Almacenamiento ── -->
+      <div class="aj-acc-item" id="aj-acc-almacen">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-almacen')">
+          <span class="aj-acc-hdr-ico">🔒</span>
+          <span class="aj-acc-hdr-tit">Almacenamiento</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
         <div class="aj-card-hdr c-green">
           <div class="aj-card-hdr-ico">🔒</div>
           <div class="aj-card-hdr-txt">
@@ -948,12 +1400,107 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
         </div>
       </div>
+        </div>
+      </div>
 
-      
+      <!-- ── ACORDEÓN: Alarmas inteligentes ── -->
+      <div class="aj-acc-item" id="aj-acc-alarma">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-alarma')">
+          <span class="aj-acc-hdr-ico">🔔</span>
+          <span class="aj-acc-hdr-tit">Alarmas inteligentes</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
+        <div class="aj-card-hdr c-amber">
+          <div class="aj-card-hdr-ico">🔔</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit">Alarmas inteligentes</div>
+            <div class="aj-card-hdr-sub">Avisos antes de fichar y de salir</div>
+          </div>
+        </div>
+        <div class="aj-card-body">
+
+          <!-- Toggle principal ON/OFF -->
+          <div class="alarm-row alarm-main-row">
+            <div>
+              <div class="alarm-title">Alarmas</div>
+              <div id="alarm-lbl" class="alarm-sub">Desactivadas</div>
+            </div>
+            <label class="alarm-toggle">
+              <input type="checkbox" id="alarm-sw" onchange="toggleAlarmas(this.checked)">
+              <span class="alarm-slider"></span>
+            </label>
+          </div>
+
+          <!-- Subopción: Fichar -->
+          <div class="alarm-row alarm-sub-row" id="alarm-opt-fichar">
+            <div>
+              <div class="alarm-title">⏰ Fichar</div>
+              <div class="alarm-sub">5 min antes · Ordinario / Trabajado / Reserva</div>
+            </div>
+            <label class="alarm-toggle alarm-toggle-sm">
+              <input type="checkbox" id="alarm-fichar" onchange="toggleAlarmFichar(this.checked)" checked>
+              <span class="alarm-slider"></span>
+            </label>
+          </div>
+
+          <!-- Subopción: Salida fuera de base -->
+          <div class="alarm-row alarm-sub-row" id="alarm-opt-salida">
+            <div>
+              <div class="alarm-title">🚆 Salida fuera de base</div>
+              <div class="alarm-sub">45 min antes · solo si no estás en base</div>
+            </div>
+            <label class="alarm-toggle alarm-toggle-sm">
+              <input type="checkbox" id="alarm-salida" onchange="toggleAlarmSalida(this.checked)" checked>
+              <span class="alarm-slider"></span>
+            </label>
+          </div>
+
+          <!-- Botón de prueba -->
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--div)">
+            <button onclick="alarmaTest()" class="alarm-test-btn">🔔 Probar sonido de alarma</button>
+            <div style="font-size:9px;color:var(--tx3);margin-top:5px;text-align:center">Toca para verificar que el audio funciona en tu móvil</div>
+          </div>
+
+        </div>
+      </div>
+        </div>
+      </div>
+
+
       <!-- ── BOTONES ── -->
       <button class="aj-save-btn" onclick="saveAj()">💾  Guardar ajustes</button>
       <button class="aj-del-btn" onclick="pedirBorrarTodo()">🗑  Borrar todos los turnos</button>
       <div class="aj-ver">TrenTurnos v5 · 100% local · Offline</div>
+
+      <!-- ── FOOTER EXTENDIDO: AUTORÍA Y LEGAL ── -->
+      <div class="aj-footer-ext">
+        <div class="aj-footer-autor">Desarrollado por <strong>@ALVJ95</strong></div>
+
+        <div class="aj-footer-legal">
+          <span class="aj-footer-link" onclick="openOv('ov-terminos')">Términos y Condiciones</span>
+          <span class="aj-footer-dot">·</span>
+          <span class="aj-footer-link" onclick="openOv('ov-privacidad')">Política de Privacidad</span>
+        </div>
+
+        <div class="aj-footer-meta">
+          <div class="aj-footer-meta-row">
+            <span>Versión</span><span>v1.0.0</span>
+          </div>
+          <div class="aj-footer-meta-row">
+            <span>Contacto</span><span>Soporte</span>
+          </div>
+          <div class="aj-footer-meta-row">
+            <span>Almacenamiento</span><span>Solo este dispositivo (LocalStorage)</span>
+          </div>
+          <div class="aj-footer-meta-row">
+            <span>Licencia</span><span>Software personal de gestión de turnos</span>
+          </div>
+        </div>
+
+        <div class="aj-footer-copy">© 2026 @ALVJ95 · Todos los derechos reservados</div>
+      </div>
 
     </div>
   </div>
@@ -980,8 +1527,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
-<div class="ov" id="ov-tipo">
-  <div class="sh">
+<div class="ov" id="ov-tipo" onclick="closeOv('ov-tipo')">
+  <div class="sh" onclick="event.stopPropagation()">
     <div class="sh-handle"></div>
     <div class="sh-hdr">
       <div class="sh-ico">📋</div>
@@ -1002,8 +1549,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- OV: FORMULARIO -->
-<div class="ov" id="ov-form">
-  <div class="sh" id="sh-form">
+<div class="ov" id="ov-form" onclick="closeOv('ov-form')">
+  <div class="sh" id="sh-form" onclick="event.stopPropagation()">
     <div class="sh-handle"></div>
     <div class="sh-hdr">
       <div class="sh-ico" id="form-ico">🚂</div>
@@ -1104,9 +1651,46 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- OV: TÉRMINOS Y CONDICIONES -->
+<div class="ov" id="ov-terminos" onclick="closeOv('ov-terminos')">
+  <div class="sh legal-sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📄</div>
+      <div><div class="sh-tit">Términos y Condiciones</div></div>
+      <button class="sh-close" onclick="closeOv('ov-terminos')">✕</button>
+    </div>
+    <div class="legal-body">
+      <p>Texto de ejemplo. Estos Términos y Condiciones regulan el uso de TrenTurnos v5, una aplicación de gestión personal de turnos ferroviarios.</p>
+      <p>El uso de esta aplicación es bajo responsabilidad exclusiva del usuario. Los cálculos de horas, pluses y compensaciones mostrados son orientativos y no sustituyen la información oficial de tu empresa o convenio laboral.</p>
+      <p>El desarrollador no se responsabiliza por decisiones tomadas en base a los datos calculados por la app.</p>
+      <p>El uso continuado de la aplicación implica la aceptación de estos términos.</p>
+    </div>
+  </div>
+</div>
+
+<!-- OV: POLÍTICA DE PRIVACIDAD -->
+<div class="ov" id="ov-privacidad" onclick="closeOv('ov-privacidad')">
+  <div class="sh legal-sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔒</div>
+      <div><div class="sh-tit">Política de Privacidad</div></div>
+      <button class="sh-close" onclick="closeOv('ov-privacidad')">✕</button>
+    </div>
+    <div class="legal-body">
+      <p>Texto de ejemplo. TrenTurnos v5 no recopila, transmite ni almacena ningún dato en servidores externos.</p>
+      <p>Toda la información que introduces (turnos, horarios, nombre, matrícula, ajustes) se guarda exclusivamente en el almacenamiento local de tu dispositivo (LocalStorage del navegador).</p>
+      <p>No se utilizan cookies de seguimiento, ni se comparte información con terceros, ni existe conexión a internet necesaria para el funcionamiento de la app.</p>
+      <p>Si borras los datos del navegador o desinstalas la aplicación, toda la información se eliminará permanentemente de tu dispositivo.</p>
+    </div>
+  </div>
+</div>
+
+
 <!-- OV: CAMBIO CON COMPAÑERO -->
-<div class="ov" id="ov-cambio">
-  <div class="sh" style="max-height:88%">
+<div class="ov" id="ov-cambio" onclick="closeOv('ov-cambio')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
     <div class="sh-handle"></div>
     <div class="sh-hdr">
       <div class="sh-ico">🔄</div>
@@ -1238,6 +1822,32 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div></div>
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- BOTÓN DETENER ALARMA — aparece solo cuando hay alarma activa -->
+<div id="alarma-stop-btn" style="
+  display:none;
+  position:fixed;
+  bottom:90px;
+  left:50%;
+  transform:translateX(-50%) translateY(30px);
+  z-index:9999;
+  background:linear-gradient(135deg,#dc2626,#b91c1c);
+  border-radius:18px;
+  padding:14px 28px;
+  box-shadow:0 4px 24px rgba(220,38,38,.5);
+  align-items:center;
+  gap:12px;
+  cursor:pointer;
+  transition:opacity .3s, transform .3s;
+  min-width:240px;
+  justify-content:center;
+" onclick="detenerAlarma()">
+  <span style="font-size:22px;animation:alarmPulse 0.8s infinite">🔔</span>
+  <div>
+    <div id="alarma-stop-lbl" style="font-size:13px;font-weight:800;color:#fff;line-height:1.3">Alarma activa — Toca para detener</div>
+    <div style="font-size:10px;color:rgba(255,255,255,.75);margin-top:2px">Suena durante 30 segundos</div>
+  </div>
+</div>
 </div><!-- /ph -->
 
 <script>
@@ -1248,31 +1858,30 @@ const LINEAS={
   'AVE':[
     'Madrid Puerta de Atocha','Madrid Chamartín',
     'Zaragoza-Delicias','Barcelona Sants','Lleida-Pirineus',
-    'Camp de Tarragona','Tarragona',
+    'Camp de Tarragona','Tarragona','Girona','Figueres-Vilafant',
     'Sevilla Santa Justa','Córdoba Central','Málaga María Zambrano',
+    'Antequera-Santa Ana','Granada','Jaén',
     'Valencia Joaquín Sorolla','Alicante Terminal',
     'Toledo','Puertollano','Ciudad Real',
     'Cuenca F.Zóbel','Albacete-Los Llanos',
-    'Antequera-Santa Ana','Granada','Jaén',
     'Guadalajara-Yebes','Segovia-Guiomar',
-    'Valladolid Campo Grande','Burgos Rosa de Lima',
-    'Palencia','León',
-    'Ourense','Pontevedra','Vigo-Urzáiz',
+    'Valladolid Campo Grande','Palencia','Burgos Rosa de Lima',
+    'León','Ourense','Pontevedra','Vigo-Urzáiz',
     'Huesca','Logroño',
-    'Vitoria-Gasteiz','San Sebastián/Donostia Internazional',
+    'Vitoria-Gasteiz','San Sebastián/Donostia',
     'Murcia del Carmen','Elche','Orihuela',
     'Almería','Huelva',
     'Cádiz','Jerez de la Frontera','El Puerto de Santa María',
-    'Requena-Utiel','Castelló de la Plana'
+    'Requena-Utiel','Castelló de la Plana',
+    'Calatayud','Teruel'
   ],
   'Renfe Larga Distancia':[
     'Madrid Puerta de Atocha','Madrid Chamartín',
-    'Barcelona Sants','Valencia Nord','Alicante Terminal',
-    'Murcia del Carmen','Cartagena',
+    'Barcelona Sants','Valencia Nord','Valencia Estació del Nord',
+    'Alicante Terminal','Murcia del Carmen','Cartagena',
     'Vigo-Urzáiz','Pontevedra','Ourense',
     'Santiago de Compostela','A Coruña','Ferrol',
-    'Oviedo','Gijón','Avilés',
-    'Santander',
+    'Oviedo','Gijón','Avilés','Santander',
     'León','Palencia',
     'Valladolid Campo Grande','Burgos Rosa de Lima',
     'Bilbao Abando','San Sebastián/Donostia',
@@ -1282,7 +1891,7 @@ const LINEAS={
     'Huelva','Cádiz','Jerez de la Frontera',
     'El Puerto de Santa María',
     'Almería','Granada','Jaén',
-    'Zaragoza-Delicias','Tarragona',
+    'Zaragoza-Delicias','Tarragona','Calatayud','Teruel',
     'Castelló de la Plana',
     'Córdoba Central','Sevilla Santa Justa',
     'Málaga María Zambrano','Antequera-Santa Ana',
@@ -1301,6 +1910,7 @@ const LINEAS={
   ],
   'Euromed':[
     'Barcelona Sants',
+    'Girona','Figueres-Vilafant',
     'Camp de Tarragona','Tarragona','Vandellós',
     'Cambrils','Salou','Reus','Tortosa',
     'Vinaròs','Benicarló-Peñíscola','Oropesa del Mar',
@@ -1316,21 +1926,21 @@ const LINEAS={
     'Santander','Oviedo','Gijón','Avilés',
     'A Coruña','Santiago de Compostela',
     'Vigo-Urzáiz','Pontevedra','Ourense',
-    'Lugo','Ferrol',
-    'Salamanca','Zamora','León',
-    'Ávila','Segovia-Guiomar',
+    'Lugo','Ferrol','León',
+    'Salamanca','Zamora','Ávila','Segovia-Guiomar',
     'Cáceres','Badajoz','Mérida','Plasencia',
     'Huelva','Cádiz','Jerez de la Frontera',
     'Almería','Granada','Jaén',
     'Logroño','Pamplona/Iruña',
-    'Zaragoza-Delicias','Huesca',
+    'Zaragoza-Delicias','Huesca','Calatayud','Teruel',
     'Castelló de la Plana','Tarragona'
   ],
   'Internacional (Lyon/Marsella)':[
     'Madrid Puerta de Atocha','Barcelona Sants',
     'Figueres-Vilafant','Girona',
     'Perpignan','Narbonne','Montpellier St-Roch',
-    'Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles'
+    'Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles',
+    'León'
   ],
 };
 const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1357,34 +1967,35 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
    ESTADO GLOBAL
 ═══════════════════════════════════════ */
 var _emailCB = null; // callback email — declarado globalmente para evitar implicit global
-let AJ=Object.assign({
+var AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
-  pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)}
+  pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)},
+  alarmas:{activas:false,fichar:true,salida:true}
 },JSON.parse(localStorage.getItem('aj5')||'{}'));
 
-let TV=JSON.parse(localStorage.getItem('tv5')||'{}');
-let curM=new Date(), selDay=null, statsM=new Date();
+var TV=JSON.parse(localStorage.getItem('tv5')||'{}');
+var curM=new Date(), selDay=null, statsM=new Date();
 
 // ── Estado del formulario ──
 // REGLA: hF/hL/sal/lle = tramo IDA (día seleccionado)
 //        hF2/hL2/sal2/lle2 = tramo VUELTA
-let F={};
-let estField=null;
-let miniM=null, diasComp=[];
+var F={};
+var estField=null;
+var miniM=null, diasComp=[];
 
 // ── TimePicker state — teclado numérico ──
 // field: campo de F que se está editando
 // H/M: hora/minuto actual (strings "HH"/"MM")
 // foco: 'h' | 'm' — qué segmento se edita
 // buf: dígitos acumulados antes de confirmar
-let TP={field:null, H:'08', M:'00', foco:'h', buf:''};
+var TP={field:null, H:'08', M:'00', foco:'h', buf:''};
 
 // ── Módulos declarados aquí para garantizar disponibilidad antes de init() ──
 // C-01 FIX: SF, AGENDA y ALERTAS deben estar en el bloque global,
 // no dentro de las funciones de cada módulo (evita ReferenceError)
-let SF              = JSON.parse(localStorage.getItem('sf5')     || '[]');
-let AGENDA          = JSON.parse(localStorage.getItem('agenda5') || '[]');
-let ALERTAS_DESCANSO = {};
+var SF              = JSON.parse(localStorage.getItem('sf5')     || '[]');
+var AGENDA          = JSON.parse(localStorage.getItem('agenda5') || '[]');
+var ALERTAS_DESCANSO = {};
 
 // ── Sistema Horario Compañero ─────────────────────────────────
 var COMP_DATA  = JSON.parse(localStorage.getItem('comp5') || '{}');
@@ -1397,32 +2008,33 @@ function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
 ═══════════════════════════════════════ */
 function init(){
   // Limpiar claves de versiones anteriores (ya no necesarias)
-  ['tv3','tv4','aj3','aj4'].forEach(k=>localStorage.removeItem(k));
+  ['tv3','tv4','aj3','aj4'].forEach(function(k){localStorage.removeItem(k);});
   // Detectar y limpiar datos con días comp en mes incorrecto
   limpiarDatosObsoletos();
 
-  setInterval(()=>{const n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());},15000);
-  const n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
+  setInterval(function(){var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());},15000);
+  var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
   loadAjUI();
   // Cargar idioma guardado (en tiempo real, sin reiniciar)
   if(AJ.idioma && I18N[AJ.idioma]) aplicarIdioma(AJ.idioma);
   renderCal();
   renderStats();
   initSwipe(); // activar swipe táctil en calendario
+  // Desbloquear AudioContext en primer toque (requisito Android/iOS)
+  // FIX SWIPE: diferido con setTimeout(0) para que nunca compita con
+  // touchstart del calendario (captura de coordenadas para el gesto).
+  document.addEventListener('touchstart', function(){ setTimeout(alarmaDesbloquear, 0); }, {passive:true});
+  document.addEventListener('click', function(){ setTimeout(alarmaDesbloquear, 0); }, {passive:true});
+  // Arrancar alarmas si estaban activas
+  if(AJ.alarmas && AJ.alarmas.activas) alarmaIniciar();
 }
 
 function limpiarDatosObsoletos(){
-  const stored=JSON.parse(localStorage.getItem('tv5')||'{}');
-  let stale=false;
-  Object.entries(stored).forEach(([k,v])=>{
-    if(v.tipo==='comp'&&v.origen){
-      const [oy,om]=v.origen.split('-').map(Number);
-      const [cy,cm]=k.split('-').map(Number);
-      const expM=om===12?1:om+1,expY=om===12?oy+1:oy;
-      if(cy!==expY||cm!==expM)stale=true;
-    }
-  });
-  if(stale){localStorage.removeItem('tv5');TV={};}
+  // SEGURIDAD: función desactivada para evitar borrado accidental de datos.
+  // La lógica original borraba TV completo si cualquier día comp
+  // estaba en mes incorrecto — demasiado destructivo.
+  // Los datos se mantienen intactos.
+  return;
 }
 
 /* ═══════════════════════════════════════
@@ -1779,43 +2391,21 @@ const I18N = {
 };
 
 // Idioma activo — se lee de AJ.idioma o por defecto 'es'
-let LANG = 'es';
+var LANG = 'es';
 // Función de traducción: t('clave') → texto en idioma activo
 function t(k){ return (I18N[LANG] || I18N.es)[k] || I18N.es[k] || k; }
 
 // Aplicar traducciones a elementos estáticos del HTML
 function aplicarIdioma(lang){
-  LANG = lang;
-  AJ.idioma = lang;
-  // Actualizar MESES y DIAS con el idioma activo
-  Object.assign(MESES,    t('meses'));
-  Object.assign(MESES_C,  t('mesesCorto'));
-  Object.assign(DIAS_L,   t('dias'));
-  // Actualizar nav
-  document.querySelectorAll('.bl').forEach((el,i)=>{
-    const keys=['navCal','navStats','navAjustes'];
-    if(keys[i]) el.textContent=t(keys[i]);
-  });
-  // Actualizar botón guardar formulario
-  const ms=document.getElementById('m-del');
-  if(ms) ms.innerHTML='🗑 '+t('eliminar');
-  const msave=document.querySelector('.m-save');
-  if(msave) msave.textContent=t('guardar');
-  // Actualizar botones hora
-  const hconf=document.querySelector('.hora-conf');
-  if(hconf) hconf.textContent=t('confirmarHora');
-  // Placeholder búsqueda estaciones
-  const est=document.getElementById('est-srch-inp');
-  if(est) est.placeholder=t('buscar');
-  // Placeholder agenda
-  const ag=document.getElementById('agenda-srch-inp');
-  if(ag) ag.placeholder=t('buscarAgenda');
-  // Hora cursor label
-  horaRefresh();
-  // Rerender calendario y ajustes
-  renderCal();
-  updHeader();
-  renderIdiomaBtns();
+  LANG=lang;AJ.idioma=lang;
+  Object.assign(MESES,t('meses'));Object.assign(MESES_C,t('mesesCorto'));Object.assign(DIAS_L,t('dias'));
+  document.querySelectorAll('.bl').forEach(function(el,i){var ks=['navCal','navStats','navAjustes'];if(ks[i])el.textContent=t(ks[i]);});
+  var ms=document.getElementById('m-del');if(ms)ms.innerHTML='🗑 '+t('eliminar');
+  var mv=document.querySelector('.m-save');if(mv)mv.textContent=t('guardar');
+  var hc=document.querySelector('.hora-conf');if(hc)hc.textContent=t('confirmarHora');
+  var es=document.getElementById('est-srch-inp');if(es)es.placeholder=t('buscar');
+  var ag=document.getElementById('agenda-srch-inp');if(ag)ag.placeholder=t('buscarAgenda');
+  horaRefresh();renderCal();updHeader();renderIdiomaBtns();
 }
 
 /* ═══════════════════════════════════════
@@ -1830,83 +2420,62 @@ function aplicarIdioma(lang){
 // L-01 FIX: ahora recibe las claves de fecha para calcular
 // el descanso real teniendo en cuenta el salto de día.
 // Funciona correctamente con pernocta y turnos consecutivos.
-function checkRestTime(turnoA, turnoB, keyA, keyB){
-  if(!turnoA || !turnoB) return {ok:true};
-
-  const horaFinA  = turnoA.hL2 || turnoA.hL;
-  const horaIniB  = turnoB.hF;
-  if(!horaFinA || !horaIniB) return {ok:true};
-
-  const retrasoA = parseInt(turnoA.retrasoMin)||0;
-
-  const toMin = h => { var _hm=h.split(':').map(Number);var hh=_hm[0],mm=_hm[1]; return hh*60+mm; };
-
-  // Convertir a minutos absolutos desde epoch (día × 1440 + hora)
-  const diaA = keyA ? (() => { var _ka=keyA.split('-').map(Number);var y=_ka[0],m=_ka[1],d=_ka[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
-  const diaB = keyB ? (() => { var _kb=keyB.split('-').map(Number);var y=_kb[0],m=_kb[1],d=_kb[2]; return new Date(y,m-1,d).getTime()/(1000*60*1440); })() : 0;
-  const diasDif = Math.round(diaB - diaA); // 0 = mismo día, 1 = día siguiente, etc.
-
-  const finAbsoluto  = diasDif * 1440 * 0 + toMin(horaFinA)  + retrasoA;
-  const iniAbsoluto  = diasDif * 1440      + toMin(horaIniB);
-  let   descMin      = iniAbsoluto - finAbsoluto;
-
-  // Si siguen siendo negativos (cruce de medianoche dentro del mismo día)
-  if(descMin < 0) descMin += 1440;
-
-  const esEnBase  = AJ.base && turnoB.sal === AJ.base;
-  const limiteMin = esEnBase ? 720 : 480;
-  const incumple  = descMin < limiteMin;
-  const descH     = Math.floor(descMin/60);
-  const descM     = descMin % 60;
-  const limH      = limiteMin/60;
-
-  return {
-    ok:       !incumple,
-    incumple,
-    descMin,
-    limiteMin,
-    descStr:  descH+'h '+String(descM).padStart(2,'0')+'m',
-    limStr:   limH+'h',
-    esEnBase,
-    msg: incumple
-      ? `⚠️ Solo ${descH}h ${descM>0?descM+'m':''} de descanso (mín. ${limH}h ${esEnBase?'en base':'fuera de base'})`
-      : `✅ ${descH}h ${descM>0?descM+'m':''} de descanso`
-  };
+function checkRestTime(turnoA,turnoB,keyA,keyB){
+  if(!turnoA||!turnoB)return{ok:true};
+  var hFA=turnoA.hL2||turnoA.hL,hIB=turnoB.hF;
+  if(!hFA||!hIB)return{ok:true};
+  var retA=parseInt(turnoA.retrasoMin)||0;
+  var toM=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
+  var gD=function(k){if(!k)return 0;var p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]).getTime()/(1000*60*1440);};
+  var dif=Math.round(gD(keyB)-gD(keyA));
+  var dM=(dif*1440+toM(hIB))-(toM(hFA)+retA);
+  if(dM<0)dM+=1440;
+  var enB=AJ.base&&turnoB.sal===AJ.base,lim=enB?720:480;
+  var inc=dM<lim,dH=Math.floor(dM/60),dMin=dM%60,lH=lim/60;
+  return{ok:!inc,incumple:inc,descMin:dM,limiteMin:lim,
+    descStr:dH+'h '+('0'+dMin).slice(-2)+'m',limStr:lH+'h',esEnBase:enB,
+    msg:inc?'⚠️ Solo '+dH+'h '+(dMin>0?dMin+'m ':'')+' de descanso (min. '+lH+'h '+(enB?'en base':'fuera de base')+')'
+           :'✅ '+dH+'h '+(dMin>0?dMin+'m ':'')+' de descanso'};
 }
 
 // ── Verificar todos los turnos del mes visible ────────────────
 // L-02 FIX: también compara el último turno del mes anterior
 // con el primero del mes actual (cruce de límite de mes).
+// OPTIMIZACIÓN: caché de memoización para verificarDescansosMes.
+// Evita recorrer y comparar TODOS los pares de turnos en cada
+// renderCal() si nada relevante cambió desde el último cálculo.
+var _descansosCacheKey = null;
+var _descansosCacheVal = null;
+
 function verificarDescansosMes(){
-  const y=curM.getFullYear(), m=curM.getMonth()+1;
-  const pref=key(y,m,1).substring(0,7);
+  var y=curM.getFullYear(),m=curM.getMonth()+1;
+  var pref=key(y,m,1).substring(0,7);
+  var ksA=Object.keys(TV).filter(function(k){return k.startsWith(pref);}).sort();
+  var mA=m===1?12:m-1,yA=m===1?y-1:y;
+  var pA=key(yA,mA,1).substring(0,7);
+  var ksAnt=Object.keys(TV).filter(function(k){return k.startsWith(pA);}).sort();
+  var ks=(ksAnt.length?[ksAnt[ksAnt.length-1]]:[]).concat(ksA),alertas={};
 
-  // Obtener turnos del mes actual ordenados
-  const ksActual = Object.keys(TV).filter(k=>k.startsWith(pref)).sort();
-
-  // L-02: incluir el último turno del mes anterior para comparar con el primero
-  const mesAnt  = m===1 ? 12 : m-1;
-  const anioAnt = m===1 ? y-1 : y;
-  const prefAnt = key(anioAnt,mesAnt,1).substring(0,7);
-  const ksAnt   = Object.keys(TV).filter(k=>k.startsWith(prefAnt)).sort();
-  const ultimoAnt = ksAnt.length ? [ksAnt[ksAnt.length-1]] : [];
-
-  // Cadena completa: [últimoDelMesAnterior, ...turnosDelMesActual]
-  const ks = ultimoAnt.concat(ksActual);
-  const alertas={};
-
-  for(let i=1; i<ks.length; i++){
-    const kA=ks[i-1], kB=ks[i];
-    const tA=TV[kA], tB=TV[kB];
-    if(!tA||!tB) continue;
-    if(['descanso','baja','comp','reserva'].includes(tA.tipo)) continue;
-    if(['descanso','baja','comp','reserva'].includes(tB.tipo)) continue;
-    // L-01 FIX: pasamos las claves para cálculo correcto multi-día
-    const r=checkRestTime(tA, tB, kA, kB);
-    if(r.incumple){
-      alertas[kB]=Object.assign({},r,{kAnterior:kA});
-    }
+  // Firma ligera: mes visible + horarios/tipos relevantes de los turnos implicados
+  var firma = pref+'|'+ks.map(function(k){
+    var t=TV[k];
+    return t?(t.tipo+t.hF+t.hL+t.hL2+t.retrasoMin):'x';
+  }).join(',');
+  if(firma === _descansosCacheKey){
+    return _descansosCacheVal; // nada relevante cambió — reutilizar resultado
   }
+
+  for(var i=1;i<ks.length;i++){
+    var kA2=ks[i-1],kB=ks[i],tA=TV[kA2],tB=TV[kB];
+    if(!tA||!tB)continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tA.tipo)>=0)continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tB.tipo)>=0)continue;
+    var r=checkRestTime(tA,tB,kA2,kB);
+    if(r.incumple)alertas[kB]=Object.assign({},r,{kAnterior:kA2});
+  }
+
+  _descansosCacheKey = firma;
+  _descansosCacheVal = alertas;
   return alertas;
 }
 
@@ -1918,7 +2487,6 @@ function cerrarRetrasoPanel(){var rp=document.getElementById('retraso-panel');if
 function abrirRetraso(){
   if(!selDay||!selDay.t) return;
   var t=selDay.t;
-  var area=document.getElementById('dia-area');
   var wrap=document.getElementById('retraso-panel');
   if(wrap){wrap.remove();return;}
   var retrasos=t.retrasos||[];
@@ -1929,7 +2497,7 @@ function abrirRetraso(){
   wrap.className='retraso-wrap';
   wrap.style.cssText='flex-direction:column;gap:8px;padding:10px 12px';
   wrap.innerHTML=
-    '<div style="font-size:10px;font-weight:800;color:var(--amber2)">RETRASO</div>'
+    '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-bottom:2px">RETRASO</div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<span style="font-size:10px;color:var(--tx3);width:52px">Tramo</span>'
     +'<select id="sel-tramo-ret" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
@@ -1938,14 +2506,17 @@ function abrirRetraso(){
     +'</select></div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<span style="font-size:10px;color:var(--tx3);width:52px">Minutos</span>'
-    +'<input id="inp-retraso" class="retraso-inp" type="number" inputmode="numeric" min="0" max="999" value="'+r1.minutos+'" placeholder="0" oninput="previsualizarRetraso(this.value)" style="flex:1">'
+    +'<input id="inp-retraso" class="retraso-inp" type="number" inputmode="numeric" min="0" max="999"'
+    +' value="'+r1.minutos+'" placeholder="0" oninput="previsualizarRetraso(this.value)" style="flex:1">'
     +'</div>'
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<span style="font-size:10px;color:var(--tx3);width:52px">Tren</span>'
-    +'<input id="inp-tren-ret" type="text" inputmode="numeric" placeholder="Num tren" value="'+r1.tren+'" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
+    +'<input id="inp-tren-ret" type="text" inputmode="numeric" placeholder="Num tren"'
+    +' value="'+r1.tren+'"'
+    +' style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
     +'</div>'
-    +'<div id="retraso-preview" style="font-size:10px;color:var(--tx3)"></div>'
-    +'<div style="display:flex;gap:6px">'
+    +'<div id="retraso-preview" style="font-size:10px;color:var(--tx3);padding:3px 0"></div>'
+    +'<div style="display:flex;gap:6px;margin-top:2px">'
     +'<button onclick="guardarRetraso()" style="flex:1;padding:7px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);border-radius:8px;color:var(--amber2);font-size:11px;font-weight:800;cursor:pointer">Aplicar</button>'
     +'<button onclick="cerrarRetrasoPanel()" style="padding:7px 12px;background:none;border:1px solid var(--div);border-radius:8px;color:var(--tx3);font-size:12px;cursor:pointer">X</button>'
     +'</div>';
@@ -1959,42 +2530,50 @@ function abrirRetraso(){
     if(ti)ti.value=rv.tren||'';
     previsualizarRetraso(rv.minutos||0);
   };
-  var dct=area?area.querySelector('.dc-turno'):null;
-  if(dct){dct.appendChild(wrap);setTimeout(function(){var i=document.getElementById('inp-retraso');if(i)i.focus();},50);}
+  // FIX: buscar .dc-turno en modal (dia-card-body) Y en dia-area como fallback
+  var dct=null;
+  var cardBody=document.getElementById('dia-card-body');
+  if(cardBody) dct=cardBody.querySelector('.dc-turno');
+  if(!dct){var area=document.getElementById('dia-area');if(area) dct=area.querySelector('.dc-turno');}
+  if(!dct&&cardBody) dct=cardBody;
+  if(!dct){var area2=document.getElementById('dia-area');if(area2) dct=area2;}
+  if(dct){
+    dct.appendChild(wrap);
+    setTimeout(function(){var inp=document.getElementById('inp-retraso');if(inp)inp.focus();},50);
+  }
 }
 
 function previsualizarRetraso(val){
-  // Mostrar impacto en descanso en tiempo real
-  const min  = parseInt(val)||0;
-  var t = selDay ? selDay.t : null;
+  var min=parseInt(val)||0;
+  var t=selDay?selDay.t:null;
   if(!t) return;
-
-  // Encontrar el turno siguiente
-  const kActual = selDay.k;
-  const ks = Object.keys(TV).sort();
-  const idx = ks.indexOf(kActual);
-  if(idx < 0 || idx >= ks.length-1) return;
-  const kSig = ks[idx+1];
-  const tSig = TV[kSig];
+  var kActual=selDay.k;
+  var ks=Object.keys(TV).sort();
+  var idx2=ks.indexOf(kActual);
+  if(idx2<0||idx2>=ks.length-1) return;
+  var kSig=ks[idx2+1];
+  var tSig=TV[kSig];
   if(!tSig) return;
-
-  // Simular con el retraso provisional
-  const tSimulado = Object.assign({},t,{retrasoMin:min});
-  const r = checkRestTime(tSimulado, tSig, kActual, kSig);
-
-  let prev = document.getElementById('retraso-preview');
+  var tSim=Object.assign({},t,{retrasoMin:min});
+  var r=checkRestTime(tSim,tSig,kActual,kSig);
+  var prev=document.getElementById('retraso-preview');
   if(!prev){
-    prev = document.createElement('div');
-    prev.id = 'retraso-preview';
-    prev.style.cssText = 'font-size:10px;margin-top:5px;padding:4px 8px;border-radius:7px;font-weight:600';
-    var rp=document.getElementById('retraso-panel');if(rp)rp.appendChild(prev);
+    prev=document.createElement('div');
+    prev.id='retraso-preview';
+    prev.style.cssText='font-size:10px;margin-top:5px;padding:4px 8px;border-radius:7px;font-weight:600';
+    var rp=document.getElementById('retraso-panel');
+    if(rp) rp.appendChild(prev);
   }
   if(r.incumple){
-    prev.style.cssText += 'color:var(--red2);background:rgba(220,38,38,.08)';
-    prev.textContent   = '⚠️ '+r.msg;
+    prev.style.color='var(--red2)';
+    prev.style.background='rgba(220,38,38,.08)';
+    prev.textContent='⚠️ '+r.msg;
   } else if(tSig.hF){
-    prev.style.cssText += 'color:var(--green2);background:rgba(22,163,74,.08)';
-    prev.textContent   = r.msg;
+    prev.style.color='var(--green2)';
+    prev.style.background='rgba(22,163,74,.08)';
+    prev.textContent=r.msg;
+  } else {
+    prev.textContent='';
   }
 }
 
@@ -2158,61 +2737,20 @@ function seleccionarSugTren(numTren, campo){
 }
 
 function initSwipe(){
-  const sw = document.getElementById('cal-swipe');
-  if(!sw) return;
-
-  let startX = 0, startY = 0;
-  let isDragging = false;   // gesto confirmado como horizontal
-  let isVertical = false;   // gesto confirmado como vertical → ignorar
-  let deltaX    = 0;
-
-  sw.addEventListener('touchstart', e=>{
-    const t = e.touches[0];
-    startX     = t.clientX;
-    startY     = t.clientY;
-    isDragging = false;
-    isVertical = false;
-    deltaX     = 0;
-  }, {passive:true});
-
-  sw.addEventListener('touchmove', e=>{
-    if(isVertical) return; // ya clasificado como scroll vertical → no hacer nada
-
-    const t  = e.touches[0];
-    const dx = t.clientX - startX;
-    const dy = t.clientY - startY;
-
-    // Esperamos al menos 8px de movimiento para clasificar el gesto
-    if(!isDragging && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-
-    if(!isDragging){
-      // Primera vez que supera el umbral: decidir dirección
-      if(Math.abs(dy) > Math.abs(dx)){
-        // Movimiento predominantemente VERTICAL → scroll normal, no interferir
-        isVertical = true;
-        return;
-      }
-      // Movimiento predominantemente HORIZONTAL → swipe de mes
-      isDragging = true;
-    }
-
-    // Solo llegamos aquí si es gesto horizontal confirmado
-    deltaX = dx;
-  }, {passive:true});
-
-  sw.addEventListener('touchend', e=>{
-    if(!isDragging) return; // fue vertical o no llegó al umbral
-    const dx = e.changedTouches[0].clientX - startX;
-    // Umbral mínimo: 45px y que el ángulo sea mayoritariamente horizontal
-    const dy = e.changedTouches[0].clientY - startY;
-    const esHorizontal = Math.abs(dx) > Math.abs(dy) * 1.5; // ratio 1.5:1 mínimo
-    if(Math.abs(dx) > 45 && esHorizontal){
-      if(dx < 0) animSwipe(1);   // ← izquierda = mes siguiente
-      else       animSwipe(-1);  // → derecha   = mes anterior
-    }
-    isDragging = false;
-    isVertical = false;
-  }, {passive:true});
+  var sw=document.getElementById('cal-swipe');if(!sw)return;
+  var sx=0,sy=0,drag=false,vert=false,dx=0;
+  sw.addEventListener('touchstart',function(e){var tc=e.touches[0];sx=tc.clientX;sy=tc.clientY;drag=false;vert=false;dx=0;},{passive:true});
+  sw.addEventListener('touchmove',function(e){
+    if(vert)return;var tc=e.touches[0];var dxv=tc.clientX-sx,dyv=tc.clientY-sy;
+    if(!drag&&Math.abs(dxv)<8&&Math.abs(dyv)<8)return;
+    if(!drag){if(Math.abs(dyv)>Math.abs(dxv)){vert=true;return;}drag=true;}
+    dx=dxv;
+  },{passive:true});
+  sw.addEventListener('touchend',function(e){
+    if(!drag)return;var dxv=e.changedTouches[0].clientX-sx,dyv=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dxv)>45&&Math.abs(dxv)>Math.abs(dyv)*1.5){if(dxv<0)animSwipe(1);else animSwipe(-1);}
+    drag=false;vert=false;
+  },{passive:true});
 }
 
 function animSwipe(dir){
@@ -2241,6 +2779,15 @@ function renderCal(){
   document.getElementById('mn-lbl').textContent=MESES[m]+' '+y;
   document.getElementById('mn-sub').textContent=y;
 
+  // OPTIMIZACIÓN: sincronizar TV con localStorage UNA sola vez aquí,
+  // en vez de 3 veces (una por cada renderSlide). Mismo resultado,
+  // 1/3 del coste de lectura+parse de JSON.
+  var TVlocal = JSON.parse(localStorage.getItem('tv5')||'{}');
+  var keysLocal = Object.keys(TVlocal);
+  for(var ki=0; ki<keysLocal.length; ki++){
+    TV[keysLocal[ki]] = TVlocal[keysLocal[ki]];
+  }
+
   // Recalcular alertas de descanso para el mes visible
   ALERTAS_DESCANSO = verificarDescansosMes();
 
@@ -2262,42 +2809,62 @@ function renderCal(){
     }).join('');
   }
 
-  renderDiaArea();
   renderAcordeon();
   renderVistaToggle();
+  renderPanelHoy();
 }
 
 function renderSlide(gridId, fecha){
-  const grid=document.getElementById(gridId);
+  var grid=document.getElementById(gridId);
   if(!grid) return;
-  const y=fecha.getFullYear(), m=fecha.getMonth();
-  const last=new Date(y,m+1,0).getDate();
-  let sd=new Date(y,m,1).getDay(); sd=sd===0?6:sd-1;
-  const hoy=new Date();
-  grid.innerHTML='';
-  for(let i=0;i<sd;i++){
-    const c=document.createElement('div');c.className='dc dc-0';grid.appendChild(c);
+  var y=fecha.getFullYear(), m=fecha.getMonth();
+  var last=new Date(y,m+1,0).getDate();
+  var sd=new Date(y,m,1).getDay(); sd=sd===0?6:sd-1;
+  var hoy=new Date();
+
+  // OPTIMIZACIÓN: la sincronización con localStorage ahora se hace UNA
+  // sola vez en renderCal() (antes de llamar a los 3 slides), no aquí.
+  // Esto evita parsear el mismo JSON 3 veces por cada renderCal().
+
+  // OPTIMIZACIÓN: construir todas las celdas en un DocumentFragment
+  // (memoria) y hacer un único appendChild al final, en vez de 31+
+  // inserciones individuales que fuerzan reflow del navegador en cada una.
+  var frag = document.createDocumentFragment();
+
+  for(var i=0;i<sd;i++){
+    var c0=document.createElement('div');c0.className='dc dc-0';frag.appendChild(c0);
   }
-  for(let d=1;d<=last;d++){
-    const k=key(y,m+1,d);
-    const t=TV[k];
-    const isH=y===hoy.getFullYear()&&m===hoy.getMonth()&&d===hoy.getDate();
-    const isS=selDay&&selDay.k===k;
-    const tieneAlerta = ALERTAS_DESCANSO[k];
-    let cls='dc';
+  for(var d=1;d<=last;d++){
+    var k=key(y,m+1,d);
+    var t=TV[k];
+    var isH=y===hoy.getFullYear()&&m===hoy.getMonth()&&d===hoy.getDate();
+    var isS=selDay&&selDay.k===k;
+    var tieneAlerta=ALERTAS_DESCANSO[k];
+    var cls='dc';
     if(isS) cls+=' dc-sel';
     else if(t) cls+=' '+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'');
     if(isH) cls+=' dc-hoy';
     if(tieneAlerta) cls+=' dc-alerta';
-    const c=document.createElement('div');
+    // Metadatos adicionales en la celda
+    if(t&&t.nocturno)   cls+=' dc-noc';
+    if(t&&t.plusIntlAuto) cls+=' dc-intl';
+    var c=document.createElement('div');
     c.className=cls;
-    c.style.position='relative'; // needed for ::after pseudo
+    c.style.position='relative';
     var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
     var retBadge=tieneRetraso2?'<span style="position:absolute;top:1px;right:1px;font-size:8px;line-height:1">!</span>':'';
-    c.innerHTML=retBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
-    c.onclick=function(){clickDia(d,k,t);};
-    grid.appendChild(c);
+    var tv2Bg=getTV2Badge(k);
+    c.innerHTML=retBadge+tv2Bg+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    // FIX closure: capturar d, k, t correctamente en cada iteración
+    (function(dd, kk, tt){
+      c.onclick=function(){ clickDia(dd, kk, tt); };
+    })(d, k, t);
+    frag.appendChild(c);
   }
+
+  // Una sola operación de DOM: vaciar + insertar todo de golpe
+  grid.innerHTML='';
+  grid.appendChild(frag);
 }
 
 function abrirTipoDesdeCard(){
@@ -2311,23 +2878,28 @@ function abrirTipoDesdeCard(){
 }
 
 function clickDia(d,k,t){
-  // Si ya estaba seleccionado y tiene turno → abrir edición (segundo toque)
+  // Segundo toque en el mismo día con turno → editar
   if(selDay && selDay.k===k && t){
     editarTurno();
     return;
   }
-  // Primer toque: seleccionar
-  selDay={d,k,t};
+  // Primer toque — leer TV[k] fresco directamente (no la copia del closure)
+  var tFresco = TV[k];
+  selDay={d:d, k:k, t:tFresco};
+
+  // Actualizar colores de celdas (selección visual)
   renderCal();
-  if(!t){
-    // Sin turno → abrir selector de tipo directamente
-    var _km2=k.split('-').map(Number);var y=_km2[0],mo=_km2[1];
+
+  if(!tFresco){
+    // Día vacío → selector de tipo
+    var _km2=k.split('-').map(Number);
+    var y=_km2[0],mo=_km2[1];
     var dt=new Date(y,mo-1,d);
     var wd=(dt.getDay()+6)%7;
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
     openOv('ov-tipo');
   } else {
-    // Con turno → abrir modal centrado con la tarjeta
+    // Día con turno → modal con tarjeta
     openOv('ov-dia-card');
     renderDiaArea();
   }
@@ -2335,8 +2907,8 @@ function clickDia(d,k,t){
 
 function irHoy(){
   curM=new Date();
-  const h=new Date();
-  const k=key(h.getFullYear(),h.getMonth()+1,h.getDate());
+  var h=new Date();
+  var k=key(h.getFullYear(),h.getMonth()+1,h.getDate());
   selDay={d:h.getDate(),k,t:TV[k]};
   renderCal();
 }
@@ -2346,6 +2918,11 @@ function chM(dir){
 }
 
 function renderDiaArea(){
+  // MÓDULO MULTI-TURNO: si hay extras, delegamos en renderDiaAreaMulti
+  if(selDay && selDay.k && TV2[selDay.k] && TV2[selDay.k].length > 0){
+    renderDiaAreaMulti();
+    return;
+  }
   var ovCard=document.getElementById('ov-dia-card');
   var useModal=ovCard&&ovCard.classList.contains('on');
   var area=useModal
@@ -2361,8 +2938,8 @@ function renderDiaArea(){
   var d=selDay.d;var k=selDay.k;var t=selDay.t;;
   var _km3=k.split('-').map(Number);var y=_km3[0],mo=_km3[1];
   var dt=new Date(y,mo-1,d);
-  const wd=(dt.getDay()+6)%7;
-  const fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
+  var wd=(dt.getDay()+6)%7;
+  var fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
 
   if(!t){
     area.innerHTML='<div class="dc-vacia" onclick="abrirTipo()">'
@@ -2374,12 +2951,12 @@ function renderDiaArea(){
     return;
   }
 
-  const ti  = TIPO_INFO[t.tipo] || {ico:'❓', lbl:t.tipo||'Desconocido', col:'var(--tx2)', cls:''};
-  const col = ti.col;
+  var ti  = TIPO_INFO[t.tipo] || {ico:'❓', lbl:t.tipo||'Desconocido', col:'var(--tx2)', cls:''};
+  var col = ti.col;
 
   // ── Verificar incumplimiento de descanso para este día ───────
-  const alerta = ALERTAS_DESCANSO[k];
-  let alertaBanner = '';
+  var alerta = ALERTAS_DESCANSO[k];
+  var alertaBanner = '';
   if(alerta){
     alertaBanner = '<div class="alerta-descanso">'
       +'<span class="alerta-ico">🔴</span>'
@@ -2391,16 +2968,16 @@ function renderDiaArea(){
   }
 
   // Retraso registrado
-  const retrasoMin = parseInt(t.retrasoMin)||0;
-  const retrasoTag = retrasoMin > 0
+  var retrasoMin = parseInt(t.retrasoMin)||0;
+  var retrasoTag = retrasoMin > 0
     ? '<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,.1);'
       +'border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:2px 8px;'
       +'font-size:10px;font-weight:700;color:var(--amber2);margin-left:5px">⏱ +'+retrasoMin+'min</div>'
     : '';
 
-  let body='';
+  var body='';
   // Si es ordinario/trabajado, mostrar alerta arriba del cuerpo
-  const bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado')) ? alertaBanner : '';
+  var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado')) ? alertaBanner : '';
 
   if(t.tipo==='ordinario'||t.tipo==='trabajado'){
     if(t.numTren){
@@ -2431,7 +3008,7 @@ function renderDiaArea(){
         +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional aplicado</div></div>';
     }
     if(t.sal2&&t.lle2){
-      const esP=t.modo==='pernocta';
+      var esP=t.modo==='pernocta';
       body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
         +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+'</div>'
         +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
@@ -2492,86 +3069,109 @@ function renderDiaArea(){
     +retrasoTag
     +'</div>'
     +'<div class="dct-body">'+bodyPrefix+body+'</div>'
-    +'<div class="dct-foot">'
-    +'<span onclick="editarTurno()" style="cursor:pointer;color:var(--acc2);flex:1">✏️ Editar</span>'
-    +((t.tipo==='ordinario'||t.tipo==='trabajado')
-      ? '<button onclick="abrirRetraso()" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);border-radius:7px;color:var(--amber2);font-size:10px;font-weight:800;padding:4px 9px;cursor:pointer;margin-right:4px">⏱'+(retrasoMin>0?' +'+retrasoMin+'m':' Retraso')+'</button>'
-      : '')
-    +'<button onclick="abrirCambio()" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:7px;color:var(--nar2);font-size:10px;font-weight:800;padding:4px 10px;cursor:pointer;margin-right:4px">🔄 Cambio</button>'
-    // NOTAS — visible si el turno tiene nota escrita
+    // NOTA — visible en TODOS los tipos de turno
     +(t&&t.notas&&t.notas.trim().length>0
-      ? '<div style="margin:6px 0;padding:7px 10px;background:rgba(99,102,241,.07);'
+      ? '<div style="margin:0 0 8px 0;padding:8px 11px;background:rgba(99,102,241,.07);'
         +'border:1px solid rgba(99,102,241,.2);border-radius:9px">'
         +'<div style="font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--acc);margin-bottom:3px">📝 NOTA</div>'
         +'<div style="font-size:11px;color:var(--tx2);line-height:1.5">'+t.notas.trim()+'</div>'
         +'</div>'
       : '')
-    +'<button class="dct-del" onclick="pedirEliminar()">🗑 Eliminar</button>'
+    +(selDay?renderTV2Bloque(selDay.k):'')
+    +'<div class="dct-foot-v2">'
+    +'<div class="dct-row-main">'
+    +'<button class="dct-btn-cambio" onclick="abrirCambio()">🔄 Cambio</button>'
+    +'<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir turno</button>'
+    +'</div>'
+    +'<div class="dct-row-main" style="margin-top:0">'
+    +'<button class="dct-btn-edit" onclick="editarTurno()">✏️ Editar</button>'
+    +'<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
+    +'</div>'
+    +((t.tipo==='ordinario'||t.tipo==='trabajado')
+      ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
+      : '')
+    +'</div>'
     +'</div></div>';
+  if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
 }
 
 /* ─── ACORDEÓN — historial del mes (ExpansionTile) ─── */
+// OPTIMIZACIÓN: caché de memoización para renderAcordeon.
+// Evita reconstruir TODO el HTML del acordeón si el mes visible
+// y los datos de ese mes no han cambiado desde el último render.
+var _acordeonCacheKey = null;
+
 function renderAcordeon(){
-  const y=curM.getFullYear(),m=curM.getMonth()+1;
-  const pref=key(y,m,1).substring(0,7);
-  const items=Object.entries(TV)
-    .filter(([k])=>k.startsWith(pref))
-    .sort(([a],[b])=>a.localeCompare(b));
-  const ac=document.getElementById('acordeon');
-  if(!items.length){ac.innerHTML='<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3)">Sin turnos este mes</div>';return;}
-  ac.innerHTML=items.map(([k,t])=>{
-    var dd=k.split('-')[2];
-    const ti=TIPO_INFO[t.tipo]||{ico:'?',lbl:t.tipo,col:'var(--tx2)'};
-    const dot='<div class="ac-dot" style="background:'+ti.col+'"></div>';
-    // Detalles expandibles
-    let det='';
-    if(t.retrasos && t.retrasos.length){
-      t.retrasos.forEach(function(r){
-        det+='<div class="ac-row"><span class="ak">⏱ T'+r.tramo+(r.tren?' #'+r.tren:'')+'</span>'
-           +'<span class="av" style="color:var(--amber2)">+'+r.minutos+' min</span></div>';
-      });
-    } else if(t.retrasoMin){
-      det+='<div class="ac-row"><span class="ak">⏱ Retraso</span><span class="av" style="color:var(--amber2)">+'+t.retrasoMin+' min</span></div>';
-    }
-    if(ALERTAS_DESCANSO[k]) det+='<div class="ac-row"><span class="ak">🔴 Descanso</span><span class="av" style="color:var(--red2)">'+ALERTAS_DESCANSO[k].msg+'</span></div>';
-    if(t.cambioSolicitado) det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
-    if(t.numTren)  det+='<div class="ac-row"><span class="ak">🚆 Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
-    if(t.numTrenVuelta) det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'🌙':'↩')+' Tren Vuelta</span><span class="av" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</span></div>';
-    if(t.sal) det+='<div class="ac-row"><span class="ak">🚂 Ida</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
-    if(t.hF) det+='<div class="ac-row"><span class="ak">⏱ Firma/llegada</span><span class="av">'+t.hF+' – '+(t.hL||'')+'</span></div>';
-    if(t.sal2) det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'🌙 Vuelta':'↩ Vuelta')+'</span><span class="av">'+t.sal2+' → '+(t.lle2||'')+'</span></div>';
-    if(t.hF2) det+='<div class="ac-row"><span class="ak">⏱ Vuelta</span><span class="av">'+t.hF2+' – '+(t.hL2||'')+'</span></div>';
-    if(t.linea) det+='<div class="ac-row"><span class="ak">Línea</span><span class="av">'+t.linea+'</span></div>';
-    if(t.nocturno) det+='<div class="ac-row"><span class="ak">🌙 Nocturnidad</span><span class="av" style="color:var(--amber2)">Activa · 22:00–06:00</span></div>';
-    if(t.plusIntlAuto) det+='<div class="ac-row"><span class="ak">🌍 Plus Intl.</span><span class="av" style="color:var(--cyan2)">Aplicado automáticamente</span></div>';
-    if(t.modo) det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'🌙 Pernocta':'🔄 Ida y vuelta')+'</span></div>';
-    if(t.comp==='dinero'&&t.importe) det+='<div class="ac-imp"><span class="al">💶 Compensación económica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
-    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length)) det+='<div class="ac-row"><span class="ak">📅 Días comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' días asignados</span></div>';
-    // BLOQUE A — Días HTDL Compensación
-    if(t.tipo==='comp'&&t.origen){
-      det+='<div class="ac-row"><span class="ak">📅 HTDL Comp.</span><span class="av" style="color:var(--cyan2)">Descanso trabajado por compensación</span></div>';
-    }
-    // BLOQUE B — Notas del registro
-    if(t.notas&&t.notas.trim().length>0){
-      det+='<div class="ac-row" style="flex-direction:column;align-items:flex-start;gap:2px">'
-        +'<span class="ak">📝 Nota</span>'
-        +'<span style="font-size:10px;color:var(--tx2);padding-left:4px;line-height:1.4">'+t.notas.trim()+'</span>'
-        +'</div>';
-    }
-    return '<div class="ac-item" id="ac-'+k+'">'
-      +'<div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'
-      +dot+'<div class="ac-fecha"><strong>'+parseInt(dd)+' '+MESES_C[m-1]+'</strong></div>'
-      +'<div class="ac-tipo">'+ti.ico+' '+ti.lbl+'</div>'
-      +'<div class="ac-arr">›</div>'
-      +'</div>'
-      +'<div class="ac-body">'+(det||'<span style="color:var(--tx3)">Sin detalles</span>')+'</div>'
-      +'</div>';
+  var y=curM.getFullYear(),m=curM.getMonth()+1;
+  var pref=key(y,m,1).substring(0,7);
+  var ks=Object.keys(TV).filter(function(k){return k.startsWith(pref);}).sort();
+  var ac=document.getElementById('acordeon');
+
+  // OPTIMIZACIÓN: firma ligera de los datos visibles (mes + nº turnos +
+  // última modificación aproximada). Si es idéntica a la del último
+  // render, no se toca el DOM — evita reconstruir HTML innecesariamente
+  // cuando solo se abre/cierra un acordeón sin cambiar datos.
+  var firma = pref+'|'+ks.length+'|'+JSON.stringify(ks.map(function(k){return TV[k].tipo;}));
+  if(firma === _acordeonCacheKey && ac.innerHTML !== ''){
+    return; // nada cambió desde el último render — no reconstruir
+  }
+  _acordeonCacheKey = firma;
+
+  // FIX ESTABILIDAD: capturar qué día estaba abierto ANTES de destruir
+  // el HTML. renderAcordeon() se llama desde 24 sitios distintos
+  // (incluido clickDia en el calendario); sin esto, cualquier toque
+  // en el calendario colapsaba el acordeón mensual sin motivo.
+  var abiertoPrevio = null;
+  var itemAbierto = ac.querySelector('.ac-item.open');
+  if(itemAbierto) abiertoPrevio = itemAbierto.id;
+
+  if(!ks.length){ac.innerHTML='<div style="padding:12px;text-align:center;font-size:11px;color:var(--tx3)">Sin turnos este mes</div>';return;}
+  ac.innerHTML=ks.map(function(k){
+    var t=TV[k],dd=k.split('-')[2];
+    var ti=TIPO_INFO[t.tipo]||{ico:'?',lbl:t.tipo,col:'var(--tx2)'};
+    var dot='<div class="ac-dot" style="background:'+ti.col+'"></div>',det='';
+    if(t.retrasos&&t.retrasos.length){t.retrasos.forEach(function(r){det+='<div class="ac-row"><span class="ak">T'+r.tramo+(r.tren?' #'+r.tren:'')+'</span><span class="av" style="color:var(--amber2)">+'+r.minutos+' min</span></div>';});}
+    else if(t.retrasoMin){det+='<div class="ac-row"><span class="ak">Retraso</span><span class="av" style="color:var(--amber2)">+'+t.retrasoMin+' min</span></div>';}
+    if(ALERTAS_DESCANSO[k])det+='<div class="ac-row"><span class="ak">🔴 Descanso</span><span class="av" style="color:var(--red2)">'+ALERTAS_DESCANSO[k].msg+'</span></div>';
+    if(t.cambioSolicitado)det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
+    if(t.numTren)det+='<div class="ac-row"><span class="ak">Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
+    if(t.numTrenVuelta)det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'Vuelta (noche)':'Tren Vuelta')+'</span><span class="av" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</span></div>';
+    if(t.sal)det+='<div class="ac-row"><span class="ak">Ida</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
+    if(t.hF)det+='<div class="ac-row"><span class="ak">Firma</span><span class="av">'+t.hF+' - '+(t.hL||'')+'</span></div>';
+    if(t.sal2)det+='<div class="ac-row"><span class="ak">Vuelta</span><span class="av">'+t.sal2+' → '+(t.lle2||'')+'</span></div>';
+    if(t.hF2)det+='<div class="ac-row"><span class="ak">H. Vuelta</span><span class="av">'+t.hF2+' - '+(t.hL2||'')+'</span></div>';
+    if(t.linea)det+='<div class="ac-row"><span class="ak">Linea</span><span class="av">'+t.linea+'</span></div>';
+    if(t.nocturno)det+='<div class="ac-row"><span class="ak">Nocturnidad</span><span class="av" style="color:var(--amber2)">Activa 22:00-06:00</span></div>';
+    if(t.plusIntlAuto)det+='<div class="ac-row"><span class="ak">Plus Intl.</span><span class="av" style="color:var(--cyan2)">Automatico</span></div>';
+    if(t.modo)det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'Pernocta':'Ida y vuelta')+'</span></div>';
+    if(t.comp==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">Compensacion economica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+    if(t.comp==='dias'&&t.diasComp&&t.diasComp.length)det+='<div class="ac-row"><span class="ak">Dias comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' dias</span></div>';
+    if(t.tipo==='comp'&&t.origen)det+='<div class="ac-row"><span class="ak">HTDL Comp.</span><span class="av" style="color:var(--cyan2)">Descanso trabajado</span></div>';
+    if(t.notas&&t.notas.trim().length>0)det+='<div class="ac-row" style="flex-direction:column;align-items:flex-start;gap:2px"><span class="ak">Nota</span><span style="font-size:10px;color:var(--tx2);padding-left:4px;line-height:1.4">'+t.notas.trim()+'</span></div>';
+    return '<div class="ac-item" id="ac-'+k+'"><div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'+dot
+      +'<div class="ac-fecha"><strong>'+parseInt(dd)+' '+MESES_C[m-1]+'</strong></div>'
+      +'<div class="ac-tipo">'+ti.ico+' '+ti.lbl+'</div><div class="ac-arr">›</div></div>'
+      +'<div class="ac-body">'+(det||'<span style="color:var(--tx3)">Sin detalles</span>')+'</div></div>';
   }).join('');
+
+  // FIX ESTABILIDAD: restaurar el día que estaba abierto, si sigue existiendo
+  if(abiertoPrevio){
+    var elRestaurar = document.getElementById(abiertoPrevio);
+    if(elRestaurar) elRestaurar.classList.add('open');
+  }
 }
 
 function toggleAc(id){
-  const el=document.getElementById(id);
-  if(el)el.classList.toggle('open');
+  var el=document.getElementById(id);
+  if(!el) return;
+  var isOpen=el.classList.contains('open');
+  // Cerrar todos los demás (opcional: comentar para permitir múltiples abiertos)
+  var items=document.querySelectorAll('.ac-item.open');
+  for(var ii=0;ii<items.length;ii++){
+    if(items[ii].id!==id) items[ii].classList.remove('open');
+  }
+  if(isOpen) el.classList.remove('open');
+  else el.classList.add('open');
 }
 
 /* ═══════════════════════════════════════
@@ -2588,8 +3188,8 @@ function resetF(tipo){
 function abrirTipo(){
   if(!selDay)return;
   var _sm=selDay.k.split('-').map(Number);var y=_sm[0],mo=_sm[1];
-  const dt=new Date(y,mo-1,selDay.d);
-  const wd=(dt.getDay()+6)%7;
+  var dt=new Date(y,mo-1,selDay.d);
+  var wd=(dt.getDay()+6)%7;
   document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+selDay.d+' '+MESES_C[mo-1];
   openOv('ov-tipo');
 }
@@ -2625,7 +3225,7 @@ function elegirTipo(tipo){
 
 function editarTurno(){
   if(!selDay||!selDay.t) return;
-  const t=selDay.t;
+  var t=selDay.t;
 
   // ── Día de compensación → popup especial ─────────────────────
   if(t.tipo==='comp'){
@@ -2636,9 +3236,9 @@ function editarTurno(){
   // ── Vuelta pernocta → ir al día de ida y editarlo ─────────────
   if(t.tipo==='vuelta-pernocta'){
     if(t.origenPernocta && TV[t.origenPernocta]){
-      const kOri=t.origenPernocta;
+      var kOri=t.origenPernocta;
       var _ko=kOri.split('-').map(Number);var y=_ko[0],mo=_ko[1],dd=_ko[2];
-      const tOri=TV[kOri];
+      var tOri=TV[kOri];
       // C-02 FIX: No llamada recursiva — cargamos F directamente con el turno origen
       // y abrimos el formulario. Evita el bucle infinito si selDay no se actualiza a tiempo.
       selDay={d:dd, k:kOri, t:tOri};
@@ -2690,80 +3290,22 @@ function convertirDescanso(){
    Permite convertirlo en turno real o eliminarlo
 ═══════════════════════════════════════ */
 function abrirEditComp(){
-  if(!selDay||!selDay.t) return;
-  const t=selDay.t;
-  const k=selDay.k;
-  var _kd=k.split('-').map(Number);var y=_kd[0],mo=_kd[1],dd=_kd[2];
-  var dt=new Date(y,mo-1,dd);
-  const wd=(dt.getDay()+6)%7;
-  const fstr=DIAS_L[wd]+' '+dd+' de '+MESES[mo-1].toLowerCase();
-
-  // Buscar el turno origen (el trabajado que generó este comp)
-  const origenInfo=t.origen&&TV[t.origen]
-    ? `<div style="font-size:10px;color:var(--tx3);margin-top:4px">
-         Generado por turno del <strong style="color:var(--tx2)">${(k=>{var _kl=k.split('-').map(Number);var y=_kl[0],m=_kl[1],d=_kl[2];return d+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m-1]+' '+y;})(t.origen)}</strong>
-       </div>`
-    : '';
-
-  document.getElementById('edit-comp-tit').textContent=fstr;
-  document.getElementById('edit-comp-body').innerHTML=`
-    <div style="padding:14px 16px">
-      <div class="ibox" style="background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.25);margin-bottom:12px">
-        <span class="ibox-i">📅</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--cyan2)">Día de Compensación</div>
-          ${origenInfo}
-        </div>
-      </div>
-
-      <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:8px">¿QUÉ QUIERES HACER?</div>
-
-      <!-- Opción 1: Convertir en turno trabajado -->
-      <div onclick="compConvertir('ordinario')" style="
-        display:flex;align-items:center;gap:11px;padding:13px 14px;
-        background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);
-        border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .18s"
-        onmouseover="this.style.background='rgba(37,99,235,.16)'"
-        onmouseout="this.style.background='rgba(37,99,235,.08)'">
-        <span style="font-size:22px">🚂</span>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:var(--acc2)">Trabajar este día</div>
-          <div style="font-size:10px;color:var(--tx3)">Convertir en turno ordinario y registrar tramo</div>
-        </div>
-        <span style="color:var(--tx3);font-size:16px">›</span>
-      </div>
-
-      <!-- Opción 2: Convertir en descanso -->
-      <div onclick="compConvertir('descanso')" style="
-        display:flex;align-items:center;gap:11px;padding:13px 14px;
-        background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);
-        border-radius:12px;cursor:pointer;margin-bottom:8px;transition:all .18s"
-        onmouseover="this.style.background='rgba(22,163,74,.16)'"
-        onmouseout="this.style.background='rgba(22,163,74,.08)'">
-        <span style="font-size:22px">🧘</span>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:var(--green2)">Marcar como descanso</div>
-          <div style="font-size:10px;color:var(--tx3)">El día sigue libre, sin turno activo</div>
-        </div>
-        <span style="color:var(--tx3);font-size:16px">›</span>
-      </div>
-
-      <!-- Opción 3: Eliminar compensación -->
-      <div onclick="compEliminar()" style="
-        display:flex;align-items:center;gap:11px;padding:13px 14px;
-        background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);
-        border-radius:12px;cursor:pointer;transition:all .18s"
-        onmouseover="this.style.background='rgba(220,38,38,.14)'"
-        onmouseout="this.style.background='rgba(220,38,38,.06)'">
-        <span style="font-size:22px">🗑</span>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:var(--red2)">Quitar compensación</div>
-          <div style="font-size:10px;color:var(--tx3)">Liberar este día (se descuenta del turno origen)</div>
-        </div>
-        <span style="color:var(--tx3);font-size:16px">›</span>
-      </div>
-    </div>
-  `;
+  if(!selDay||!selDay.t)return;
+  var t=selDay.t,k=selDay.k;
+  var kd=k.split('-').map(Number);var y=kd[0],mo=kd[1],dd=kd[2];
+  var wd=(new Date(y,mo-1,dd).getDay()+6)%7;
+  var fs=DIAS_L[wd]+' '+dd+' de '+MESES[mo-1].toLowerCase();
+  var oI='';
+  if(t.origen&&TV[t.origen]){var kop=t.origen.split('-').map(Number);var lbl=kop[2]+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][kop[1]-1]+' '+kop[0];oI='<div style="font-size:10px;color:var(--tx3);margin-top:4px">Generado por turno del <strong style="color:var(--tx2)">'+lbl+'</strong></div>';}
+  document.getElementById('edit-comp-tit').textContent=fs;
+  document.getElementById('edit-comp-body').innerHTML=
+    '<div style="padding:14px 16px">'
+    +'<div class="ibox" style="background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.25);margin-bottom:12px"><span class="ibox-i">📅</span><div><div style="font-size:12px;font-weight:700;color:var(--cyan2)">Dia de Compensacion</div>'+oI+'</div></div>'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:8px">QUE QUIERES HACER?</div>'
+    +'<div onclick="compConvertir(\'ordinario\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(37,99,235,.16)\'" onmouseout="this.style.background=\'rgba(37,99,235,.08)\'"><span style="font-size:22px">🚂</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--acc2)">Trabajar este dia</div><div style="font-size:10px;color:var(--tx3)">Convertir en turno ordinario</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
+    +'<div onclick="compConvertir(\'descanso\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(22,163,74,.16)\'" onmouseout="this.style.background=\'rgba(22,163,74,.08)\'"><span style="font-size:22px">🧘</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--green2)">Marcar como descanso</div><div style="font-size:10px;color:var(--tx3)">El dia sigue libre</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
+    +'<div onclick="compEliminar()" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:12px;cursor:pointer" onmouseover="this.style.background=\'rgba(220,38,38,.14)\'" onmouseout="this.style.background=\'rgba(220,38,38,.06)\'"><span style="font-size:22px">🗑</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--red2)">Quitar compensacion</div><div style="font-size:10px;color:var(--tx3)">Liberar este dia</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
+    +'</div>';
   openOv('ov-edit-comp');
 }
 
@@ -2802,111 +3344,52 @@ function compConvertir(nuevoTipo){
 
 // Eliminar la compensación de este día
 function compEliminar(){
-  const k=selDay.k;
-  const t=TV[k];
-
-  // Desvincularlo del turno origen
-  if(t.origen && TV[t.origen]){
-    const ori=TV[t.origen];
-    if(ori.diasComp) ori.diasComp=ori.diasComp.filter(d=>d!==k);
-  }
-
-  // Borrar este día del calendario
-  delete TV[k];
-  selDay.t=null;
-  saveTV();
-  closeOv('ov-edit-comp');
-  renderCal();
-  renderStats();
-  toast('📅 Compensación eliminada');
+  var k=selDay.k,t=TV[k];
+  if(t.origen&&TV[t.origen]){var ori=TV[t.origen];if(ori.diasComp)ori.diasComp=ori.diasComp.filter(function(d){return d!==k;});}
+  delete TV[k];selDay.t=null;saveTV();closeOv('ov-edit-comp');renderCal();renderStats();toast('📅 Compensación eliminada');
 }
 
 /* ═══════════════════════════════════════
    CAMBIO CON COMPAÑERO — universal
 ═══════════════════════════════════════ */
 function abrirCambio(){
-  if(!selDay) return;
-  const t  = selDay.t || {};
-  const k  = selDay.k;
-  var _kw=k.split('-').map(Number);var y=_kw[0],mo=_kw[1],dd=_kw[2];
-  var wd =(new Date(y,mo-1,dd).getDay()+6)%7;
-  const fLarga = DIAS_L[wd]+', '+dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const tipoLbl= (TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].lbl:'Sin tipo') || 'Sin tipo';
-
+  if(!selDay)return;
+  var t=selDay.t||{},k=selDay.k;
+  var kw=k.split('-').map(Number);var y=kw[0],mo=kw[1],dd=kw[2];
+  var wd=(new Date(y,mo-1,dd).getDay()+6)%7;
+  var fL=DIAS_L[wd]+', '+dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  var tL=(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].lbl:'Sin tipo')||'Sin tipo';
   document.getElementById('cambio-tit').textContent='🔄 Solicitar Cambio de Turno';
+  var tH=t.numTren?'<div style="font-size:20px;font-weight:900;color:var(--nar2)">🚆 #'+t.numTren+'</div>'
+    :'<div style="font-size:10px;color:var(--amber2);margin-top:2px">⚠️ Sin numero de tren - edita para añadir</div>';
+  var rH=(t.sal||t.lle)?'<div style="font-size:11px;color:var(--tx2);margin-top:2px">'+(t.sal||'—')+' '+(t.lle?'→ '+t.lle:'')+'</div>':'';
+  var wH=(!AJ.nombre||!AJ.matricula)?'<div style="font-size:9px;color:var(--amber2);margin-top:3px">⚠️ Configura nombre y matricula en Ajustes</div>':'';
   document.getElementById('cambio-body').innerHTML=
-    `<div style="padding:14px 16px">
-      <div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);
-           border-radius:12px;padding:11px 13px;margin-bottom:14px">
-        <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--acc2);margin-bottom:5px">MI TURNO</div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
-          <span style="font-size:12px;color:var(--tx2)">${fLarga}</span>
-          <span style="font-size:9px;color:var(--tx3);background:var(--s2);padding:1px 7px;border-radius:6px">${tipoLbl}</span>
-        </div>
-        ${t.numTren
-          ? `<div style="font-size:20px;font-weight:900;color:var(--nar2)">🚆 #${t.numTren}</div>`
-          : `<div style="font-size:10px;color:var(--amber2);margin-top:2px">⚠️ Sin nº de tren — edita el turno para añadirlo</div>`}
-        ${(t.sal||t.lle) ? `<div style="font-size:11px;color:var(--tx2);margin-top:2px">${t.sal||'—'} ${t.lle?'→ '+t.lle:''}</div>` : ''}
-        <div style="font-size:10px;color:var(--tx3);margin-top:3px">
-          👤 ${AJ.nombre||'—'} &nbsp;·&nbsp; 🪪 ${AJ.matricula||'—'}
-        </div>
-        ${!AJ.nombre||!AJ.matricula
-          ? `<div style="font-size:9px;color:var(--amber2);margin-top:3px">⚠️ Configura nombre y matrícula en Ajustes ⚙️</div>`:''}
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3)">DATOS DEL COMPAÑERO</div>
-        <button onclick="abrirAgenda()"
-          style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);
-          border-radius:8px;color:var(--acc2);font-size:11px;font-weight:700;
-          padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px">
-          📒 Agenda
-        </button>
-      </div>
-      <!-- Campo nombre con autocompletado -->
-      <div style="position:relative;margin-bottom:7px">
-        <div class="aj-nombre-wrap">
-          <span class="aj-nombre-ico">👤</span>
-          <input id="cbio-nombre" class="aj-nombre-inp" placeholder="Nombre completo"
-            oninput="actualizarPrevCambio();sugerirContacto('nombre',this.value)"
-            autocomplete="off">
-        </div>
-        <div id="sug-nombre" class="sug-box" style="display:none"></div>
-      </div>
-      <!-- Campo matrícula con autocompletado -->
-      <div style="position:relative;margin-bottom:7px">
-        <div class="aj-nombre-wrap">
-          <span class="aj-nombre-ico">🪪</span>
-          <input id="cbio-mat" class="aj-nombre-inp" placeholder="Matrícula del compañero"
-            oninput="actualizarPrevCambio();sugerirContacto('mat',this.value)"
-            autocomplete="off">
-        </div>
-        <div id="sug-mat" class="sug-box" style="display:none"></div>
-      </div>
-      <div class="aj-nombre-wrap" style="margin-bottom:14px">
-        <span class="aj-nombre-ico">🚆</span>
-        <input id="cbio-tren" class="aj-nombre-inp" inputmode="numeric"
-          placeholder="Nº de tren del compañero"
-          oninput="actualizarPrevCambio()"
-          style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums">
-      </div>
-
-      <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">VISTA PREVIA</div>
-      <div id="cbio-prev" style="background:var(--s2);border:1px solid var(--div);
-           border-radius:10px;padding:11px 13px;font-size:11px;color:var(--tx2);
-           line-height:1.65;margin-bottom:14px;white-space:pre-wrap;
-           max-height:150px;overflow-y:auto"></div>
-
-      <button onclick="enviarCambio()"
-        style="width:100%;padding:14px;background:linear-gradient(135deg,var(--nar),var(--nar2));
-        border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;
-        cursor:pointer;box-shadow:var(--sh-nar)">✉️ Abrir en Correo</button>
-      <div style="font-size:9px;color:var(--tx3);text-align:center;margin-top:7px">
-        Abre tu app de correo con el mensaje completo
-      </div>
-    </div>`;
-  actualizarPrevCambio();
-  openOv('ov-cambio');
+    '<div style="padding:14px 16px">'
+    +'<div style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.2);border-radius:12px;padding:11px 13px;margin-bottom:14px">'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--acc2);margin-bottom:5px">MI TURNO</div>'
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
+    +'<span style="font-size:12px;color:var(--tx2)">'+fL+'</span>'
+    +'<span style="font-size:9px;color:var(--tx3);background:var(--s2);padding:1px 7px;border-radius:6px">'+tL+'</span></div>'
+    +tH+rH
+    +'<div style="font-size:10px;color:var(--tx3);margin-top:3px">👤 '+(AJ.nombre||'—')+' · 🪪 '+(AJ.matricula||'—')+'</div>'+wH+'</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3)">DATOS DEL COMPAÑERO</div>'
+    +'<button onclick="abrirAgenda()" style="background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.3);border-radius:8px;color:var(--acc2);font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer">📒 Agenda</button></div>'
+    +'<div style="position:relative;margin-bottom:7px"><div class="aj-nombre-wrap"><span class="aj-nombre-ico">👤</span>'
+    +'<input id="cbio-nombre" class="aj-nombre-inp" placeholder="Nombre completo" oninput="actualizarPrevCambio();sugerirContacto(\'nombre\',this.value)" autocomplete="off"></div>'
+    +'<div id="sug-nombre" class="sug-box" style="display:none"></div></div>'
+    +'<div style="position:relative;margin-bottom:7px"><div class="aj-nombre-wrap"><span class="aj-nombre-ico">🪪</span>'
+    +'<input id="cbio-mat" class="aj-nombre-inp" placeholder="Matricula del companero" oninput="actualizarPrevCambio();sugerirContacto(\'mat\',this.value)" autocomplete="off"></div>'
+    +'<div id="sug-mat" class="sug-box" style="display:none"></div></div>'
+    +'<div class="aj-nombre-wrap" style="margin-bottom:14px"><span class="aj-nombre-ico">🚆</span>'
+    +'<input id="cbio-tren" class="aj-nombre-inp" inputmode="numeric" placeholder="Num tren del companero" oninput="actualizarPrevCambio()" style="font-size:15px;font-weight:800"></div>'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">VISTA PREVIA</div>'
+    +'<div id="cbio-prev" style="background:var(--s2);border:1px solid var(--div);border-radius:10px;padding:11px 13px;font-size:11px;color:var(--tx2);line-height:1.65;margin-bottom:14px;white-space:pre-wrap;max-height:150px;overflow-y:auto"></div>'
+    +'<button onclick="enviarCambio()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--nar),var(--nar2));border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:var(--sh-nar)">✉️ Abrir en Correo</button>'
+    +'<div style="font-size:9px;color:var(--tx3);text-align:center;margin-top:7px">Abre tu app de correo con el mensaje completo</div>'
+    +'</div>';
+  actualizarPrevCambio();openOv('ov-cambio');
 }
 
 function actualizarPrevCambio(){
@@ -2915,29 +3398,26 @@ function actualizarPrevCambio(){
   if(!k) return;
   var _kf1=k.split('-').map(Number);var y=_kf1[0],mo=_kf1[1],dd=_kf1[2];
   var fstr = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const hora = new Date().getHours();
-  const saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
-  const nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'[Nombre compañero]');
-  const mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'[Matrícula]');
-  const trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'[Nº tren]');
-  const miNombre = AJ.nombre||'[Mi nombre]';
-  const miMat    = AJ.matricula||'[Mi matrícula]';
-  const miTren   = t.numTren||'[Mi Nº tren]';
-  const prev = document.getElementById('cbio-prev');
+  var hora = new Date().getHours();
+  var saludo = hora<13?'buenos días':hora<20?'buenas tardes':'buenas noches';
+  var nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'[Nombre compañero]');
+  var mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'[Matrícula]');
+  var trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'[Nº tren]');
+  var miNombre = AJ.nombre||'[Mi nombre]';
+  var miMat    = AJ.matricula||'[Mi matrícula]';
+  var miTren   = t.numTren||'[Mi Nº tren]';
+  var prev = document.getElementById('cbio-prev');
   if(prev) prev.textContent = generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo});
 }
 
-function generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}){
-  return `Hola, ${saludo}.
-
-Me gustaría solicitar un cambio de turno para el día ${fstr}.
-
-Quiero intercambiar mi turno (Tren: ${miTren}) con el compañero ${nombre} (Matrícula: ${mat}), quien realiza el servicio en el tren ${trenComp}.
-
-Yo realizaré su turno y él realizará el mío. Quedo a la espera de su aprobación.
-
-Atentamente,
-${miNombre} (Matrícula: ${miMat})`;
+function generarMensajeCambio(params){
+  var fstr=params.fstr,miTren=params.miTren,nombre=params.nombre,mat=params.mat;
+  var trenComp=params.trenComp,miNombre=params.miNombre,miMat=params.miMat,saludo=params.saludo;
+  return 'Hola, '+saludo+'.\n\nMe gustaria solicitar un cambio de turno para el dia '+fstr+'.\n\n'
+    +'Quiero intercambiar mi turno (Tren: '+miTren+') con el companero '+nombre+' (Matricula: '+mat+'), '
+    +'quien realiza el servicio en el tren '+trenComp+'.\n\n'
+    +'Yo realizare su turno y el realizara el mio. Quedo a la espera de su aprobacion.\n\n'
+    +'Atentamente,\n'+miNombre+' (Matricula: '+miMat+')';
 }
 
 function enviarCambio(){
@@ -3022,8 +3502,8 @@ function secPlusesViaje(){
 }
 
 function renderFormBody(){
-  const b=document.getElementById('form-body');
-  const t=F.tipo;let h='';
+  var b=document.getElementById('form-body');
+  var t=F.tipo;var h='';
 
   if(t==='ordinario'||t==='trabajado'){
     h+=secLinea();
@@ -3049,7 +3529,7 @@ function secLinea(){
   var numTren2Val = F.numTrenVuelta||'';
   var modoActivo  = F.modo;
   var bCol = numTrenVal?'var(--acc2)':'var(--div)';
-  let h = '<div class="fsec">';
+  var h = '<div class="fsec">';
   h += '<div class="fsec-lbl">'+t('numTren')+' (Ida) <span style="color:var(--nar2)">*</span></div>';
   h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
   h += '<div style="font-size:20px">🚆</div>';
@@ -3096,24 +3576,24 @@ function secPreguntaPernocta(){
 }
 
 function secTramo(tramo){
-  const esV=tramo==='vuelta';
-  const sk=esV?'sal2':'sal',lk=esV?'lle2':'lle',hFk=esV?'hF2':'hF',hLk=esV?'hL2':'hL';
-  const sv=F[sk]||'',lv=F[lk]||'',hFv=F[hFk]||'',hLv=F[hLk]||'';
-  const isBase=!esV&&sv&&sv===AJ.base;
+  var esV=tramo==='vuelta';
+  var sk=esV?'sal2':'sal',lk=esV?'lle2':'lle',hFk=esV?'hF2':'hF',hLk=esV?'hL2':'hL';
+  var sv=F[sk]||'',lv=F[lk]||'',hFv=F[hFk]||'',hLv=F[hLk]||'';
+  var isBase=!esV&&sv&&sv===AJ.base;
   // Sugerir estaciones invertidas en vuelta
-  const sShow=sv||(esV?F.lle:'');
-  const lShow=lv||(esV?F.sal:'');
-  const esPernocta=F.modo==='pernocta';
-  const hdrColor=esV?(esPernocta?'rgba(245,158,11,.12)':'rgba(59,127,255,.1)'):'rgba(59,127,255,.08)';
-  const hdrTxtColor=esV?(esPernocta?'var(--amber2)':'var(--acc2)'):'var(--acc2)';
-  const hdrIco=esV?(esPernocta?'🌙':'↩'):'🚂';
-  const hdrTxt=esV?(esPernocta?'TRAMO VUELTA — día siguiente':'TRAMO VUELTA — mismo día'):'TRAMO IDA';
-  const dur=hFv&&hLv?'<div class="dur-badge" id="dur-'+(esV?'v':'i')+'">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-'+(esV?'v':'i')+'"></div>';
+  var sShow=sv||(esV?F.lle:'');
+  var lShow=lv||(esV?F.sal:'');
+  var esPernocta=F.modo==='pernocta';
+  var hdrColor=esV?(esPernocta?'rgba(245,158,11,.12)':'rgba(59,127,255,.1)'):'rgba(59,127,255,.08)';
+  var hdrTxtColor=esV?(esPernocta?'var(--amber2)':'var(--acc2)'):'var(--acc2)';
+  var hdrIco=esV?(esPernocta?'🌙':'↩'):'🚂';
+  var hdrTxt=esV?(esPernocta?'TRAMO VUELTA — día siguiente':'TRAMO VUELTA — mismo día'):'TRAMO IDA';
+  var dur=hFv&&hLv?'<div class="dur-badge" id="dur-'+(esV?'v':'i')+'">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-'+(esV?'v':'i')+'"></div>';
   // Indicador nocturnidad automático — para todos los tipos de turno
-  const hayNocIda  = (F.hF && esHoraNocturna(F.hF))  || (F.hL  && esHoraNocturna(F.hL));
-  const hayNocVuel = (F.hF2&& esHoraNocturna(F.hF2)) || (F.hL2 && esHoraNocturna(F.hL2));
-  const hayNocEste = esV ? hayNocVuel : hayNocIda;
-  const nocBadge = hayNocEste
+  var hayNocIda  = (F.hF && esHoraNocturna(F.hF))  || (F.hL  && esHoraNocturna(F.hL));
+  var hayNocVuel = (F.hF2&& esHoraNocturna(F.hF2)) || (F.hL2 && esHoraNocturna(F.hL2));
+  var hayNocEste = esV ? hayNocVuel : hayNocIda;
+  var nocBadge = hayNocEste
     ? '<div style="display:inline-flex;align-items:center;gap:5px;'
       +'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);'
       +'border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;'
@@ -3163,27 +3643,27 @@ function secDescansoOpciones(){
 function secDescFlow(){
   if(!F.modo) return '';
 
-  const vh    = parseFloat(AJ.vh)||12.5;
-  const noc   = parseFloat(AJ.nocturnidad)||0;
-  const p     = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  const nDias = F.modo==='pernocta'?4:2;
+  var vh    = parseFloat(AJ.vh)||12.5;
+  var noc   = parseFloat(AJ.nocturnidad)||0;
+  var p     = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var nDias = F.modo==='pernocta'?4:2;
 
   // Solo calculamos si eligió "dinero"
-  const hayNoc  = F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
-  const tasa    = vh+(hayNoc?noc:0);
-  const hIda    = F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
-  const hVuelta = F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
-  const hTotal  = Math.round((hIda+hVuelta)*100)/100;
+  var hayNoc  = F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
+  var tasa    = vh+(hayNoc?noc:0);
+  var hIda    = F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+  var hVuelta = F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+  var hTotal  = Math.round((hIda+hVuelta)*100)/100;
 
   // Pluses:
   // - Activación y JT: solo si el usuario los activó manualmente (toggle)
   // - Internacional: automático si la línea es Internacional
-  const pAct  = F.plusAct      ? parseFloat(p.activacion||0)    : 0;
-  const pJT   = F.plusJT       ? parseFloat(p.jt||0)            : 0;
-  const pIntl = F.plusIntlAuto ? parseFloat(p.internacional||0) : 0;
-  const imp   = Math.round((hTotal*tasa + pAct + pJT + pIntl)*100)/100;
+  var pAct  = F.plusAct      ? parseFloat(p.activacion||0)    : 0;
+  var pJT   = F.plusJT       ? parseFloat(p.jt||0)            : 0;
+  var pIntl = F.plusIntlAuto ? parseFloat(p.internacional||0) : 0;
+  var imp   = Math.round((hTotal*tasa + pAct + pJT + pIntl)*100)/100;
 
-  let h = '<div class="fsec" style="border-top:1px solid var(--div)">'
+  var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
     +'<div class="fsec-lbl">Compensación — '+nDias+' días en mes siguiente</div>'
     +'<div style="display:flex;gap:6px;margin-bottom:10px">'
     +'<div class="cc-btn '+(F.comp==='dinero'?'on':'')+'" onclick="setComp(\'dinero\')">'
@@ -3268,9 +3748,9 @@ function secDescFlow(){
 
 // Helper: genera un toggle de plus manual
 function plusToggle(campo, activo, lbl, valor, sub, onclick){
-  const col = activo ? 'var(--green)' : 'var(--div)';
-  const bgCol = activo ? 'rgba(34,197,94,.1)' : 'var(--s2)';
-  const txtCol = activo ? 'var(--green2)' : 'var(--tx2)';
+  var col = activo ? 'var(--green)' : 'var(--div)';
+  var bgCol = activo ? 'rgba(34,197,94,.1)' : 'var(--s2)';
+  var txtCol = activo ? 'var(--green2)' : 'var(--tx2)';
   return '<div onclick="'+onclick+'" style="display:flex;align-items:center;gap:9px;'
     +'padding:9px 11px;background:'+bgCol+';border:1px solid '+col+';'
     +'border-radius:9px;cursor:pointer;transition:all .18s;margin-bottom:6px;user-select:none">'
@@ -3293,7 +3773,7 @@ function togglePlus(campo){
 
 /* ── Mini-cal compensación ── */
 function renderMiniCal(){
-  const cont=document.getElementById('mini-cal-cont');
+  var cont=document.getElementById('mini-cal-cont');
   if(!cont||!miniM)return;
   // Asegurar que miniM es el mes siguiente al del turno
   if(selDay){
@@ -3302,21 +3782,21 @@ function renderMiniCal(){
     if(miniM.getFullYear()<yExp||(miniM.getFullYear()===yExp&&miniM.getMonth()+1<mExp))
       miniM=new Date(yExp,mExp-1,1);
   }
-  const y=miniM.getFullYear(),m=miniM.getMonth();
-  const ultimo=new Date(y,m+1,0).getDate();
-  const nDias=F.modo==='pernocta'?4:2;
-  let sd=new Date(y,m,1).getDay();sd=sd===0?6:sd-1;
-  let cells='';
-  for(let i=0;i<sd;i++)cells+='<div class="mc-d mc-dis">·</div>';
-  for(let d=1;d<=ultimo;d++){
-    const iso=key(y,m+1,d);
-    const sel=diasComp.includes(iso);
-    const bloq=TV[iso]&&TV[iso].tipo!=='descanso'&&!sel;
+  var y=miniM.getFullYear(),m=miniM.getMonth();
+  var ultimo=new Date(y,m+1,0).getDate();
+  var nDias=F.modo==='pernocta'?4:2;
+  var sd=new Date(y,m,1).getDay();sd=sd===0?6:sd-1;
+  var cells='';
+  for(var i=0;i<sd;i++)cells+='<div class="mc-d mc-dis">·</div>';
+  for(var d=1;d<=ultimo;d++){
+    var iso=key(y,m+1,d);
+    var sel=diasComp.includes(iso);
+    var bloq=TV[iso]&&TV[iso].tipo!=='descanso'&&!sel;
     cells+='<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis':'')+'" onclick="toggleComp(\''+iso+'\','+nDias+')">'+d+'</div>';
   }
   var _ss3=selDay?selDay.k.split('-').map(Number):[y,m+1];var sy=_ss3[0],sm=_ss3[1];
-  const mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
-  const puedeRetro=y>yMin||(y===yMin&&m+1>mMin);
+  var mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
+  var puedeRetro=y>yMin||(y===yMin&&m+1>mMin);
   cont.innerHTML='<div class="mini-cal-wrap">'
     +'<div class="mc-hdr">'
     +'<button class="mc-nav" onclick="chMiniCal(-1)" '+(puedeRetro?'':'style="opacity:.3;pointer-events:none"')+'>‹</button>'
@@ -3340,7 +3820,7 @@ function chMiniCal(dir){
 }
 
 function toggleComp(iso,max){
-  const idx=diasComp.indexOf(iso);
+  var idx=diasComp.indexOf(iso);
   if(idx>=0)diasComp.splice(idx,1);
   else if(diasComp.length<max)diasComp.push(iso);
   F.diasComp=diasComp.slice();
@@ -3350,15 +3830,8 @@ function toggleComp(iso,max){
 /* ── Setters ── */
 function setLinea(l){
   F.linea=l;
-  // Plus Internacional: activar si la línea es Internacional
-  // (también se puede activar por estación individual en selEst)
-  if(l.includes('Internacional')){
-    F.plusIntlAuto=true;
-  } else {
-    // Si cambia a línea no internacional, re-evaluar por estaciones
-    const todasEstaciones=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean);
-    F.plusIntlAuto=todasEstaciones.some(e=>ESTACIONES_INTERNACIONALES.has(e));
-  }
+  if(l.indexOf('Internacional')>=0){F.plusIntlAuto=true;}
+  else{F.plusIntlAuto=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(e){return ESTACIONES_INTERNACIONALES.has(e);});}
   renderFormBody();
 }
 function setModo(m){
@@ -3385,6 +3858,7 @@ function abrirTrabajoEnDescanso(){F.tipo='trabajado';renderFormBody();}
    GUARDAR TURNO
 ═══════════════════════════════════════ */
 function guardarTurno(){
+  if(_tv2_guardando){ guardarTurnoEnTV2(); return; }
   if(!selDay)return;
   var k=selDay.k, t=F.tipo;
   var d={tipo:t};
@@ -3523,15 +3997,16 @@ function confirmarBorrarTodo(){
 // Estaciones internacionales que activan el plus automáticamente
 const ESTACIONES_INTERNACIONALES = new Set([
   'Lyon Part-Dieu','Aviñón TGV','Marsella St-Charles',
-  'Perpignan','Narbonne','Montpellier St-Roch'
+  'Perpignan','Narbonne','Montpellier St-Roch',
+  'León'
 ]);
 
 function openEstSheet(field){
   estField=field;
-  const labs={sal:'Estación de Salida',lle:'Estación de Llegada',
+  var labs={sal:'Estación de Salida',lle:'Estación de Llegada',
               sal2:'Salida Vuelta',lle2:'Llegada Vuelta',base:'Estación Base'};
-  const icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',base:'🏠'};
-  const tit=document.getElementById('est-tit');
+  var icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',base:'🏠'};
+  var tit=document.getElementById('est-tit');
   tit.innerHTML='<span style="font-size:20px">'+(icos[field]||'📍')+'</span>'
     +'<span>'+(labs[field]||'Estación')+'</span>';
   document.getElementById('est-srch-inp').value='';
@@ -3541,45 +4016,48 @@ function openEstSheet(field){
 }
 
 function renderEstList(q){
-  const lista=document.getElementById('est-list');
-  const cur = estField==='base' ? AJ.base : F[estField];
-  const lin = estField==='base' ? null : F.linea;
-  const grupos = lin ? {[lin]:LINEAS[lin]} : LINEAS;
-  let html = '';
-
-  Object.entries(grupos).forEach(([l, ests])=>{
-    const filtradas = q
-      ? ests.filter(e=>e.toLowerCase().includes(q.toLowerCase()))
-      : ests;
-    if(!filtradas.length) return;
-
-    // Cabecera de grupo con icono de línea
-    const esIntl = l.includes('Internacional');
-    html += '<div class="est-grp-hdr">'
-      + (esIntl?'🌍':'🚆') + ' ' + l
-      + '</div>';
-
-    filtradas.forEach(e=>{
-      const selec   = e === cur;
-      const esIntlEst = ESTACIONES_INTERNACIONALES.has(e);
-      const cardCls = 'est-card'
-        + (selec  ? ' sel'  : '')
-        + (esIntlEst ? ' intl' : '');
-      const ico = esIntlEst ? '🌍' : '🚂';
-
-      html += `<div class="${cardCls}" onclick="selEst('${e.replace(/'/g,"\\'")}')">
-        <div class="est-card-ico">${ico}</div>
-        <div class="est-card-info">
-          <div class="est-card-name">${e}</div>
-          ${esIntlEst ? '<div class="est-card-badge">+Plus Internacional</div>' : ''}
-        </div>
-        ${selec ? '<div class="est-card-check">✓</div>' : ''}
-      </div>`;
+  var lista=document.getElementById('est-list');
+  var cur=estField==='base'?AJ.base:F[estField];
+  var lin=estField==='base'?null:F.linea;
+  var grupos=lin?{}:LINEAS;if(lin)grupos[lin]=LINEAS[lin];
+  var h='';
+  Object.keys(grupos).forEach(function(l){
+    var ests=grupos[l];
+    var fil=q?ests.filter(function(e){return e.toLowerCase().indexOf(q.toLowerCase())>=0;}):ests;
+    if(!fil.length) return;
+    var esI=l.indexOf('Internacional')>=0;
+    h+='<div class="est-grp-hdr">'+(esI?'🌍':'🚆')+' '+l+'</div>';
+    fil.forEach(function(e){
+      var sel=e===cur,esIE=ESTACIONES_INTERNACIONALES.has(e);
+      h+='<div class="est-card'+(sel?' sel':'')+(esIE?' intl':'')+'" onclick="selEst(\''+e.replace(/'/g,"\\'")+'\')">'
+        +'<div class="est-card-ico">'+(esIE?'🌍':'🚂')+'</div>'
+        +'<div class="est-card-info"><div class="est-card-name">'+e+'</div>'+(esIE?'<div class="est-card-badge">+Plus Internacional</div>':'')+'</div>'
+        +(sel?'<div class="est-card-check">✓</div>':'')+'</div>';
     });
   });
-
-  lista.innerHTML = html
-    || '<div style="padding:24px;text-align:center;color:var(--tx3)">Sin resultados</div>';
+  // ── MÓDULO OTRA ESTACIÓN ──────────────────────────────────
+  if(!q){
+    h+='<div class="est-grp-hdr">✏️ Entrada manual</div>'
+      +'<div class="est-card" onclick="selEstOtra()">'
+      +'<div class="est-card-ico">✏️</div>'
+      +'<div class="est-card-info"><div class="est-card-name">Otra estación...</div>'
+      +'<div class="est-card-badge" style="color:var(--tx3)">Escribir manualmente</div></div>'
+      +'</div>'
+      +'<div id="est-manual-wrap" style="display:none;padding:10px 12px;background:var(--s2);border-top:1px solid var(--div)">'
+      +'<div style="font-size:9px;font-weight:800;color:var(--tx3);letter-spacing:.5px;margin-bottom:6px">NOMBRE DE LA ESTACIÓN</div>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+      +'<input id="est-manual-inp" type="text" placeholder="Escribe el nombre exacto..." autocomplete="off"'
+      +' style="flex:1;background:var(--s1);border:1.5px solid var(--acc);border-radius:10px;'
+      +'color:var(--tx);font-size:13px;padding:9px 12px;outline:none"'
+      +' oninput="previsualizarEstManual(this.value)">'
+      +'<button onclick="confirmarEstManual()" style="padding:9px 14px;background:var(--acc);border:none;'
+      +'border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer">OK</button>'
+      +'</div>'
+      +'<div id="est-manual-preview" style="font-size:10px;color:var(--tx3);margin-top:5px"></div>'
+      +'</div>';
+  }
+  // ─────────────────────────────────────────────────────────
+  lista.innerHTML=h||'<div style="padding:24px;text-align:center;color:var(--tx3)">Sin resultados</div>';
 }
 
 /* ── onStationSelected ───────────────────────────────────────
@@ -3588,56 +4066,28 @@ function renderEstList(q){
    Se aplica tanto en turno nuevo como en edición.
 ──────────────────────────────────────────────────────────── */
 function selEst(e){
-  if(estField==='base'){
-    AJ.base=e;
-    const bv=document.getElementById('aj-base-v');
-    bv.textContent=e; bv.className='aj-base-val';
-    closeOv('ov-est');
-    return;
-  }
-
-  // 1. Guardar estación en F
+  if(estField==='base'){AJ.base=e;var bv=document.getElementById('aj-base-v');bv.textContent=e;bv.className='aj-base-val';closeOv('ov-est');return;}
   F[estField]=e;
-
-  // 2. AUTOMATIZACIÓN PLUS INTERNACIONAL
-  //    Si cualquier estación (sal, lle, sal2, lle2) es internacional
-  //    → plusIntlAuto = true. Si se cambia y ya no hay ninguna intl → false.
-  const todasEstaciones = [F.sal, F.lle, F.sal2, F.lle2].filter(Boolean);
-  const hayIntl = todasEstaciones.some(est => ESTACIONES_INTERNACIONALES.has(est));
-  const anteriorIntl = F.plusIntlAuto;
-  F.plusIntlAuto = hayIntl;
-
-  // 3. Actualizar campo visual in-place (sin reconstruir todo el formulario)
-  const el = document.querySelector('[data-f="'+estField+'"]');
-  if(el){
-    el.textContent = e;
-    el.className   = 'sf-val';
-    const sfP = el.closest('.sf');
-    if(sfP) sfP.classList.add('fil');
-
-    // Si cambió el estado del plus internacional, actualizar el badge
-    if(hayIntl !== anteriorIntl){
-      actualizarBadgeIntl();
-    }
-    // Actualizar cálculo si está visible
-    if(F.tipo==='trabajado' && F.comp==='dinero') actualizarCalculo();
-  } else {
-    renderFormBody();
-  }
-
+  var hayI=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(x){return ESTACIONES_INTERNACIONALES.has(x);});
+  var antI=F.plusIntlAuto;F.plusIntlAuto=hayI;
+  var el=document.querySelector('[data-f="'+estField+'"]');
+  if(el){el.textContent=e;el.className='sf-val';var sfP=el.closest('.sf');if(sfP)sfP.classList.add('fil');
+    if(hayI!==antI)actualizarBadgeIntl();
+    if(F.tipo==='trabajado'&&F.comp==='dinero')actualizarCalculo();
+  }else renderFormBody();
   closeOv('ov-est');
 }
 
 // Muestra/oculta el badge de Plus Internacional en el formulario
 function actualizarBadgeIntl(){
   // Buscar si ya existe el badge
-  let badge = document.getElementById('badge-plus-intl');
+  var badge = document.getElementById('badge-plus-intl');
   if(F.plusIntlAuto){
     if(!badge){
       // Insertar justo antes del primer secTramo
-      const formBody = document.getElementById('form-body');
-      const primerTramo = formBody ? formBody.querySelector('.fsec[style*="border-top"]') : null;
-      const div = document.createElement('div');
+      var formBody = document.getElementById('form-body');
+      var primerTramo = formBody ? formBody.querySelector('.fsec[style*="border-top"]') : null;
+      var div = document.createElement('div');
       div.id = 'badge-plus-intl';
       div.className = 'plus-intl-badge';
       div.innerHTML = '🌍 <span><strong>Plus Internacional</strong> activado automáticamente</span>';
@@ -3657,9 +4107,9 @@ function actualizarBadgeIntl(){
 function openHora(field){
   TP.field = field;
   // Leer valor actual del campo en F (preserva lo que ya había)
-  const ex = F[field];
+  var ex = F[field];
   if(ex && ex.includes(':')){
-    const p = ex.split(':');
+    var p = ex.split(':');
     TP.H = p[0]; TP.M = p[1];
   } else {
     TP.H = '08'; TP.M = '00';
@@ -3669,7 +4119,7 @@ function openHora(field){
   TP.buf  = '';
 
   // Label
-  const labs = {hF:'⏱ Firma — ida', hL:'🔚 Llegada — ida',
+  var labs = {hF:'⏱ Firma — ida', hL:'🔚 Llegada — ida',
                 hF2:'🌙 Firma — vuelta', hL2:'🔚 Llegada — vuelta'};
   document.getElementById('hora-tit').textContent = labs[field] || '⏱ Hora';
 
@@ -3679,9 +4129,9 @@ function openHora(field){
 
 // Actualiza el display y el resaltado
 function horaRefresh(){
-  const dh = document.getElementById('hd-h');
-  const dm = document.getElementById('hd-m');
-  const lbl= document.getElementById('hora-cursor-lbl');
+  var dh = document.getElementById('hd-h');
+  var dm = document.getElementById('hd-m');
+  var lbl= document.getElementById('hora-cursor-lbl');
   if(!dh||!dm) return;
 
   dh.textContent = TP.buf && TP.foco==='h' ? TP.buf.padStart(2,'0') : TP.H;
@@ -3705,7 +4155,7 @@ function hpNum(n){
   TP.buf += String(n);
 
   if(TP.foco === 'h'){
-    const v = parseInt(TP.buf);
+    var v = parseInt(TP.buf);
     if(TP.buf.length === 1){
       if(v >= 3){
         // 3–9 como primer dígito de hora: solo puede ser 3–9 sin segundo → confirmar ya
@@ -3722,7 +4172,7 @@ function hpNum(n){
     }
   } else {
     // Minutos
-    const v = parseInt(TP.buf);
+    var v = parseInt(TP.buf);
     if(TP.buf.length === 1){
       if(v >= 6){
         // 6–9 como primer dígito: no puede haber decena válida (60+ > 59)
@@ -3763,27 +4213,27 @@ function hpBorrar(){
 function confHora(){
   // Aplicar cualquier buffer pendiente
   if(TP.buf){
-    const v = parseInt(TP.buf);
+    var v = parseInt(TP.buf);
     if(TP.foco==='h') TP.H = pad(Math.min(v,23));
     else              TP.M = pad(Math.min(v,59));
     TP.buf = '';
   }
 
-  const hora = TP.H + ':' + TP.M;
+  var hora = TP.H + ':' + TP.M;
   F[TP.field] = hora;
   closeOv('ov-hora');
 
   // Actualizar elemento visual in-place
-  const elVal = document.querySelector('[data-hora="'+TP.field+'"]');
+  var elVal = document.querySelector('[data-hora="'+TP.field+'"]');
   if(elVal){
     elVal.textContent = hora;
     elVal.className   = 'sf-val hv';
-    const sfParent = elVal.closest('.sf');
+    var sfParent = elVal.closest('.sf');
     if(sfParent) sfParent.classList.add('fil');
     // Badge duración
-    const esV  = TP.field==='hF2'||TP.field==='hL2';
-    const hFk  = esV?'hF2':'hF', hLk = esV?'hL2':'hL';
-    const badge= document.getElementById('dur-'+(esV?'v':'i'));
+    var esV  = TP.field==='hF2'||TP.field==='hL2';
+    var hFk  = esV?'hF2':'hF', hLk = esV?'hL2':'hL';
+    var badge= document.getElementById('dur-'+(esV?'v':'i'));
     if(badge && F[hFk] && F[hLk]){
       badge.textContent  = '⏱ '+calcDur(F[hFk],F[hLk]);
       badge.style.display= 'inline-flex';
@@ -3796,20 +4246,20 @@ function confHora(){
 }
 
 function actualizarCalculo(){
-  const cont=document.getElementById('calc-result-cont');
+  var cont=document.getElementById('calc-result-cont');
   if(!cont)return;
-  const vh=parseFloat(AJ.vh)||12.5;
-  const noc=parseFloat(AJ.nocturnidad)||0;
-  const p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  const hayNoc=F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
-  const tasa=vh+(hayNoc?noc:0);
-  const hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
-  const hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
-  const hT=Math.round((hIda+hVuelta)*100)/100;
-  const pAct=F.plusAct     ? parseFloat(p.activacion||0)   : 0;
-  const pJT =F.plusJT      ? parseFloat(p.jt||0)           : 0;
-  const pIntl=F.plusIntlAuto? parseFloat(p.internacional||0): 0;
-  const imp=Math.round((hT*tasa+pAct+pJT+pIntl)*100)/100;
+  var vh=parseFloat(AJ.vh)||12.5;
+  var noc=parseFloat(AJ.nocturnidad)||0;
+  var p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var hayNoc=F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
+  var tasa=vh+(hayNoc?noc:0);
+  var hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+  var hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+  var hT=Math.round((hIda+hVuelta)*100)/100;
+  var pAct=F.plusAct     ? parseFloat(p.activacion||0)   : 0;
+  var pJT =F.plusJT      ? parseFloat(p.jt||0)           : 0;
+  var pIntl=F.plusIntlAuto? parseFloat(p.internacional||0): 0;
+  var imp=Math.round((hT*tasa+pAct+pJT+pIntl)*100)/100;
   if(hT>0){
     cont.innerHTML='<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>'
       +(hVuelta>0?'<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>':'')
@@ -3837,23 +4287,13 @@ const IDIOMAS = [
 ];
 
 function renderIdiomaBtns(){
-  const cont = document.getElementById('idioma-btns');
-  if(!cont) return;
-  cont.innerHTML = IDIOMAS.map(({code,flag,nombre})=>{
-    const activo = LANG === code;
-    return `<div onclick="setIdioma('${code}')"
-      style="display:flex;align-items:center;gap:8px;padding:10px 12px;
-      background:${activo?'rgba(139,92,246,.15)':'var(--s2)'};
-      border:1.5px solid ${activo?'var(--violet2)':'var(--div)'};
-      border-radius:11px;cursor:pointer;transition:all .18s;user-select:none;
-      ${activo?'box-shadow:0 0 0 2px rgba(139,92,246,.2)':''}">
-      <span style="font-size:18px">${flag}</span>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:${activo?'800':'600'};
-          color:${activo?'var(--violet2)':'var(--tx2)'}">${nombre}</div>
-        ${activo?'<div style="font-size:9px;color:var(--violet2);margin-top:1px">✓ Activo</div>':''}
-      </div>
-    </div>`;
+  var cont=document.getElementById('idioma-btns');if(!cont)return;
+  cont.innerHTML=IDIOMAS.map(function(item){
+    var code=item.code,flag=item.flag,nombre=item.nombre,act=LANG===code;
+    return '<div onclick="setIdioma(\''+code+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:'+(act?'rgba(139,92,246,.15)':'var(--s2)')+';border:1.5px solid '+(act?'var(--violet2)':'var(--div)')+';border-radius:11px;cursor:pointer;transition:all .18s;user-select:none;'+(act?'box-shadow:0 0 0 2px rgba(139,92,246,.2)':'')+'\">'
+      +'<span style="font-size:18px">'+flag+'</span>'
+      +'<div style="flex:1"><div style="font-size:12px;font-weight:'+(act?'800':'600')+';color:'+(act?'var(--violet2)':'var(--tx2)')+'">'+nombre+'</div>'+(act?'<div style="font-size:9px;color:var(--violet2);margin-top:1px">✓ Activo</div>':'')+'</div>'
+      +'</div>';
   }).join('');
 }
 
@@ -3864,11 +4304,23 @@ function setIdioma(code){
 }
 
 function loadAjUI(){
+  // Inicializar UI de alarmas
+  var aSw = document.getElementById('alarm-sw');
+  var aFi = document.getElementById('alarm-fichar');
+  var aSa = document.getElementById('alarm-salida');
+  var aLbl= document.getElementById('alarm-lbl');
+  if(AJ.alarmas){
+    if(aSw)  aSw.checked  = !!AJ.alarmas.activas;
+    if(aFi)  aFi.checked  = AJ.alarmas.fichar!==false;
+    if(aSa)  aSa.checked  = AJ.alarmas.salida!==false;
+    if(aLbl){ aLbl.textContent=AJ.alarmas.activas?'Activadas':'Desactivadas';
+              aLbl.style.color=AJ.alarmas.activas?'var(--green2)':'var(--tx3)';}
+  }
   document.getElementById('aj-nom').value=AJ.nombre||'';
   document.getElementById('aj-mat').value=AJ.matricula||'';
   document.getElementById('aj-vh').value=AJ.vh||12.5;
   document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
-  const bv=document.getElementById('aj-base-v');
+  var bv=document.getElementById('aj-base-v');
   if(AJ.base){bv.textContent=AJ.base;bv.className='aj-base-val';}
   else{bv.textContent=t('tocaSeleccionar');bv.className='aj-base-val ph';}
   setRolUI(AJ.rol||'tripulante');
@@ -3882,19 +4334,15 @@ function setRolUI(r){
   document.getElementById('rs-a').className='aj-rol-btn'+(r==='auxiliar'?' activo-a':'');
 }
 function renderPlusGrid(){
-  const r=AJ.rol||'tripulante',p=AJ.pluses[r]||PLUS_DEF[r];
-  const labs={activacion:'Plus\nActivación',internacional:'Plus\nIntl.',jt:'Plus\nJT'};
-  document.getElementById('pgrid').innerHTML=Object.entries(PLUS_LABELS).map(([k,lbl])=>
-    '<div class="pf">'
-    +'<div class="pf-l">'+labs[k]+'</div>'
-    +'<div class="pf-r">'
-    +'<input class="pf-i" type="number" step="0.10" min="0" value="'+(p[k]||0)+'" oninput="setPlus(\''+k+'\',this.value)">'
-    +'</div>'
-    +'<div class="pf-u">€/viaje</div>'
-    +'</div>'
-  ).join('');
+  var r=AJ.rol||'tripulante',p=AJ.pluses[r]||PLUS_DEF[r];
+  var labs={activacion:'Plus\nActivacion',internacional:'Plus\nIntl.',jt:'Plus\nJT'};
+  document.getElementById('pgrid').innerHTML=Object.keys(PLUS_LABELS).map(function(k){
+    return '<div class="pf"><div class="pf-l">'+labs[k]+'</div>'
+      +'<div class="pf-r"><input class="pf-i" type="number" step="0.10" min="0" value="'+(p[k]||0)+'" oninput="setPlus(\''+k+'\',this.value)"></div>'
+      +'<div class="pf-u">€/viaje</div></div>';
+  }).join('');
 }
-function setPlus(k,v){const r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={};AJ.pluses[r][k]=parseFloat(v)||0;}
+function setPlus(k,v){var r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={};AJ.pluses[r][k]=parseFloat(v)||0;}
 function saveAj(){
   AJ.nombre=document.getElementById('aj-nom').value.trim()||'Mis Turnos';
   AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
@@ -3906,15 +4354,9 @@ function saveAj(){
 }
 function updHeader(){
   document.getElementById('hdr-nom').textContent=AJ.nombre||'Mis Turnos';
-  const rp=document.getElementById('hdr-rol');
-  const mat=AJ.matricula?` · ${AJ.matricula}`:'';
-  if(AJ.rol==='auxiliar'){
-    rp.className='hdr-pill pill-a';
-    rp.textContent='🎫 AUXILIAR'+mat;
-  } else {
-    rp.className='hdr-pill pill-t';
-    rp.textContent='🚆 TRIPULANTE'+mat;
-  }
+  var rp=document.getElementById('hdr-rol'),mat=AJ.matricula?' · '+AJ.matricula:'';
+  if(AJ.rol==='auxiliar'){rp.className='hdr-pill pill-a';rp.textContent='🎫 AUXILIAR'+mat;}
+  else{rp.className='hdr-pill pill-t';rp.textContent='🚆 TRIPULANTE'+mat;}
 }
 
 /* ═══════════════════════════════════════
@@ -4067,43 +4509,20 @@ function chSM(d){statsM.setMonth(statsM.getMonth()+d);renderStats();}
 function saveAgenda(){ localStorage.setItem('agenda5', JSON.stringify(AGENDA)); }
 
 // ── CRUD Contactos ────────────────────────────────────────────
-function agregarContacto(nombre, matricula, tren){
+function agregarContacto(nombre,matricula,tren){
   if(tren===undefined)tren='';
-  // Evitar duplicados por matrícula
-  const existe = AGENDA.find(c => c.matricula === matricula && matricula);
-  if(existe){
-    // Actualizar datos si ya existe
-    existe.nombre    = nombre;
-    existe.tren      = tren || existe.tren;
-    existe.ultimoUso = Date.now();
-    saveAgenda();
-    return existe;
-  }
-  const contacto = {
-    id:        Date.now().toString(),
-    nombre:    nombre.trim(),
-    matricula: matricula.trim(),
-    tren:      tren.trim(),
-    ultimoUso: Date.now()
-  };
-  AGENDA.unshift(contacto); // Más reciente primero
-  saveAgenda();
-  return contacto;
+  var ex=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].matricula===matricula&&matricula){ex=AGENDA[i];break;}}
+  if(ex){ex.nombre=nombre;ex.tren=tren||ex.tren;ex.ultimoUso=Date.now();saveAgenda();return ex;}
+  var c={id:Date.now().toString(),nombre:nombre.trim(),matricula:matricula.trim(),tren:tren.trim(),ultimoUso:Date.now()};
+  AGENDA.unshift(c);saveAgenda();return c;
 }
 
-function eliminarContacto(id){
-  AGENDA = AGENDA.filter(c => c.id !== id);
-  saveAgenda();
-}
+function eliminarContacto(id){AGENDA=AGENDA.filter(function(c){return c.id!==id;});saveAgenda();}
 
 function buscarContactos(q){
-  if(!q) return AGENDA.slice().sort((a,b)=> b.ultimoUso - a.ultimoUso);
-  const lq = q.toLowerCase();
-  return AGENDA.filter(c =>
-    c.nombre.toLowerCase().includes(lq) ||
-    c.matricula.toLowerCase().includes(lq) ||
-    c.tren.includes(q)
-  );
+  if(!q)return AGENDA.slice().sort(function(a,b){return b.ultimoUso-a.ultimoUso;});
+  var lq=q.toLowerCase();
+  return AGENDA.filter(function(c){return c.nombre.toLowerCase().indexOf(lq)>=0||c.matricula.toLowerCase().indexOf(lq)>=0||c.tren.indexOf(q)>=0;});
 }
 
 // ── Abrir agenda desde formulario de cambio ───────────────────
@@ -4114,58 +4533,31 @@ function abrirAgenda(){
 }
 
 function renderAgenda(q){
-  const lista   = document.getElementById('agenda-list');
-  const contactos = buscarContactos(q);
-
-  if(!contactos.length){
-    lista.innerHTML = '<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12px">'
-      + (q ? 'Sin resultados para "'+q+'"' : 'Tu agenda está vacía.<br>Añade compañeros para agilizar los cambios.')
-      + '</div>';
-    return;
-  }
-
-  lista.innerHTML = contactos.map(c => {
-    // Inicial del nombre para el avatar
-    const inicial = c.nombre ? c.nombre[0].toUpperCase() : '?';
-    return `<div class="contacto-card" onclick="seleccionarContacto('${c.id}')">
-      <div class="contacto-av">${inicial}</div>
-      <div class="contacto-info">
-        <div class="contacto-nombre">${c.nombre}</div>
-        <div class="contacto-mat">🪪 ${c.matricula||'—'}</div>
-        ${c.tren ? `<div class="contacto-tren">🚆 Tren frecuente: #${c.tren}</div>` : ''}
-      </div>
-      <button class="contacto-del" onclick="event.stopPropagation();borrarContactoAgenda('${c.id}')" title="Eliminar">🗑</button>
-    </div>`;
+  var lista=document.getElementById('agenda-list');
+  var cs=buscarContactos(q);
+  if(!cs.length){lista.innerHTML='<div style="padding:24px;text-align:center;color:var(--tx3);font-size:12px">'+(q?'Sin resultados para "'+q+'"':'Agenda vacia. Añade compañeros.')+'</div>';return;}
+  lista.innerHTML=cs.map(function(c){
+    var ini=c.nombre?c.nombre[0].toUpperCase():'?';
+    return '<div class="contacto-card" onclick="seleccionarContacto(\''+c.id+'\')">'
+      +'<div class="contacto-av">'+ini+'</div>'
+      +'<div class="contacto-info"><div class="contacto-nombre">'+c.nombre+'</div><div class="contacto-mat">🪪 '+(c.matricula||'—')+'</div>'+(c.tren?'<div class="contacto-tren">🚆 #'+c.tren+'</div>':'')+'</div>'
+      +'<button class="contacto-del" onclick="event.stopPropagation();borrarContactoAgenda(\''+c.id+'\')" title="Eliminar">🗑</button></div>';
   }).join('');
 }
 
 // Rellenar formulario de cambio con el contacto seleccionado
 function seleccionarContacto(id){
-  const c = AGENDA.find(x => x.id === id);
-  if(!c) return;
-  // Actualizar último uso
-  c.ultimoUso = Date.now();
-  saveAgenda();
-  // Rellenar campos del formulario de cambio
-  const nom = document.getElementById('cbio-nombre');
-  const mat = document.getElementById('cbio-mat');
-  const tren= document.getElementById('cbio-tren');
-  if(nom)  nom.value  = c.nombre;
-  if(mat)  mat.value  = c.matricula;
-  if(tren && c.tren) tren.value = c.tren;
-  closeOv('ov-agenda');
-  actualizarPrevCambio();
-  ocultarSugerencias();
-  toast('👤 '+c.nombre+' seleccionado');
+  var c=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].id===id){c=AGENDA[i];break;}}
+  if(!c)return;c.ultimoUso=Date.now();saveAgenda();
+  var n=document.getElementById('cbio-nombre'),m=document.getElementById('cbio-mat'),tr=document.getElementById('cbio-tren');
+  if(n)n.value=c.nombre;if(m)m.value=c.matricula;if(tr&&c.tren)tr.value=c.tren;
+  closeOv('ov-agenda');actualizarPrevCambio();ocultarSugerencias();toast('👤 '+c.nombre+' seleccionado');
 }
 
 function borrarContactoAgenda(id){
-  const c = AGENDA.find(x => x.id === id);
-  if(!c) return;
-  if(!confirm('¿Eliminar a '+c.nombre+' de la agenda?')) return;
-  eliminarContacto(id);
-  renderAgenda(document.getElementById('agenda-srch-inp').value || '');
-  toast('🗑 Contacto eliminado');
+  var c=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].id===id){c=AGENDA[i];break;}}
+  if(!c)return;if(!confirm('¿Eliminar a '+c.nombre+' de la agenda?'))return;
+  eliminarContacto(id);renderAgenda(document.getElementById('agenda-srch-inp').value||'');toast('🗑 Contacto eliminado');
 }
 
 // ── Añadir contacto manualmente ───────────────────────────────
@@ -4178,9 +4570,9 @@ function abrirNuevoContacto(){
 }
 
 function guardarNuevoContacto(){
-  const nombre = document.getElementById('nc-nombre').value.trim();
-  const mat    = document.getElementById('nc-mat').value.trim();
-  const tren   = document.getElementById('nc-tren').value.trim();
+  var nombre = document.getElementById('nc-nombre').value.trim();
+  var mat    = document.getElementById('nc-mat').value.trim();
+  var tren   = document.getElementById('nc-tren').value.trim();
   if(!nombre){ toast('⚠️ Escribe un nombre'); return; }
   agregarContacto(nombre, mat, tren);
   closeOv('ov-nuevo-contacto');
@@ -4188,49 +4580,30 @@ function guardarNuevoContacto(){
 }
 
 // ── Autocompletado en formulario de cambio ─────────────────────
-function sugerirContacto(campo, q){
-  const boxNom = document.getElementById('sug-nombre');
-  const boxMat = document.getElementById('sug-mat');
-  const box    = campo === 'nombre' ? boxNom : boxMat;
-  const otra   = campo === 'nombre' ? boxMat : boxNom;
-  if(otra) otra.style.display = 'none';
-  if(!q || q.length < 1){ if(box) box.style.display='none'; return; }
-
-  const sugs = buscarContactos(q).slice(0, 5);
-  if(!sugs.length){ if(box) box.style.display='none'; return; }
-
-  if(box){
-    box.innerHTML = sugs.map(c =>
-      `<div class="sug-item" onclick="seleccionarContacto('${c.id}')">
-        <span style="font-size:14px">👤</span>
-        <span class="sug-nombre">${c.nombre}</span>
-        <span class="sug-mat">${c.matricula||''}</span>
-      </div>`
-    ).join('');
-    box.style.display = 'block';
-  }
+function sugerirContacto(campo,q){
+  var bN=document.getElementById('sug-nombre'),bM=document.getElementById('sug-mat');
+  var bx=campo==='nombre'?bN:bM,ot=campo==='nombre'?bM:bN;
+  if(ot)ot.style.display='none';
+  if(!q||q.length<1){if(bx)bx.style.display='none';return;}
+  var sugs=buscarContactos(q).slice(0,5);
+  if(!sugs.length){if(bx)bx.style.display='none';return;}
+  if(bx){bx.innerHTML=sugs.map(function(c){return '<div class="sug-item" onclick="seleccionarContacto(\''+c.id+'\')">'+'<span style="font-size:14px">👤</span><span class="sug-nombre">'+c.nombre+'</span><span class="sug-mat">'+(c.matricula||'')+'</span></div>';}).join('');bx.style.display='block';}
 }
 
 function ocultarSugerencias(){
-  const b1 = document.getElementById('sug-nombre');
-  const b2 = document.getElementById('sug-mat');
+  var b1 = document.getElementById('sug-nombre');
+  var b2 = document.getElementById('sug-mat');
   if(b1) b1.style.display = 'none';
   if(b2) b2.style.display = 'none';
 }
 
 // ── Guardado automático tras enviar cambio ─────────────────────
 // Se llama desde enviarCambio() después de abrir el mailto:
-function preguntarGuardarContacto(nombre, matricula, tren){
-  if(!nombre) return;
-  // ¿Ya existe en la agenda?
-  const existe = AGENDA.find(c =>
-    c.matricula === matricula ||
-    c.nombre.toLowerCase() === nombre.toLowerCase()
-  );
-  if(existe){ existe.ultimoUso = Date.now(); saveAgenda(); return; }
-  // Preguntar al usuario
-  const ok = confirm('¿Guardar a "'+nombre+'" en tu agenda de compañeros?\n\nLa próxima vez se autocompletará automáticamente.');
-  if(ok) agregarContacto(nombre, matricula, tren);
+function preguntarGuardarContacto(nombre,matricula,tren){
+  if(!nombre)return;
+  var ex=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].matricula===matricula||AGENDA[i].nombre.toLowerCase()===nombre.toLowerCase()){ex=AGENDA[i];break;}}
+  if(ex){ex.ultimoUso=Date.now();saveAgenda();return;}
+  if(confirm('¿Guardar a "'+nombre+'" en tu agenda?\n\nLa proxima vez se autocompletara automaticamente.'))agregarContacto(nombre,matricula,tren);
 }
 
 /* ═══════════════════════════════════════
@@ -4244,9 +4617,9 @@ function parseKey(k){return k.split('-').map(Number);}
 
 function calcMins(h1,h2){
   var _h1=h1.split(':').map(Number);var a=_h1[0],b=_h1[1];var _h2r=h2.split(':').map(Number);var c=_h2r[0],d=_h2r[1];
-  let m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
+  var m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
 }
-function calcDur(h1,h2){if(!h1||!h2)return '--';const m=calcMins(h1,h2);return Math.floor(m/60)+'h '+pad(m%60)+'m';}
+function calcDur(h1,h2){if(!h1||!h2)return '--';var m=calcMins(h1,h2);return Math.floor(m/60)+'h '+pad(m%60)+'m';}
 
 // Calcula horas (decimal) entre dos strings "HH:MM"
 function horasDec(hF,hL){
@@ -4256,14 +4629,14 @@ function horasDec(hF,hL){
 
 // Calcula importe completo de un turno (horas × tarifa + pluses activos)
 function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
-  const vh  = parseFloat(AJ.vh)||12.5;
-  const noc = parseFloat(AJ.nocturnidad)||0;
-  const p   = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  const hayNoc = hF ? esHoraNocturna(hF)||(hL?esHoraNocturna(hL):false) : false;
-  const tasa   = vh+(hayNoc?noc:0);
-  const pA = plusAct      ? parseFloat(p.activacion||0)   : 0;
-  const pJ = plusJT       ? parseFloat(p.jt||0)           : 0;
-  const pI = plusIntlAuto ? parseFloat(p.internacional||0) : 0;
+  var vh  = parseFloat(AJ.vh)||12.5;
+  var noc = parseFloat(AJ.nocturnidad)||0;
+  var p   = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var hayNoc = hF ? esHoraNocturna(hF)||(hL?esHoraNocturna(hL):false) : false;
+  var tasa   = vh+(hayNoc?noc:0);
+  var pA = plusAct      ? parseFloat(p.activacion||0)   : 0;
+  var pJ = plusJT       ? parseFloat(p.jt||0)           : 0;
+  var pI = plusIntlAuto ? parseFloat(p.internacional||0) : 0;
   return Math.round((horas*tasa+pA+pJ+pI)*100)/100;
 }
 
@@ -4287,12 +4660,16 @@ function goP(n){
   });
   var ap=document.getElementById('p-'+n);
   if(ap){ap.classList.remove('anim-in');void ap.offsetWidth;ap.classList.add('anim-in');}
-  if(n==='stats')renderStats();
+  // SINCRONIZACIÓN: al entrar en Stats, alinear su mes con el del calendario
+  if(n==='stats'){
+    statsM=new Date(curM.getFullYear(), curM.getMonth(), 1);
+    renderStats();
+  }
   if(n==='ajustes')loadAjUI();
 }
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2500);}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2500);}
 // Cerrar overlays al tocar fuera
-['ov-tipo','ov-form','ov-est','ov-hora','ov-del','ov-borrar','ov-edit-comp','ov-cambio','ov-agenda','ov-nuevo-contacto'].forEach(id=>{
+['ov-tipo','ov-form','ov-est','ov-hora','ov-del','ov-borrar','ov-edit-comp','ov-cambio','ov-agenda','ov-nuevo-contacto'].forEach(function(id){
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeOv(id);});
 });
 
@@ -4301,8 +4678,8 @@ function calculateEarnings(ks){
   var p=AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
   var HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
   var P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
-  let tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
-  let dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
+  var tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
+  var dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
   var cn = function(hF, hL){
     if(!hF||!hL) return 0;
     var tm = function(h){
@@ -4425,44 +4802,41 @@ function clearSelDay(){
 }
 
 
-function closeOvTop(id){const el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
+function closeOvTop(id){var el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
 
 function confirmarEnvioEmail(){
-  const dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
-  const asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
-  const cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
+  var dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
+  var asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
+  var cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
   if(dest){AJ.emailDestino=dest;localStorage.setItem('aj5',JSON.stringify(AJ));}
-  const ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  var ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
   if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
   closeOv('ov-email-confirm');
-  setTimeout(function(){window.location.href=ml;},150);
+  setTimeout(function(){window.location.href=ml;closeOv('ov-cambio');},150);
 }
 
 function enviarSolicitudCompensacion(k){
-  const t=TV[k];if(!t)return;
-  var _kf3=k.split('-').map(Number);var y=_kf3[0],mo=_kf3[1],dd=_kf3[2];
+  var t=TV[k];if(!t)return;
+  var kp=k.split('-').map(Number);var y=kp[0],mo=kp[1],dd=kp[2];
   var fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
-  const nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
-  const nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
-  const hora=new Date().getHours();
-  const sal=hora<13?'Buenos días':hora<20?'Buenas tardes':'Buenas noches';
-  const cuerpo=sal+'.\n\nMediante el presente solicito la compensación de '
-    +nDias+' día'+(nDias===1?'':'s')+' por el servicio realizado el día '+fstr
-    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validación.\n\n'
-    +'Atentamente,\n'+mn+'\nMatrícula: '+mm;
-  const asunto='Solicitud de Compensación - '+fstr+(nt?' - Tren '+nt:'');
-  handleEmailSubmission('Solicitud de Compensación',
-    nDias+' día'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,()=>{
-    TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;
-    if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();
-  });
+  var nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
+  var nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
+  var hora=new Date().getHours();
+  var sal=hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
+  var cuerpo=sal+'.\n\nMediante el presente solicito la compensacion de '
+    +nDias+' dia'+(nDias===1?'':'s')+' por el servicio realizado el dia '+fstr
+    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validacion.\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
+  var asunto='Solicitud de Compensacion - '+fstr+(nt?' - Tren '+nt:'');
+  handleEmailSubmission('Solicitud de Compensacion',nDias+' dia'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,
+    function(){TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();}
+  );
 }
 
 
 function guardarCompanero(nombre,mat){
-  const e=AGENDA.find(c=>c.matricula===mat&&mat);
+  var e=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].matricula===mat&&mat){e=AGENDA[i];break;}}
   if(e){e.nombre=nombre;e.ultimoUso=Date.now();saveAgenda();return e;}
-  const c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
+  var c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
   AGENDA.unshift(c);saveAgenda();return c;
 }
 
@@ -4472,13 +4846,13 @@ function handleEmailSubmission(tit,sub,asunto,cuerpo,cb){
   document.getElementById('ec-sub').textContent=sub;
   document.getElementById('ec-asunto').value=asunto;
   document.getElementById('ec-cuerpo').value=cuerpo;
-  const d=document.getElementById('ec-dest');
+  var d=document.getElementById('ec-dest');
   if(d) d.value=AJ.emailDestino||'';
-  const ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
+  var ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
   if(ca) openOvTop('ov-email-confirm'); else openOv('ov-email-confirm');
 }
 
-function openOvTop(id){const el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
+function openOvTop(id){var el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
 
 function renderVistaToggle() {
   var wrap = document.getElementById('vista-toggle');
@@ -4506,6 +4880,816 @@ function setVistaMode(mode) {
 
 // ── Render toggle bar ────────────────────────────────────────
 
+
+/* ═══════ MÓDULO MULTITURNO TV2 ════════════════════════════
+   TV[k]  = turno principal — NO SE TOCA
+   TV2[k] = array de turnos adicionales
+   Clave localStorage: 'tv2_extra'
+══════════════════════════════════════════════════════════ */
+var TV2 = JSON.parse(localStorage.getItem('tv2_extra') || '{}');
+var _tv2_guardando = false;
+
+function saveTV2(){
+  localStorage.setItem('tv2_extra', JSON.stringify(TV2));
+}
+
+function getTurnosDia(k){
+  var r = [];
+  if(TV[k]) r.push(TV[k]);
+  if(TV2[k] && TV2[k].length){
+    for(var ii=0; ii<TV2[k].length; ii++) r.push(TV2[k][ii]);
+  }
+  return r;
+}
+
+function guardarTurnoExtra(){
+  if(!selDay) return;
+  _tv2_guardando = true;
+  resetF('ordinario');
+  abrirForm(false);
+}
+
+function guardarTurnoEnTV2(){
+  if(!selDay) return;
+  var kk = selDay.k;
+  var hI = (F.hF&&F.hL) ? Math.round(calcMins(F.hF,F.hL)/60*100)/100 : 0;
+  var hV = (F.hF2&&F.hL2) ? Math.round(calcMins(F.hF2,F.hL2)/60*100)/100 : 0;
+  var dd = {
+    tipo: F.tipo, linea: F.linea,
+    sal: F.sal, lle: F.lle, hF: F.hF, hL: F.hL,
+    sal2: F.sal2, lle2: F.lle2, hF2: F.hF2, hL2: F.hL2,
+    modo: F.modo||'ida',
+    numTren: F.numTren||'', numTrenVuelta: F.numTrenVuelta||'',
+    horas: Math.round((hI+hV)*100)/100,
+    notas: F.notas||'',
+    plusAct: F.plusAct||false, plusJT: F.plusJT||false,
+    plusIntlAuto: F.plusIntlAuto||false,
+    nocturno: !!((F.hF&&esHoraNocturna(F.hF))||(F.hL&&esHoraNocturna(F.hL))||
+                 (F.hF2&&esHoraNocturna(F.hF2))||(F.hL2&&esHoraNocturna(F.hL2)))
+  };
+  if(!TV2[kk]) TV2[kk] = [];
+  TV2[kk].push(dd);
+  saveTV2();
+  _tv2_guardando = false;
+  closeOv('ov-form');
+  renderCal();
+  renderTV2DiaCard(kk);
+  toast('Turno adicional guardado');
+}
+
+function eliminarTurnoExtra(kk, idx){
+  if(!TV2[kk]||!TV2[kk][idx]) return;
+  if(!confirm('Eliminar este turno adicional?')) return;
+  TV2[kk].splice(idx, 1);
+  if(TV2[kk].length===0) delete TV2[kk];
+  saveTV2();
+  renderTV2DiaCard(kk);
+  renderCal();
+  toast('Turno adicional eliminado');
+}
+
+function renderTV2DiaCard(kk){
+  var cont = document.getElementById('tv2lista' + kk.replace(/-/g,''));
+  if(!cont) return;
+  var extras = TV2[kk] || [];
+  if(!extras.length){ cont.innerHTML=''; return; }
+  var h = '';
+  for(var ii=0; ii<extras.length; ii++){
+    var ex  = extras[ii];
+    var ti  = TIPO_INFO[ex.tipo] || {ico:'📋', lbl:ex.tipo||'Turno'};
+    var tren= ex.numTren ? ' #'+ex.numTren : '';
+    var ruta= (ex.sal&&ex.lle) ? ex.sal+' → '+ex.lle+(ex.horas?' · '+ex.horas+'h':'') : (ex.horas?ex.horas+'h':'');
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;'
+       + 'background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);'
+       + 'border-radius:9px;margin-top:4px" id="tv2item'+kk.replace(/-/g,'')+'x'+ii+'">'
+       + '<span style="font-size:16px">'+ti.ico+'</span>'
+       + '<div style="flex:1">'
+       + '<div style="font-size:11px;font-weight:700;color:var(--tx)">'+ti.lbl+tren+'</div>'
+       + (ruta ? '<div style="font-size:10px;color:var(--tx3)">'+ruta+'</div>' : '')
+       + (ex.notas ? '<div style="font-size:10px;color:var(--tx2)">📝 '+ex.notas+'</div>' : '')
+       + '</div>'
+       + '<button id="tv2btn'+kk.replace(/-/g,'')+'x'+ii+'" style="background:rgba(239,68,68,.12);'
+       + 'border:1px solid rgba(239,68,68,.3);border-radius:7px;color:#f87171;'
+       + 'font-size:11px;padding:3px 8px;cursor:pointer">X</button>'
+       + '</div>';
+  }
+  cont.innerHTML = h;
+  // Attach onclick handlers after render
+  for(var jj=0; jj<extras.length; jj++){
+    (function(idx2, k2){
+      var btn = document.getElementById('tv2btn'+k2.replace(/-/g,'')+'x'+idx2);
+      if(btn) btn.onclick = function(){ eliminarTurnoExtra(k2, idx2); };
+    })(jj, kk);
+  }
+}
+
+function renderTV2Bloque(kk){
+  var extras = TV2[kk] || [];
+  var safeK  = kk.replace(/-/g,'');
+  // Solo muestra la lista de turnos extra — sin cabecera ni botón (el botón está en los botones de acción)
+  if(!extras.length) return '<div id="tv2lista'+safeK+'"></div>';
+  return '<div style="margin-top:6px;border-top:1px solid var(--div);padding-top:6px">'
+    + (extras.length ? '<div style="font-size:9px;font-weight:800;color:var(--acc);letter-spacing:.5px;margin-bottom:4px">+ '+ extras.length +' turno'+(extras.length>1?'s adicionales':' adicional')+'</div>' : '')
+    + '<div id="tv2lista'+safeK+'"></div>'
+    + '</div>';
+}
+
+function getTV2Badge(kk){
+  return (TV2[kk]&&TV2[kk].length)
+    ? '<span style="position:absolute;bottom:1px;left:1px;font-size:7px;background:var(--acc);color:#fff;border-radius:4px;padding:0 3px;line-height:1.4;font-weight:800">+'+TV2[kk].length+'</span>'
+    : '';
+}
+
+function getTV2HorasExtra(pref){
+  var total = 0;
+  var keys  = Object.keys(TV2);
+  for(var ii=0; ii<keys.length; ii++){
+    if(keys[ii].indexOf(pref)===0){
+      var arr = TV2[keys[ii]] || [];
+      for(var jj=0; jj<arr.length; jj++) total += arr[jj].horas || 0;
+    }
+  }
+  return Math.round(total*100)/100;
+}
+/* ═══════ FIN MÓDULO TV2 ════════════════════════════════════ */
+
+
+function renderPanelHoy(){
+  var cont=document.getElementById('panel-hoy-top');
+  if(!cont) return;
+  var hoy=new Date();
+  var k=key(hoy.getFullYear(),hoy.getMonth()+1,hoy.getDate());
+  var t=TV[k];
+  var DIAS_H=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var diaNom=DIAS_H[hoy.getDay()];
+  var diaNum=hoy.getDate();
+  var mesNom=MESES_C[hoy.getMonth()];
+
+  if(!t){
+    cont.innerHTML=
+      '<div class="hoy-header">'
+      +'<div class="hoy-ico">📅</div>'
+      +'<div style="flex:1">'
+      +'<div class="hoy-fecha">HOY · '+diaNom+' '+diaNum+' '+mesNom+'</div>'
+      +'<div class="hoy-tipo" style="color:var(--tx3)">Sin turno registrado</div>'
+      +'</div></div>'
+      +'<div class="hoy-vacio">Pulsa un día en el calendario para añadir tu turno</div>';
+    return;
+  }
+
+  var ti=TIPO_INFO[t.tipo]||{ico:'📋',lbl:t.tipo||'Turno'};
+  var rows='';
+
+  // Tren ida
+  if(t.numTren){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Tren ida</span>'
+      +'<span class="hoy-card-val hi">🚆 #'+t.numTren+'</span></div>';
+  }
+  // Ruta ida
+  if(t.sal||t.lle){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Ida</span>'
+      +'<span class="hoy-card-val">'+(t.sal||'—')+' → '+(t.lle||'—')+'</span></div>';
+  }
+  // Horario ida
+  if(t.hF||t.hL){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Horario</span>'
+      +'<span class="hoy-card-val">'+(t.hF||'—')+' – '+(t.hL||'—')+'</span></div>';
+  }
+  // Tren vuelta
+  if(t.numTrenVuelta){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Tren vuelta</span>'
+      +'<span class="hoy-card-val hi">'+(t.modo==='pernocta'?'🌙':'↩')+' #'+t.numTrenVuelta+'</span></div>';
+  }
+  // Ruta vuelta
+  if(t.sal2||t.lle2){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Vuelta</span>'
+      +'<span class="hoy-card-val">'+(t.sal2||'—')+' → '+(t.lle2||'—')+'</span></div>';
+  }
+  // Horario vuelta
+  if(t.hF2||t.hL2){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">H. Vuelta</span>'
+      +'<span class="hoy-card-val">'+(t.hF2||'—')+' – '+(t.hL2||'—')+'</span></div>';
+  }
+  // Linea
+  if(t.linea){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Línea</span>'
+      +'<span class="hoy-card-val">'+t.linea+'</span></div>';
+  }
+  // Base
+  if(AJ.base){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Base</span>'
+      +'<span class="hoy-card-val">'+AJ.base+'</span></div>';
+  }
+  // Nota
+  if(t.notas&&t.notas.trim()){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Nota</span>'
+      +'<span class="hoy-card-val" style="color:var(--acc);font-style:italic">'+t.notas.trim()+'</span></div>';
+  }
+  // Retrasos
+  if(t.retrasos&&t.retrasos.length){
+    var retTxt=t.retrasos.map(function(r){return 'T'+r.tramo+' +'+r.minutos+'m'+(r.tren?' #'+r.tren:'');}).join(' · ');
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">Retraso</span>'
+      +'<span class="hoy-card-val" style="color:var(--amber2)">⏱ '+retTxt+'</span></div>';
+  }
+
+  cont.innerHTML=
+    '<div class="hoy-header">'
+    +'<div class="hoy-ico">'+ti.ico+'</div>'
+    +'<div style="flex:1">'
+    +'<div class="hoy-fecha">HOY · '+diaNom+' '+diaNum+' '+mesNom+'</div>'
+    +'<div class="hoy-tipo">'+ti.lbl+'</div>'
+    +'</div>'
+    +(t.nocturno?'<span style="font-size:14px">🌙</span>':'')
+    +(t.plusIntlAuto?'<span style="font-size:14px">🌍</span>':'')
+    +'</div>'
+    +(rows?'<div class="hoy-cards">'+rows+'</div>':'<div class="hoy-vacio">'+ti.lbl+' registrado</div>');
+}
+
+
+/* ── MÓDULO OTRA ESTACIÓN ────────────────────────────────── */
+function selEstOtra(){
+  // Mostrar el input manual y darle foco
+  var wrap=document.getElementById('est-manual-wrap');
+  if(wrap){
+    wrap.style.display='block';
+    var inp=document.getElementById('est-manual-inp');
+    if(inp){inp.value='';inp.focus();}
+    var prev=document.getElementById('est-manual-preview');
+    if(prev) prev.textContent='';
+  }
+}
+
+function previsualizarEstManual(val){
+  var prev=document.getElementById('est-manual-preview');
+  if(!prev) return;
+  var v=val.trim();
+  if(!v){ prev.textContent=''; return; }
+  var esIntl=ESTACIONES_INTERNACIONALES.has(v);
+  prev.textContent=esIntl?'🌍 Activará Plus Internacional':'📍 Estación personalizada';
+  prev.style.color=esIntl?'var(--cyan2)':'var(--tx3)';
+}
+
+function confirmarEstManual(){
+  var inp=document.getElementById('est-manual-inp');
+  if(!inp) return;
+  var v=inp.value.trim();
+  if(!v){ toast('Escribe el nombre de la estación'); return; }
+  // Reutiliza selEst para mantener toda la lógica de Internacional, badges, etc.
+  selEst(v);
+  // Ocultar el panel manual tras confirmar
+  var wrap=document.getElementById('est-manual-wrap');
+  if(wrap) wrap.style.display='none';
+}
+/* ─────────────────────────────────────────────────────────── */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO MULTI-TURNO — renderTarjetaTurno
+   Renderiza cualquier turno (principal o extra) como tarjeta.
+   No toca TV[], TV2[], ni lógica de guardado.
+   Solo visualización.
+═══════════════════════════════════════════════════════════ */
+function renderTarjetaTurno(turno, k, esExtra, idxExtra){
+  if(!turno) return '';
+  var t   = turno;
+  var ti  = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo||'Turno', col:'var(--tx2)'};
+  var kp  = k.split('-').map(Number);
+  var y=kp[0], mo=kp[1], dd=kp[2];
+  var dt  = new Date(y, mo-1, dd);
+  var DIAS_H = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var wd  = dt.getDay();
+
+  // Cabecera de la tarjeta
+  var header = '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px 8px;'
+    + 'background:var(--s2);border-bottom:1px solid var(--div)'
+    + (esExtra?';border-top:2px solid rgba(99,102,241,.3)':'')+'">'
+    + '<span style="font-size:22px">'+ti.ico+'</span>'
+    + '<div style="flex:1">'
+    + '<div style="font-size:9px;font-weight:800;letter-spacing:.6px;color:'+(esExtra?'var(--acc)':'var(--tx3)')+';">'
+    + (esExtra ? 'TURNO ADICIONAL '+(idxExtra+1) : DIAS_H[wd]+' '+dd+' '+MESES_C[mo-1])
+    + '</div>'
+    + '<div style="font-size:14px;font-weight:800;color:'+ti.col+'">'+ti.lbl+'</div>'
+    + '</div>'
+    + (t.nocturno ? '<span title="Nocturnidad" style="font-size:16px">🌙</span>' : '')
+    + (t.plusIntlAuto ? '<span title="Plus Internacional" style="font-size:16px">🌍</span>' : '')
+    + (esExtra
+      ? '<button onclick="eliminarTurnoExtra(\''+k+'\','+idxExtra+')" '
+        + 'style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);'
+        + 'border-radius:7px;color:#f87171;font-size:10px;padding:2px 8px;cursor:pointer;margin-left:4px">✕</button>'
+      : '')
+    + '</div>';
+
+  // Filas de detalle
+  var rows = '';
+  var fila = function(lbl, val, col){
+    if(!val) return '';
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 14px;border-bottom:1px solid var(--div)">'
+      + '<span style="font-size:9px;font-weight:800;letter-spacing:.4px;color:var(--tx3);min-width:56px;padding-top:2px">'+lbl+'</span>'
+      + '<span style="font-size:12px;color:'+(col||'var(--tx2)')+';font-weight:600;flex:1;line-height:1.4">'+val+'</span>'
+      + '</div>';
+  };
+
+  // Tren ida
+  if(t.numTren)
+    rows += fila('TREN IDA', '🚆 #'+t.numTren, 'var(--nar2)');
+  // Ruta ida
+  if(t.sal||t.lle)
+    rows += fila('IDA', (t.sal||'—')+' → '+(t.lle||'—'), 'var(--tx)');
+  // Horario ida
+  if(t.hF||t.hL)
+    rows += fila('HORARIO', (t.hF||'—')+' – '+(t.hL||'—'), 'var(--tx2)');
+  // Tren vuelta
+  if(t.numTrenVuelta)
+    rows += fila('TREN VUELTA', (t.modo==='pernocta'?'🌙 ':'↩ ')+'#'+t.numTrenVuelta, 'var(--amber2)');
+  // Ruta vuelta
+  if(t.sal2||t.lle2)
+    rows += fila('VUELTA', (t.sal2||'—')+' → '+(t.lle2||'—'), 'var(--tx)');
+  // Horario vuelta
+  if(t.hF2||t.hL2)
+    rows += fila('H. VUELTA', (t.hF2||'—')+' – '+(t.hL2||'—'), 'var(--tx2)');
+  // Línea
+  if(t.linea)
+    rows += fila('LÍNEA', t.linea, 'var(--tx2)');
+  // Base (de AJ)
+  if(!esExtra && AJ.base)
+    rows += fila('BASE', AJ.base, 'var(--tx3)');
+  // HTDL / Compensación
+  if(t.comp==='dinero' && t.importe)
+    rows += fila('HTDL', t.importe.toFixed(2)+' €', 'var(--acc2)');
+  if(t.comp==='dias' && t.diasComp && t.diasComp.length)
+    rows += fila('COMP.', t.diasComp.length+' días asignados', 'var(--cyan2)');
+  // Retrasos
+  if(t.retrasos && t.retrasos.length){
+    var retTxt = t.retrasos.map(function(r){
+      return 'T'+r.tramo+' +'+r.minutos+'min'+(r.tren?' #'+r.tren:'');
+    }).join(' · ');
+    rows += fila('RETRASO', '⏱ '+retTxt, 'var(--amber2)');
+  } else if(t.retrasoMin > 0){
+    rows += fila('RETRASO', '⏱ +'+t.retrasoMin+' min', 'var(--amber2)');
+  }
+  // Nota
+  if(t.notas && t.notas.trim())
+    rows += fila('NOTA', t.notas.trim(), 'var(--acc)');
+
+  var borderColor = esExtra ? 'rgba(99,102,241,.25)' : 'var(--div)';
+  return '<div style="border:1px solid '+borderColor+';border-radius:12px;overflow:hidden;'
+    + 'margin-bottom:8px;background:var(--s1);box-shadow:var(--sh-card)">'
+    + header
+    + (rows || '<div style="padding:10px 14px;font-size:11px;color:var(--tx3)">'+ti.lbl+' registrado</div>')
+    + '</div>';
+}
+/* ═══════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO MULTI-TURNO — renderDiaAreaMulti
+   Lee TV[k] (principal) + TV2[k][] (extras) y renderiza
+   una tarjeta por turno en el modal ov-dia-card.
+   Se llama desde renderDiaArea cuando el modal está abierto
+   y hay más de un turno en el día.
+═══════════════════════════════════════════════════════════ */
+function renderDiaAreaMulti(){
+  if(!selDay) return;
+  var k   = selDay.k;
+  var all = getTurnosDia(k);   // TV[k] + TV2[k][] — función existente
+  if(!all.length) return;
+
+  var ovCard  = document.getElementById('ov-dia-card');
+  var useModal= ovCard && ovCard.classList.contains('on');
+  var area    = useModal
+    ? document.getElementById('dia-card-body')
+    : document.getElementById('dia-area');
+  if(!area) return;
+
+  var kp = k.split('-').map(Number);
+  var DIAS_H = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var dt = new Date(kp[0],kp[1]-1,kp[2]);
+  var fechaTxt = DIAS_H[dt.getDay()]+', '+kp[2]+' de '+MESES[kp[1]-1].toLowerCase()+' de '+kp[0];
+
+  // Cabecera del modal con fecha y conteo
+  var html = '<div style="padding:8px 14px 6px;background:var(--s2);border-bottom:1px solid var(--div)">'
+    + '<div style="font-size:10px;font-weight:800;color:var(--tx3);letter-spacing:.5px">'+fechaTxt+'</div>'
+    + '<div style="font-size:12px;color:var(--tx2);margin-top:2px">'
+    + all.length+' turno'+(all.length>1?'s registrados':' registrado')+'</div>'
+    + '</div>';
+
+  // Contenedor con scroll para N tarjetas
+  html += '<div style="overflow-y:auto;max-height:65vh;padding:10px 10px 0">';
+
+  // Tarjeta principal (índice 0 = TV[k])
+  html += renderTarjetaTurno(all[0], k, false, -1);
+
+  // Tarjetas extras (índice 1+ = TV2[k][i])
+  for(var ii=1; ii<all.length; ii++){
+    html += renderTarjetaTurno(all[ii], k, true, ii-1);
+  }
+
+  html += '</div>';
+
+  // Botones de acción (siempre referentes al turno principal TV[k])
+  var t = all[0];
+  var retrasoMin = parseInt(t.retrasoMin)||0;
+  html += '<div class="dct-foot-v2">'
+    + '<div class="dct-row-main">'
+    + '<button class="dct-btn-cambio" onclick="abrirCambio()">🔄 Cambio</button>'
+    + '<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir turno</button>'
+    + '</div>'
+    + '<div class="dct-row-main" style="margin-top:0">'
+    + '<button class="dct-btn-edit" onclick="editarTurno()">✏️ Editar</button>'
+    + '<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
+    + '</div>'
+    + ((t.tipo==='ordinario'||t.tipo==='trabajado')
+      ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
+      : '')
+    + '</div>';
+
+  area.innerHTML = html;
+
+  // Reasignar handler de eliminar en extras (después de renderizar)
+  var extras = TV2[k] || [];
+  for(var jj=0; jj<extras.length; jj++){
+    (function(idx2, kk){
+      var btn = area.querySelector('[onclick*="eliminarTurnoExtra(\\\''+kk+'\\\','+idx2+')"]');
+      // Los buttons usan onclick inline — ya están correctamente asignados
+    })(jj, k);
+  }
+}
+/* ═══════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO ALARMAS — TrenTurnos v5
+   Comprueba cada 30 s si toca avisar al usuario.
+   NO modifica TV, AJ (salvo leer), ni ningún render.
+   Alarma 1: 5 min antes de hF (fichar) — tipos elegibles
+   Alarma 2: 45 min antes de hF (tren fuera de base)
+   Control: AJ.alarmas.activas (toggle en Ajustes)
+═══════════════════════════════════════════════════════════ */
+
+// IDs de las alarmas ya disparadas hoy (evita repetición)
+var _alarmasDisparadas = {};
+var _alarmaInterval    = null;
+
+// AudioContext persistente (no crear uno nuevo cada vez)
+var _audioCtx = null;
+
+// Crear/recuperar el AudioContext — debe llamarse desde un evento de usuario
+function alarmaGetCtx(){
+  if(!_audioCtx){
+    try {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e){ _audioCtx = null; }
+  }
+  // Android/Chrome suspende el contexto si no hay interacción reciente
+  if(_audioCtx && _audioCtx.state === 'suspended'){
+    _audioCtx.resume();
+  }
+  return _audioCtx;
+}
+
+// Llamar esto en cada toque/clic del usuario para "desbloquear" el audio
+function alarmaDesbloquear(){
+  var ctx = alarmaGetCtx();
+  if(ctx && ctx.state === 'suspended') ctx.resume();
+}
+
+// Minutos desde medianoche para una hora "HH:MM"
+function alarmaToMin(hhmm){
+  if(!hhmm || hhmm.indexOf(':')<0) return -1;
+  var p = hhmm.split(':');
+  var h = parseInt(p[0],10);
+  var m = parseInt(p[1],10);
+  if(isNaN(h)||isNaN(m)||h<0||h>23||m<0||m>59) return -1;
+  return h*60 + m;
+}
+
+// Dispara notificación nativa (Web Notifications) o fallback visual
+function alarmaNotificar(titulo, cuerpo, idUnico){
+  if(_alarmasDisparadas[idUnico]) return; // ya avisado hoy
+  _alarmasDisparadas[idUnico] = true;
+
+  // Reproducir sonido
+  alarmaSonar();
+
+  // Notificación del SO
+  if(window.Notification && Notification.permission==='granted'){
+    try{ new Notification(titulo, {body:cuerpo, icon:'', tag:idUnico}); }catch(e){}
+  }
+
+  // Toast visual siempre
+  toast('🔔 '+titulo);
+  // Hook aditivo: activar loop persistente
+  alarmaActivarPersistente(titulo, idUnico);
+}
+
+// Función de sonido separada — reutilizable desde botón de prueba
+function alarmaSonar(){
+  var ctx = alarmaGetCtx();
+  if(!ctx) return;
+  try {
+    // Secuencia: 3 pitidos cortos y uno largo
+    var notas = [880, 880, 880, 660];
+    var tiempos = [0, 0.22, 0.44, 0.70];
+    var duraciones = [0.15, 0.15, 0.15, 0.55];
+    for(var ii=0; ii<notas.length; ii++){
+      (function(freq, t, dur){
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + t);
+        gain.gain.setValueAtTime(0, ctx.currentTime + t);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + dur);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + dur + 0.05);
+      })(notas[ii], tiempos[ii], duraciones[ii]);
+    }
+  } catch(e){
+    // Si AudioContext falla, vibración como fallback
+    if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]);
+  }
+}
+
+// Prueba manual — llamar desde botón en Ajustes
+function alarmaTest(){
+  alarmaDesbloquear();
+  alarmaSonar();
+  toast('🔔 Prueba de alarma — ¿la escuchas?');
+}
+
+// Comprueba si hoy hay turno y si toca alarma
+function alarmaCheck(){
+  // 1. ¿Alarmas activadas?
+  if(!AJ.alarmas || !AJ.alarmas.activas) return;
+
+  var ahora = new Date();
+  var hoy   = ahora.getFullYear()+'-'+pad(ahora.getMonth()+1)+'-'+pad(ahora.getDate());
+  var nowM  = ahora.getHours()*60 + ahora.getMinutes();
+
+  var t = TV[hoy];
+  if(!t) return; // sin turno hoy
+
+  // 2. ALARMA 1 — Fichar (5 min antes de hF)
+  // Tipos elegibles: ordinario, trabajado, reserva
+  if(AJ.alarmas.fichar){
+    var tiposF = ['ordinario','trabajado','reserva'];
+    var elegible = false;
+    for(var ii=0; ii<tiposF.length; ii++){
+      if(t.tipo===tiposF[ii]){ elegible=true; break; }
+    }
+    if(elegible && t.hF){
+      var minF = alarmaToMin(t.hF);
+      if(minF >= 0){
+        var diff = minF - nowM;
+        // Ventana: entre 6 y 4 minutos antes (30s de margen por el intervalo)
+        if(diff>=3 && diff<=7){   // ventana 5 min ±2
+          var idF = hoy+'-fichar';
+          alarmaNotificar(
+            '⏰ Fichar en '+t.hF,
+            'Turno '+(t.tipo)+' · Firma en 5 minutos',
+            idF
+          );
+        }
+      }
+    }
+  }
+
+  // 3. ALARMA 2 — Salida fuera de base (45 min antes de hF si es fuera de base)
+  // "Fuera de base" = estación de salida ≠ base del usuario
+  if(AJ.alarmas.salida){
+    var tiposS = ['ordinario','trabajado'];
+    var elegibleS = false;
+    for(var jj=0; jj<tiposS.length; jj++){
+      if(t.tipo===tiposS[jj]){ elegibleS=true; break; }
+    }
+    if(elegibleS && t.hF && t.sal){
+      var fueraDeBase = AJ.base && t.sal !== AJ.base;
+      if(fueraDeBase){
+        var minS = alarmaToMin(t.hF);
+        if(minS >= 0){
+          var diffS = minS - nowM;
+          // Ventana: entre 46 y 44 minutos antes
+          if(diffS>=43 && diffS<=47){ // ventana 45 min ±2
+            var idS = hoy+'-salida';
+            alarmaNotificar(
+              '🚆 Salir hacia '+t.sal+' ('+t.hF+')',
+              'Estás fuera de base — tienes 45 min para llegar al tren',
+              idS
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
+// Reinicia las alarmas disparadas a medianoche
+function alarmaResetDiario(){
+  var ahora = new Date();
+  if(ahora.getHours()===0 && ahora.getMinutes()<1){
+    _alarmasDisparadas = {};
+  }
+}
+
+// Arrancar el servicio de alarmas
+function alarmaIniciar(){
+  if(_alarmaInterval) clearInterval(_alarmaInterval);
+  _alarmaInterval = setInterval(function(){
+    alarmaCheck();
+    alarmaResetDiario();
+  }, 30000); // cada 30 segundos
+  alarmaCheck(); // comprobación inmediata al activar
+}
+
+// Detener el servicio
+function alarmaDetener(){
+  if(_alarmaInterval){
+    clearInterval(_alarmaInterval);
+    _alarmaInterval = null;
+  }
+}
+
+// Toggle desde Ajustes
+function toggleAlarmas(activo){
+  var card = document.getElementById('alarm-sw');
+  var body = card ? card.closest('.aj-card-body') : null;
+  if(body){
+    if(activo) body.classList.add('alarm-sw-active');
+    else        body.classList.remove('alarm-sw-active');
+  }
+  if(!AJ.alarmas) AJ.alarmas = {activas:false, fichar:true, salida:true};
+  AJ.alarmas.activas = activo;
+  localStorage.setItem('aj5', JSON.stringify(AJ));
+  if(activo){
+    alarmaIniciar();
+    // Pedir permiso de notificaciones
+    if(window.Notification && Notification.permission==='default'){
+      Notification.requestPermission();
+    }
+    toast('🔔 Alarmas activadas');
+  } else {
+    alarmaDetener();
+    toast('🔕 Alarmas desactivadas');
+  }
+  // Actualizar UI del toggle
+  var sw = document.getElementById('alarm-sw');
+  if(sw) sw.checked = activo;
+  var lbl = document.getElementById('alarm-lbl');
+  if(lbl) lbl.textContent = activo ? 'Activadas' : 'Desactivadas';
+  var lbl2 = document.getElementById('alarm-lbl');
+  if(lbl) lbl.style.color = activo ? 'var(--green2)' : 'var(--tx3)';
+}
+
+function toggleAlarmFichar(v){
+  if(!AJ.alarmas) AJ.alarmas={activas:false,fichar:true,salida:true};
+  AJ.alarmas.fichar=v;
+  localStorage.setItem('aj5',JSON.stringify(AJ));
+}
+
+function toggleAlarmSalida(v){
+  if(!AJ.alarmas) AJ.alarmas={activas:false,fichar:true,salida:true};
+  AJ.alarmas.salida=v;
+  localStorage.setItem('aj5',JSON.stringify(AJ));
+}
+/* ═══════════════════════════════════════════════════════════
+   FIN MÓDULO ALARMAS
+═══════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO ALARMA PERSISTENTE v2
+   Añade loop de sonido (30 s) + vibración + botón Detener.
+   NO modifica ninguna función existente.
+   Se activa desde alarmaActivarPersistente() que es llamada
+   al final de alarmaNotificar() mediante un hook aditivo.
+═══════════════════════════════════════════════════════════ */
+
+var _alarmaPersLoop   = null;   // intervalo del loop de sonido
+var _alarmaPersVib    = null;   // intervalo de vibración
+var _alarmaPersTicker = 0;      // contador de segundos
+var _alarmaActivaId   = null;   // id único de la alarma activa
+
+// Mostrar el botón flotante "Detener alarma"
+function alarmaP_mostrarBoton(titulo){
+  var btn = document.getElementById('alarma-stop-btn');
+  if(!btn) return;
+  var lbl = document.getElementById('alarma-stop-lbl');
+  if(lbl) lbl.textContent = titulo || '🔔 Alarma activa — Toca para detener';
+  btn.style.display = 'flex';
+  // Animación de entrada
+  btn.style.opacity = '0';
+  btn.style.transform = 'translateY(30px)';
+  setTimeout(function(){
+    btn.style.opacity = '1';
+    btn.style.transform = 'translateY(0)';
+  }, 30);
+  // Sincronizar botón de parada en la cabecera (aditivo)
+  var hbtn = document.getElementById('hbtn-stop-alarma');
+  if(hbtn) hbtn.style.display = 'flex';
+}
+
+// Ocultar el botón flotante
+function alarmaP_ocultarBoton(){
+  var btn = document.getElementById('alarma-stop-btn');
+  if(!btn) return;
+  btn.style.opacity = '0';
+  btn.style.transform = 'translateY(30px)';
+  setTimeout(function(){ btn.style.display = 'none'; }, 300);
+  // Ocultar también el botón de la cabecera (aditivo)
+  var hbtn = document.getElementById('hbtn-stop-alarma');
+  if(hbtn) hbtn.style.display = 'none';
+}
+
+// Detener la alarma persistente (llamado desde botón o auto)
+function alarmaDetenerPersistente(){
+  if(_alarmaPersLoop)  { clearInterval(_alarmaPersLoop);  _alarmaPersLoop = null; }
+  if(_alarmaPersVib)   { clearInterval(_alarmaPersVib);   _alarmaPersVib  = null; }
+  _alarmaPersTicker = 0;
+  _alarmaActivaId   = null;
+  // Detener vibración inmediatamente
+  if(navigator.vibrate) navigator.vibrate(0);
+  alarmaP_ocultarBoton();
+}
+
+// Activar alarma persistente — loop de 30 s
+// Diseñado para ser llamado DESPUÉS de alarmaNotificar (hook aditivo)
+function alarmaActivarPersistente(titulo, idUnico){
+  // Si ya hay una alarma activa con el mismo id, no duplicar
+  if(_alarmaActivaId === idUnico) return;
+
+  // Detener cualquier alarma persistente previa
+  alarmaDetenerPersistente();
+  _alarmaActivaId = idUnico;
+
+  // Mostrar botón Detener
+  alarmaP_mostrarBoton(titulo);
+
+  // Loop de vibración — patrón de 2 s repetido
+  if(navigator.vibrate){
+    navigator.vibrate([400,200,400,200,400]);
+    _alarmaPersVib = setInterval(function(){
+      if(navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
+    }, 3000);
+  }
+
+  // Loop de sonido — cada 4 s durante 30 s máximo
+  var ciclos = 0;
+  var maxCiclos = 7; // 7 × 4s ≈ 30 s
+  _alarmaPersLoop = setInterval(function(){
+    ciclos++;
+    // Llamar alarmaSonar() existente — no se reescribe
+    try { alarmaSonar(); } catch(e){}
+    if(ciclos >= maxCiclos){
+      alarmaDetenerPersistente();
+    }
+  }, 4000);
+}
+
+// Función alias para el botón HTML (más corta)
+function detenerAlarma(){
+  alarmaDetenerPersistente();
+  toast('✅ Alarma detenida');
+}
+/* ═══════════════════════════════════════════════════════════
+   FIN MÓDULO ALARMA PERSISTENTE v2
+═══════════════════════════════════════════════════════════ */
+
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO ACORDEÓN AJUSTES — toggleAjAcc
+   Envuelve visualmente las 6 tarjetas de Ajustes.
+   No toca ningún ID, input ni lógica de guardado existente.
+═══════════════════════════════════════════════════════════ */
+function toggleAjAcc(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var yaAbierto = el.classList.contains('aj-acc-open');
+  // Cerrar todos los demás bloques (comportamiento acordeón)
+  var todos = document.querySelectorAll('.aj-acc-item');
+  for(var ii=0; ii<todos.length; ii++){
+    if(todos[ii].id !== id) todos[ii].classList.remove('aj-acc-open');
+  }
+  // Toggle del bloque pulsado
+  if(yaAbierto) el.classList.remove('aj-acc-open');
+  else el.classList.add('aj-acc-open');
+}
+/* ═══════════════════════════════════════════════════════════ */
+
+
+
 init();
 </script>
 </body>
+</html>
