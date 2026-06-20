@@ -1104,6 +1104,87 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .aj-acc-body .aj-card-hdr{
   display:none; /* el header propio de la tarjeta se oculta — el acordeón ya muestra título e icono */
 }
+
+/* ── ACORDEÓN: TURNO DE HOY ── */
+.hoy-acc{
+  margin:8px 10px 0;
+  border-radius:14px;
+  overflow:hidden;
+  background:var(--s1);
+  border:1px solid var(--div);
+}
+.hoy-acc-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  cursor:pointer;
+  user-select:none;
+  background:var(--s2);
+}
+.hoy-acc-lbl{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.5px;
+  color:var(--tx2);
+  text-transform:uppercase;
+}
+.hoy-acc-arr{
+  font-size:15px;
+  color:var(--tx3);
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.hoy-acc.open .hoy-acc-arr{
+  transform:rotate(90deg);
+  color:var(--acc);
+}
+.hoy-acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1);
+}
+.hoy-acc.open .hoy-acc-body{
+  max-height:500px;
+}
+
+/* ── RESUMEN COMPACTO DEL ACORDEÓN (Base · Destino · Horario) ── */
+.hoy-acc-resumen{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex:1;
+  min-width:0;
+}
+.hoy-acc-ico{
+  font-size:18px;
+  flex-shrink:0;
+}
+.hoy-acc-resumen-txt{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.hoy-acc-mini{
+  font-size:10px;
+  color:var(--tx2);
+  margin-top:1px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.hoy-acc-mini strong{
+  color:var(--acc3);
+  font-weight:700;
+}
+
+/* ── ESTADO INACTIVO: sin turno hoy, no expandible ── */
+.hoy-acc.hoy-acc-inactivo .hoy-acc-toggle{
+  cursor:default;
+  opacity:.7;
+}
+.hoy-acc.hoy-acc-inactivo .hoy-acc-arr{
+  display:none;
+}
 </style>
 </head>
 <body>
@@ -1128,11 +1209,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
-<!-- TURNO DE HOY — FIJO, SIEMPRE VISIBLE -->
-<div id="panel-hoy-top" style="padding:0 10px 10px"></div>
-
 <!-- BODY -->
 <div class="body">
+
+  <!-- TURNO DE HOY — ahora en formato acordeón (clic para expandir/colapsar) -->
+  <div class="hoy-acc" id="hoyAcc">
+    <div class="hoy-acc-toggle" id="hoyAccToggle" onclick="toggleHoyAcc()">
+      <div class="hoy-acc-resumen" id="hoyAccResumen">
+        <span class="hoy-acc-lbl">Turno de Hoy</span>
+      </div>
+      <span class="hoy-acc-arr" id="hoyAccArr">›</span>
+    </div>
+    <div class="hoy-acc-body" id="hoyAccBody">
+      <div id="panel-hoy-top" style="padding:10px 10px 0"></div>
+    </div>
+  </div>
 
   <!-- CALENDARIO -->
   <div class="panel on" id="p-cal">
@@ -2813,6 +2904,7 @@ function renderCal(){
   renderAcordeon();
   renderVistaToggle();
   renderPanelHoy();
+  renderHoyResumen();
 }
 
 function renderSlide(gridId, fecha){
@@ -3008,11 +3100,25 @@ function renderDiaArea(){
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div>'
         +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional aplicado</div></div>';
     }
+    // Plus Activación y Plus JT — datos guardados, ahora visibles en el resumen
+    if(t.plusAct){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div>'
+        +'<div class="tr-route" style="color:var(--acc2);font-size:10px">⚡ Plus Activación aplicado</div></div>';
+    }
+    if(t.plusJT){
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--violet2)"></div>'
+        +'<div class="tr-route" style="color:var(--violet2);font-size:10px">🕐 Plus Jornada Trabajada aplicado</div></div>';
+    }
     if(t.sal2&&t.lle2){
       var esP=t.modo==='pernocta';
       body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
-        +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+'</div>'
+        +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+(t.numTrenVuelta?' · #'+t.numTrenVuelta:'')+'</div>'
         +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
+    } else if(t.numTrenVuelta){
+      // Tren de vuelta sin ruta detallada: mostrarlo igualmente para no ocultar el dato
+      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
+        +'<div class="tr-route" style="color:var(--amber2)">↩ Tren de vuelta</div>'
+        +'<div class="tr-time" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</div></div>';
     }
     if(t.comp==='dinero'&&t.importe)body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div><div class="tr-route">Compensación económica</div><div class="tr-time tr-hi">'+t.importe.toFixed(2)+' €</div></div>';
     if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length))body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div><div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
@@ -3066,6 +3172,7 @@ function renderDiaArea(){
     +'<div class="dct-tipo" style="color:'+(alerta?'var(--red2)':col)+'">'+ti.lbl+(alerta?' ⚠️':'')+'</div></div>'
     +(t.hF?'<div class="dct-dur" style="color:'+col+'">'+calcDur(t.hF,t.hL)+'</div>':'')
     +(t.numTren?'<div style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--nar2);margin-left:4px">#'+t.numTren+'</div>':'')
+    +(t.numTrenVuelta?'<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--amber2);margin-left:4px">↩#'+t.numTrenVuelta+'</div>':'')
     +(t.cambioSolicitado?'<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--nar2);margin-left:3px">🔄 Enviado</div>':'')
     +retrasoTag
     +'</div>'
@@ -5689,6 +5796,72 @@ function toggleAjAcc(id){
 /* ═══════════════════════════════════════════════════════════ */
 
 
+
+
+/* ═══════════════════════════════════════════════════════════
+   ACORDEÓN — Turno de Hoy
+   Función nueva e independiente. No toca renderPanelHoy().
+   Solo gestiona la clase visual de colapso/expansión.
+═══════════════════════════════════════════════════════════ */
+function toggleHoyAcc(){
+  var acc = document.getElementById('hoyAcc');
+  if(!acc) return;
+  // No permitir expandir si no hay turno registrado hoy
+  if(acc.classList.contains('hoy-acc-inactivo')) return;
+  acc.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESUMEN COMPACTO — Turno de Hoy (cabecera del acordeón)
+   Función nueva e independiente. Lee TV[hoy] y AJ.base
+   (mismos datos que ya usa renderPanelHoy) sin modificar
+   esa función ni la estructura de datos original.
+   Capa cerrada → Base · Destino · Horario
+   Capa abierta → el detalle completo ya generado por
+                  renderPanelHoy() permanece intacto.
+═══════════════════════════════════════════════════════════ */
+function renderHoyResumen(){
+  var cont = document.getElementById('hoyAccResumen');
+  var acc  = document.getElementById('hoyAcc');
+  if(!cont || !acc) return;
+
+  var hoy = new Date();
+  var k = key(hoy.getFullYear(), hoy.getMonth()+1, hoy.getDate());
+  var t = TV[k];
+
+  // Sin turno registrado → mensaje simple, acordeón inactivo (no expandible)
+  if(!t){
+    cont.innerHTML = '<span class="hoy-acc-lbl">Sin turno registrado</span>';
+    acc.classList.add('hoy-acc-inactivo');
+    acc.classList.remove('open');
+    return;
+  }
+  acc.classList.remove('hoy-acc-inactivo');
+
+  var ti = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo||'Turno'};
+
+  // Base: viene de AJ.base (ajustes del usuario), igual que usa renderPanelHoy
+  var base = AJ.base || '—';
+
+  // Destino: prioriza el de ida; si no hay, usa el de vuelta
+  var destino = t.lle || t.lle2 || t.sal2 || '—';
+
+  // Horario: rango completo del turno (ida → vuelta si existe, si no solo ida)
+  var horaIni = t.hF || '';
+  var horaFin = t.hL2 || t.hL || '';
+  var horario = (horaIni || horaFin) ? (horaIni||'—')+' – '+(horaFin||'—') : '';
+
+  cont.innerHTML =
+    '<span class="hoy-acc-ico">'+ti.ico+'</span>'
+    +'<div class="hoy-acc-resumen-txt">'
+    +'<span class="hoy-acc-lbl">'+ti.lbl+'</span>'
+    +'<span class="hoy-acc-mini">'
+    +'<strong>'+base+'</strong>'
+    +(destino!=='—'?' → <strong>'+destino+'</strong>':'')
+    +(horario?' · '+horario:'')
+    +'</span>'
+    +'</div>';
+}
 
 init();
 </script>
