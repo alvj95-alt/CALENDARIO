@@ -1185,6 +1185,47 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .hoy-acc.hoy-acc-inactivo .hoy-acc-arr{
   display:none;
 }
+
+/* ── FIX VISUAL ADITIVO: aislamiento de slides del calendario ──
+   Capa de seguridad extra para evitar que el WebView de algunos
+   dispositivos Android mezcle visualmente píxeles de slides
+   adyacentes (mes anterior/siguiente) durante el renderizado.
+   No reemplaza ninguna regla anterior, solo refuerza el aislamiento. */
+.cal-slide{
+  background:var(--bg);
+  isolation:isolate;
+  contain:layout paint;
+}
+.cal-swipe{
+  isolation:isolate;
+}
+
+/* ── MARGEN DE SEGURIDAD ADICIONAL — #cal-swipe ──
+   Regla con mayor especificidad (ID) para garantizar un margen
+   de recorte extra entre slides, sin modificar la clase .cal-swipe
+   original. Esto añade un colchón visual adicional. */
+#cal-swipe{
+  clip-path:inset(0);
+}
+#cal-track{
+  backface-visibility:hidden;
+  transform-style:flat;
+}
+
+/* ── FIX ESTRUCTURAL: slides prev/next ya no se usan ──
+   Se ocultan visualmente (sin eliminarlos del HTML) ahora que
+   animSwipe reconstruye un único grid en vez de desplazar 3 slides.
+   Esto elimina por completo la posibilidad de fuga visual entre
+   meses adyacentes, porque solo existe un mes en pantalla. */
+#cal-prev, #cal-next{
+  display:none;
+}
+#cal-track{
+  display:block;
+}
+.cal-curr{
+  width:100%;
+}
 </style>
 </head>
 <body>
@@ -2828,6 +2869,10 @@ function seleccionarSugTren(numTren, campo){
   }
 }
 
+// FIX ANCLAJE: flag de bloqueo para evitar swipes superpuestos
+// que dejaban el calendario en una posición visual intermedia.
+var _swipeEnCurso = false;
+
 function initSwipe(){
   var sw=document.getElementById('cal-swipe');if(!sw)return;
   var sx=0,sy=0,drag=false,vert=false,dx=0;
@@ -2846,18 +2891,28 @@ function initSwipe(){
 }
 
 function animSwipe(dir){
-  var track=document.getElementById('cal-track');
-  // Animar el deslizamiento
-  var pct=dir>0?-200:-0; // 3 slides: prev(0%) curr(100%) next(200%)
-  track.style.transition='transform .28s cubic-bezier(.4,0,.2,1)';
-  track.style.transform='translateX('+(dir>0?'-200%':'0%')+')';
+  // FIX ESTRUCTURAL: arquitectura simplificada a UN solo grid visible.
+  // Antes: 3 slides (anterior/actual/siguiente) coexistían siempre en
+  // el DOM, desplazados con transform. Esto exponía al WebView de
+  // algunos dispositivos a un bug de renderizado donde columnas de
+  // un mes adyacente se filtraban visualmente junto al mes actual.
+  // Ahora: solo existe el grid #days. Al cambiar de mes, se aplica
+  // una transición de opacidad simple y se reconstruye el contenido
+  // una sola vez — nunca hay dos meses presentes simultáneamente.
+  if(_swipeEnCurso) return;
+  _swipeEnCurso = true;
+
+  var grid=document.getElementById('days');
+  grid.style.transition='opacity .14s ease';
+  grid.style.opacity='0';
+
   setTimeout(function(){
-    track.style.transition='none';
-    track.style.transform='translateX(-100%)'; // volver al centro
     curM.setMonth(curM.getMonth()+dir);
     selDay=null;
     renderCal();
-  },290);
+    grid.style.opacity='1';
+    _swipeEnCurso = false;
+  },140);
 }
 
 function _keyAFechaLbl(k){
@@ -2883,15 +2938,10 @@ function renderCal(){
   // Recalcular alertas de descanso para el mes visible
   ALERTAS_DESCANSO = verificarDescansosMes();
 
-  // Renderizar los 3 slides: prev, curr, next
-  renderSlide('days-prev', new Date(y,m-1,1));
-  renderSlide('days',      new Date(y,m,  1));
-  renderSlide('days-next', new Date(y,m+1,1));
-
-  // Posicionar el track en el slide central sin animación
-  var track=document.getElementById('cal-track');
-  track.style.transition='none';
-  track.style.transform='translateX(-100%)';
+  // FIX ESTRUCTURAL: ahora solo se renderiza el grid visible (#days).
+  // days-prev y days-next ya no se usan — se deja de invocarlos para
+  // no hacer trabajo innecesario, sin eliminar esos elementos del HTML.
+  renderSlide('days', new Date(y,m,1));
 
   // Dots indicadores de mes (últimos 3 meses)
   var dots=document.getElementById('cal-dots');
@@ -2914,6 +2964,15 @@ function renderSlide(gridId, fecha){
   var last=new Date(y,m+1,0).getDate();
   var sd=new Date(y,m,1).getDay(); sd=sd===0?6:sd-1;
   var hoy=new Date();
+
+  // REVERTIDO: el cálculo dinámico de grid-template-rows vía JS causaba
+  // un glitch de desalineación de columnas en algunos WebView de Android
+  // (no reproducible en Chromium estándar, pero confirmado visualmente
+  // por el usuario). Se vuelve al valor fijo de 6 filas definido en CSS
+  // (.days{grid-template-rows:repeat(6,1fr)}), que es más compatible
+  // universalmente. La fila vacía extra en meses de 5 filas es un
+  // costo estético menor frente a la columna desalineada, que es un
+  // bug funcional real.
 
   // OPTIMIZACIÓN: la sincronización con localStorage ahora se hace UNA
   // sola vez en renderCal() (antes de llamar a los 3 slides), no aquí.
