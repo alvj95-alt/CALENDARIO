@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>TrenTurnos v5</title>
+<!-- Requerido por el panel Horario (parseo de PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif}
@@ -1226,6 +1228,493 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .cal-curr{
   width:100%;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PANEL HORARIO INDIVIDUAL — estilos importados, scoped dentro
+   de #horario-wrap para no interferir con el resto de la app.
+   IDs y clases internas renombradas (days→days-horario) para
+   evitar cualquier colisión con el calendario principal.
+═══════════════════════════════════════════════════════════ */
+#horario-wrap { all:initial; font-family:'Inter',sans-serif; display:block; }
+#horario-wrap *{ box-sizing:border-box; }
+
+  :root{
+    --bg:#0b1320;
+    --panel:#101b2d;
+    --panel2:#15233a;
+    --line:#223149;
+    --amber:#f5a623;
+    --teal:#2fd4c3;
+    --muted:#5b6b82;
+    --text:#e8edf5;
+    --text-dim:#9aabc2;
+    --rest:#3a4660;
+    --reserve:#c98b2f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    padding:0 0 60px;
+  }
+  .board{
+    background:var(--panel);
+    border-bottom:3px solid var(--amber);
+    padding:22px 20px 18px;
+    position:sticky;
+    top:0;
+    z-index:5;
+  }
+  .board-title{
+    font-family:'Space Mono',monospace;
+    font-size:22px;
+    letter-spacing:2px;
+    color:var(--amber);
+    margin:0 0 2px;
+    text-transform:uppercase;
+  }
+  .board-sub{
+    font-size:13px;
+    color:var(--text-dim);
+    margin-bottom:14px;
+  }
+  .stats{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .stat{
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 12px;
+    min-width:90px;
+  }
+  .stat-label{
+    font-size:10px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .stat-value{
+    font-family:'Space Mono',monospace;
+    font-size:17px;
+    color:var(--text);
+    margin-top:2px;
+  }
+
+  .upload-row{
+    margin-top:14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .upload-btn{
+    font-size:13px;
+    font-weight:600;
+    background:var(--amber);
+    color:#1a1306;
+    padding:9px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .upload-btn:hover{filter:brightness(1.05);}
+  .upload-status{
+    font-size:12px;
+    color:var(--text-dim);
+  }
+
+  .month-row{
+    margin-top:8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .month-row-label{
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  #monthSelect{
+    background:var(--panel2);
+    color:var(--text);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:5px 8px;
+    font-size:12px;
+    font-family:'Space Mono',monospace;
+  }
+
+  .danger-zone{
+    max-width:760px;
+    margin:30px auto 0;
+    padding:16px 14px 0;
+    border-top:1px dashed var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .danger-zone p{
+    font-size:12px;
+    color:var(--text-dim);
+    margin:0;
+  }
+  .delete-btn{
+    font-size:12px;
+    font-weight:600;
+    background:transparent;
+    color:#e0594f;
+    border:1px solid #6b2c28;
+    padding:8px 14px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .delete-btn:hover{
+    background:rgba(224,89,79,0.1);
+  }
+
+  .legend{
+    display:flex;
+    gap:16px;
+    padding:14px 20px 6px;
+    font-size:12px;
+    color:var(--text-dim);
+    flex-wrap:wrap;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+  .today-wrap{
+    max-width:760px;
+    margin:14px auto 0;
+    padding:0 14px;
+  }
+  .today-eyebrow{
+    font-size:11px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:6px;
+    font-weight:700;
+  }
+  .today-card{
+    border:1.5px solid var(--amber);
+    border-radius:12px;
+    background:linear-gradient(180deg, rgba(245,166,35,0.10), rgba(245,166,35,0.02));
+    box-shadow:0 0 0 1px rgba(245,166,35,0.08), 0 8px 24px -12px rgba(245,166,35,0.35);
+    padding:12px 14px 14px;
+  }
+  .today-card .day-head{margin-bottom:10px;}
+  .today-card .codigo{color:var(--text-dim);}
+  .today-empty{
+    border:1.5px dashed var(--line);
+    border-radius:12px;
+    padding:14px;
+    color:var(--text-dim);
+    font-size:13px;
+  }
+
+  .day.is-today .day-head-row{
+    background:rgba(245,166,35,0.06);
+  }
+  .day.is-today .day-num{
+    color:var(--amber);
+  }
+
+  .days-horario{
+    padding:6px 14px 0;
+    max-width:760px;
+    margin:0 auto;
+  }
+
+  .day{
+    border-bottom:1px solid var(--line);
+  }
+  .day:last-child{border-bottom:none;}
+
+  .day-head-row{
+    display:grid;
+    grid-template-columns:64px 1fr auto;
+    align-items:center;
+    gap:14px;
+    padding:12px 4px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .day-head-row:hover{background:rgba(255,255,255,0.02);}
+
+  .day-marker{
+    text-align:center;
+  }
+  .day-num{
+    font-family:'Space Mono',monospace;
+    font-size:22px;
+    line-height:1;
+    color:var(--text);
+  }
+  .day-week{
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+
+  .day-summary{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    min-width:0;
+  }
+  .summary-text{
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    color:var(--text-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .chevron{
+    width:18px;
+    height:18px;
+    flex-shrink:0;
+    color:var(--text-dim);
+    transition:transform .2s ease;
+  }
+  .day.open .chevron{
+    transform:rotate(180deg);
+    color:var(--amber);
+  }
+
+  .day-body{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    margin:0 4px 12px;
+    max-height:0;
+    opacity:0;
+    overflow:hidden;
+    padding-top:0;
+    padding-bottom:0;
+    border-width:0;
+    margin-bottom:0;
+    transition:max-height .25s ease, opacity .2s ease;
+  }
+  .day.open .day-body{
+    max-height:600px;
+    opacity:1;
+    padding:10px 14px;
+    border-width:1px;
+    margin:0 4px 12px;
+  }
+
+  .day-body.reserva{
+    border-color:var(--reserve);
+    background:linear-gradient(180deg, rgba(201,139,47,0.08), transparent);
+  }
+
+  .badge{
+    display:inline-block;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:3px 8px;
+    border-radius:5px;
+  }
+  .badge.servicio{background:rgba(47,212,195,0.15);color:var(--teal);}
+  .badge.libre{background:rgba(90,107,130,0.18);color:var(--muted);}
+  .badge.reserva{background:rgba(201,139,47,0.18);color:var(--reserve);}
+
+  .codigo{
+    font-family:'Space Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-left:8px;
+    word-break:break-all;
+  }
+
+  .day-head{
+    display:flex;
+    align-items:baseline;
+    flex-wrap:wrap;
+    gap:4px;
+    margin-bottom:8px;
+  }
+
+  .tramo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    border-top:1px dashed var(--line);
+  }
+  .tramo:first-of-type{border-top:none;padding-top:0;}
+
+  .tren-chip{
+    font-family:'Space Mono',monospace;
+    font-size:12px;
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:4px 8px;
+    color:var(--text);
+    min-width:62px;
+    text-align:center;
+  }
+  .estacion{
+    font-size:12px;
+    color:var(--text-dim);
+    min-width:34px;
+  }
+
+  .timeline{
+    display:flex;
+    align-items:center;
+    flex:1;
+    gap:4px;
+    overflow-x:auto;
+  }
+  .tpoint{
+    text-align:center;
+    min-width:54px;
+  }
+  .tpoint .lbl{
+    font-size:9px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .tpoint .val{
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    color:var(--text);
+  }
+  .tpoint.start .val, .tpoint.end .val{
+    color:var(--amber);
+  }
+  .arrow{
+    color:var(--line);
+    font-size:14px;
+  }
+
+  .day-foot{
+    display:flex;
+    gap:14px;
+    margin-top:8px;
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .day-foot b{color:var(--text);font-family:'Space Mono',monospace;}
+
+  @media (max-width:480px){
+    .day{grid-template-columns:48px 1fr;}
+    .day-num{font-size:18px;}
+    .tpoint{min-width:46px;}
+    .tpoint .val{font-size:12px;}
+    .tren-chip{min-width:50px;font-size:11px;}
+  }
+
+
+/* ═══════════════════════════════════════════════════════════
+   ACORDEÓN — Cabecera del panel Horario (".board")
+   Envuelve el bloque existente sin modificar ninguna regla
+   anterior. La línea amarilla (border-bottom de .board) se
+   replica en el wrapper para mantenerse siempre visible al
+   cerrar el acordeón; dentro, se anula solo en este contexto
+   específico mediante un selector más específico, sin tocar
+   la declaración original de .board{}.
+═══════════════════════════════════════════════════════════ */
+.board-acc{
+  border-bottom:3px solid var(--amber);
+  position:sticky;
+  top:0;
+  z-index:5;
+}
+.board-acc .board{
+  border-bottom:none;
+  position:static;
+  top:auto;
+  z-index:auto;
+}
+.board-acc-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 20px;
+  background:var(--panel);
+  cursor:pointer;
+  user-select:none;
+}
+.board-acc-toggle-title{
+  font-family:'Space Mono',monospace;
+  font-size:15px;
+  letter-spacing:1.5px;
+  color:var(--amber);
+  text-transform:uppercase;
+}
+.board-acc-arrow{
+  font-size:16px;
+  color:var(--text-dim);
+  transition:transform .25s ease;
+}
+.board-acc.open .board-acc-arrow{
+  transform:rotate(90deg);
+}
+.board-acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .32s cubic-bezier(.4,0,.2,1);
+}
+.board-acc.open .board-acc-body{
+  max-height:420px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LISTA INDIVIDUAL DE MESES — botón de eliminar por entrada
+   Puramente visual. Reutiliza deleteMonth() ya existente.
+═══════════════════════════════════════════════════════════ */
+.month-item-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:9px 12px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  margin-bottom:6px;
+}
+.month-item-name{
+  font-family:'Space Mono',monospace;
+  font-size:12px;
+  color:var(--text-dim);
+}
+.month-item-name.current{
+  color:var(--amber);
+  font-weight:700;
+}
+.month-item-del{
+  background:rgba(220,38,38,.12);
+  border:1px solid rgba(220,38,38,.35);
+  border-radius:6px;
+  color:#f87171;
+  font-size:11px;
+  font-weight:700;
+  padding:4px 9px;
+  cursor:pointer;
+}
 </style>
 </head>
 <body>
@@ -1475,29 +1964,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
-      <!-- ── ACORDEÓN: Idiomas ── -->
-      <div class="aj-acc-item" id="aj-acc-idiomas">
-        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-idiomas')">
-          <span class="aj-acc-hdr-ico">🌐</span>
-          <span class="aj-acc-hdr-tit">Idiomas</span>
-          <span class="aj-acc-hdr-arr">›</span>
-        </div>
-        <div class="aj-acc-body">
-<div class="aj-card">
-        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(139,92,246,.04))">
-          <div class="aj-card-hdr-ico">🌐</div>
-          <div class="aj-card-hdr-txt">
-            <div class="aj-card-hdr-tit" style="color:var(--violet2)" id="aj-idioma-tit">Idioma</div>
-            <div class="aj-card-hdr-sub" style="color:var(--violet2)" id="aj-idioma-sub">Cambia el idioma de la app al instante</div>
-          </div>
-        </div>
-        <div class="aj-card-body">
-          <div id="idioma-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
-        </div>
-      </div>
-        </div>
-      </div>
-
       <!-- ── ACORDEÓN: Almacenamiento ── -->
       <div class="aj-acc-item" id="aj-acc-almacen">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-almacen')">
@@ -1638,11 +2104,67 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
   </div>
 
+<!-- HORARIO (PDF individual) -->
+<div class="panel" id="p-horario">
+  <div id="horario-wrap">
+<!-- NUEVO: acordeón que envuelve la cabecera (.board) sin tocar su contenido interno -->
+<div class="board-acc" id="boardAccHorario">
+  <div class="board-acc-toggle" onclick="toggleBoardHorario()">
+    <span class="board-acc-toggle-title">▸ Detalles del Turno</span>
+    <span class="board-acc-arrow" id="boardArrowHorario">›</span>
+  </div>
+  <div class="board-acc-body" id="boardBodyHorario">
+<div class="board">
+  <div class="board-title">Horario individual</div>
+  <div class="board-sub">Sin horario cargado</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Horas efectivas</div><div class="stat-value" data-stat="HE">–</div></div>
+    <div class="stat"><div class="stat-label">Horas presencia</div><div class="stat-value" data-stat="HP">–</div></div>
+    <div class="stat"><div class="stat-label">Días servicio</div><div class="stat-value" id="cServicio">–</div></div>
+    <div class="stat"><div class="stat-label">Días libres</div><div class="stat-value" id="cLibre">–</div></div>
+    <div class="stat"><div class="stat-label">Reservas</div><div class="stat-value" id="cReserva">–</div></div>
+  </div>
+  <div class="upload-row">
+    <label for="fileInput" class="upload-btn">📄 Subir horario de este mes (PDF)</label>
+    <input type="file" id="fileInput" accept="application/pdf" hidden>
+    <span id="uploadStatus" class="upload-status"></span>
+  </div>
+  <div class="month-row" id="monthRow" style="display:none;">
+    <span class="month-row-label">Meses guardados:</span>
+    <select id="monthSelect"></select>
+  </div>
+  <!-- NUEVO: lista individual con botón de eliminar por mes, independiente del calendario -->
+  <div id="monthListIndividual" style="display:none;margin-top:10px"></div>
+</div>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--teal)"></span> En servicio</span>
+  <span><span class="dot" style="background:var(--muted)"></span> Día libre</span>
+  <span><span class="dot" style="background:var(--reserve)"></span> Disponible / Reserva</span>
+</div>
+
+<div class="today-wrap" id="todayWrap" style="display:none;">
+  <div class="today-eyebrow">Hoy</div>
+  <div id="todayContent"></div>
+</div>
+
+<div class="days-horario" id="days-horario"></div>
+
+<div class="danger-zone">
+  <p>¿Ya no necesitas el horario de <b id="deleteMonthLabel">este mes</b>? Puedes borrarlo sin afectar los demás meses guardados.</p>
+  <button class="delete-btn" id="deleteBtn">🗑 Eliminar horario de este mes</button>
+</div>
+  </div>
+</div>
+
 </div><!-- /body -->
 
 <!-- BOTTOM NAV -->
 <div class="bnav">
   <button class="bni on" id="nav-cal" onclick="goP('cal')"><div class="bi">📅</div><div class="bl">CALENDARIO</div><div class="bd"></div></button>
+  <button class="bni" id="nav-horario" onclick="goP('horario')"><div class="bi">🗂️</div><div class="bl">HORARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
 </div>
@@ -2149,7 +2671,9 @@ function init(){
   var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
   loadAjUI();
   // Cargar idioma guardado (en tiempo real, sin reiniciar)
-  if(AJ.idioma && I18N[AJ.idioma]) aplicarIdioma(AJ.idioma);
+  // Selector de idiomas eliminado: la app trabaja exclusivamente en español.
+  // Se ignora cualquier AJ.idioma guardado de sesiones anteriores.
+  AJ.idioma = 'es';
   renderCal();
   renderStats();
   initSwipe(); // activar swipe táctil en calendario
@@ -2538,7 +3062,7 @@ function aplicarIdioma(lang){
   var hc=document.querySelector('.hora-conf');if(hc)hc.textContent=t('confirmarHora');
   var es=document.getElementById('est-srch-inp');if(es)es.placeholder=t('buscar');
   var ag=document.getElementById('agenda-srch-inp');if(ag)ag.placeholder=t('buscarAgenda');
-  horaRefresh();renderCal();updHeader();renderIdiomaBtns();
+  horaRefresh();renderCal();updHeader();
 }
 
 /* ═══════════════════════════════════════
@@ -3303,7 +3827,7 @@ function renderAcordeon(){
     if(t.cambioSolicitado)det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
     if(t.numTren)det+='<div class="ac-row"><span class="ak">Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
     if(t.numTrenVuelta)det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'Vuelta (noche)':'Tren Vuelta')+'</span><span class="av" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</span></div>';
-    if(t.sal)det+='<div class="ac-row"><span class="ak">Ida</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
+    if(t.sal)det+='<div class="ac-row"><span class="ak">'+(t.tipo==='vuelta-pernocta'?'Vuelta':'Ida')+'</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
     if(t.hF)det+='<div class="ac-row"><span class="ak">Firma</span><span class="av">'+t.hF+' - '+(t.hL||'')+'</span></div>';
     if(t.sal2)det+='<div class="ac-row"><span class="ak">Vuelta</span><span class="av">'+t.sal2+' → '+(t.lle2||'')+'</span></div>';
     if(t.hF2)det+='<div class="ac-row"><span class="ak">H. Vuelta</span><span class="av">'+t.hF2+' - '+(t.hL2||'')+'</span></div>';
@@ -3606,18 +4130,20 @@ function enviarCambio(){
   // Marcar que se solicitó cambio en este turno (persiste en localStorage)
   if(TV[k]){ TV[k].cambioSolicitado=true; saveTV(); renderDiaArea(); renderAcordeon(); }
 
-  // Abrir correo
-  window.location.href='mailto:?subject='+asunto+'&body='+cuerpo;
+  // FIX CORREO VACÍO: preguntarGuardarContacto() usa confirm() — un diálogo
+  // nativo BLOQUEANTE. Antes se ejecutaba 800ms DESPUÉS de mailto:, lo cual
+  // podía interrumpir la transición de Android hacia el cliente de correo
+  // justo cuando estaba procesando el parámetro body, dejándolo vacío.
+  // Ahora se ejecuta ANTES, para que mailto: sea la última acción y no
+  // tenga ningún diálogo compitiendo con la entrega del cuerpo del mensaje.
+  preguntarGuardarContacto(
+    nombre  || '',
+    mat     || '',
+    trenComp|| ''
+  );
 
-  // Guardado automático: preguntar si guardar al compañero en la agenda
-  // Pequeño delay para que el mailto se procese primero
-  setTimeout(function(){
-    preguntarGuardarContacto(
-      nombre  || '',
-      mat     || '',
-      trenComp|| ''
-    );
-  }, 800);
+  // Abrir correo — ahora es la última acción, sin nada bloqueante después
+  window.location.href='mailto:?subject='+asunto+'&body='+cuerpo;
 }
 
 /* ═══════════════════════════════════════
@@ -4821,7 +5347,7 @@ function closeOv(id){
   },140);
 }
 function goP(n){
-  ['cal','stats','ajustes'].forEach(function(p){
+  ['cal','horario','stats','ajustes'].forEach(function(p){
     document.getElementById('p-'+p).className='panel'+(p===n?' on':'');
     document.getElementById('nav-'+p).className='bni'+(p===n?' on':'');
   });
@@ -4833,6 +5359,8 @@ function goP(n){
     renderStats();
   }
   if(n==='ajustes')loadAjUI();
+  // NUEVO: refrescar la lista individual de meses al entrar en Horario
+  if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
 }
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2500);}
 // Cerrar overlays al tocar fuera
@@ -5899,11 +6427,19 @@ function renderHoyResumen(){
 
   var ti = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo||'Turno'};
 
-  // Base: viene de AJ.base (ajustes del usuario), igual que usa renderPanelHoy
-  var base = AJ.base || '—';
-
-  // Destino: prioriza el de ida; si no hay, usa el de vuelta
-  var destino = t.lle || t.lle2 || t.sal2 || '—';
+  // FIX: el origen del resumen no siempre es la base del usuario.
+  // En un día de vuelta-pernocta, el origen real es la estación donde
+  // se pernoctó (t.sal), no AJ.base — antes mostraba "Base → Base"
+  // porque asumía siempre AJ.base como punto de partida.
+  var origen, destino;
+  if(t.tipo === 'vuelta-pernocta'){
+    origen  = t.sal || AJ.base || '—';
+    destino = t.lle || AJ.base || '—';
+  } else {
+    origen  = AJ.base || '—';
+    // Destino: prioriza el de ida; si no hay, usa el de vuelta
+    destino = t.lle || t.lle2 || t.sal2 || '—';
+  }
 
   // Horario: rango completo del turno (ida → vuelta si existe, si no solo ida)
   var horaIni = t.hF || '';
@@ -5915,7 +6451,7 @@ function renderHoyResumen(){
     +'<div class="hoy-acc-resumen-txt">'
     +'<span class="hoy-acc-lbl">'+ti.lbl+'</span>'
     +'<span class="hoy-acc-mini">'
-    +'<strong>'+base+'</strong>'
+    +'<strong>'+origen+'</strong>'
     +(destino!=='—'?' → <strong>'+destino+'</strong>':'')
     +(horario?' · '+horario:'')
     +'</span>'
@@ -5923,6 +6459,517 @@ function renderHoyResumen(){
 }
 
 init();
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO PANEL HORARIO INDIVIDUAL
+   Importado desde archivo subido por el usuario. Lee/escribe
+   en localStorage con prefijo propio (ver dentro), totalmente
+   aislado de TV/AJ/SF de la app principal. Nada de este bloque
+   modifica ninguna función o variable existente arriba.
+═══════════════════════════════════════════════════════════ */
+
+
+
+const cont = document.getElementById('days-horario');
+const todayWrap = document.getElementById('todayWrap');
+const todayContent = document.getElementById('todayContent');
+const chevronSvg = `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+function tramoHtml(t){
+  return `
+  <div class="tramo">
+    <div class="tren-chip">${t.tren}</div>
+    <div class="estacion">${t.est}</div>
+    <div class="timeline">
+      <div class="tpoint start"><div class="lbl">Fichaje</div><div class="val">${t.CI}</div></div>
+      <div class="arrow">›</div>
+      <div class="tpoint"><div class="lbl">Salida</div><div class="val">${t.dep}</div></div>
+      <div class="arrow">›</div>
+      <div class="tpoint"><div class="lbl">Llegada</div><div class="val">${t.arr}</div></div>
+      <div class="arrow">›</div>
+      <div class="tpoint end"><div class="lbl">Fin turno</div><div class="val">${t.CO}</div></div>
+    </div>
+  </div>`;
+}
+
+function renderAll(diasData, meta){
+  cont.innerHTML = '';
+  let nServicio=0, nLibre=0, nReserva=0;
+
+  diasData.forEach(d=>{
+    if(d.tipo==='SERVICIO') nServicio++;
+    if(d.tipo==='LIBRE') nLibre++;
+    if(d.tipo==='RESERVA') nReserva++;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'day';
+
+    let badgeHtml = '', summaryHtml = '', bodyHtml = '';
+
+    if(d.tipo === 'LIBRE'){
+      badgeHtml = `<span class="badge libre">Libre</span>`;
+      summaryHtml = `<span class="summary-text">Día de descanso</span>`;
+    } else if(d.tipo === 'RESERVA'){
+      badgeHtml = `<span class="badge reserva">Reserva</span>`;
+      summaryHtml = `<span class="summary-text">Disponible · ${d.HP||'00:00'} previstas</span>`;
+      bodyHtml = `
+        <div class="day-body reserva">
+          <div class="day-head">
+            <span class="badge reserva">Reserva</span>
+            <span class="codigo">Disponible · ${d.HP||'00:00'} previstas</span>
+          </div>
+        </div>`;
+    } else {
+      const tramos = d.tramos || [];
+      const primero = tramos[0] || {CI:'--:--'};
+      const ultimo = tramos[tramos.length-1] || {CO:'--:--'};
+      badgeHtml = `<span class="badge servicio">Servicio</span>`;
+      summaryHtml = `<span class="summary-text">${primero.CI} – ${ultimo.CO} · ${tramos.length} tramo${tramos.length!==1?'s':''}</span>`;
+      bodyHtml = `
+        <div class="day-body">
+          <div class="day-head">
+            <span class="badge servicio">Servicio</span>
+            <span class="codigo">${d.codigo||''}</span>
+          </div>
+          ${tramos.map(tramoHtml).join('')}
+          <div class="day-foot">
+            <div>Horas efectivas: <b>${d.HE||'00:00'}</b></div>
+            <div>Horas presencia: <b>${d.HP||'00:00'}</b></div>
+          </div>
+        </div>`;
+    }
+
+    const hasBody = d.tipo !== 'LIBRE';
+
+    wrap.innerHTML = `
+      <div class="day-head-row">
+        <div class="day-marker">
+          <div class="day-num">${d.n}</div>
+          <div class="day-week">${d.d}</div>
+        </div>
+        <div class="day-summary">${badgeHtml}${summaryHtml}</div>
+        ${hasBody ? chevronSvg : ''}
+      </div>
+      ${bodyHtml}
+    `;
+
+    if(hasBody){
+      wrap.querySelector('.day-head-row').addEventListener('click', ()=>{
+        wrap.classList.toggle('open');
+      });
+    }
+
+    wrap.dataset.dayNum = d.n;
+    cont.appendChild(wrap);
+  });
+
+  document.getElementById('cServicio').textContent = nServicio;
+  document.getElementById('cLibre').textContent = nLibre;
+  document.getElementById('cReserva').textContent = nReserva;
+
+  if(meta){
+    document.querySelector('.board-sub').textContent =
+      (meta.empleado||'Empleado') + (meta.mes ? ('  —  ' + meta.mes) : '');
+    document.querySelector('[data-stat="HE"]').textContent = meta.totalHE || '–';
+    document.querySelector('[data-stat="HP"]').textContent = meta.totalHP || '–';
+  }
+
+  renderToday(diasData, meta);
+}
+
+function renderToday(diasData, meta){
+  const now = new Date();
+  let coincideMes = true;
+  if(meta && meta.mes){
+    const nombreMesActual = now.toLocaleString('es-ES',{month:'long'}).toUpperCase();
+    coincideMes = meta.mes.toUpperCase().indexOf(nombreMesActual) !== -1 &&
+                  meta.mes.indexOf(String(now.getFullYear())) !== -1;
+  }
+  const todayNum = coincideMes ? now.getDate() : null;
+  const hoy = todayNum ? diasData.find(d=>d.n === todayNum) : null;
+
+  todayWrap.style.display = 'block';
+
+  if(!hoy){
+    todayContent.innerHTML = `<div class="today-empty">No hay datos de hoy en el horario cargado (${meta && meta.mes ? meta.mes : 'sin mes detectado'}).</div>`;
+    return;
+  }
+
+  if(hoy.tipo === 'LIBRE'){
+    todayContent.innerHTML = `
+      <div class="today-card">
+        <div class="day-head">
+          <span class="badge libre">Libre</span>
+          <span class="codigo">Día ${hoy.n} · ${hoy.d} — día de descanso</span>
+        </div>
+      </div>`;
+  } else if(hoy.tipo === 'RESERVA'){
+    todayContent.innerHTML = `
+      <div class="today-card">
+        <div class="day-head">
+          <span class="badge reserva">Reserva</span>
+          <span class="codigo">Día ${hoy.n} · ${hoy.d} — disponible, ${hoy.HP||'00:00'} previstas</span>
+        </div>
+      </div>`;
+  } else {
+    todayContent.innerHTML = `
+      <div class="today-card">
+        <div class="day-head">
+          <span class="badge servicio">Servicio</span>
+          <span class="codigo">Día ${hoy.n} · ${hoy.d} — ${hoy.codigo}</span>
+        </div>
+        ${(hoy.tramos||[]).map(tramoHtml).join('')}
+        <div class="day-foot">
+          <div>Horas efectivas: <b>${hoy.HE||'00:00'}</b></div>
+          <div>Horas presencia: <b>${hoy.HP||'00:00'}</b></div>
+        </div>
+      </div>`;
+  }
+
+  const rowAbajo = cont.querySelector(`.day[data-day-num="${todayNum}"]`);
+  if(rowAbajo) rowAbajo.classList.add('is-today');
+}
+
+// === PARSER DEL PDF (formato individual Serveo) ===
+function parseSchedulePdfText(text){
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  let empleado = null, mes = null;
+  for(const l of lines){
+    const m = l.match(/(\d{6,8}-[A-ZÁÉÍÓÚÑ ,]+)/);
+    if(m){ empleado = m[1].trim(); break; }
+  }
+  const mesMatch = text.match(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+\d{4}/i);
+  if(mesMatch) mes = mesMatch[0].toUpperCase();
+
+  const diasOut = [];
+  const dayLineRegex = /^(\d{1,2})\s+(DOM|LUN|MAR|MIÉ|MIE|JUE|VIE|SÁB|SAB)\s+(.*)$/;
+
+  for(const l of lines){
+    const m = l.match(dayLineRegex);
+    if(!m) continue;
+    const numero = parseInt(m[1],10);
+    const diaSemana = m[2].replace('MIE','MIÉ').replace('SAB','SÁB');
+    let resto = m[3];
+
+    const heHpMatch = resto.match(/(\d{1,3}:\d{2})\s+(\d{1,3}:\d{2})\s*$/);
+    let HE = null, HP = null;
+    if(heHpMatch){
+      HE = heHpMatch[1]; HP = heHpMatch[2];
+      resto = resto.slice(0, heHpMatch.index).trim();
+    }
+
+    let entry = {n: numero, d: diaSemana, codigo: null, tipo: null, tramos: [], HE, HP};
+
+    if(/DÍA LIBRE|DIA LIBRE/i.test(resto)){
+      entry.tipo = 'LIBRE'; entry.codigo = 'DO';
+    } else if(/DISPONIBLE/i.test(resto)){
+      entry.tipo = 'RESERVA'; entry.codigo = 'R';
+    } else {
+      entry.tipo = 'SERVICIO';
+      const parts = resto.split(/\s+/);
+      entry.codigo = parts[0];
+      const rest2 = resto.slice(entry.codigo.length).trim();
+
+      const tramoRegex = /([0-9A-Z]+)\s+([A-Z]{2,6})\s+(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})\s+(\d{1,2}:\d{2})/g;
+      let tm;
+      while((tm = tramoRegex.exec(rest2)) !== null){
+        entry.tramos.push({tren: tm[1], est: tm[2], CI: tm[3], dep: tm[4], arr: tm[5], CO: tm[6]});
+      }
+    }
+    diasOut.push(entry);
+  }
+
+  let totalHE = null, totalHP = null;
+  const totalLine = lines.find(l=>/^\d{1,3}:\d{2}\s+\d{1,3}:\d{2}$/.test(l));
+  if(totalLine){
+    const tm = totalLine.match(/^(\d{1,3}:\d{2})\s+(\d{1,3}:\d{2})$/);
+    totalHE = tm[1]; totalHP = tm[2];
+  }
+
+  return {dias: diasOut, meta: {empleado, mes, totalHE, totalHP}};
+}
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+// === ALMACENAMIENTO PERSISTENTE POR MES ===
+// Capa propia de almacenamiento: usa localStorage del navegador (funciona en
+// cualquier navegador normal, fuera del entorno de Claude). Si por algún
+// motivo localStorage no está disponible, cae a un respaldo en memoria
+// (no persiste al recargar, pero la app no se rompe).
+let currentMonthKey = null; // ej. "MARZO 2026"
+
+const memoryFallback = {};
+function hasLocalStorage(){
+  try{
+    const k = '__test__';
+    window.localStorage.setItem(k, '1');
+    window.localStorage.removeItem(k);
+    return true;
+  }catch(e){ return false; }
+}
+const LS_OK = hasLocalStorage();
+
+const localStore = {
+  get(key){
+    if(LS_OK) return window.localStorage.getItem(key);
+    return (key in memoryFallback) ? memoryFallback[key] : null;
+  },
+  set(key, value){
+    if(LS_OK) window.localStorage.setItem(key, value);
+    else memoryFallback[key] = value;
+  },
+  remove(key){
+    if(LS_OK) window.localStorage.removeItem(key);
+    else delete memoryFallback[key];
+  }
+};
+
+async function getMonthIndex(){
+  try{
+    const raw = localStore.get('horarios:index');
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+async function saveMonthIndex(list){
+  localStore.set('horarios:index', JSON.stringify(list));
+}
+
+async function saveMonth(mesKey, diasData, meta){
+  localStore.set('horario:' + mesKey, JSON.stringify({dias: diasData, meta}));
+  const idx = await getMonthIndex();
+  if(!idx.includes(mesKey)){
+    idx.push(mesKey);
+    await saveMonthIndex(idx);
+  }
+  await refreshMonthSelect(mesKey);
+  if(typeof renderMonthListIndividual === 'function') await renderMonthListIndividual();
+}
+
+async function loadMonth(mesKey){
+  try{
+    const raw = localStore.get('horario:' + mesKey);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+
+async function deleteMonth(mesKey){
+  localStore.remove('horario:' + mesKey);
+  const idx = await getMonthIndex();
+  const nuevo = idx.filter(m => m !== mesKey);
+  await saveMonthIndex(nuevo);
+  return nuevo;
+}
+
+async function refreshMonthSelect(selectedKey){
+  const idx = await getMonthIndex();
+  const monthRow = document.getElementById('monthRow');
+  const sel = document.getElementById('monthSelect');
+  sel.innerHTML = '';
+  if(idx.length === 0){
+    monthRow.style.display = 'none';
+    return;
+  }
+  monthRow.style.display = 'flex';
+  idx.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    if(m === selectedKey) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+document.getElementById('monthSelect').addEventListener('change', async (e)=>{
+  const mesKey = e.target.value;
+  const data = await loadMonth(mesKey);
+  if(data){
+    currentMonthKey = mesKey;
+    renderAll(data.dias, data.meta);
+    document.getElementById('deleteMonthLabel').textContent = mesKey;
+  }
+});
+
+document.getElementById('deleteBtn').addEventListener('click', async ()=>{
+  if(!currentMonthKey){
+    alert('No hay un mes cargado para eliminar.');
+    return;
+  }
+  const ok = confirm('¿Eliminar el horario de ' + currentMonthKey + '? Esta acción no se puede deshacer.');
+  if(!ok) return;
+
+  const restantes = await deleteMonth(currentMonthKey);
+
+  if(restantes.length > 0){
+    const siguiente = restantes[restantes.length - 1];
+    const data = await loadMonth(siguiente);
+    currentMonthKey = siguiente;
+    renderAll(data.dias, data.meta);
+    document.getElementById('deleteMonthLabel').textContent = siguiente;
+  } else {
+    currentMonthKey = null;
+    cont.innerHTML = '<div class="today-empty" style="margin:20px 4px;">No hay ningún horario guardado. Sube un PDF para empezar.</div>';
+    document.querySelector('.board-sub').textContent = 'Sin horario cargado';
+    document.querySelector('[data-stat="HE"]').textContent = '–';
+    document.querySelector('[data-stat="HP"]').textContent = '–';
+    document.getElementById('cServicio').textContent = '–';
+    document.getElementById('cLibre').textContent = '–';
+    document.getElementById('cReserva').textContent = '–';
+    todayWrap.style.display = 'none';
+    document.getElementById('deleteMonthLabel').textContent = 'este mes';
+  }
+});
+
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = 'Leyendo PDF...';
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let fullText = '';
+    for(let p=1; p<=pdf.numPages; p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.map(it=>({str:it.str, x:it.transform[4], y:it.transform[5]}));
+      items.sort((a,b)=> b.y - a.y || a.x - b.x);
+      let lastY = null;
+      items.forEach(it=>{
+        if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
+        else if(lastY !== null){ fullText += ' '; }
+        fullText += it.str;
+        lastY = it.y;
+      });
+      fullText += '\n';
+    }
+    const {dias: diasNuevo, meta} = parseSchedulePdfText(fullText);
+    if(!diasNuevo.length){
+      statusEl.textContent = 'No se pudo interpretar el PDF (formato no reconocido).';
+      return;
+    }
+    const mesKey = meta.mes || ('SIN-MES-' + Date.now());
+    await saveMonth(mesKey, diasNuevo, meta);
+    currentMonthKey = mesKey;
+    renderAll(diasNuevo, meta);
+    document.getElementById('deleteMonthLabel').textContent = mesKey;
+    statusEl.textContent = '✓ Horario de ' + mesKey + ' guardado (no afecta a otros meses).';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Error al leer el PDF: ' + err.message;
+  }
+});
+
+// === Arranque ===
+// MODIFICADO: cada usuario empieza desde cero, sin datos de ejemplo
+// precargados. Si no hay ningún mes guardado, se muestra el estado
+// vacío invitando a subir el primer PDF — nada se auto-genera.
+(async function initHorario(){
+  const idx = await getMonthIndex();
+  if(idx.length > 0){
+    // Hay meses guardados de sesiones anteriores: cargar el último
+    const ultimo = idx[idx.length - 1];
+    const data = await loadMonth(ultimo);
+    if(data){
+      currentMonthKey = ultimo;
+      await refreshMonthSelect(ultimo);
+      if(typeof renderMonthListIndividual === 'function') await renderMonthListIndividual();
+      renderAll(data.dias, data.meta);
+      document.getElementById('deleteMonthLabel').textContent = ultimo;
+      return;
+    }
+  }
+  // Sin ningún mes guardado: estado vacío, esperando que el usuario suba su PDF
+  currentMonthKey = null;
+  cont.innerHTML = '<div class="today-empty" style="margin:20px 4px;">No hay ningún horario guardado. Sube un PDF para empezar.</div>';
+  document.querySelector('.board-sub').textContent = 'Sin horario cargado';
+  document.querySelector('[data-stat="HE"]').textContent = '–';
+  document.querySelector('[data-stat="HP"]').textContent = '–';
+  document.getElementById('cServicio').textContent = '–';
+  document.getElementById('cLibre').textContent = '–';
+  document.getElementById('cReserva').textContent = '–';
+  todayWrap.style.display = 'none';
+  document.getElementById('deleteMonthLabel').textContent = 'este mes';
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   ACORDEÓN — Cabecera del panel Horario
+   Función nueva e independiente. No modifica ninguna función
+   existente del módulo de horario ni de la app principal.
+═══════════════════════════════════════════════════════════ */
+function toggleBoardHorario(){
+  var acc = document.getElementById('boardAccHorario');
+  if(!acc) return;
+  acc.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ELIMINACIÓN SELECTIVA DE HORARIOS — lista individual
+   Funciones nuevas e independientes. Reutilizan deleteMonth(),
+   getMonthIndex() y loadMonth() ya existentes sin modificarlas.
+   SEGURIDAD: estas funciones solo operan sobre las claves
+   'horario:*' y 'horarios:index' de localStore (el módulo de
+   horario individual). NUNCA acceden a TV, saveTV(), ni a la
+   clave 'tv5' del calendario principal — no existe ninguna
+   referencia a esas variables en este bloque.
+═══════════════════════════════════════════════════════════ */
+async function renderMonthListIndividual(){
+  var wrap = document.getElementById('monthListIndividual');
+  if(!wrap) return;
+  var idx = await getMonthIndex();
+  if(!idx.length){
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.style.display = 'block';
+  wrap.innerHTML = idx.map(function(mesKey){
+    var esActual = (typeof currentMonthKey !== 'undefined' && mesKey === currentMonthKey);
+    return '<div class="month-item-row">'
+      + '<span class="month-item-name'+(esActual?' current':'')+'">'+mesKey+(esActual?' (actual)':'')+'</span>'
+      + '<button class="month-item-del" onclick="eliminarHorarioIndividual(\''+mesKey.replace(/'/g,"\\'")+'\')">🗑 Eliminar</button>'
+      + '</div>';
+  }).join('');
+}
+
+async function eliminarHorarioIndividual(mesKey){
+  if(!mesKey) return;
+  var ok = confirm('¿Eliminar el horario de "'+mesKey+'"?\n\nEsta acción solo borra este archivo/PDF — tu calendario de turnos no se ve afectado.');
+  if(!ok) return;
+
+  // Reutiliza deleteMonth() ya existente — opera solo en localStore('horario:*')
+  var restantes = await deleteMonth(mesKey);
+
+  // Si el mes eliminado era el que estaba cargado en pantalla, recargar otro o vaciar
+  if(typeof currentMonthKey !== 'undefined' && currentMonthKey === mesKey){
+    if(restantes.length > 0){
+      var siguiente = restantes[restantes.length - 1];
+      var data = await loadMonth(siguiente);
+      currentMonthKey = siguiente;
+      renderAll(data.dias, data.meta);
+      document.getElementById('deleteMonthLabel').textContent = siguiente;
+      await refreshMonthSelect(siguiente);
+    } else {
+      currentMonthKey = null;
+      cont.innerHTML = '<div class="today-empty" style="margin:20px 4px;">No hay ningún horario guardado. Sube un PDF para empezar.</div>';
+      document.querySelector('.board-sub').textContent = 'Sin horario cargado';
+      document.querySelector('[data-stat="HE"]').textContent = '–';
+      document.querySelector('[data-stat="HP"]').textContent = '–';
+      document.getElementById('cServicio').textContent = '–';
+      document.getElementById('cLibre').textContent = '–';
+      document.getElementById('cReserva').textContent = '–';
+      todayWrap.style.display = 'none';
+      document.getElementById('deleteMonthLabel').textContent = 'este mes';
+      await refreshMonthSelect(null);
+    }
+  } else {
+    await refreshMonthSelect(currentMonthKey);
+  }
+
+  await renderMonthListIndividual();
+}
+
 </script>
 </body>
 </html>
