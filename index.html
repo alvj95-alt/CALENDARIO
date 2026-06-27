@@ -2139,6 +2139,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- FIX UX: botones movidos fuera del acordeón colapsable — antes quedaban
+     ocultos/no-clicables hasta expandir "Detalles del Turno" manualmente.
+     Ahora son siempre visibles y accesibles, sin tocar su lógica interna. -->
+<div style="padding:0 10px">
+  <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
+  <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
+  <button id="btnComparador" class="upload-btn" style="margin-top:8px;background:rgba(255,176,0,.12);border:1px solid rgba(255,176,0,.4);color:#ffb000" onclick="abrirComparador()">🔍 Comparar Turnos</button>
+</div>
+
+
 <div class="legend">
   <span><span class="dot" style="background:var(--teal)"></span> En servicio</span>
   <span><span class="dot" style="background:var(--muted)"></span> Día libre</span>
@@ -2167,6 +2177,150 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <button class="bni" id="nav-horario" onclick="goP('horario')"><div class="bi">🗂️</div><div class="bl">HORARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
+</div>
+
+<!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
+     Reubicado como hermano directo de .bnav (mismo contexto que ov-tipo y
+     ov-dia-card), corrigiendo el bug de visibilidad: antes este modal
+     estaba anidado dentro de .body/#p-horario, heredando un contexto de
+     altura restringido que impedía que position:absolute;inset:0 llegara
+     al 100% del marco del teléfono. -->
+<div class="ov" id="ov-htdl-dias" onclick="closeOv('ov-htdl-dias')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📤</div>
+      <div><div class="sh-tit">Solicitar HTDL</div><div class="sh-sub">Selecciona tus días libres o disponibles</div></div>
+      <button class="sh-close" onclick="closeOv('ov-htdl-dias')">✕</button>
+    </div>
+    <div id="htdl-dias-list" style="padding:6px 18px 10px;flex:1;min-height:0;overflow-y:auto"></div>
+    <div style="padding:0 18px 18px">
+      <button id="btnHtdlSiguiente" onclick="generarTextoHTDL()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0891B2,#0e7490);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO: Modal Paso 2 — Texto generado y envío por correo -->
+<div class="ov" id="ov-htdl-texto" onclick="closeOv('ov-htdl-texto')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">✉️</div>
+      <div><div class="sh-tit">Solicitud de HTDL</div><div class="sh-sub">Revisa el mensaje antes de enviarlo</div></div>
+      <button class="sh-close" onclick="closeOv('ov-htdl-texto')">✕</button>
+    </div>
+    <div style="padding:6px 18px 4px">
+      <textarea id="htdl-texto-area" style="width:100%;min-height:170px;background:var(--s2);border:1px solid var(--div);border-radius:10px;color:var(--tx);font-size:12px;padding:11px;resize:vertical;font-family:inherit"></textarea>
+    </div>
+    <div style="padding:8px 18px 18px">
+      <button onclick="enviarSolicitudHTDL()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0891B2,#0e7490);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer">✉️ Enviar a Programación</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO COMPARADOR DE TURNOS — completamente aditivo.
+     HTML/CSS scoped dentro de #comparador-wrap. Su JS vive en
+     un IIFE propio (ver final del bloque de JavaScript
+     principal) que NO
+     declara ninguna variable ni función en el scope global de
+     la app — cero riesgo de colisión con TV, AJ, key(), etc.
+     PDF independiente: usa su propio pdfjsLib.getDocument(),
+     sin tocar el parser de Horario ni TV/localStorage.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-comparador" onclick="closeOv('ov-comparador')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔍</div>
+      <div><div class="sh-tit">Comparador de Turnos</div><div class="sh-sub">Sube el cuadrante de un compañero y compara</div></div>
+      <button class="sh-close" onclick="closeOv('ov-comparador')">✕</button>
+    </div>
+    <div id="comparador-wrap" style="overflow-y:auto;flex:1;min-height:0">
+      <style>
+        #comparador-wrap{font-family:'JetBrains Mono','SFMono-Regular',Consolas,monospace;--c-bg:#0c1410;--c-panel:#13201a;--c-panel2:#19281f;--c-line:#27392f;--c-amber:#ffb000;--c-amber-dim:#9c6e00;--c-green:#4fd17a;--c-yellow:#e8c34a;--c-blue:#5aa9e6;--c-text:#e7efe9;--c-muted:#7e978a;}
+        #comparador-wrap *{box-sizing:border-box;}
+        #comparador-wrap .c-main{padding:14px;}
+        #comparador-wrap .c-card{background:var(--c-panel);border:1px solid var(--c-line);border-radius:10px;padding:14px;margin-bottom:14px;color:var(--c-text);}
+        #comparador-wrap .c-card h2{margin:0 0 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--c-muted);font-weight:600;}
+        #comparador-wrap label{display:block;font-size:11px;color:var(--c-muted);margin:10px 0 5px;letter-spacing:.03em;}
+        #comparador-wrap label:first-child{margin-top:0;}
+        #comparador-wrap input[type=file],#comparador-wrap input[type=text],#comparador-wrap input[type=number]{width:100%;background:var(--c-panel2);border:1px solid var(--c-line);color:var(--c-text);padding:10px 11px;border-radius:7px;font-family:inherit;font-size:14px;}
+        #comparador-wrap input[type=file]::file-selector-button{background:var(--c-amber-dim);color:#fff;border:none;border-radius:5px;padding:6px 10px;margin-right:8px;font-family:inherit;font-size:12px;}
+        #comparador-wrap .c-day-grid{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+        #comparador-wrap .c-day-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--c-line);background:var(--c-panel2);color:var(--c-text);font-family:inherit;font-size:12px;display:flex;align-items:center;justify-content:center;}
+        #comparador-wrap .c-day-btn.active{background:var(--c-amber);color:#1a1300;border-color:var(--c-amber);font-weight:700;}
+        #comparador-wrap button.c-primary{width:100%;margin-top:14px;background:var(--c-amber);color:#1a1300;border:none;padding:13px;border-radius:8px;font-family:inherit;font-weight:700;font-size:13px;letter-spacing:.05em;text-transform:uppercase;}
+        #comparador-wrap button.c-primary:disabled{opacity:.4;}
+        #comparador-wrap .c-status{font-size:12px;color:var(--c-muted);margin-top:8px;min-height:16px;}
+        #comparador-wrap .c-status.err{color:#e85d5d;} #comparador-wrap .c-status.ok{color:var(--c-green);}
+        #comparador-wrap .c-you-card{border-left:3px solid var(--c-amber);}
+        #comparador-wrap .c-you-card .c-turno{font-size:18px;color:var(--c-amber);font-weight:700;letter-spacing:.02em;}
+        #comparador-wrap .c-you-card .c-ruta{color:var(--c-text);font-size:13px;margin-top:4px;}
+        #comparador-wrap .c-you-card .c-times{color:var(--c-muted);font-size:12px;margin-top:6px;}
+        #comparador-wrap .c-tier{margin-top:18px;}
+        #comparador-wrap .c-tier-head{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted);margin-bottom:8px;}
+        #comparador-wrap .c-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block;}
+        #comparador-wrap .c-dot.exact{background:var(--c-green);} #comparador-wrap .c-dot.route{background:var(--c-yellow);} #comparador-wrap .c-dot.time{background:var(--c-blue);}
+        #comparador-wrap .c-match-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--c-line);font-size:12.5px;color:var(--c-text);}
+        #comparador-wrap .c-match-row:last-child{border-bottom:none;}
+        #comparador-wrap .c-match-row.c-tappable{cursor:pointer;}
+        #comparador-wrap .c-match-row.c-tappable:active{background:var(--c-panel2);}
+        #comparador-wrap .c-match-row .c-who{color:var(--c-text);text-decoration:underline dotted var(--c-muted);}
+        #comparador-wrap .c-match-row .c-mat{color:var(--c-muted);font-size:11px;}
+        #comparador-wrap .c-match-row .c-what{text-align:right;color:var(--c-muted);font-size:11.5px;max-width:46%;}
+        #comparador-wrap .c-empty{color:var(--c-muted);font-size:12px;padding:6px 0;}
+        #comparador-wrap details{margin-top:14px;}
+        #comparador-wrap summary{font-size:11px;color:var(--c-muted);cursor:pointer;letter-spacing:.04em;}
+        #comparador-wrap pre.c-debug{background:#000;color:#7e978a;padding:10px;border-radius:6px;font-size:10.5px;max-height:260px;overflow:auto;margin-top:8px;line-height:1.5;}
+        #comparador-wrap .c-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:300;padding:18px;}
+        #comparador-wrap .c-modal-backdrop.open{display:flex;}
+        #comparador-wrap .c-modal{background:var(--c-panel);border:1px solid var(--c-line);border-radius:12px;padding:16px;max-width:94vw;width:100%;max-height:88vh;overflow:auto;}
+        #comparador-wrap .c-modal h3{margin:0 0 4px;font-size:13px;color:var(--c-amber);letter-spacing:.04em;}
+        #comparador-wrap .c-modal .c-meta{font-size:11px;color:var(--c-muted);margin-bottom:10px;}
+        #comparador-wrap .c-modal canvas{width:100%;background:#fff;border-radius:6px;display:block;}
+        #comparador-wrap .c-modal .c-closeBtn{margin-top:12px;width:100%;background:var(--c-panel2);color:var(--c-text);border:1px solid var(--c-line);padding:10px;border-radius:8px;font-family:inherit;font-size:12px;}
+        #comparador-wrap .c-modal .c-loading{color:var(--c-muted);font-size:12px;padding:20px 0;text-align:center;}
+      </style>
+
+      <div class="c-main">
+        <div class="c-card">
+          <h2>1 · Cuadrante de tu compañero (PDF)</h2>
+          <label>Archivo PDF (cuadrante mensual)</label>
+          <input type="file" id="compPdfInput" accept="application/pdf">
+          <div class="c-status" id="compPdfStatus"></div>
+        </div>
+        <div class="c-card">
+          <h2>2 · Tú</h2>
+          <label>Matrícula o nombre (lo que tengas a mano)</label>
+          <input type="text" id="compMatriculaInput" placeholder="ej. 4179742 o ALVARADO">
+        </div>
+        <div class="c-card">
+          <h2>3 · Día y tolerancia</h2>
+          <label>Margen de horario "similar" (minutos, sobre CI o CO)</label>
+          <input type="number" id="compMarginInput" value="30" min="0" max="180">
+          <label>Día del mes</label>
+          <div class="c-day-grid" id="compDayGrid"></div>
+          <button class="c-primary" id="compRunBtn" disabled>Comparar este día</button>
+          <div class="c-status" id="compRunStatus"></div>
+        </div>
+        <div id="compResults"></div>
+        <details>
+          <summary>Modo depuración (ver lo que ha leído el parser)</summary>
+          <pre class="c-debug" id="compDebugOut">Sin datos aún.</pre>
+        </details>
+      </div>
+
+      <div class="c-modal-backdrop" id="compModalBackdrop">
+        <div class="c-modal">
+          <h3 id="compModalTitle">Recorte del PDF</h3>
+          <div class="c-meta" id="compModalMeta"></div>
+          <div id="compModalBody"><div class="c-loading">Generando recorte…</div></div>
+          <button class="c-closeBtn" id="compModalClose">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- OV: TIPO TURNO -->
@@ -2609,6 +2763,7 @@ const TIPO_INFO={
   trabajado:        {ico:'💼',lbl:'Trabajado',    col:'var(--c-tra)',cls:'dc-tra'},
   comp:             {ico:'📅',lbl:'Comp.',        col:'var(--c-cmp)',cls:'dc-cmp'},
   'vuelta-pernocta':{ico:'🌙',lbl:'Vuelta',       col:'var(--c-ord)',cls:'dc-res'},
+  'pernocta3-intermedio':{ico:'🌙',lbl:'Pernocta (día 2/3)', col:'var(--c-ord)',cls:'dc-res'},
   vacaciones:       {ico:'✈',lbl:'Vacaciones',   col:'var(--c-vac)',cls:'dc-vac'},
 };
 // ── PLUSES: Activación, Internacional, JT — fijos por viaje ──
@@ -4203,6 +4358,7 @@ function renderFormBody(){
     h+=secPreguntaPernocta();
     h+=secTramo('ida');
     if(F.modo) h+=secTramo('vuelta');
+    if(F.modo==='pernocta3') h+=secTramoIntermedio();
     if(t==='trabajado') h+=secDescFlow();
   } else if(t==='reserva'){
     h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
@@ -4260,11 +4416,13 @@ function secLinea(){
 
 function secPreguntaPernocta(){
   return '<div class="fsec" style="padding-bottom:5px"><div class="fsec-lbl">¿Cuándo vuelves?</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">'
     +'<div class="da-btn w-verde '+(F.modo==='ida'?'on':'')+'" onclick="setModo(\'ida\')">'
     +'<div class="da-ico">🔄</div><div class="da-lbl">Mismo día</div><div class="da-sub">Ida y vuelta hoy</div></div>'
     +'<div class="da-btn w-amber '+(F.modo==='pernocta'?'on':'')+'" onclick="setModo(\'pernocta\')">'
     +'<div class="da-ico">🌙</div><div class="da-lbl">Pernocta</div><div class="da-sub">Vuelta al día siguiente</div></div>'
+    +'<div class="da-btn w-amber '+(F.modo==='pernocta3'?'on':'')+'" onclick="setModo(\'pernocta3\')">'
+    +'<div class="da-ico">🌙🌙</div><div class="da-lbl">Pernocta 3 días</div><div class="da-sub">Vuelta a los 2 días</div></div>'
     +'</div></div>';
 }
 
@@ -4333,13 +4491,61 @@ function secDescansoOpciones(){
     +'</div></div>';
 }
 
+/* ═══════════════════════════════════════════════════════════
+   PERNOCTA 3 DÍAS — tercer tramo (campo nuevo, aditivo)
+   Reutiliza el mismo estilo visual de secTramo() pero opera
+   sobre campos NUEVOS (sal3/lle3/hF3/hL3), sin tocar en
+   absoluto los campos sal/lle/hF/hL (ida) ni sal2/lle2/hF2/hL2
+   (vuelta) que ya usan los turnos "ida y vuelta" y "pernocta".
+═══════════════════════════════════════════════════════════ */
+function secTramoIntermedio(){
+  var sv=F.sal3||'',lv=F.lle3||'',hFv=F.hF3||'',hLv=F.hL3||'';
+  var sShow=sv||F.lle2||'';
+  var lShow=lv||'';
+  var dur=hFv&&hLv?'<div class="dur-badge" id="dur-i3">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-i3"></div>';
+  var hayNocEste=(hFv&&esHoraNocturna(hFv))||(hLv&&esHoraNocturna(hLv));
+  var nocBadge=hayNocEste
+    ? '<div style="display:inline-flex;align-items:center;gap:5px;'
+      +'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);'
+      +'border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;'
+      +'color:var(--amber2);margin-bottom:6px">'
+      +'🌙 Nocturnidad activa · +'+parseFloat(AJ.nocturnidad||0).toFixed(2)+' €/h</div>'
+    : '';
+
+  return '<div class="fsec" style="border-top:1px solid var(--div)">'
+    +'<div class="tramo-hdr" style="background:rgba(245,158,11,.12);margin-bottom:5px">'
+    +'<span>🌙</span>'
+    +'<span style="font-size:9px;font-weight:800;color:var(--amber2)">TRAMO INTERMEDIO — día 2 de 3</span>'
+    +'</div>'
+    +'<div class="fsec-lbl">Trayecto</div>'
+    +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\'sal3\')">'
+    +'<div class="sf-i">🚉</div><div class="sf-b"><div class="sf-lbl">SALIDA</div>'
+    +'<div class="sf-val '+(sShow?'':'ph')+'" data-f="sal3">'+(sShow||'Seleccionar')+'</div>'
+    +'</div><span class="sf-arr">⌄</span></div>'
+    +'<div class="sf '+(lShow?'fil':'')+'" onclick="openEstSheet(\'lle3\')">'
+    +'<div class="sf-i">🏁</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+    +'<div class="sf-val '+(lShow?'':'ph')+'" data-f="lle3">'+(lShow||'Seleccionar')+'</div>'
+    +'</div><span class="sf-arr">⌄</span></div>'
+    +'<div class="fsec-lbl" style="margin-top:5px">Horario</div>'
+    +'<div class="hora-row">'
+    +'<div class="sf '+(hFv?'fil':'')+'" onclick="openHora(\'hF3\')">'
+    +'<div class="sf-i">⏱</div><div class="sf-b"><div class="sf-lbl">FIRMA</div>'
+    +'<div class="sf-val '+(hFv?'hv':'ph')+'" data-hora="hF3">'+(hFv||'--:--')+'</div>'
+    +'</div></div>'
+    +'<div class="sf '+(hLv?'fil':'')+'" onclick="openHora(\'hL3\')">'
+    +'<div class="sf-i">🔚</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+    +'<div class="sf-val '+(hLv?'hv':'ph')+'" data-hora="hL3">'+(hLv||'--:--')+'</div>'
+    +'</div></div>'
+    +'</div>'+nocBadge+dur+'</div>';
+}
+
 function secDescFlow(){
   if(!F.modo) return '';
 
   var vh    = parseFloat(AJ.vh)||12.5;
   var noc   = parseFloat(AJ.nocturnidad)||0;
   var p     = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
-  var nDias = F.modo==='pernocta'?4:2;
+  var nDias = F.modo==='pernocta3'?6:(F.modo==='pernocta'?4:2);
 
   // Solo calculamos si eligió "dinero"
   var hayNoc  = F.hF?esHoraNocturna(F.hF)||(F.hL?esHoraNocturna(F.hL):false):false;
@@ -4477,7 +4683,7 @@ function renderMiniCal(){
   }
   var y=miniM.getFullYear(),m=miniM.getMonth();
   var ultimo=new Date(y,m+1,0).getDate();
-  var nDias=F.modo==='pernocta'?4:2;
+  var nDias=F.modo==='pernocta3'?6:(F.modo==='pernocta'?4:2);
   var sd=new Date(y,m,1).getDay();sd=sd===0?6:sd-1;
   var cells='';
   for(var i=0;i<sd;i++)cells+='<div class="mc-d mc-dis">·</div>';
@@ -4536,7 +4742,7 @@ function setModo(m){
     diasComp=[]; F.diasComp=[];
   }
   F.modo=m; F.comp=null;
-  if(m==='pernocta'){if(!F.sal2&&F.lle)F.sal2=F.lle;if(!F.lle2&&F.sal)F.lle2=F.sal;}
+  if(m==='pernocta'||m==='pernocta3'){if(!F.sal2&&F.lle)F.sal2=F.lle;if(!F.lle2&&F.sal)F.lle2=F.sal;}
   renderFormBody();
 }
 function setComp(c){F.comp=c;renderFormBody();if(c==='dias')setTimeout(renderMiniCal,50);}
@@ -4585,8 +4791,30 @@ function guardarTurno(){
         sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
         nocturno:d.nocturno,origenPernocta:k};
       d.diaSiguiente=kSig;
+      // Limpiar restos de una pernocta3 previa en este mismo día de origen
+      if(selDay.t&&selDay.t.diaIntermedio) delete TV[selDay.t.diaIntermedio];
+    } else if(F.modo==='pernocta3'){
+      // PERNOCTA 3 DÍAS — genera DOS días extra: intermedio (día 2) y vuelta final (día 3)
+      var _ks3=k.split('-').map(Number);var y3=_ks3[0],mo3=_ks3[1],dd3=_ks3[2];
+      var diaInt=new Date(y3,mo3-1,dd3);diaInt.setDate(diaInt.getDate()+1);
+      var kInt=key(diaInt.getFullYear(),diaInt.getMonth()+1,diaInt.getDate());
+      var diaFin=new Date(y3,mo3-1,dd3);diaFin.setDate(diaFin.getDate()+2);
+      var kFin=key(diaFin.getFullYear(),diaFin.getMonth()+1,diaFin.getDate());
+      // Limpiar turnos de pernocta3 previos generados desde este mismo origen
+      if(TV[kInt]&&TV[kInt].origenPernocta===k) delete TV[kInt];
+      if(TV[kFin]&&TV[kFin].origenPernocta===k) delete TV[kFin];
+      var nocIntermedio=!!((F.hF3&&esHoraNocturna(F.hF3))||(F.hL3&&esHoraNocturna(F.hL3)));
+      TV[kInt]={tipo:'pernocta3-intermedio',linea:F.linea,
+        sal:F.sal3||'',lle:F.lle3||'',hF:F.hF3||'',hL:F.hL3||'',
+        nocturno:nocIntermedio,origenPernocta:k};
+      TV[kFin]={tipo:'vuelta-pernocta',linea:F.linea,
+        sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
+        nocturno:d.nocturno,origenPernocta:k};
+      d.diaIntermedio=kInt;
+      d.diaSiguiente=kFin;
     } else {
       if(selDay.t&&selDay.t.diaSiguiente) delete TV[selDay.t.diaSiguiente];
+      if(selDay.t&&selDay.t.diaIntermedio) delete TV[selDay.t.diaIntermedio];
     }
   }
 
@@ -4599,7 +4827,7 @@ function guardarTurno(){
     if(F.comp==='dias'&&diasComp.length>0){
       var _km5=k.split('-').map(Number);var y2=_km5[0],mo2=_km5[1];
       var mC=mo2===12?1:mo2+1, yC=mo2===12?y2+1:y2;
-      var nE=F.modo==='pernocta'?4:2;
+      var nE=F.modo==='pernocta3'?6:(F.modo==='pernocta'?4:2);
       var dv=diasComp.filter(function(iso){
         var _di=iso.split('-').map(Number);var dy=_di[0],dm=_di[1];
         return dy===yC&&dm===mC;
@@ -4697,8 +4925,9 @@ const ESTACIONES_INTERNACIONALES = new Set([
 function openEstSheet(field){
   estField=field;
   var labs={sal:'Estación de Salida',lle:'Estación de Llegada',
-              sal2:'Salida Vuelta',lle2:'Llegada Vuelta',base:'Estación Base'};
-  var icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',base:'🏠'};
+              sal2:'Salida Vuelta',lle2:'Llegada Vuelta',
+              sal3:'Salida Tramo Intermedio',lle3:'Llegada Tramo Intermedio',base:'Estación Base'};
+  var icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',sal3:'🌙',lle3:'🌙',base:'🏠'};
   var tit=document.getElementById('est-tit');
   tit.innerHTML='<span style="font-size:20px">'+(icos[field]||'📍')+'</span>'
     +'<span>'+(labs[field]||'Estación')+'</span>';
@@ -4763,10 +4992,28 @@ function selEst(e){
   F[estField]=e;
   var hayI=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(x){return ESTACIONES_INTERNACIONALES.has(x);});
   var antI=F.plusIntlAuto;F.plusIntlAuto=hayI;
+
+  // AUTOMATIZACIÓN DE ESTACIONES — pernocta y pernocta3 (aditivo).
+  // Solo SUGIERE (autocompleta si está vacío) la salida del siguiente
+  // tramo cronológico, sin forzar ni sobreescribir si el usuario ya
+  // había escrito algo distinto ahí.
+  //   Pernocta 2 días:  lle  (fin día 1) → sugiere sal2 (inicio día 2)
+  //   Pernocta 3 días:  lle  (fin día 1) → sugiere sal3 (inicio día 2, tramo intermedio)
+  //                     lle3 (fin día 2) → sugiere sal2 (inicio día 3, tramo final)
+  if(estField==='lle' && (F.modo==='pernocta' || F.modo==='pernocta3') ){
+    var destinoSiguiente = F.modo==='pernocta3' ? 'sal3' : 'sal2';
+    if(!F[destinoSiguiente]) F[destinoSiguiente]=e;
+  } else if(estField==='lle3' && F.modo==='pernocta3'){
+    if(!F.sal2) F.sal2=e;
+  }
+
   var el=document.querySelector('[data-f="'+estField+'"]');
   if(el){el.textContent=e;el.className='sf-val';var sfP=el.closest('.sf');if(sfP)sfP.classList.add('fil');
     if(hayI!==antI)actualizarBadgeIntl();
     if(F.tipo==='trabajado'&&F.comp==='dinero')actualizarCalculo();
+    // Si se autocompletó algún campo del siguiente tramo, refrescar todo el formulario
+    // para que el usuario vea el campo ya relleno (en vez de quedar visualmente vacío).
+    if(estField==='lle' || estField==='lle3') renderFormBody();
   }else renderFormBody();
   closeOv('ov-est');
 }
@@ -5061,7 +5308,20 @@ function renderStats(){
   var pref=y+'-'+pad(m);
   var ks=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
   var ct={ordinario:0,reserva:0,descanso:0,baja:0,trabajado:0,comp:0,vacaciones:0};
-  ks.forEach(function(k){var t=TV[k];if(t&&ct[t.tipo]!==undefined)ct[t.tipo]++;});
+  // FIX: el día de "vuelta" de una pernocta (icono 🌙, tipo 'vuelta-pernocta')
+  // y el día intermedio de una pernocta de 3 días ('pernocta3-intermedio')
+  // antes no se contaban en ningún total porque no existían en este objeto.
+  // Ahora se suman directamente al contador de 'ordinario' — son días de
+  // trabajo real, igual que pedías, sin tocar cómo se guardan en TV[].
+  ks.forEach(function(k){
+    var t=TV[k];
+    if(!t) return;
+    if(t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio'){
+      ct.ordinario++;
+    } else if(ct[t.tipo]!==undefined){
+      ct[t.tipo]++;
+    }
+  });
   var e=calculateEarnings(ks);
   var rolCls=AJ.rol==='tripulante'?'trip':'aux';
   var rolIco=AJ.rol==='tripulante'?'🚆':'🎫';
@@ -5079,6 +5339,7 @@ function renderStats(){
     {i:'🧘',v:ct.descanso,  l:'Descansos',  c:'var(--c-des)'},
     {i:'🏥',v:ct.baja,      l:'Bajas',      c:'var(--c-baj)'},
     {i:'💼',v:ct.trabajado, l:'Trabajados', c:'var(--c-tra)'},
+    {i:'✈',v:ct.vacaciones, l:'Vacaciones', c:'var(--c-vac)'},
     {i:'⏱', v:e.totalHoras.toFixed(1)+'h', l:'Horas', c:'var(--acc2)'},
   ].map(function(x){
     return '<div class="sc" style="border-color:'+x.c+'33"><div class="sc-i">'+x.i+'</div>'
@@ -6969,6 +7230,487 @@ async function eliminarHorarioIndividual(mesKey){
 
   await renderMonthListIndividual();
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO SOLICITAR HTDL — completamente aditivo
+   No toca renderAll(), el calendario principal (TV/saveTV),
+   ni ninguna función de visualización existente. Reutiliza
+   loadMonth() (ya existente) para leer los días del horario
+   parseado, y AJ.nombre/AJ.matricula (mismo origen que usa
+   enviarCambio() para los cambios de turno).
+═══════════════════════════════════════════════════════════ */
+var _htdlDiasSeleccionados = [];
+
+async function abrirSolicitudHTDL(){
+  if(!currentMonthKey){
+    toast('Primero sube un horario para poder solicitar HTDL');
+    return;
+  }
+  var data = await loadMonth(currentMonthKey);
+  if(!data || !data.dias || !data.dias.length){
+    toast('No hay días cargados en este horario');
+    return;
+  }
+  // Filtrar SOLO días tipo LIBRE (código 'DO') o RESERVA (disponible)
+  var diasLibres = data.dias.filter(function(d){
+    return d.tipo === 'LIBRE' || d.tipo === 'RESERVA';
+  });
+  _htdlDiasSeleccionados = [];
+
+  var cont = document.getElementById('htdl-dias-list');
+  if(!diasLibres.length){
+    cont.innerHTML = '<div class="today-empty" style="margin:10px 0">No hay días libres o disponibles en '+currentMonthKey+'</div>';
+  } else {
+    cont.innerHTML = diasLibres.map(function(d, i){
+      var etiqueta = d.tipo === 'LIBRE' ? 'DO · Día libre' : 'Disponible';
+      var colorTag = d.tipo === 'LIBRE' ? '#4ADE80' : '#67e8f9';
+      return '<label style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer">'
+        + '<input type="checkbox" data-htdl-idx="'+i+'" data-htdl-dia="'+d.n+' '+d.d+'" onchange="toggleHtdlDia(this)" style="width:18px;height:18px;accent-color:#0891B2">'
+        + '<span style="font-family:\'Space Mono\',monospace;font-size:13px;color:var(--tx)">'+d.n+' '+d.d+'</span>'
+        + '<span style="font-size:11px;color:'+colorTag+';margin-left:auto">'+etiqueta+'</span>'
+        + '</label>';
+    }).join('');
+  }
+  openOv('ov-htdl-dias');
+}
+
+function toggleHtdlDia(checkbox){
+  var dia = checkbox.getAttribute('data-htdl-dia');
+  if(checkbox.checked){
+    if(_htdlDiasSeleccionados.indexOf(dia) === -1) _htdlDiasSeleccionados.push(dia);
+  } else {
+    _htdlDiasSeleccionados = _htdlDiasSeleccionados.filter(function(x){ return x !== dia; });
+  }
+}
+
+function generarTextoHTDL(){
+  if(!_htdlDiasSeleccionados.length){
+    toast('Selecciona al menos un día');
+    return;
+  }
+  var hora = new Date().getHours();
+  var saludo = hora < 20 ? (hora < 13 ? 'Buenos días' : 'Buenas tardes') : 'Buenas noches';
+  var diasTxt = _htdlDiasSeleccionados.join(', ');
+  var nombre = (typeof AJ !== 'undefined' && AJ.nombre) ? AJ.nombre : 'No configurado';
+  var matricula = (typeof AJ !== 'undefined' && AJ.matricula) ? AJ.matricula : 'No configurado';
+
+  var mensaje = saludo+', envío este correo para informar que estoy a disposición los días '+diasTxt
+    +' para realizar horas HTDL.\n\nSaludos cordiales,\n'+nombre+' - Matrícula: '+matricula;
+
+  document.getElementById('htdl-texto-area').value = mensaje;
+  closeOv('ov-htdl-dias');
+  openOv('ov-htdl-texto');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SANITIZADOR DE TEXTO — función nueva, completamente aditiva.
+   No toca AJ.nombre, AJ.matricula, ni ninguna variable existente.
+   Solo limpia una COPIA del texto justo antes de inyectarla en
+   el body del mailto:, para máxima compatibilidad con clientes
+   de correo que no manejan bien acentos/UTF-8.
+═══════════════════════════════════════════════════════════ */
+function sanitizarTexto(texto){
+  if(!texto) return '';
+  return texto
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita acentos (á→a, é→e, í→i, ó→o, ú→u, ñ→n)
+    .replace(/[^A-Za-z0-9 \n]/g, '');                   // deja solo letras, números, espacios y saltos de línea
+}
+
+function enviarSolicitudHTDL(){
+  var cuerpo = sanitizarTexto(document.getElementById('htdl-texto-area').value);
+  var asunto = encodeURIComponent('Solicitud de HTDL - '+(currentMonthKey||''));
+  var body = encodeURIComponent(cuerpo);
+  closeOv('ov-htdl-texto');
+  // mailto: como última acción, igual patrón que enviarCambio() (ya verificado sin bugs de cuerpo vacío)
+  window.location.href = 'mailto:Programacion@empresa.com?subject='+asunto+'&body='+body;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO COMPARADOR DE TURNOS — IIFE completamente aislado.
+   Ninguna de las ~109 funciones/variables internas del
+   comparador (parsePDF, findYou, renderTier, byMatricula,
+   touchDay, etc.) toca el scope global de la app. Solo se
+   exponen dos funciones necesarias para el HTML: abrirComparador
+   (botón) y _compModalClose (botón cerrar del visor de recorte).
+   No usa TV, AJ, saveTV, ni ninguna clave de localStorage de la
+   app principal — su propio PDF se procesa 100% en memoria con
+   pdfjsLib (ya cargado por la app, sin duplicar la etiqueta de carga).
+═══════════════════════════════════════════════════════════ */
+var _compPdfDocGlobal = null;
+var _compParsedRoster = null;
+var _compSelectedDay = null;
+var _compPageCanvasCache = {};
+var _compInitialized = false;
+
+function abrirComparador(){
+  initComparadorUI();
+  openOv('ov-comparador');
+}
+
+  function initComparadorUI(){
+    if(_compInitialized) return;
+    _compInitialized = true;
+
+    var dayGrid = document.getElementById('compDayGrid');
+    for(var d=1; d<=31; d++){
+      (function(dd){
+        var b = document.createElement('button');
+        b.className='c-day-btn'; b.textContent=dd; b.dataset.day=dd;
+        b.addEventListener('click', function(){
+          var all = dayGrid.querySelectorAll('.c-day-btn');
+          for(var i=0;i<all.length;i++) all[i].classList.remove('active');
+          b.classList.add('active');
+          _compSelectedDay = dd;
+          maybeEnableRun();
+        });
+        dayGrid.appendChild(b);
+      })(d);
+    }
+
+    function maybeEnableRun(){
+      document.getElementById('compRunBtn').disabled = !(_compParsedRoster && _compSelectedDay && document.getElementById('compMatriculaInput').value.trim());
+    }
+    document.getElementById('compMatriculaInput').addEventListener('input', maybeEnableRun);
+
+    document.getElementById('compPdfInput').addEventListener('change', function(e){
+      var file = e.target.files[0];
+      if(!file) return;
+      var statusEl = document.getElementById('compPdfStatus');
+      statusEl.className='c-status'; statusEl.textContent='Leyendo PDF…';
+      var reader = new FileReader();
+      reader.onload = function(){
+        pdfjsLib.getDocument({data: reader.result}).promise.then(function(pdfDoc){
+          _compPdfDocGlobal = pdfDoc;
+          return parsePDF(pdfDoc);
+        }).then(function(roster){
+          _compParsedRoster = roster;
+          statusEl.className='c-status c-ok'; statusEl.classList.add('ok');
+          statusEl.textContent = 'Listo. '+_compParsedRoster.employees.length+' trabajadores detectados, '+_compParsedRoster.numDays+' días.';
+          document.getElementById('compDebugOut').textContent = JSON.stringify(_compParsedRoster, function(k,v){return k==='items'?undefined:v;}, 1).slice(0, 6000) + '\n…(recortado)';
+          maybeEnableRun();
+        }).catch(function(err){
+          statusEl.className='c-status err';
+          statusEl.textContent = 'Error leyendo el PDF: ' + err.message;
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('compRunBtn').addEventListener('click', function(){
+      var query = document.getElementById('compMatriculaInput').value.trim();
+      var margin = parseInt(document.getElementById('compMarginInput').value,10) || 30;
+      var runStatus = document.getElementById('compRunStatus');
+      var resultsEl = document.getElementById('compResults');
+      resultsEl.innerHTML='';
+
+      var you = findYou(_compParsedRoster, query);
+      if(!you){
+        runStatus.className='c-status err';
+        runStatus.textContent = 'No encuentro esa matrícula ni ese nombre en el PDF cargado.';
+        return;
+      }
+      var youDay = you.days[_compSelectedDay] || {};
+      var yourTrains = extractTrainNumbers(youDay.turno);
+      var yourCI = toMinutes(youDay.ci);
+      var yourCO = toMinutes(youDay.co);
+
+      runStatus.className='c-status ok';
+      runStatus.textContent = 'Comparando día '+_compSelectedDay+' para '+(you.nombre || you.matricula)+'.';
+
+      var youCard = document.createElement('div');
+      youCard.className='c-card c-you-card';
+      youCard.innerHTML = '<h2>Tu turno · día '+_compSelectedDay+'</h2>'
+        +'<div class="c-turno">'+(youDay.turno || '— (sin turno detectado)')+'</div>'
+        +'<div class="c-ruta">'+(youDay.ruta || '')+'</div>'
+        +'<div class="c-times">'+(youDay.ci? 'CI '+youDay.ci : '')+' '+(youDay.co? '· CO '+youDay.co : '')+'</div>';
+      resultsEl.appendChild(youCard);
+
+      var travelWith=[], routeMatch=[], timeMatch=[];
+      for(var i=0;i<_compParsedRoster.employees.length;i++){
+        var emp = _compParsedRoster.employees[i];
+        if(emp.matricula===you.matricula) continue;
+        var d = emp.days[_compSelectedDay];
+        if(!d) continue;
+        var theirTrains = extractTrainNumbers(d.turno);
+        var shared = yourTrains.length ? sharedTrains(yourTrains, theirTrains) : [];
+        if(shared.length){ travelWith.push({emp:emp, d:d, shared:shared}); continue; }
+        if(youDay.ruta && d.ruta && d.ruta===youDay.ruta){ routeMatch.push({emp:emp, d:d}); continue; }
+        var ciDiff = (yourCI!==null && d.ci) ? Math.abs(toMinutes(d.ci)-yourCI) : null;
+        var coDiff = (yourCO!==null && d.co) ? Math.abs(toMinutes(d.co)-yourCO) : null;
+        var diffs = [ciDiff, coDiff].filter(function(v){return v!==null;}).sort(function(a,b){return a-b;});
+        var bestDiff = diffs[0];
+        if(bestDiff!==undefined && bestDiff<=margin){ timeMatch.push({emp:emp, d:d, diff:bestDiff}); }
+      }
+
+      resultsEl.appendChild(renderTier('exact','✓ Viajas con esta persona (mismo tren real)', travelWith, function(e){return 'Tren '+e.shared.join(', ');}));
+      resultsEl.appendChild(renderTier('route','Posible — mismo trayecto, tren distinto', routeMatch, function(e){return e.d.ruta;}));
+      timeMatch.sort(function(a,b){return a.diff-b.diff;});
+      resultsEl.appendChild(renderTier('time', 'Posible — horario parecido (±'+margin+' min en CI/CO)', timeMatch, function(e){return 'CI '+(e.d.ci||'?')+' / CO '+(e.d.co||'?')+' (Δ'+e.diff+'min)';}));
+    });
+
+    document.getElementById('compModalClose').addEventListener('click', function(){
+      document.getElementById('compModalBackdrop').classList.remove('open');
+    });
+    document.getElementById('compModalBackdrop').addEventListener('click', function(e){
+      if(e.target.id==='compModalBackdrop') document.getElementById('compModalBackdrop').classList.remove('open');
+    });
+  }
+
+  // ---------- PARSER (idéntico al original, solo var en vez de let/const) ----------
+  function parsePDF(pdf){
+    var employees = [];
+    var byMatricula = {};
+    var numDays = 31;
+    var lastDayCols = null;
+
+    function processPages(p){
+      if(p > pdf.numPages){
+        return Promise.resolve({employees: employees.map(function(e){return {matricula:e.matricula, nombre:cleanName(e.nombre), page:e.page, blockY:e.blockY, days:e.days};}), numDays: numDays});
+      }
+      return pdf.getPage(p).then(function(page){ return page.getTextContent().then(function(content){ return {page:page, content:content}; }); }).then(function(res){
+        var content = res.content;
+        var items = [];
+        for(var i=0;i<content.items.length;i++){
+          var it = content.items[i];
+          var str = it.str.trim();
+          if(str.length>0) items.push({str:str, x:it.transform[4], y:it.transform[5]});
+        }
+        if(items.length===0) return processPages(p+1);
+
+        var rows = clusterRows(items, 3.5);
+        var dayCols = null;
+        for(var ri=0; ri<rows.length; ri++){
+          var row = rows[ri];
+          var numsItems = row.filter(function(it){return /^\d{1,2}$/.test(it.str);});
+          var nums = numsItems.map(function(it){return parseInt(it.str,10);});
+          if(nums.length >= 15 && isAscendingRun(nums)){
+            dayCols = numsItems.map(function(it){return {day:parseInt(it.str,10), x:it.x};});
+            numDays = Math.max(numDays, Math.max.apply(null, nums));
+            break;
+          }
+        }
+        if(dayCols){ lastDayCols = dayCols; } else if(lastDayCols){ dayCols = lastDayCols; } else { return processPages(p+1); }
+
+        var dayBounds = computeDayBounds(dayCols);
+        var leftMargin = Math.min.apply(null, dayCols.map(function(d){return d.x;})) - 40;
+        var currentMatricula = null;
+
+        for(var rj=0; rj<rows.length; rj++){
+          var row2 = rows[rj];
+          var leftItems = row2.filter(function(it){return it.x < leftMargin;});
+          var rightItems = row2.filter(function(it){return it.x >= leftMargin;});
+          var rowY = row2[0] ? row2[0].y : null;
+
+          var matriculaItem = null;
+          for(var li=0; li<leftItems.length; li++){ if(/^\d{5,8}$/.test(leftItems[li].str)){ matriculaItem = leftItems[li]; break; } }
+
+          if(matriculaItem){
+            currentMatricula = matriculaItem.str;
+            if(!byMatricula[currentMatricula]){
+              byMatricula[currentMatricula] = {matricula: currentMatricula, nombre:'', page:p, blockY:matriculaItem.y, days:{}, nameOpen:true};
+              employees.push(byMatricula[currentMatricula]);
+            } else { byMatricula[currentMatricula].nameOpen = true; }
+            var nameText = leftItems.filter(function(it){return it!==matriculaItem;}).map(function(it){return it.str;}).join(' ');
+            if(nameText && !/HORAS\s+TOTALES/i.test(nameText)) byMatricula[currentMatricula].nombre = (byMatricula[currentMatricula].nombre + ' ' + nameText).trim();
+            continue;
+          }
+
+          if(currentMatricula && byMatricula[currentMatricula].nameOpen && leftItems.length){
+            var leftText = leftItems.map(function(it){return it.str;}).join(' ');
+            if(/HORAS\s+TOTALES/i.test(leftText)){ byMatricula[currentMatricula].nameOpen = false; }
+            else if(!/^(HORAS\s+EF|HORAS\s+PR|JOR\.?\s*PRORR|^CI$|^CO$)/i.test(leftText)){
+              byMatricula[currentMatricula].nombre = (byMatricula[currentMatricula].nombre + ' ' + leftText).trim();
+            }
+          }
+
+          if(!currentMatricula || rightItems.length===0) continue;
+
+          var isTimeRow = rightItems.every(function(it){return /^\d{1,2}:\d{2}$/.test(it.str);});
+          var labelHint = leftItems.map(function(it){return it.str;}).join(' ').toUpperCase();
+
+          if(isTimeRow){
+            rightItems.forEach(function(it){
+              var day = nearestDay(it.x, dayCols);
+              if(!day) return;
+              var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
+              if(/CO/.test(labelHint) && rec.ci!==undefined){ rec.co = it.str; }
+              else if(rec.ci===undefined){ rec.ci = it.str; }
+              else if(rec.co===undefined){ rec.co = it.str; }
+            });
+            continue;
+          }
+
+          var looksLikeRoute = rightItems.some(function(it){return /^[A-Z]{2,4}-[A-Z0-9]/.test(it.str);});
+          if(looksLikeRoute){
+            rightItems.forEach(function(it){
+              var day = nearestDay(it.x, dayCols);
+              if(!day) return;
+              var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
+              rec.ruta = (rec.ruta? rec.ruta+' ' : '') + it.str;
+            });
+            continue;
+          }
+
+          rightItems.forEach(function(it){
+            var day = nearestDay(it.x, dayCols);
+            if(!day) return;
+            var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
+            rec.turno = (rec.turno? rec.turno+'-' : '') + it.str;
+          });
+        }
+        return processPages(p+1);
+      });
+    }
+    return processPages(1);
+  }
+
+  function cleanName(raw){
+    return (raw||'').replace(/\s*,\s*/g, ' ,').replace(/\s+/g,' ').replace(/^\s*,\s*/, '').trim();
+  }
+  function touchDay(emp, day, page, rowY, bounds){
+    if(!emp.days[day]) emp.days[day] = {page:page, x0:bounds.x0, x1:bounds.x1, y0:rowY, y1:rowY};
+    var rec = emp.days[day];
+    rec.page = page;
+    if(rowY!==null){
+      rec.y0 = (rec.y0===undefined || rowY>rec.y0) ? rowY : rec.y0;
+      rec.y1 = (rec.y1===undefined || rowY<rec.y1) ? rowY : rec.y1;
+    }
+    return rec;
+  }
+  function computeDayBounds(dayCols){
+    var sorted = dayCols.slice().sort(function(a,b){return a.x-b.x;});
+    var bounds = {};
+    for(var i=0;i<sorted.length;i++){
+      var cur = sorted[i];
+      var prevX = i>0 ? sorted[i-1].x : cur.x - 70;
+      var nextX = i<sorted.length-1 ? sorted[i+1].x : cur.x + 70;
+      bounds[cur.day] = { x0:(prevX+cur.x)/2, x1:(cur.x+nextX)/2 };
+    }
+    return bounds;
+  }
+  function clusterRows(items, tol){
+    var sorted = items.slice().sort(function(a,b){return b.y-a.y;});
+    var rows = []; var current = []; var lastY = null;
+    for(var i=0;i<sorted.length;i++){
+      var it = sorted[i];
+      if(lastY===null || Math.abs(it.y-lastY) <= tol){ current.push(it); }
+      else { if(current.length) rows.push(current.sort(function(a,b){return a.x-b.x;})); current=[it]; }
+      lastY = it.y;
+    }
+    if(current.length) rows.push(current.sort(function(a,b){return a.x-b.x;}));
+    return rows;
+  }
+  function isAscendingRun(nums){ var asc=0; for(var i=1;i<nums.length;i++) if(nums[i]>=nums[i-1]) asc++; return asc >= nums.length*0.7; }
+  function nearestDay(x, dayCols){
+    var best=null, bestDist=Infinity;
+    for(var i=0;i<dayCols.length;i++){ var dc=dayCols[i]; var d=Math.abs(dc.x-x); if(d<bestDist){bestDist=d; best=dc.day;} }
+    return bestDist < 60 ? best : null;
+  }
+  function toMinutes(hhmm){
+    if(!hhmm) return null;
+    var m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return null;
+    return parseInt(m[1],10)*60 + parseInt(m[2],10);
+  }
+  function extractTrainNumbers(code){
+    if(!code) return [];
+    var parts = code.split('-').map(function(p){return p.replace(/[A-Z]/g,'').trim();}).filter(function(p){return p.length>=2;});
+    var seen = {}; var out = [];
+    for(var i=0;i<parts.length;i++){ if(!seen[parts[i]]){ seen[parts[i]]=true; out.push(parts[i]); } }
+    return out;
+  }
+  function sharedTrains(a, b){
+    var setB = {}; for(var i=0;i<b.length;i++) setB[b[i]]=true;
+    return a.filter(function(t){return setB[t];});
+  }
+  function findYou(roster, query){
+    var q = query.trim().toLowerCase();
+    if(!q) return null;
+    for(var i=0;i<roster.employees.length;i++){ if(roster.employees[i].matricula===query.trim()) return roster.employees[i]; }
+    for(var j=0;j<roster.employees.length;j++){ if((roster.employees[j].nombre||'').toLowerCase().indexOf(q)>=0) return roster.employees[j]; }
+    return null;
+  }
+
+  function renderTier(kind, title, list, describe){
+    var wrap = document.createElement('div');
+    wrap.className='c-card c-tier';
+    var head = document.createElement('div');
+    head.className='c-tier-head';
+    head.innerHTML = '<span class="c-dot '+kind+'"></span>'+title+' ('+list.length+')';
+    wrap.appendChild(head);
+    if(list.length===0){
+      var e = document.createElement('div'); e.className='c-empty'; e.textContent='Sin coincidencias.'; wrap.appendChild(e);
+    } else {
+      list.forEach(function(item){
+        var row = document.createElement('div');
+        row.className='c-match-row c-tappable';
+        row.innerHTML = '<div><div class="c-who">'+(item.emp.nombre || '(sin nombre)')+'</div><div class="c-mat">'+item.emp.matricula+'</div></div>'
+          +'<div class="c-what">'+describe(item)+'</div>';
+        row.addEventListener('click', function(){ openCropModal(item.emp, item.d, _compSelectedDay); });
+        wrap.appendChild(row);
+      });
+    }
+    return wrap;
+  }
+
+  function getPageCanvas(pageNum, scale){
+    var key = pageNum+'_'+scale;
+    if(_compPageCanvasCache[key]) return Promise.resolve(_compPageCanvasCache[key]);
+    return _compPdfDocGlobal.getPage(pageNum).then(function(page){
+      var viewport = page.getViewport({scale:scale});
+      var canvas = document.createElement('canvas');
+      canvas.width = viewport.width; canvas.height = viewport.height;
+      var ctx = canvas.getContext('2d');
+      return page.render({canvasContext: ctx, viewport: viewport}).promise.then(function(){
+        var result = {canvas:canvas, viewport:viewport};
+        _compPageCanvasCache[key] = result;
+        return result;
+      });
+    });
+  }
+
+  function openCropModal(emp, dayCell, day){
+    var backdrop = document.getElementById('compModalBackdrop');
+    var body = document.getElementById('compModalBody');
+    document.getElementById('compModalTitle').textContent = emp.nombre || emp.matricula;
+    document.getElementById('compModalMeta').textContent = 'Matrícula '+emp.matricula+' · Día '+day+' · Página del PDF '+dayCell.page;
+    body.innerHTML = '<div class="c-loading">Generando recorte…</div>';
+    backdrop.classList.add('open');
+
+    var scale = 4.5;
+    getPageCanvas(dayCell.page, scale).then(function(res){
+      var fullCanvas = res.canvas, viewport = res.viewport;
+      var padPDF = 6;
+      var x0 = dayCell.x0 - padPDF;
+      var x1 = dayCell.x1 + padPDF;
+      var yTop = (dayCell.y0!==undefined ? dayCell.y0 : dayCell.y1) + padPDF;
+      var yBot = (dayCell.y1!==undefined ? dayCell.y1 : dayCell.y0) - padPDF;
+      var p1 = viewport.convertToViewportPoint(x0, yTop);
+      var p2 = viewport.convertToViewportPoint(x1, yBot);
+      var sx = Math.max(0, Math.min(p1[0], p2[0]));
+      var sy = Math.max(0, Math.min(p1[1], p2[1]));
+      var sw = Math.min(fullCanvas.width - sx, Math.abs(p2[0]-p1[0]));
+      var sh = Math.min(fullCanvas.height - sy, Math.abs(p2[1]-p1[1]));
+
+      var crop = document.createElement('canvas');
+      var labelH = 34;
+      crop.width = Math.max(1, sw);
+      crop.height = Math.max(1, sh) + labelH;
+      var cctx = crop.getContext('2d');
+      cctx.fillStyle = '#101c15';
+      cctx.fillRect(0, 0, crop.width, labelH);
+      cctx.fillStyle = '#ffb000';
+      cctx.font = 'bold 16px monospace';
+      cctx.textBaseline = 'middle';
+      cctx.fillText('Día '+day+' · '+emp.matricula+' · '+(emp.nombre || '(sin nombre)'), 8, labelH/2);
+      cctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, labelH, sw, sh);
+
+      body.innerHTML = '';
+      body.appendChild(crop);
+    }).catch(function(err){
+      body.innerHTML = '<div class="c-loading">No se pudo generar el recorte: '+err.message+'</div>';
+    });
+  }
 
 </script>
 </body>
