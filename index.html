@@ -1715,6 +1715,41 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   padding:4px 9px;
   cursor:pointer;
 }
+/* ── MÓDULO AYUDA Y CONCEPTOS ── */
+.ayuda-item{
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:12px;
+  padding:12px 14px;
+  margin-bottom:10px;
+}
+.ayuda-item-tit{
+  font-size:13px;
+  font-weight:800;
+  color:var(--amber2);
+  margin-bottom:5px;
+}
+.ayuda-item-txt{
+  font-size:11.5px;
+  color:var(--tx2);
+  line-height:1.5;
+}
+.ayuda-whatsapp-btn{
+  width:100%;
+  margin-top:6px;
+  padding:14px;
+  background:linear-gradient(135deg,#25D366,#1da851);
+  border:none;
+  border-radius:12px;
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(37,211,102,.35);
+}
+.ayuda-whatsapp-btn:active{
+  transform:scale(.98);
+}
 </style>
 </head>
 <body>
@@ -2002,6 +2037,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
+      <!-- ── ACORDEÓN: Lista Negra ── -->
+      <div class="aj-acc-item" id="aj-acc-listanegra">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-listanegra')">
+          <span class="aj-acc-hdr-ico">🚫</span>
+          <span class="aj-acc-hdr-tit">Lista Negra</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
+        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(220,38,38,.14),rgba(220,38,38,.04))">
+          <div class="aj-card-hdr-ico">🚫</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit" style="color:var(--red2)">Lista Negra</div>
+            <div class="aj-card-hdr-sub" style="color:var(--red2)">Avisos al solicitar cambios con estos compañeros</div>
+          </div>
+        </div>
+        <div class="aj-card-body" style="padding:10px 14px 12px">
+          <button class="upload-btn" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.4);color:#f87171" onclick="abrirListaNegra()">➕ Gestionar lista negra</button>
+          <div id="ln-resumen" style="font-size:10px;color:var(--tx3);margin-top:8px;text-align:center"></div>
+        </div>
+      </div>
+        </div>
+      </div>
+
       <!-- ── ACORDEÓN: Alarmas inteligentes ── -->
       <div class="aj-acc-item" id="aj-acc-alarma">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-alarma')">
@@ -2067,6 +2126,28 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
+      <!-- ── ACORDEÓN: Ayuda y Conceptos ── -->
+      <div class="aj-acc-item" id="aj-acc-ayuda">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-ayuda')">
+          <span class="aj-acc-hdr-ico">❓</span>
+          <span class="aj-acc-hdr-tit">Ayuda y Conceptos</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
+        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(217,119,6,.14),rgba(217,119,6,.04))">
+          <div class="aj-card-hdr-ico">❓</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit" style="color:var(--amber2)">Ayuda y Conceptos</div>
+            <div class="aj-card-hdr-sub" style="color:var(--amber2)">Aprende qué hace cada función</div>
+          </div>
+        </div>
+        <div class="aj-card-body" style="padding:10px 14px 12px">
+          <button class="upload-btn" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="abrirAyuda()">📖 Ver ayuda y conceptos</button>
+        </div>
+      </div>
+        </div>
+      </div>
 
       <!-- ── BOTONES ── -->
       <button class="aj-save-btn" onclick="saveAj()">💾  Guardar ajustes</button>
@@ -2076,6 +2157,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- ── FOOTER EXTENDIDO: AUTORÍA Y LEGAL ── -->
       <div class="aj-footer-ext">
         <div class="aj-footer-autor">Desarrollado por <strong>@ALVJ95</strong></div>
+
 
         <div class="aj-footer-legal">
           <span class="aj-footer-link" onclick="openOv('ov-terminos')">Términos y Condiciones</span>
@@ -2228,6 +2310,93 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
      PDF independiente: usa su propio pdfjsLib.getDocument(),
      sin tocar el parser de Horario ni TV/localStorage.
 ═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO LISTA NEGRA — completamente aditivo.
+     Datos en localStorage clave 'listaNegraApp', totalmente
+     aislada de TV/AJ/tv5/aj5. Nunca toca turnos ni calendario.
+═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO AYUDA Y CONCEPTOS — completamente aditivo.
+     No depende de ningún dato de TV/AJ/localStorage para
+     funcionar — es contenido estático informativo + 1 enlace.
+═══════════════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO TOUR GUIADO — completamente autocontenido.
+     Solo se muestra si no existe localStorage('tourCompletado').
+     Se puede saltar en cualquier momento sin afectar nada más.
+═══════════════════════════════════════════════════════════ -->
+<div id="tour-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:500;align-items:center;justify-content:center;padding:24px">
+  <div id="tour-card" style="background:var(--s1);border:1px solid rgba(217,119,6,.4);border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.6);opacity:0;transform:translateY(14px);transition:opacity .3s ease,transform .3s ease">
+    <div id="tour-ico" style="font-size:34px;margin-bottom:10px">👋</div>
+    <div id="tour-tit" style="font-size:16px;font-weight:800;color:var(--amber2);margin-bottom:8px"></div>
+    <div id="tour-txt" style="font-size:12.5px;color:var(--tx2);line-height:1.6;margin-bottom:18px"></div>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+      <button onclick="saltarTour()" style="background:none;border:none;color:var(--tx3);font-size:11px;font-weight:700;cursor:pointer;padding:8px">Saltar</button>
+      <div id="tour-dots" style="display:flex;gap:5px"></div>
+      <button id="tour-btn-next" onclick="avanzarTour()" style="background:linear-gradient(135deg,#D97706,#b45309);border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;padding:10px 18px;cursor:pointer">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-ayuda" onclick="closeOv('ov-ayuda')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">❓</div>
+      <div><div class="sh-tit">Ayuda y Conceptos</div><div class="sh-sub">Qué hace cada función de la app</div></div>
+      <button class="sh-close" onclick="closeOv('ov-ayuda')">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:10px 18px 18px">
+
+      <div class="ayuda-item">
+        <div class="ayuda-item-tit">📄 Cuadrante PDF (Horario)</div>
+        <div class="ayuda-item-txt">Sube el horario oficial que te entrega tu empresa en formato PDF. La app lo lee automáticamente y calcula tus horas efectivas, de presencia, días de servicio, libres y de reserva — sin que tengas que contarlos a mano.</div>
+      </div>
+
+      <div class="ayuda-item">
+        <div class="ayuda-item-tit">🔍 Comparador de Turnos</div>
+        <div class="ayuda-item-txt">Sube el cuadrante de un compañero (otro PDF distinto al tuyo) y la app busca automáticamente quién comparte tu mismo tren, tu misma ruta, o un horario parecido al tuyo en un día concreto.</div>
+      </div>
+
+      <div class="ayuda-item">
+        <div class="ayuda-item-tit">🚫 Lista Negra</div>
+        <div class="ayuda-item-txt">Guarda el nombre y matrícula de compañeros con los que prefieres tener precaución al intercambiar turnos. La próxima vez que solicites un cambio con esa persona, la app te avisará antes de enviar el correo — pero nunca te lo impide, tú decides si continuar.</div>
+      </div>
+
+      <div class="ayuda-item">
+        <div class="ayuda-item-tit">📤 Solicitud HTDL</div>
+        <div class="ayuda-item-txt">Selecciona tus días libres o disponibles del horario cargado, y la app redacta automáticamente un correo para Programación informando que estás a disposición para realizar horas HTDL esos días.</div>
+      </div>
+
+      <button onclick="window.open('https://wa.me/66660753771?text='+encodeURIComponent('Hola, necesito ayuda con la web de turnos'), '_blank')" class="ayuda-whatsapp-btn">
+        💬 ¿Necesitas ayuda o tienes sugerencias?
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-listanegra" onclick="closeOv('ov-listanegra')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🚫</div>
+      <div><div class="sh-tit">Lista Negra</div><div class="sh-sub">Compañeros con aviso al solicitar cambios</div></div>
+      <button class="sh-close" onclick="closeOv('ov-listanegra')">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:10px 18px 6px">
+      <div class="fsec-lbl">Añadir compañero</div>
+      <input id="ln-nombre" class="aj-nombre-inp" placeholder="Nombre completo" autocomplete="off" style="margin-bottom:8px">
+      <input id="ln-mat" class="aj-nombre-inp" placeholder="Matrícula" autocomplete="off" style="margin-bottom:8px">
+      <textarea id="ln-obs" placeholder="Observación (motivo del aviso)" style="width:100%;min-height:70px;background:var(--s2);border:1px solid var(--div);border-radius:10px;color:var(--tx);font-size:12px;padding:11px;resize:vertical;font-family:inherit;margin-bottom:10px"></textarea>
+      <button onclick="agregarListaNegra()" style="width:100%;padding:12px;background:linear-gradient(135deg,#DC2626,#b91c1c);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:14px">➕ Añadir a la lista</button>
+
+      <div class="fsec-lbl">Compañeros bloqueados</div>
+      <div id="ln-lista"></div>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="ov-comparador" onclick="closeOv('ov-comparador')">
   <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
     <div class="sh-handle"></div>
@@ -2839,6 +3008,11 @@ function init(){
   document.addEventListener('click', function(){ setTimeout(alarmaDesbloquear, 0); }, {passive:true});
   // Arrancar alarmas si estaban activas
   if(AJ.alarmas && AJ.alarmas.activas) alarmaIniciar();
+  // Cargar Lista Negra para mostrar el resumen en Ajustes
+  cargarListaNegra();
+  actualizarResumenListaNegra();
+  // Lanzar tour guiado solo la primera vez (independiente, no bloqueante)
+  iniciarTourSiEsLaPrimeraVez();
 }
 
 function limpiarDatosObsoletos(){
@@ -4094,9 +4268,14 @@ function editarTurno(){
          hF:tOri.hF||null, hL:tOri.hL||null,
          sal2:tOri.sal2||null, lle2:tOri.lle2||null,
          hF2:tOri.hF2||null, hL2:tOri.hL2||null,
+         sal3:(tOri.diaIntermedio&&TV[tOri.diaIntermedio]&&TV[tOri.diaIntermedio].sal)||null,
+         lle3:(tOri.diaIntermedio&&TV[tOri.diaIntermedio]&&TV[tOri.diaIntermedio].lle)||null,
+         hF3:(tOri.diaIntermedio&&TV[tOri.diaIntermedio]&&TV[tOri.diaIntermedio].hF)||null,
+         hL3:(tOri.diaIntermedio&&TV[tOri.diaIntermedio]&&TV[tOri.diaIntermedio].hL)||null,
          modo:tOri.modo||null, comp:tOri.comp||null,
          horas:tOri.horas||0, diasComp:(tOri.diasComp||[]).slice(), notas:tOri.notas||'',
          numTren:tOri.numTren||'', numTrenVuelta:tOri.numTrenVuelta||'',
+         numTrenIntermedio:tOri.numTrenIntermedio||'',
          plusAct:tOri.plusAct||false, plusJT:tOri.plusJT||false,
          plusIntlAuto:(tOri.linea||'').includes('Internacional')};
       renderCal();
@@ -4111,9 +4290,14 @@ function editarTurno(){
   F={tipo:t.tipo,linea:t.linea||null,
      sal:t.sal||(AJ.base||null),lle:t.lle||null,hF:t.hF||null,hL:t.hL||null,
      sal2:t.sal2||null,lle2:t.lle2||null,hF2:t.hF2||null,hL2:t.hL2||null,
+     sal3:(t.diaIntermedio&&TV[t.diaIntermedio]&&TV[t.diaIntermedio].sal)||null,
+     lle3:(t.diaIntermedio&&TV[t.diaIntermedio]&&TV[t.diaIntermedio].lle)||null,
+     hF3:(t.diaIntermedio&&TV[t.diaIntermedio]&&TV[t.diaIntermedio].hF)||null,
+     hL3:(t.diaIntermedio&&TV[t.diaIntermedio]&&TV[t.diaIntermedio].hL)||null,
      modo:t.modo||null,comp:t.comp||null,
      horas:t.horas||0,diasComp:(t.diasComp||[]).slice(),notas:t.notas||'',
      numTren:t.numTren||'', numTrenVuelta:t.numTrenVuelta||'',
+     numTrenIntermedio:t.numTrenIntermedio||'',
      plusAct:t.plusAct||false,plusJT:t.plusJT||false,
      plusIntlAuto:(t.linea||'').includes('Internacional')};
   abrirForm(true);
@@ -4259,14 +4443,33 @@ function actualizarPrevCambio(){
 function generarMensajeCambio(params){
   var fstr=params.fstr,miTren=params.miTren,nombre=params.nombre,mat=params.mat;
   var trenComp=params.trenComp,miNombre=params.miNombre,miMat=params.miMat,saludo=params.saludo;
-  return 'Hola, '+saludo+'.\n\nMe gustaria solicitar un cambio de turno para el dia '+fstr+'.\n\n'
-    +'Quiero intercambiar mi turno (Tren: '+miTren+') con el companero '+nombre+' (Matricula: '+mat+'), '
+  return 'Hola, buenos dias.\n\n'
+    +'Me gustaria solicitar un cambio de turno para el dia '+fstr+'.\n\n'
+    +'Quiero intercambiar mi turno '+miTren+' con la companera '+nombre+' (Matricula: '+mat+'), '
     +'quien realiza el servicio en el tren '+trenComp+'.\n\n'
-    +'Yo realizare su turno y el realizara el mio. Quedo a la espera de su aprobacion.\n\n'
-    +'Atentamente,\n'+miNombre+' (Matricula: '+miMat+')';
+    +'Yo realizare su turno y ella realizara el mio. Quedo a la espera de su aprobacion.\n\n'
+    +'Atentamente,\n'+miNombre+'\n'+miMat;
 }
 
 function enviarCambio(){
+  // VALIDACIÓN LISTA NEGRA — capa extra, no bloqueante por sí sola.
+  // Se ejecuta antes de tomar los datos para el correo, exactamente
+  // como se pidió. Si no hay coincidencia, sigue el flujo normal sin
+  // ningún retraso ni cambio de comportamiento.
+  var nombreChk = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'');
+  var matChk    = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'');
+  var bloqueado = esCompaneroBloqueado(matChk) || esCompaneroBloqueado(nombreChk);
+  if(bloqueado){
+    mostrarAvisoListaNegra(bloqueado, function(){ _ejecutarEnvioCambio(); });
+    return;
+  }
+  _ejecutarEnvioCambio();
+}
+
+// Lógica original de enviarCambio(), sin alterar ni una línea — solo
+// se trasladó dentro de esta función para que la validación de arriba
+// pueda decidir si la ejecuta inmediatamente o tras la confirmación.
+function _ejecutarEnvioCambio(){
   var t=(selDay&&selDay.t)||{};
   var k=selDay?selDay.k:null;
   if(!k) return;
@@ -4281,7 +4484,7 @@ function enviarCambio(){
   var miMat    = AJ.matricula||'—';
   var miTren   = t.numTren||'—';
   var asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
-  var cuerpo   = encodeURIComponent(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo}));
+  var cuerpo   = encodeURIComponent(sanitizarTexto(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo})));
   // Marcar que se solicitó cambio en este turno (persiste en localStorage)
   if(TV[k]){ TV[k].cambioSolicitado=true; saveTV(); renderDiaArea(); renderAcordeon(); }
 
@@ -4434,7 +4637,7 @@ function secTramo(tramo){
   // Sugerir estaciones invertidas en vuelta
   var sShow=sv||(esV?F.lle:'');
   var lShow=lv||(esV?F.sal:'');
-  var esPernocta=F.modo==='pernocta';
+  var esPernocta=(F.modo==='pernocta'||F.modo==='pernocta3');
   var hdrColor=esV?(esPernocta?'rgba(245,158,11,.12)':'rgba(59,127,255,.1)'):'rgba(59,127,255,.08)';
   var hdrTxtColor=esV?(esPernocta?'var(--amber2)':'var(--acc2)'):'var(--acc2)';
   var hdrIco=esV?(esPernocta?'🌙':'↩'):'🚂';
@@ -4502,7 +4705,16 @@ function secTramoIntermedio(){
   var sv=F.sal3||'',lv=F.lle3||'',hFv=F.hF3||'',hLv=F.hL3||'';
   var sShow=sv||F.lle2||'';
   var lShow=lv||'';
+  var numTrenIntVal = F.numTrenIntermedio||'';
   var dur=hFv&&hLv?'<div class="dur-badge" id="dur-i3">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-i3"></div>';
+
+  // ESCALA entre Tren 1 (ida, día 1) y Tren 2 (este tramo intermedio)
+  var escala12 = calcularEscala(F.hL, hFv);
+  var escalaBadge12 = escala12
+    ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,.1);'
+      +'border:1px solid rgba(59,130,246,.3);border-radius:7px;padding:4px 10px;font-size:10px;'
+      +'font-weight:700;color:var(--acc2);margin-bottom:6px">⏳ Escala Tren 1→2: '+escala12.txt+'</div>'
+    : '';
   var hayNocEste=(hFv&&esHoraNocturna(hFv))||(hLv&&esHoraNocturna(hLv));
   var nocBadge=hayNocEste
     ? '<div style="display:inline-flex;align-items:center;gap:5px;'
@@ -4512,10 +4724,29 @@ function secTramoIntermedio(){
       +'🌙 Nocturnidad activa · +'+parseFloat(AJ.nocturnidad||0).toFixed(2)+' €/h</div>'
     : '';
 
+  // ESCALA entre Tren 2 (este tramo) y Tren 3 (vuelta final, día 3)
+  var escala23 = calcularEscala(hLv, F.hF2);
+  var escalaBadge23 = escala23
+    ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,.1);'
+      +'border:1px solid rgba(59,130,246,.3);border-radius:7px;padding:4px 10px;font-size:10px;'
+      +'font-weight:700;color:var(--acc2);margin-bottom:6px;margin-left:6px">⏳ Escala Tren 2→3: '+escala23.txt+'</div>'
+    : '';
+
   return '<div class="fsec" style="border-top:1px solid var(--div)">'
     +'<div class="tramo-hdr" style="background:rgba(245,158,11,.12);margin-bottom:5px">'
     +'<span>🌙</span>'
     +'<span style="font-size:9px;font-weight:800;color:var(--amber2)">TRAMO INTERMEDIO — día 2 de 3</span>'
+    +'</div>'
+    +escalaBadge12+escalaBadge23
+    +'<div class="fsec-lbl">Nº Tren (tramo intermedio)</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +'<div style="font-size:18px">🚆</div>'
+    +'<input id="inp-numtren3" type="text" inputmode="numeric" placeholder="Ej: 2095"'
+    +' value="'+numTrenIntVal+'"'
+    +' oninput="F.numTrenIntermedio=this.value.trim()"'
+    +' style="flex:1;background:var(--s2);border:1.5px solid '+(numTrenIntVal?'var(--amber2)':'var(--div)')+';border-radius:10px;'
+    +'color:var(--tx);font-size:18px;font-weight:800;padding:7px 12px;outline:none;'
+    +'font-variant-numeric:tabular-nums;letter-spacing:1px">'
     +'</div>'
     +'<div class="fsec-lbl">Trayecto</div>'
     +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\'sal3\')">'
@@ -4806,10 +5037,12 @@ function guardarTurno(){
       var nocIntermedio=!!((F.hF3&&esHoraNocturna(F.hF3))||(F.hL3&&esHoraNocturna(F.hL3)));
       TV[kInt]={tipo:'pernocta3-intermedio',linea:F.linea,
         sal:F.sal3||'',lle:F.lle3||'',hF:F.hF3||'',hL:F.hL3||'',
+        numTren:F.numTrenIntermedio||'',
         nocturno:nocIntermedio,origenPernocta:k};
       TV[kFin]={tipo:'vuelta-pernocta',linea:F.linea,
         sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
         nocturno:d.nocturno,origenPernocta:k};
+      d.numTrenIntermedio=F.numTrenIntermedio||'';
       d.diaIntermedio=kInt;
       d.diaSiguiente=kFin;
     } else {
@@ -4993,18 +5226,20 @@ function selEst(e){
   var hayI=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(x){return ESTACIONES_INTERNACIONALES.has(x);});
   var antI=F.plusIntlAuto;F.plusIntlAuto=hayI;
 
-  // AUTOMATIZACIÓN DE ESTACIONES — pernocta y pernocta3 (aditivo).
-  // Solo SUGIERE (autocompleta si está vacío) la salida del siguiente
-  // tramo cronológico, sin forzar ni sobreescribir si el usuario ya
-  // había escrito algo distinto ahí.
-  //   Pernocta 2 días:  lle  (fin día 1) → sugiere sal2 (inicio día 2)
-  //   Pernocta 3 días:  lle  (fin día 1) → sugiere sal3 (inicio día 2, tramo intermedio)
-  //                     lle3 (fin día 2) → sugiere sal2 (inicio día 3, tramo final)
+  // Lógica de encadenamiento de destinos
+  // Pernocta 2 días:  Llegada día 1 (lle) → Salida día 2 (sal2), en tiempo real
+  // Pernocta 3 días:  Llegada día 1 (lle)  → Salida día 2 (sal3), en tiempo real
+  //                   Llegada día 2 (lle3) → Salida día 3 (sal2), en tiempo real
+  //                   Llegada día 3 (lle2) → se fija automáticamente a la Base (cierre del ciclo A→B→C→A)
   if(estField==='lle' && (F.modo==='pernocta' || F.modo==='pernocta3') ){
     var destinoSiguiente = F.modo==='pernocta3' ? 'sal3' : 'sal2';
-    if(!F[destinoSiguiente]) F[destinoSiguiente]=e;
+    F[destinoSiguiente]=e;
   } else if(estField==='lle3' && F.modo==='pernocta3'){
-    if(!F.sal2) F.sal2=e;
+    F.sal2=e;
+    // Cierre automático del ciclo: en cuanto se conoce la salida del último
+    // tramo (C), la llegada final se fija sola a la Base — el usuario ya
+    // no tiene que elegirla manualmente.
+    if(AJ.base) F.lle2 = AJ.base;
   }
 
   var el=document.querySelector('[data-f="'+estField+'"]');
@@ -5574,6 +5809,24 @@ function calcMins(h1,h2){
   var m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
 }
 function calcDur(h1,h2){if(!h1||!h2)return '--';var m=calcMins(h1,h2);return Math.floor(m/60)+'h '+pad(m%60)+'m';}
+
+/* ═══════════════════════════════════════════════════════════
+   ESCALA ENTRE SERVICIOS — función nueva e independiente.
+   Calcula los minutos de espera entre el cierre (CO) de un
+   tren/turno y el inicio (CI) del siguiente. Reutiliza
+   calcMins() ya existente, sin modificarla. Aplica tanto entre
+   tramos de una misma pernocta (Tren 1→2, Tren 2→3) como entre
+   dos turnos distintos del mismo día.
+   Devuelve {min: minutos, txt: "Xh Ym"} o null si faltan datos.
+═══════════════════════════════════════════════════════════ */
+function calcularEscala(horaFinAnterior, horaInicioSiguiente){
+  if(!horaFinAnterior || !horaInicioSiguiente) return null;
+  var min = calcMins(horaFinAnterior, horaInicioSiguiente);
+  return {
+    min: min,
+    txt: Math.floor(min/60)+'h '+pad(min%60)+'m'
+  };
+}
 
 // Calcula horas (decimal) entre dos strings "HH:MM"
 function horasDec(hF,hL){
@@ -7341,6 +7594,213 @@ var _compParsedRoster = null;
 var _compSelectedDay = null;
 var _compPageCanvasCache = {};
 var _compInitialized = false;
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO LISTA NEGRA — completamente aditivo.
+   Almacena en localStorage('listaNegraApp'), totalmente
+   aislado de tv5/aj5/TV/AJ. Borrar el calendario o los
+   ajustes nunca afecta esta lista, y viceversa.
+═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO AYUDA Y CONCEPTOS — completamente aditivo.
+   Contenido estático, no depende de ningún dato de la app.
+═══════════════════════════════════════════════════════════ */
+function abrirAyuda(){
+  openOv('ov-ayuda');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO TOUR GUIADO — completamente autocontenido.
+   Usa localStorage('tourCompletado') — clave nueva, sin
+   colisión con tv5/aj5/sf5/agenda5/comp5/tv2_extra/listaNegraApp.
+   No depende de ningún dato del calendario ni de Ajustes para
+   funcionar — solo lee/escribe su propia clave de control.
+═══════════════════════════════════════════════════════════ */
+var _tourPasoActual = 0;
+function _obtenerPasosTour(){
+  return [
+    {ico:'👋', tit:'¡Bienvenido a TrenTurnos!', txt:'Una guía rápida de 30 segundos para que conozcas las funciones principales. Puedes saltarla en cualquier momento.'},
+    {ico:'📅', tit:'Tu Calendario', txt:'Toca cualquier día para registrar tu turno: ordinario, descanso, reserva, pernocta... Cada tipo tiene su propio color para que lo veas de un vistazo.'},
+    {ico:'🗂️', tit:'Horario y PDF', txt:'En la pestaña Horario puedes subir el cuadrante oficial en PDF, comparar turnos con un compañero, y solicitar tus horas HTDL con un correo ya redactado.'},
+    {ico:'📊', tit:'Tus Estadísticas', txt:'La pestaña Stats calcula automáticamente tus horas trabajadas y el desglose económico del mes, a partir de los turnos que registres.'},
+    {ico:'⚙️', tit:'Todo a tu medida', txt:'En Ajustes puedes configurar tu perfil, tu estación base, tus tarifas, y consultar esta misma ayuda cuando la necesites. ¡Ya estás listo!'}
+  ];
+}
+
+function iniciarTourSiEsLaPrimeraVez(){
+  try{
+    if(localStorage.getItem('tourCompletado')) return;
+  }catch(e){ return; } // si localStorage falla (modo privado), no forzar el tour
+  _tourPasoActual = 0;
+  mostrarPasoTour();
+  var overlay = document.getElementById('tour-overlay');
+  var card = document.getElementById('tour-card');
+  if(!overlay || !card) return;
+  overlay.style.display = 'flex';
+  setTimeout(function(){
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  }, 30);
+}
+
+function mostrarPasoTour(){
+  var pasos = _obtenerPasosTour();
+  var paso = pasos[_tourPasoActual];
+  if(!paso) return;
+  document.getElementById('tour-ico').textContent = paso.ico;
+  document.getElementById('tour-tit').textContent = paso.tit;
+  document.getElementById('tour-txt').textContent = paso.txt;
+  var dotsCont = document.getElementById('tour-dots');
+  dotsCont.innerHTML = pasos.map(function(_, i){
+    return '<div style="width:'+(i===_tourPasoActual?14:6)+'px;height:6px;border-radius:3px;background:'+(i===_tourPasoActual?'var(--amber2)':'var(--div)')+';transition:all .2s"></div>';
+  }).join('');
+  var btnNext = document.getElementById('tour-btn-next');
+  btnNext.textContent = (_tourPasoActual === pasos.length-1) ? '¡Empezar!' : 'Siguiente →';
+}
+
+function avanzarTour(){
+  _tourPasoActual++;
+  if(_tourPasoActual >= _obtenerPasosTour().length){
+    cerrarTour();
+    return;
+  }
+  var card = document.getElementById('tour-card');
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(10px)';
+  setTimeout(function(){
+    mostrarPasoTour();
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  }, 180);
+}
+
+function saltarTour(){
+  cerrarTour();
+}
+
+function cerrarTour(){
+  try{ localStorage.setItem('tourCompletado', '1'); }catch(e){}
+  var overlay = document.getElementById('tour-overlay');
+  var card = document.getElementById('tour-card');
+  if(card){ card.style.opacity = '0'; card.style.transform = 'translateY(14px)'; }
+  setTimeout(function(){
+    if(overlay) overlay.style.display = 'none';
+  }, 250);
+}
+
+var listaNegra = [];
+
+function cargarListaNegra(){
+  try{
+    var raw = localStorage.getItem('listaNegraApp');
+    listaNegra = raw ? JSON.parse(raw) : [];
+  }catch(e){ listaNegra = []; }
+}
+function guardarListaNegra(){
+  localStorage.setItem('listaNegraApp', JSON.stringify(listaNegra));
+  actualizarResumenListaNegra();
+}
+function actualizarResumenListaNegra(){
+  var el = document.getElementById('ln-resumen');
+  if(!el) return;
+  el.textContent = listaNegra.length
+    ? listaNegra.length+' compañero(s) en la lista negra'
+    : 'Sin compañeros en la lista negra';
+}
+
+function abrirListaNegra(){
+  cargarListaNegra();
+  renderListaNegraUI();
+  openOv('ov-listanegra');
+}
+
+function renderListaNegraUI(){
+  var cont = document.getElementById('ln-lista');
+  if(!cont) return;
+  if(!listaNegra.length){
+    cont.innerHTML = '<div class="today-empty" style="margin:10px 0">No hay compañeros en la lista negra</div>';
+    return;
+  }
+  cont.innerHTML = listaNegra.map(function(p, i){
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)">'
+      +'<div style="flex:1">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--tx)">'+(p.nombre||'(sin nombre)')+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3)">Matrícula: '+(p.matricula||'—')+'</div>'
+      +(p.observacion?'<div style="font-size:11px;color:#f87171;margin-top:3px">⚠️ '+p.observacion+'</div>':'')
+      +'</div>'
+      +'<button onclick="eliminarListaNegra('+i+')" style="background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.35);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer">🗑</button>'
+      +'</div>';
+  }).join('');
+}
+
+function agregarListaNegra(){
+  var nombre = document.getElementById('ln-nombre').value.trim();
+  var matricula = document.getElementById('ln-mat').value.trim();
+  var observacion = document.getElementById('ln-obs').value.trim();
+  if(!nombre && !matricula){
+    toast('Indica al menos el nombre o la matrícula');
+    return;
+  }
+  listaNegra.push({nombre:nombre, matricula:matricula, observacion:observacion});
+  guardarListaNegra();
+  document.getElementById('ln-nombre').value='';
+  document.getElementById('ln-mat').value='';
+  document.getElementById('ln-obs').value='';
+  renderListaNegraUI();
+  toast('Añadido a la lista negra');
+}
+
+function eliminarListaNegra(idx){
+  if(!confirm('¿Quitar a esta persona de la lista negra?')) return;
+  listaNegra.splice(idx,1);
+  guardarListaNegra();
+  renderListaNegraUI();
+}
+
+// FUNCIÓN DE VALIDACIÓN INDEPENDIENTE — exactamente como se pidió.
+// Busca por nombre (coincidencia parcial, sin distinguir mayúsculas)
+// o por matrícula exacta. No modifica nada, solo consulta.
+function esCompaneroBloqueado(identificador){
+  if(!identificador) return null;
+  cargarListaNegra();
+  var idLower = identificador.trim().toLowerCase();
+  for(var i=0;i<listaNegra.length;i++){
+    var p = listaNegra[i];
+    if(p.matricula && p.matricula.trim()===identificador.trim()) return p;
+    if(p.nombre && p.nombre.trim().toLowerCase().indexOf(idLower)>=0 && idLower.length>0) return p;
+    if(p.nombre && idLower.indexOf(p.nombre.trim().toLowerCase())>=0 && p.nombre.trim().length>0) return p;
+  }
+  return null;
+}
+
+// Pop-up de precaución — capa extra, NO bloqueante por sí sola.
+// onContinuar() se ejecuta solo si el usuario decide seguir adelante.
+function mostrarAvisoListaNegra(persona, onContinuar){
+  var modal = document.createElement('div');
+  modal.className = 'ov on';
+  modal.style.zIndex = '400';
+  modal.innerHTML =
+    '<div class="confirm-sh" onclick="event.stopPropagation()">'
+    +'<div class="sh-handle"></div>'
+    +'<div class="conf-ico">⚠️</div>'
+    +'<div class="conf-tit">PRECAUCIÓN</div>'
+    +'<div class="conf-txt">Este compañero está en tu lista negra.'
+    +(persona.observacion?'<br><br><strong>Observación:</strong> '+persona.observacion:'')+'</div>'
+    +'<div class="conf-btns">'
+    +'<button class="conf-cancel" id="ln-aviso-cancelar">Cancelar</button>'
+    +'<button class="conf-del" id="ln-aviso-continuar">Continuar de todos modos</button>'
+    +'</div>'
+    +'</div>';
+  modal.addEventListener('click', function(){ document.body.removeChild(modal); });
+  document.body.appendChild(modal);
+  document.getElementById('ln-aviso-cancelar').addEventListener('click', function(){
+    document.body.removeChild(modal);
+  });
+  document.getElementById('ln-aviso-continuar').addEventListener('click', function(){
+    document.body.removeChild(modal);
+    onContinuar();
+  });
+}
 
 function abrirComparador(){
   initComparadorUI();
