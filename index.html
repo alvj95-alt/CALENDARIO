@@ -1761,6 +1761,17 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ayuda-whatsapp-btn:active{
   transform:scale(.98);
 }
+/* ── ICONO "TURNO PARKING" — solo visual, esquina inferior izquierda ── */
+.dc-parking-ico{
+  z-index:2;
+  opacity:.85;
+  filter:drop-shadow(0 0 2px rgba(0,0,0,.6));
+  transition:opacity .15s;
+}
+.dc-parking-ico:active{
+  opacity:1;
+  transform:scale(1.15);
+}
 </style>
 </head>
 <body>
@@ -3870,7 +3881,13 @@ function renderSlide(gridId, fecha){
     var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
     var retBadge=tieneRetraso2?'<span style="position:absolute;top:1px;right:1px;font-size:8px;line-height:1">!</span>':'';
     var tv2Bg=getTV2Badge(k);
-    c.innerHTML=retBadge+tv2Bg+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    // Icono "Turno Parking" — solo visual, no toca ningún dato del turno.
+    var esParking = t && esTurnoParking(t);
+    var parkingBadge = esParking
+      ? '<span class="dc-parking-ico" onclick="event.stopPropagation();toast(\'🚗 Este turno pertenece parking\')" '
+        +'style="position:absolute;top:1px;left:1px;font-size:8px;line-height:1;cursor:pointer">🚗</span>'
+      : '';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
     // FIX closure: capturar d, k, t correctamente en cada iteración
     (function(dd, kk, tt){
       c.onclick=function(){ clickDia(dd, kk, tt); };
@@ -5554,6 +5571,7 @@ function renderStats(){
   var pref=y+'-'+pad(m);
   var ks=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
   var ct={ordinario:0,reserva:0,descanso:0,baja:0,trabajado:0,comp:0,vacaciones:0};
+  var ctParking=0; // NUEVO: contador de turnos "Parking" (CI<06:00 o CO>=23:30)
   // FIX: el día de "vuelta" de una pernocta (icono 🌙, tipo 'vuelta-pernocta')
   // y el día intermedio de una pernocta de 3 días ('pernocta3-intermedio')
   // antes no se contaban en ningún total porque no existían en este objeto.
@@ -5567,6 +5585,8 @@ function renderStats(){
     } else if(ct[t.tipo]!==undefined){
       ct[t.tipo]++;
     }
+    // Reutiliza esTurnoParking() ya existente — solo lectura, no altera el turno
+    if(esTurnoParking(t)) ctParking++;
   });
   var e=calculateEarnings(ks);
   var rolCls=AJ.rol==='tripulante'?'trip':'aux';
@@ -5586,6 +5606,7 @@ function renderStats(){
     {i:'🏥',v:ct.baja,      l:'Bajas',      c:'var(--c-baj)'},
     {i:'💼',v:ct.trabajado, l:'Trabajados', c:'var(--c-tra)'},
     {i:'✈',v:ct.vacaciones, l:'Vacaciones', c:'var(--c-vac)'},
+    {i:'🚗',v:ctParking,    l:'Parking',    c:'var(--amber2)'},
     {i:'⏱', v:e.totalHoras.toFixed(1)+'h', l:'Horas', c:'var(--acc2)'},
   ].map(function(x){
     return '<div class="sc" style="border-color:'+x.c+'33"><div class="sc-i">'+x.i+'</div>'
@@ -5683,6 +5704,32 @@ function renderStats(){
         des+='<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px;padding-left:12px">'
           +'<span class="cl" style="font-size:10px">'+n.tipo+' '+n.lbl+'</span>'
           +'<span style="font-size:10px;color:var(--tx2);line-height:1.4">'+n.nota+'</span>'
+          +'</div>';
+      });
+    }
+    // TURNOS PARKING DEL MES — muestra qué tren y por qué se clasificó así
+    // (CI antes de las 06:00 o CO a partir de las 23:30). Reutiliza
+    // esTurnoParking() ya existente, solo lectura, no altera ningún turno.
+    var parkingMes=[];
+    ks.forEach(function(k){
+      var t=TV[k];
+      if(t && esTurnoParking(t)){
+        var _kp=k.split('-');var dP=parseInt(_kp[2])+' '+MESES_C[parseInt(_kp[1])-1];
+        var ci=t.hF, co=t.hL2||t.hL;
+        var motivo=[];
+        if(ci && parseInt(ci.split(':')[0])<6) motivo.push('entra '+ci);
+        if(co && (parseInt(co.split(':')[0])>23 || (parseInt(co.split(':')[0])===23 && parseInt(co.split(':')[1])>=30))) motivo.push('llega '+co);
+        parkingMes.push({lbl:dP, tren:t.numTren||t.numTrenVuelta||'', motivo:motivo.join(' · ')});
+      }
+    });
+    if(parkingMes.length){
+      des+='<div class="cr-div" style="margin:4px 0"></div>';
+      des+='<div class="cs-r"><span class="cl" style="color:var(--amber2);font-weight:800">🚗 Turnos Parking del mes</span>'
+        +'<span class="cv" style="color:var(--amber2)">'+parkingMes.length+' turno'+(parkingMes.length>1?'s':'')+'</span></div>';
+      parkingMes.forEach(function(p){
+        des+='<div class="cs-r" style="padding-left:12px;flex-wrap:wrap;gap:2px">'
+          +'<span class="cl" style="font-size:10px">🚗 '+p.lbl+(p.tren?' · Tren #'+p.tren:'')+'</span>'
+          +'<span class="cv" style="font-size:10px;color:var(--amber2)">'+p.motivo+'</span>'
           +'</div>';
       });
     }
@@ -5859,6 +5906,26 @@ function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
 }
 
 function esHoraNocturna(h){var hr=parseInt(h.split(':')[0]);return hr>=22||hr<6;}
+
+// Detecta si un turno es "Parking": firma (CI) antes de las 06:00,
+// o llegada final (CO) después de las 23:30. Usa el mismo patrón de
+// comparación segura por horas/minutos que esHoraNocturna, sin tocarla.
+// Solo lectura — no modifica ningún dato del turno.
+function esTurnoParking(t){
+  if(!t) return false;
+  var ci = t.hF;                    // hora de firma (CI)
+  var co = t.hL2 || t.hL;           // llegada final: si hay vuelta (hL2), esa es la real
+  var esParkingCI = false, esParkingCO = false;
+  if(ci){
+    var p = ci.split(':').map(Number);
+    esParkingCI = (p[0] < 6);                          // antes de las 06:00
+  }
+  if(co){
+    var p2 = co.split(':').map(Number);
+    esParkingCO = (p2[0] > 23) || (p2[0]===23 && p2[1] >= 30);  // después de las 23:30
+  }
+  return esParkingCI || esParkingCO;
+}
 function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
 function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
 function openOv(id){document.getElementById(id).classList.add('on');}
