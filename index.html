@@ -3865,7 +3865,7 @@ function renderSlide(gridId, fecha){
     var tieneAlerta=ALERTAS_DESCANSO[k];
     var cls='dc';
     if(isS) cls+=' dc-sel';
-    else if(t) cls+=' '+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'');
+    if(t) cls+=' '+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].cls:'');
     if(isH) cls+=' dc-hoy';
     if(tieneAlerta) cls+=' dc-alerta';
     // Metadatos adicionales en la celda
