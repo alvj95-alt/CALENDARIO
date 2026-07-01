@@ -51,6 +51,7 @@
   --c-baj:#DC2626;  /* rojo */
   --c-tra:#7C3AED;  /* violeta */
   --c-vac:#0ea5e9;--c-cmp:#0891B2;  /* cyan */
+  --c-dop:#db2777;  /* rosa — DOP */
 
   /* Sombras */
   --sh-card:0 4px 24px rgba(0,0,0,.45);
@@ -135,6 +136,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dc-baj{background:rgba(220,38,38,.2);border-color:rgba(220,38,38,.5);color:#FCA5A5;font-weight:700}
 .dc-tra{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#C4B5FD;font-weight:700}
 .dc-cmp{background:rgba(8,145,178,.25);border-color:rgba(8,145,178,.6);color:#67E8F9;font-weight:700}
+.dc-dop{background:rgba(219,39,119,.2);border-color:rgba(219,39,119,.5);color:#F9A8D4;font-weight:700}
 
 /* ── COMPANION CALENDAR STYLES ── */
 .dc-comp-ordinario{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4)}
@@ -222,6 +224,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 /* ── OVERLAY (SingleChildScrollView equivalent) ── */
 .ov{display:none;position:absolute;inset:0;background:rgba(0,0,0,.82);z-index:200;align-items:flex-end;backdrop-filter:blur(5px)}
 .ov.on{display:flex}
+/* DH popup siempre encima de todo — posición fija, z-index máximo */
+#ov-dh{position:fixed;z-index:9999}
 /* Sheet: flex column, max 82% height, inner body scrolls */
 .sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
     max-height:82%;display:flex;flex-direction:column;overflow:hidden;
@@ -254,6 +258,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .topt.t-res:hover{border-color:var(--c-res);background:rgba(245,158,11,.1);color:#FCD34D}
 .topt.t-des:hover{border-color:var(--c-des);background:rgba(34,197,94,.1);color:#86EFAC}
 .topt.t-baj:hover{border-color:var(--c-baj);background:rgba(239,68,68,.1);color:#FCA5A5}
+.topt.t-dop:hover{border-color:var(--c-dop);background:rgba(219,39,119,.1);color:#F9A8D4}
 
 /* ── FORMULARIO ── */
 .fsec{padding:8px 13px}
@@ -2295,25 +2300,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
     <div id="htdl-dias-list" style="padding:6px 18px 10px;flex:1;min-height:0;overflow-y:auto"></div>
     <div style="padding:0 18px 18px">
-      <button id="btnHtdlSiguiente" onclick="generarTextoHTDL()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0891B2,#0e7490);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer">Siguiente →</button>
-    </div>
-  </div>
-</div>
-
-<!-- NUEVO: Modal Paso 2 — Texto generado y envío por correo -->
-<div class="ov" id="ov-htdl-texto" onclick="closeOv('ov-htdl-texto')">
-  <div class="sh" onclick="event.stopPropagation()">
-    <div class="sh-handle"></div>
-    <div class="sh-hdr">
-      <div class="sh-ico">✉️</div>
-      <div><div class="sh-tit">Solicitud de HTDL</div><div class="sh-sub">Revisa el mensaje antes de enviarlo</div></div>
-      <button class="sh-close" onclick="closeOv('ov-htdl-texto')">✕</button>
-    </div>
-    <div style="padding:6px 18px 4px">
-      <textarea id="htdl-texto-area" style="width:100%;min-height:170px;background:var(--s2);border:1px solid var(--div);border-radius:10px;color:var(--tx);font-size:12px;padding:11px;resize:vertical;font-family:inherit"></textarea>
-    </div>
-    <div style="padding:8px 18px 18px">
-      <button onclick="enviarSolicitudHTDL()" style="width:100%;padding:13px;background:linear-gradient(135deg,#0891B2,#0e7490);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer">✉️ Enviar a Programación</button>
+      <button id="btnHtdlSiguiente" onclick="confirmarHTDL(event)" style="width:100%;padding:13px;background:linear-gradient(135deg,#0891B2,#0e7490);border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;cursor:pointer">✓ Confirmar solicitud</button>
     </div>
   </div>
 </div>
@@ -2390,6 +2377,48 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         💬 ¿Necesitas ayuda o tienes sugerencias?
       </button>
 
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO DH — Modal para especificar tramo de servicio DH.
+     Completamente aditivo. No toca TV, AJ ni ningún dato existente.
+     Guarda F.estadoServicio / F.estadoServicioVuelta (campos nuevos).
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-dh" onclick="if(event.target===this)closeOv('ov-dh')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:72%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔀</div>
+      <div>
+        <div class="sh-tit" id="dh-popup-tit">Servicio DH</div>
+        <div class="sh-sub">Especifica el tramo en que trabajas</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-dh')">✕</button>
+    </div>
+    <div style="padding:16px 18px 28px;overflow-y:auto">
+      <div class="fsec-lbl">¿HASTA QUÉ ESTACIÓN TRABAJAS? <span style="color:var(--nar2)">*</span></div>
+      <input id="dh-hasta" type="text" placeholder="Ej: Zaragoza Delicias" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--amber2);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:14px;font-family:inherit">
+      <div class="fsec-lbl">¿A PARTIR DE QUÉ ESTACIÓN? <span style="color:var(--tx3)">(opcional)</span></div>
+      <input id="dh-desde" type="text" placeholder="Vacío = desde el origen" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:14px;padding:12px 14px;outline:none;margin-bottom:20px;font-family:inherit">
+      <div style="display:flex;gap:8px">
+        <button onclick="cancelarDH()"
+          style="flex:1;padding:14px;background:var(--s2);border:1px solid var(--div);
+          border-radius:11px;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer">
+          Cancelar
+        </button>
+        <button onclick="confirmarDH()"
+          style="flex:2;padding:14px;background:linear-gradient(135deg,var(--amber2),#b45309);
+          border:none;border-radius:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;
+          box-shadow:0 4px 16px rgba(245,158,11,.3)">
+          ✓ Confirmar DH
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -2539,6 +2568,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="topt t-tra" onclick="elegirTipo('trabajado')"><div class="to-ico">💼</div><div class="to-lbl">Trabajado</div><div class="to-sub">Descanso trabajado</div></div>
         <div class="topt t-baj" onclick="elegirTipo('baja')"><div class="to-ico">🏥</div><div class="to-lbl">Baja</div><div class="to-sub">Médica o laboral</div></div>
         <div class="topt t-vac" onclick="elegirTipo('vacaciones')"><div class="to-ico">🏖</div><div class="to-lbl">Vacaciones</div><div class="to-sub">Días de vacaciones anuales</div></div>
+        <div class="topt t-dop" onclick="elegirDOP()"><div class="to-ico">⭐</div><div class="to-lbl">DOP</div><div class="to-sub">Día de descanso opcional</div></div>
       </div>
     </div>
   </div>
@@ -2795,7 +2825,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div><div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">CORREO DE DESTINO</div>
       <div class="aj-nombre-wrap"><span class="aj-nombre-ico">📧</span>
         <input id="ec-dest" class="aj-nombre-inp" type="email" inputmode="email"
-          placeholder="programacion@renfe.com" autocomplete="email"
+          placeholder="✏️ Escribe aquí el correo de Programación" autocomplete="email"
           oninput="AJ.emailDestino=this.value.trim();localStorage.setItem('aj5',JSON.stringify(AJ))">
       </div>
       <div style="font-size:9px;color:var(--tx3);margin-top:4px">Se recuerda para la próxima vez</div>
@@ -2813,9 +2843,37 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">
       ✉️ Enviar correo
     </button>
+    <button id="ec-btn-posponer" onclick="posponerCorreoCompensacion()" style="width:100%;padding:12px;
+      background:var(--s2);border:1.5px solid var(--div);
+      border-radius:12px;color:var(--tx3);font-size:12px;font-weight:700;cursor:pointer">
+      ⏰ Posponer — recordarme el día del turno
+    </button>
     <div style="font-size:9px;color:var(--tx3);text-align:center">Abre tu app de correo listo</div>
   </div>
 </div></div>
+<!-- MÓDULO NOVEDADES — contenido generado dinámicamente desde listaNovedades[] -->
+<div class="ov" id="ov-novedades" onclick="if(event.target===this)cerrarNovedades()">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🆕</div>
+      <div>
+        <div class="sh-tit">Novedades</div>
+        <div class="sh-sub" id="nov-version-lbl"></div>
+      </div>
+      <button class="sh-close" onclick="cerrarNovedades()">✕</button>
+    </div>
+    <div style="padding:6px 18px 0;overflow-y:auto">
+      <ul id="nov-lista" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:14px"></ul>
+    </div>
+    <div style="padding:14px 18px 24px">
+      <button onclick="cerrarNovedades()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">
+        ✓ Entendido
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -2952,6 +3010,7 @@ const TIPO_INFO={
   'vuelta-pernocta':{ico:'🌙',lbl:'Vuelta',       col:'var(--c-ord)',cls:'dc-res'},
   'pernocta3-intermedio':{ico:'🌙',lbl:'Pernocta (día 2/3)', col:'var(--c-ord)',cls:'dc-res'},
   vacaciones:       {ico:'✈',lbl:'Vacaciones',   col:'var(--c-vac)',cls:'dc-vac'},
+  dop:              {ico:'⭐',lbl:'DOP',          col:'var(--c-dop)',cls:'dc-dop'},
 };
 // ── PLUSES: Activación, Internacional, JT — fijos por viaje ──
 const PLUS_DEF={
@@ -3003,6 +3062,36 @@ function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
+var NOV_VERSION = 'nov_v5';
+
+var listaNovedades = [
+  {
+    ico: '⭐',
+    titulo: 'DOP — Día de Opción Personal',
+    desc: 'Solicita tu DOP desde el calendario. El sistema verifica que no hayas pedido otro ese mismo mes y genera el correo de solicitud automáticamente con tu nombre y matrícula. Un toque y listo.'
+  },
+  {
+    ico: '✉️',
+    titulo: 'Correos automáticos de compensatorios',
+    desc: 'Al registrar un turno compensatorio con los días elegidos, el correo se redacta solo con todos los datos (fecha del HTDL, días solicitados, nombre y matrícula) y se abre listo para enviar.'
+  },
+  {
+    ico: '⏰',
+    titulo: 'Recordatorio inteligente',
+    desc: 'Si pospones el envío de un correo de compensación, la app te avisa ese mismo día al abrirla — una sola vez. El correo ya está escrito con tus datos, solo tienes que pulsar enviar.'
+  },
+  {
+    ico: '🔀',
+    titulo: 'Servicio DH',
+    desc: 'Marca cualquier tren como DH (servicio parcial) e indica hasta qué estación trabajas. Queda reflejado en tu turno.'
+  },
+  {
+    ico: '🐛',
+    titulo: 'Correcciones',
+    desc: 'El cliente de correo (Outlook, Gmail…) ya abre sin problemas en todos los móviles.'
+  }
+];
+
 function init(){
   // Limpiar claves de versiones anteriores (ya no necesarias)
   ['tv3','tv4','aj3','aj4'].forEach(function(k){localStorage.removeItem(k);});
@@ -3031,6 +3120,10 @@ function init(){
   actualizarResumenListaNegra();
   // Lanzar tour guiado solo la primera vez (independiente, no bloqueante)
   iniciarTourSiEsLaPrimeraVez();
+  // Verificar recordatorio HTDL pospuesto
+  checkRecordatorioHTDL();
+  // Mostrar novedades si es la primera vez con esta versión
+  mostrarNovedadesSiNuevas();
 }
 
 function limpiarDatosObsoletos(){
@@ -4013,6 +4106,15 @@ function renderDiaArea(){
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--nar)"></div>'
         +'<div class="tr-route" style="font-weight:800">🚆 Tren '+t.numTren+'</div>'
         +'<div class="tr-time" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</div></div>';
+      // Badge DH ida — visible en la tarjeta si el turno está en DH
+      if(t.estadoServicio==='dh'){
+        body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
+          +'<div class="tr-route" style="display:flex;align-items:center;gap:6px">'
+          +'<span style="background:rgba(245,158,11,.18);border:1px solid var(--amber2);'
+          +'border-radius:7px;padding:3px 9px;font-size:10px;font-weight:800;color:var(--amber2)">'
+          +'🔀 DH — '+(t.estadoServicioDetalle||'servicio parcial')+'</span>'
+          +'</div></div>';
+      }
     }
     if(t.sal&&t.lle){
       body+='<div class="tr-r"><div class="tr-dot" style="background:'+col+'"></div><div class="tr-route">🚂 '+t.sal+' → '+t.lle+'</div><div class="tr-time">'+t.hF+'–'+t.hL+'</div></div>';
@@ -4050,6 +4152,15 @@ function renderDiaArea(){
       body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
         +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+(t.numTrenVuelta?' · #'+t.numTrenVuelta:'')+'</div>'
         +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
+      // Badge DH vuelta
+      if(t.estadoServicioVuelta==='dh'){
+        body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
+          +'<div class="tr-route">'
+          +'<span style="background:rgba(245,158,11,.18);border:1px solid var(--amber2);'
+          +'border-radius:7px;padding:3px 9px;font-size:10px;font-weight:800;color:var(--amber2)">'
+          +'🔀 DH vuelta — '+(t.estadoServicioVueltaDetalle||'servicio parcial')+'</span>'
+          +'</div></div>';
+      }
     } else if(t.numTrenVuelta){
       // Tren de vuelta sin ruta detallada: mostrarlo igualmente para no ocultar el dato
       body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
@@ -4238,6 +4349,63 @@ function abrirTipo(){
   openOv('ov-tipo');
 }
 
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO DOP — Día de Descanso Opcional Personal.
+   Completamente aditivo. Usa TV[] existente con tipo='dop'.
+   No modifica ninguna estructura de datos existente.
+   Una sola solicitud por mes (validada en TV por año+mes).
+═══════════════════════════════════════════════════════════ */
+
+// Verifica si ya existe un DOP en el mes/año indicado.
+// Busca en TV[] que es el mismo objeto ya cargado en memoria.
+function esDOPDisponible(anio, mes){
+  var keys = Object.keys(TV);
+  for(var i=0; i<keys.length; i++){
+    var k = keys[i];
+    var partes = k.split('-').map(Number);
+    if(partes[0]===anio && partes[1]===mes && TV[k] && TV[k].tipo==='dop'){
+      return false; // ya hay un DOP este mes
+    }
+  }
+  return true; // mes libre
+}
+
+// Punto de entrada al seleccionar DOP en el selector de tipos.
+function elegirDOP(){
+  if(!selDay){ toast('Selecciona un día primero'); return; }
+  var partes = selDay.k.split('-').map(Number);
+  var anio=partes[0], mes=partes[1], dd=partes[2];
+
+  if(!esDOPDisponible(anio, mes)){
+    toast('⭐ Ya has solicitado un DOP este mes');
+    closeOv('ov-tipo');
+    return;
+  }
+
+  // Guardar el DOP en TV
+  var d = {tipo:'dop'};
+  TV[selDay.k] = d;
+  selDay.t = d;
+  saveTV();
+  renderCal();
+
+  // Generar y mostrar el correo automáticamente
+  var fstr = dd+' de '+MESES[mes-1].toLowerCase()+' de '+anio;
+  var mn = AJ.nombre||'', mm = AJ.matricula||'';
+  var hora = new Date().getHours();
+  var sal = hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
+  var cuerpo = sal+', me gustaria solicitar el dia '+fstr
+    +' como DOP. Espero su confirmacion.'
+    +'\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
+  var asunto = 'Solicitud DOP - '+fstr;
+
+  closeOv('ov-tipo');
+  // Abrir popup de correo (sin botón Posponer — es una solicitud puntual)
+  setTimeout(function(){
+    handleEmailSubmission('Solicitud de DOP', fstr, asunto, cuerpo, function(){}, false);
+  }, 200);
+}
+
 function elegirTipo(tipo){
   closeOv('ov-tipo');
 
@@ -4300,6 +4468,10 @@ function editarTurno(){
          horas:tOri.horas||0, diasComp:(tOri.diasComp||[]).slice(), notas:tOri.notas||'',
          numTren:tOri.numTren||'', numTrenVuelta:tOri.numTrenVuelta||'',
          numTrenIntermedio:tOri.numTrenIntermedio||'',
+         estadoServicio:tOri.estadoServicio||'ordinario',
+         estadoServicioDetalle:tOri.estadoServicioDetalle||'',
+         estadoServicioVuelta:tOri.estadoServicioVuelta||'ordinario',
+         estadoServicioVueltaDetalle:tOri.estadoServicioVueltaDetalle||'',
          plusAct:tOri.plusAct||false, plusJT:tOri.plusJT||false,
          plusIntlAuto:(tOri.linea||'').includes('Internacional')};
       renderCal();
@@ -4322,6 +4494,10 @@ function editarTurno(){
      horas:t.horas||0,diasComp:(t.diasComp||[]).slice(),notas:t.notas||'',
      numTren:t.numTren||'', numTrenVuelta:t.numTrenVuelta||'',
      numTrenIntermedio:t.numTrenIntermedio||'',
+     estadoServicio:t.estadoServicio||'ordinario',
+     estadoServicioDetalle:t.estadoServicioDetalle||'',
+     estadoServicioVuelta:t.estadoServicioVuelta||'ordinario',
+     estadoServicioVueltaDetalle:t.estadoServicioVueltaDetalle||'',
      plusAct:t.plusAct||false,plusJT:t.plusJT||false,
      plusIntlAuto:(t.linea||'').includes('Internacional')};
   abrirForm(true);
@@ -4619,8 +4795,64 @@ function secLinea(){
      + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">';
   h += '</div>';
   h += '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
+  // ── BOTÓN DH (IDA) ──
+  var dhIdaActivo = F.estadoServicio==='dh';
+  var dhIdaDetalle = F.estadoServicioDetalle||'';
+  h += '<div id="dh-ida-wrap" style="margin-bottom:12px">';
+  if(dhIdaActivo){
+    // Estado activo: banner ámbar llamativo con el detalle
+    h += '<div onclick="abrirDHPopup(\'ida\')" style="'
+      +'display:flex;align-items:center;gap:10px;'
+      +'background:rgba(245,158,11,.15);'
+      +'border:2px solid var(--amber2);'
+      +'border-radius:12px;padding:11px 14px;cursor:pointer;'
+      +'box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
+      +'<span style="font-size:20px">🔀</span>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:11px;font-weight:900;color:var(--amber2);letter-spacing:.3px">SERVICIO DH ACTIVO</div>'
+      +'<div style="font-size:11px;color:var(--tx2);margin-top:2px">📍 '+dhIdaDetalle+'</div>'
+      +'</div>'
+      +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
+      +'</div>';
+  } else {
+    // Estado inactivo: botón claro con borde naranja sutil
+    h += '<button id="dh-ida-btn" onclick="abrirDHPopup(\'ida\')" style="'
+      +'padding:9px 14px;border-radius:8px;'
+      +'border:1.5px solid var(--div);'
+      +'background:var(--s2);'
+      +'color:var(--tx3);'
+      +'font-size:12px;font-weight:700;cursor:pointer;'
+      +'display:inline-flex;align-items:center;gap:6px;'
+      +'transition:all .15s">'
+      +'🔀 Marcar DH'
+      +'</button>';
+  }
+  h += '</div>';
+  h += '<span id="dh-ida-badge" style="'+(dhIdaDetalle?'':'display:none;')
+    +'background:rgba(245,158,11,.1);border:1px solid var(--amber2);'
+    +'border-radius:8px;padding:4px 10px;font-size:10px;color:var(--amber2);font-weight:700">'
+    +(dhIdaDetalle?'📍 '+dhIdaDetalle:'')+'</span>';
+  h += '</div>';
   if(modoActivo){
     var esP = modoActivo==='pernocta';
+    // ── SWITCH SOLO IDA ──
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;'
+      +'padding:10px 12px;background:var(--s2);border:1px solid var(--div);'
+      +'border-radius:12px;margin-bottom:8px;margin-top:4px">'
+      +'<div style="display:flex;align-items:center;gap:7px">'
+      +'<span style="font-size:14px">'+(esP?'🌙':'↩')+'</span>'
+      +'<div><div style="font-size:9px;font-weight:800;color:var(--amber2);letter-spacing:.5px">TREN VUELTA</div>'
+      +'<div style="font-size:9px;color:var(--tx3);margin-top:1px">Desactiva si no hay vuelta</div></div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:7px;cursor:pointer" onclick="toggleSoloIda()">'
+      +'<span id="solo-ida-lbl" style="font-size:10px;font-weight:800;color:var(--tx3)">Solo Ida</span>'
+      +'<div id="solo-ida-sw" style="width:38px;height:22px;background:var(--div);border-radius:11px;'
+      +'position:relative;transition:background .25s;flex-shrink:0">'
+      +'<div id="solo-ida-knob" style="width:18px;height:18px;background:var(--tx3);border-radius:50%;'
+      +'position:absolute;top:2px;left:2px;transition:left .25s;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>'
+      +'</div></div></div>';
+    // ── TREN VUELTA ──
+    h += '<div id="contenedor-vuelta">';
     h += '<div class="numtren-vuelta-wrap">';
     h += '<span style="font-size:16px">'+(esP?'🌙':'↩')+'</span>';
     h += '<div style="flex:1">';
@@ -4633,6 +4865,37 @@ function secLinea(){
        + 'font-size:18px;font-weight:800;padding:2px 0;outline:none;'
        + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield">';
     h += '</div></div>';
+    // ── BOTÓN DH (VUELTA) ──
+    var dhVueltaActivo = F.estadoServicioVuelta==='dh';
+    var dhVueltaDetalle = F.estadoServicioVueltaDetalle||'';
+    h += '<div id="dh-vuelta-wrap" style="margin-top:10px">';
+    if(dhVueltaActivo){
+      h += '<div onclick="abrirDHPopup(\'vuelta\')" style="'
+        +'display:flex;align-items:center;gap:10px;'
+        +'background:rgba(245,158,11,.15);'
+        +'border:2px solid var(--amber2);'
+        +'border-radius:12px;padding:11px 14px;cursor:pointer;'
+        +'box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
+        +'<span style="font-size:20px">🔀</span>'
+        +'<div style="flex:1">'
+        +'<div style="font-size:11px;font-weight:900;color:var(--amber2);letter-spacing:.3px">VUELTA EN DH</div>'
+        +'<div style="font-size:11px;color:var(--tx2);margin-top:2px">📍 '+dhVueltaDetalle+'</div>'
+        +'</div>'
+        +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
+        +'</div>';
+    } else {
+      h += '<button id="dh-vuelta-btn" onclick="abrirDHPopup(\'vuelta\')" style="'
+        +'padding:9px 14px;border-radius:8px;'
+        +'border:1.5px solid var(--div);'
+        +'background:var(--s2);color:var(--tx3);'
+        +'font-size:12px;font-weight:700;cursor:pointer;'
+        +'display:inline-flex;align-items:center;gap:6px;'
+        +'transition:all .15s">'
+        +'🔀 Marcar DH'
+        +'</button>';
+    }
+    h += '</div>'; // dh-vuelta-wrap
+    h += '</div>'; // contenedor-vuelta
   }
   h += '<div class="fsec-lbl">'+t('linea')+'</div>';
   h += '<div class="linea-chips">'
@@ -5022,6 +5285,10 @@ function guardarTurno(){
     d.modo=F.modo||'ida';
     d.numTren=F.numTren||'';
     d.numTrenVuelta=F.numTrenVuelta||'';
+    d.estadoServicio=F.estadoServicio||'ordinario';
+    d.estadoServicioDetalle=F.estadoServicioDetalle||'';
+    d.estadoServicioVuelta=F.estadoServicioVuelta||'ordinario';
+    d.estadoServicioVueltaDetalle=F.estadoServicioVueltaDetalle||'';
     d.sal2=F.sal2||(F.lle||null);
     d.lle2=F.lle2||(F.sal||null);
     d.hF2=F.hF2;d.hL2=F.hL2;
@@ -5110,6 +5377,12 @@ function guardarTurno(){
 
   // GUARDAR — primero datos, luego cerrar
   TV[k]=d; selDay.t=d; saveTV();
+
+  // Escenario B: si el turno tiene días compensatorios asignados,
+  // disparar el popup de correo de solicitud de compensación.
+  if(d.comp==='dias' && d.diasComp && d.diasComp.length > 0){
+    setTimeout(function(){ enviarSolicitudCompensacion(k); }, 350);
+  }
 
   if(d.numTren&&(t==='ordinario'||t==='trabajado')){
     guardarServicioFrecuente({
@@ -5855,9 +6128,6 @@ function preguntarGuardarContacto(nombre,matricula,tren){
 function key(y,m,d){return y+'-'+pad(m)+'-'+pad(d);}
 function pad(n){return String(n).padStart(2,'0');}
 
-// Convierte "YYYY-MM-DD" → [year, month, day] como Numbers
-function parseKey(k){return k.split('-').map(Number);}
-
 function calcMins(h1,h2){
   var _h1=h1.split(':').map(Number);var a=_h1[0],b=_h1[1];var _h2r=h2.split(':').map(Number);var c=_h2r[0],d=_h2r[1];
   var m=(c*60+d)-(a*60+b);if(m<0)m+=1440;return m;
@@ -5880,12 +6150,6 @@ function calcularEscala(horaFinAnterior, horaInicioSiguiente){
     min: min,
     txt: Math.floor(min/60)+'h '+pad(min%60)+'m'
   };
-}
-
-// Calcula horas (decimal) entre dos strings "HH:MM"
-function horasDec(hF,hL){
-  if(!hF||!hL) return 0;
-  return Math.round(calcMins(hF,hL)/60*100)/100;
 }
 
 // Calcula importe completo de un turno (horas × tarifa + pluses activos)
@@ -6068,16 +6332,6 @@ function calculateEarnings(ks){
     retrasos:retMes};
 }
 
-function clearCompData() {
-  if (!confirm('¿Eliminar el horario del compañero?')) return;
-  COMP_DATA = {};
-  saveComp();
-  vistaMode = 'mio';
-  renderCal();
-  toast('👤 Horario compañero eliminado');
-}
-
-
 function clearSelDay(){
   selDay=null;
   closeOv('ov-dia-card');
@@ -6085,14 +6339,16 @@ function clearSelDay(){
 }
 
 
-function closeOvTop(id){var el=document.getElementById(id);el.classList.remove('on');el.classList.remove('ov-top');}
-
 function confirmarEnvioEmail(){
   var dest=(document.getElementById('ec-dest')?document.getElementById('ec-dest').value.trim():'');
   var asunto=(document.getElementById('ec-asunto')?document.getElementById('ec-asunto').value.trim():'');
   var cuerpo=(document.getElementById('ec-cuerpo')?document.getElementById('ec-cuerpo').value:'');
   if(dest){AJ.emailDestino=dest;localStorage.setItem('aj5',JSON.stringify(AJ));}
-  var ml='mailto:'+encodeURIComponent(dest)+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  // Fix: dest NO se codifica — el @ debe ir literal en mailto: (RFC 6068)
+  // Fix: cuerpo pasa por sanitizarTexto para eliminar acentos y caracteres
+  //      especiales que bloquean la apertura en clientes móviles
+  var cuerpoLimpio = sanitizarTexto(cuerpo);
+  var ml='mailto:'+dest+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpoLimpio);
   if(typeof _emailCB==='function'){_emailCB();_emailCB=null;}
   closeOv('ov-email-confirm');
   setTimeout(function(){window.location.href=ml;closeOv('ov-cambio');},150);
@@ -6106,12 +6362,28 @@ function enviarSolicitudCompensacion(k){
   var nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
   var hora=new Date().getHours();
   var sal=hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
+  var diasCompTxt = (t.diasComp||[]).map(function(iso){
+    var p=iso.split('-').map(Number);
+    return p[2]+' de '+MESES[p[1]-1];
+  }).join(', ');
   var cuerpo=sal+'.\n\nMediante el presente solicito la compensacion de '
     +nDias+' dia'+(nDias===1?'':'s')+' por el servicio realizado el dia '+fstr
-    +(nt?' en el tren '+nt:'')+'.\n\nQuedo a la espera de su validacion.\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
+    +(nt?' en el tren '+nt:'')+'.'
+    +(diasCompTxt?'\n\nDias solicitados: '+diasCompTxt+'.' : '')
+    +'\n\nQuedo a la espera de su validacion.\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
   var asunto='Solicitud de Compensacion - '+fstr+(nt?' - Tren '+nt:'');
   handleEmailSubmission('Solicitud de Compensacion',nDias+' dia'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,
-    function(){TV[k].pendienteEnvio=false;TV[k].compensacionSolicitada=true;if(selDay)selDay.t=TV[k];saveTV();renderCal();renderDiaArea();}
+    function(){
+      TV[k].pendienteEnvio=false;
+      TV[k].compensacionSolicitada=true;
+      if(selDay)selDay.t=TV[k];
+      saveTV();
+      renderCal();
+      renderDiaArea();
+      // Marcar correo como enviado — el recordatorio no volverá a aparecer
+      marcarCorreoHTDLEnviado(k);
+    },
+    true
   );
 }
 
@@ -6123,17 +6395,40 @@ function guardarCompanero(nombre,mat){
   AGENDA.unshift(c);saveAgenda();return c;
 }
 
-function handleEmailSubmission(tit,sub,asunto,cuerpo,cb){
+function handleEmailSubmission(tit,sub,asunto,cuerpo,cb,mostrarPosponer){
   _emailCB=cb;
   document.getElementById('ec-tit').textContent=tit;
   document.getElementById('ec-sub').textContent=sub;
   document.getElementById('ec-asunto').value=asunto;
   document.getElementById('ec-cuerpo').value=cuerpo;
   var d=document.getElementById('ec-dest');
-  if(d) d.value=AJ.emailDestino||'';
+  if(d) d.value=''; // No pre-rellenar — el usuario escribe el correo de Programación
+  // Mostrar u ocultar el botón Posponer según el contexto:
+  // false = Escenario A (HTDL) — no aplica posponer aquí
+  // true  = Escenario B (Compensación) — sí aplica
+  var btnPos=document.getElementById('ec-btn-posponer');
+  if(btnPos) btnPos.style.display = mostrarPosponer ? '' : 'none';
   var ca=(document.getElementById('ov-cambio') ? document.getElementById('ov-cambio').classList.contains('on') : false);
   if(ca) openOvTop('ov-email-confirm'); else openOv('ov-email-confirm');
+  _emailTurnoKey = (selDay && selDay.k) ? selDay.k : null;
 }
+
+// Posponer recordatorio de correo de compensación al día del turno.
+// Guarda en htdl_correos con la fecha del turno como clave.
+function posponerCorreoCompensacion(){
+  var k = _emailTurnoKey || (selDay && selDay.k);
+  if(!k){ closeOv('ov-email-confirm'); toast('⏰ Recordatorio guardado'); return; }
+  try{
+    var correos = JSON.parse(localStorage.getItem('htdl_correos')||'{}');
+    correos[k] = 'pospuesto';
+    localStorage.setItem('htdl_correos', JSON.stringify(correos));
+  }catch(e){}
+  closeOv('ov-email-confirm');
+  toast('⏰ Te recordamos el día '+k);
+  _emailTurnoKey = null;
+}
+
+var _emailTurnoKey = null;
 
 function openOvTop(id){var el=document.getElementById(id);el.classList.add('on');el.classList.add('ov-top');}
 
@@ -7569,11 +7864,14 @@ async function eliminarHorarioIndividual(mesKey){
 var _htdlDiasSeleccionados = [];
 
 async function abrirSolicitudHTDL(){
-  if(!currentMonthKey){
-    toast('Primero sube un horario para poder solicitar HTDL');
+  // Fix TDZ: acceder a currentMonthKey de forma segura
+  var _cmk;
+  try { _cmk = currentMonthKey; } catch(e){ _cmk = null; }
+  if(!_cmk){
+    toast('📋 Primero sube un horario para poder solicitar HTDL');
     return;
   }
-  var data = await loadMonth(currentMonthKey);
+  var data = await loadMonth(_cmk);
   if(!data || !data.dias || !data.dias.length){
     toast('No hay días cargados en este horario');
     return;
@@ -7586,7 +7884,7 @@ async function abrirSolicitudHTDL(){
 
   var cont = document.getElementById('htdl-dias-list');
   if(!diasLibres.length){
-    cont.innerHTML = '<div class="today-empty" style="margin:10px 0">No hay días libres o disponibles en '+currentMonthKey+'</div>';
+    cont.innerHTML = '<div class="today-empty" style="margin:10px 0">No hay días libres o disponibles en '+_cmk+'</div>';
   } else {
     cont.innerHTML = diasLibres.map(function(d, i){
       var etiqueta = d.tipo === 'LIBRE' ? 'DO · Día libre' : 'Disponible';
@@ -7610,23 +7908,34 @@ function toggleHtdlDia(checkbox){
   }
 }
 
-function generarTextoHTDL(){
+// confirmarHTDL — solo genera el correo de solicitud.
+// NO guarda nada en el calendario ni en TV.
+function confirmarHTDL(e){
+  if(e && e.stopPropagation) e.stopPropagation();
   if(!_htdlDiasSeleccionados.length){
     toast('Selecciona al menos un día');
     return;
   }
-  var hora = new Date().getHours();
-  var saludo = hora < 20 ? (hora < 13 ? 'Buenos días' : 'Buenas tardes') : 'Buenas noches';
   var diasTxt = _htdlDiasSeleccionados.join(', ');
-  var nombre = (typeof AJ !== 'undefined' && AJ.nombre) ? AJ.nombre : 'No configurado';
-  var matricula = (typeof AJ !== 'undefined' && AJ.matricula) ? AJ.matricula : 'No configurado';
-
-  var mensaje = saludo+', envío este correo para informar que estoy a disposición los días '+diasTxt
-    +' para realizar horas HTDL.\n\nSaludos cordiales,\n'+nombre+' - Matrícula: '+matricula;
-
-  document.getElementById('htdl-texto-area').value = mensaje;
+  var mn = AJ.nombre||'', mm = AJ.matricula||'';
+  var hora = new Date().getHours();
+  var sal = hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
+  var cuerpo = sal+', envio este correo para informar que los dias '
+    +diasTxt+', estoy a disposicion para realizar HTDL.'
+    +'\n\nSaludos,\n'+mn+'\nMatricula: '+mm;
+  var asunto = 'Disponibilidad HTDL - '+diasTxt;
   closeOv('ov-htdl-dias');
-  openOv('ov-htdl-texto');
+  // Esperar a que el modal cierre (140ms animación) antes de abrir el correo
+  setTimeout(function(){
+    handleEmailSubmission(
+      'Solicitud de HTDL',
+      diasTxt,
+      asunto,
+      cuerpo,
+      function(){}, // sin callback de guardado — no toca el calendario
+      false         // sin botón Posponer en Escenario A
+    );
+  }, 180);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -7636,20 +7945,151 @@ function generarTextoHTDL(){
    el body del mailto:, para máxima compatibilidad con clientes
    de correo que no manejan bien acentos/UTF-8.
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO HTDL CORREOS — completamente aditivo.
+   Gestiona el estado de envío de correos HTDL por fecha.
+   Clave localStorage: 'htdl_correos' — totalmente aislada
+   de tv5/aj5/listaNegraApp/horario:*. Nunca toca TV ni AJ.
+   Estados posibles por fecha (YYYY-MM-DD):
+     'pendiente'  — días seleccionados, correo aún no enviado
+     'pospuesto'  — usuario decidió enviar más tarde
+     'enviado'    — correo enviado correctamente
+═══════════════════════════════════════════════════════════ */
+function _htdlCorreosGet(){
+  try{ return JSON.parse(localStorage.getItem('htdl_correos')||'{}'); }
+  catch(e){ return {}; }
+}
+function _htdlCorreosSet(obj){
+  try{ localStorage.setItem('htdl_correos', JSON.stringify(obj)); }catch(e){}
+}
+
+// Se llama desde init() — verifica si hay un HTDL pospuesto para hoy
+// verificarRecordatorios — se ejecuta UNA vez al cargar la app (desde init).
+// Busca en htdl_correos entradas con estado 'pendiente' cuya fecha
+// coincida con hoy. Al mostrar el aviso, lo marca 'notificado'
+// para que no vuelva a aparecer aunque el usuario reabra la app.
+// 'enviado' suprime el recordatorio de forma permanente.
+function verificarRecordatorios(){
+  try{
+    var hoy = key(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
+    var correos = _htdlCorreosGet();
+    var fechaPendiente = null;
+    var keys = Object.keys(correos);
+    for(var i=0; i<keys.length; i++){
+      var fecha = keys[i];
+      var estado = correos[fecha];
+      // Solo mostrar si: la fecha es hoy, el estado es 'pendiente' o 'pospuesto',
+      // y NO ha sido ya notificado ni enviado
+      if(fecha === hoy && (estado === 'pendiente' || estado === 'pospuesto')){
+        fechaPendiente = fecha;
+        break;
+      }
+    }
+    if(fechaPendiente){
+      // Marcar como 'notificado' ANTES de mostrar para evitar loops
+      correos[fechaPendiente] = 'notificado';
+      _htdlCorreosSet(correos);
+      setTimeout(function(){
+        mostrarAvisoHTDLPospuesto(fechaPendiente);
+      }, 1800);
+    }
+  }catch(e){}
+}
+
+// Alias para compatibilidad con la llamada existente en init()
+function checkRecordatorioHTDL(){ verificarRecordatorios(); }
+
+// marcarCorreoHTDLEnviado — llama esto cuando el correo se envía.
+// Cambia el estado a 'enviado' — el recordatorio no volverá a aparecer.
+function marcarCorreoHTDLEnviado(fecha){
+  try{
+    var correos = _htdlCorreosGet();
+    var k = fecha || key(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
+    correos[k] = 'enviado';
+    _htdlCorreosSet(correos);
+  }catch(e){}
+}
+
+// generarCorreoDesdeDatos — lee TV[k] directamente y construye
+// el texto del correo sin abrir ningún formulario.
+// Retorna {asunto, cuerpo} listos para handleEmailSubmission.
+function generarCorreoDesdeDatos(fechaKey){
+  var t = TV[fechaKey] || {};
+  var partes = fechaKey.split('-').map(Number);
+  var y=partes[0], mo=partes[1], dd=partes[2];
+  var fstr = dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
+  var mn = AJ.nombre||'', mm = AJ.matricula||'';
+  var hora = new Date().getHours();
+  var sal = hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
+
+  // Días compensatorios ya guardados en TV[k].diasComp
+  var diasComp = t.diasComp || [];
+  var diasTxt = diasComp.map(function(iso){
+    var p = iso.split('-').map(Number);
+    return p[2]+' de '+MESES[p[1]-1].toLowerCase();
+  }).join(' y ');
+
+  var nt = t.numTren ? ' en el tren '+t.numTren : '';
+  var cuerpo = sal+'. Por haber realizado el dia '+fstr+nt+' como HTDL,'
+    +' me gustaria solicitar como dias compensatorios'
+    +(diasTxt ? ' el '+diasTxt : ' los dias correspondientes')+'.'
+    +'\n\nSaludos,\n'+mn+'\nMatricula: '+mm;
+  var asunto = 'Solicitud compensacion HTDL - '+fstr;
+  return {asunto: asunto, cuerpo: cuerpo};
+}
+
+function mostrarAvisoHTDLPospuesto(fechaKey){
+  var modal = document.createElement('div');
+  modal.className = 'ov on';
+  modal.style.zIndex = '450';
+  // Previsualizar los días comp guardados en el aviso
+  var t = TV[fechaKey] || {};
+  var diasComp = t.diasComp || [];
+  var diasPreview = diasComp.length
+    ? diasComp.map(function(iso){ var p=iso.split('-').map(Number); return p[2]+'/'+p[1]; }).join(', ')
+    : 'sin días comp. asignados aún';
+  modal.innerHTML =
+    '<div class="confirm-sh" onclick="event.stopPropagation()">'
+    +'<div class="sh-handle"></div>'
+    +'<div class="conf-ico">⏰</div>'
+    +'<div class="conf-tit">Recordatorio HTDL</div>'
+    +'<div class="conf-txt">Correo de compensacion pendiente para:<br>'
+    +'<strong>'+fechaKey+'</strong><br>'
+    +'<span style="font-size:11px;color:var(--tx3)">Días comp: '+diasPreview+'</span></div>'
+    +'<div class="conf-btns">'
+    +'<button class="conf-cancel" id="htdl-rec-mas-tarde">Más tarde</button>'
+    +'<button class="conf-del" id="htdl-rec-enviar" style="background:linear-gradient(135deg,#0891B2,#0e7490)">✉️ Enviar correo</button>'
+    +'</div>'
+    +'</div>';
+  modal.addEventListener('click', function(){ document.body.removeChild(modal); });
+  document.body.appendChild(modal);
+  document.getElementById('htdl-rec-mas-tarde').addEventListener('click', function(){
+    document.body.removeChild(modal);
+  });
+  document.getElementById('htdl-rec-enviar').addEventListener('click', function(){
+    document.body.removeChild(modal);
+    // Leer datos directamente de TV — sin abrir ningún formulario
+    var datos = generarCorreoDesdeDatos(fechaKey);
+    marcarCorreoHTDLEnviado(fechaKey);
+    // Abrir popup de correo con el texto ya redactado
+    setTimeout(function(){
+      handleEmailSubmission(
+        'Compensacion HTDL',
+        fechaKey,
+        datos.asunto,
+        datos.cuerpo,
+        function(){},
+        false
+      );
+    }, 150);
+  });
+}
+
 function sanitizarTexto(texto){
   if(!texto) return '';
   return texto
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita acentos (á→a, é→e, í→i, ó→o, ú→u, ñ→n)
     .replace(/[^A-Za-z0-9 \n]/g, '');                   // deja solo letras, números, espacios y saltos de línea
-}
-
-function enviarSolicitudHTDL(){
-  var cuerpo = sanitizarTexto(document.getElementById('htdl-texto-area').value);
-  var asunto = encodeURIComponent('Solicitud de HTDL - '+(currentMonthKey||''));
-  var body = encodeURIComponent(cuerpo);
-  closeOv('ov-htdl-texto');
-  // mailto: como última acción, igual patrón que enviarCambio() (ya verificado sin bugs de cuerpo vacío)
-  window.location.href = 'mailto:Programacion@empresa.com?subject='+asunto+'&body='+body;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -7699,6 +8139,48 @@ function _obtenerPasosTour(){
     {ico:'📊', tit:'Tus Estadísticas', txt:'La pestaña Stats calcula automáticamente tus horas trabajadas y el desglose económico del mes, a partir de los turnos que registres.'},
     {ico:'⚙️', tit:'Todo a tu medida', txt:'En Ajustes puedes configurar tu perfil, tu estación base, tus tarifas, y consultar esta misma ayuda cuando la necesites. ¡Ya estás listo!'}
   ];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO NOVEDADES — popup dinámico basado en listaNovedades[].
+   Para añadir una versión futura:
+     1. Edita listaNovedades con los nuevos objetos
+     2. Cambia NOV_VERSION a 'nov_v6' (o la siguiente)
+   El popup volverá a salir automáticamente a todos los usuarios.
+   Clave localStorage: NOV_VERSION — aislada de TV/AJ/turnos.
+═══════════════════════════════════════════════════════════ */
+
+function mostrarNovedades(){
+  // Renderizar lista desde el array
+  var ul = document.getElementById('nov-lista');
+  if(!ul) return;
+  ul.innerHTML = listaNovedades.map(function(n){
+    return '<li style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--div)">'
+      +'<div style="font-size:24px;flex-shrink:0;margin-top:1px">'+n.ico+'</div>'
+      +'<div>'
+      +'<div style="font-size:13px;font-weight:800;color:var(--tx);margin-bottom:3px">'+n.titulo+'</div>'
+      +'<div style="font-size:11px;color:var(--tx3);line-height:1.55">'+n.desc+'</div>'
+      +'</div>'
+      +'</li>';
+  }).join('');
+  // Etiqueta de versión
+  var lbl = document.getElementById('nov-version-lbl');
+  if(lbl) lbl.textContent = 'TrenTurnos v5 · BCN · '+new Date().toLocaleDateString('es-ES');
+  openOv('ov-novedades');
+}
+
+function cerrarNovedades(){
+  // Marcar como vista — no vuelve a aparecer hasta que cambie NOV_VERSION
+  try{ localStorage.setItem(NOV_VERSION, '1'); }catch(e){}
+  closeOv('ov-novedades');
+}
+
+function mostrarNovedadesSiNuevas(){
+  try{
+    if(!localStorage.getItem(NOV_VERSION)){
+      setTimeout(mostrarNovedades, 1200);
+    }
+  }catch(e){}
 }
 
 function iniciarTourSiEsLaPrimeraVez(){
@@ -7762,6 +8244,147 @@ function cerrarTour(){
   }, 250);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO DH + SOLO IDA — completamente aditivo.
+   Añade el botón DH junto al número de tren y el switch
+   "Solo Ida" sobre el bloque de vuelta. El popup pregunta
+   hasta qué estación se trabaja en servicio DH.
+   Datos en F.estadoServicio / F.estadoServicioVuelta
+   (ya definidos en sesión anterior, guardados en TV[k]).
+═══════════════════════════════════════════════════════════ */
+var _dhTramo = null; // 'ida' | 'vuelta'
+
+function abrirDHPopup(tramo){
+  _dhTramo = tramo;
+  var num = tramo==='ida' ? (F.numTren||'') : (F.numTrenVuelta||'');
+  var label = tramo==='ida' ? 'Ida' : 'Vuelta';
+  var titEl = document.getElementById('dh-popup-tit');
+  if(titEl) titEl.textContent = 'Servicio DH — Tren '+label+(num?' #'+num:'');
+  // Precargar con el detalle ya guardado, si existe
+  var prevDetalle = tramo==='ida'
+    ? (F.estadoServicioDetalle||'')
+    : (F.estadoServicioVueltaDetalle||'');
+  var parts = prevDetalle ? prevDetalle.split(' · desde ') : ['',''];
+  var hastaEl = document.getElementById('dh-hasta');
+  var desdeEl = document.getElementById('dh-desde');
+  if(hastaEl) hastaEl.value = parts[0].replace('hasta ','') || '';
+  if(desdeEl) desdeEl.value = parts[1] || '';
+  openOv('ov-dh');
+  setTimeout(function(){ if(hastaEl) hastaEl.focus(); }, 350);
+}
+
+function cancelarDH(){
+  // Si el usuario cancela sin haber confirmado antes, revertir estado
+  if(_dhTramo==='ida' && F.estadoServicio==='dh' && !F.estadoServicioDetalle){
+    F.estadoServicio='ordinario';
+    _actualizarBtnDH('ida', false);
+  }
+  if(_dhTramo==='vuelta' && F.estadoServicioVuelta==='dh' && !F.estadoServicioVueltaDetalle){
+    F.estadoServicioVuelta='ordinario';
+    _actualizarBtnDH('vuelta', false);
+  }
+  closeOv('ov-dh');
+}
+
+function confirmarDH(){
+  var hastaEl = document.getElementById('dh-hasta');
+  var hasta = hastaEl ? hastaEl.value.trim() : '';
+  if(!hasta){
+    if(hastaEl){
+      hastaEl.style.borderColor='#ef4444';
+      hastaEl.placeholder='⚠️ Campo obligatorio';
+      setTimeout(function(){
+        hastaEl.style.borderColor='var(--amber2)';
+        hastaEl.placeholder='Ej: Zaragoza Delicias';
+      }, 1500);
+    }
+    return;
+  }
+  var desdeEl = document.getElementById('dh-desde');
+  var desde = desdeEl ? desdeEl.value.trim() : '';
+  var detalle = 'hasta '+hasta+(desde?' · desde '+desde:'');
+  var tramo = _dhTramo;
+  if(tramo==='ida'){
+    F.estadoServicio='dh';
+    F.estadoServicioDetalle=detalle;
+  } else {
+    F.estadoServicioVuelta='dh';
+    F.estadoServicioVueltaDetalle=detalle;
+  }
+  _actualizarBtnDH(tramo, true, detalle);
+  closeOv('ov-dh');
+  toast('✓ DH — '+detalle);
+}
+
+function _actualizarBtnDH(tramo, activo, detalle){
+  var btn = document.getElementById('dh-'+tramo+'-btn');
+  var badge = document.getElementById('dh-'+tramo+'-badge');
+  if(btn){
+    if(activo){
+      btn.style.background='rgba(245,158,11,.18)';
+      btn.style.borderColor='var(--amber2)';
+      btn.style.color='var(--amber2)';
+      btn.textContent='🔀 DH activo';
+    } else {
+      btn.style.background='var(--s2)';
+      btn.style.borderColor='var(--div)';
+      btn.style.color='var(--tx3)';
+      btn.textContent='🔀 Marcar DH';
+    }
+  }
+  if(badge){
+    if(activo && detalle){
+      badge.textContent='📍 '+detalle;
+      badge.style.display='block';
+      badge.style.marginTop='6px';
+    } else {
+      badge.style.display='none';
+    }
+  }
+}
+
+// ── Switch Solo Ida ──
+// No modifica ningún dato guardado — solo muestra/oculta
+// el bloque de vuelta en el formulario activo.
+var _soloIda = false;
+
+function toggleSoloIda(){
+  _soloIda = !_soloIda;
+  _aplicarSoloIda();
+  toast(_soloIda ? 'Solo Ida activado 🔒' : 'Vuelta reactivada ↩');
+}
+
+function _aplicarSoloIda(){
+  var sw    = document.getElementById('solo-ida-sw');
+  var knob  = document.getElementById('solo-ida-knob');
+  var lbl   = document.getElementById('solo-ida-lbl');
+  // ID específico para máxima fiabilidad — cubre numtren-vuelta-wrap y dh-vuelta-wrap juntos
+  var contenedorVuelta = document.getElementById('contenedor-vuelta');
+  if(_soloIda){
+    if(sw)   sw.style.background='var(--nar)';
+    if(knob){ knob.style.left='18px'; knob.style.background='#fff'; }
+    if(lbl){ lbl.textContent='Solo Ida ●'; lbl.style.color='var(--nar)'; }
+    if(contenedorVuelta) contenedorVuelta.style.display='none';
+    F.modo = null;
+  } else {
+    if(sw)   sw.style.background='var(--div)';
+    if(knob){ knob.style.left='2px'; knob.style.background='var(--tx3)'; }
+    if(lbl){ lbl.textContent='Solo Ida'; lbl.style.color='var(--tx3)'; }
+    if(contenedorVuelta) contenedorVuelta.style.display='';
+    F.modo = F.modo || 'ida';
+  }
+}
+
+// Resetear Solo Ida cada vez que se abre el formulario
+// (se engancha en abrirForm() de forma no invasiva)
+var _origAbrirForm = abrirForm;
+abrirForm = function(edicion, verificando){
+  _soloIda = false;
+  _origAbrirForm(edicion, verificando);
+};
+
+// Objeto de acceso conveniente (se crea tarde, pero las funciones
+// ya están disponibles por hoisting desde el primer momento)
 var listaNegra = [];
 
 function cargarListaNegra(){
