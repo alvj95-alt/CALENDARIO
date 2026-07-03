@@ -7,6 +7,12 @@
 <!-- Requerido por el panel Horario (parseo de PDF) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     PUBLICIDAD — Google AdSense (añadido, 100% removible)
+     Para quitarlo: borra solo este bloque <script> de abajo,
+     entre las marcas INICIO/FIN. No afecta a ninguna otra
+     parte de la app si se elimina.
+═══════════════════════════════════════════════════════════ -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif}
@@ -688,6 +694,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 /* Celdas táctiles */
 .dc{transition:background .14s,border-color .14s,transform .1s}
 .dc:active{transform:scale(.92)}
+/* ── FIX: Área de clic universal en celdas del calendario ──
+   Todos los hijos (badges DH, parking, iconos, número del día)
+   dejan pasar el clic al contenedor .dc, que es quien tiene el onclick.
+   Esto NO afecta a elementos fuera de .days (popups, formularios, etc.) */
+.dc>*,.dc span{pointer-events:none}
 /* Botones */
 .topt{transition:transform .11s,background .14s}
 .topt:active{transform:scale(.93)}
@@ -1767,10 +1778,174 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   opacity:1;
   transform:scale(1.15);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   POP-UP SIMPLIFICADO — Vista Resumida (bloques de tren)
+   Solo estilos nuevos y aditivos. No modifica .tr-r, .ibox,
+   ni ninguna clase usada por el acordeón/historial, que
+   conserva el detalle completo intacto.
+═══════════════════════════════════════════════════════════ */
+.tv-badges-row{
+  display:flex;
+  gap:6px;
+  margin-bottom:12px;
+}
+.tv-badge-mini{
+  font-size:14px;
+  line-height:1;
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:7px;
+  padding:4px 8px;
+}
+.tv-block{
+  background:var(--s2);
+  border:1px solid var(--div);
+  border-radius:12px;
+  padding:14px 16px;
+  margin:0 0 10px;
+}
+.tv-block.ida{border-left:3px solid var(--c-ord)}
+.tv-block.vuelta{border-left:3px solid var(--amber2)}
+.tv-block-tag{
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:var(--tx3);
+  margin-bottom:8px;
+}
+.tv-num{
+  font-size:19px;
+  font-weight:900;
+  color:var(--tx);
+  letter-spacing:.2px;
+  margin-bottom:8px;
+  font-variant-numeric:tabular-nums;
+  line-height:1.2;
+}
+.tv-route{
+  font-size:14px;
+  font-weight:600;
+  color:var(--tx2);
+  margin-bottom:6px;
+  line-height:1.4;
+}
+.tv-hours{
+  font-size:13px;
+  font-weight:700;
+  color:var(--acc3);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── DH: número de tren partido (12345-DH / 12345) ── */
+.tv-num-row{
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  margin-bottom:8px;
+  flex-wrap:wrap;
+}
+.tv-num-part{
+  font-size:18px;
+  font-weight:900;
+  color:var(--tx);
+  font-variant-numeric:tabular-nums;
+  line-height:1.2;
+}
+.tv-num-part.tv-num-dh{
+  color:var(--amber2);
+  position:relative;
+  padding-right:4px;
+}
+.tv-num-sep{
+  font-size:14px;
+  font-weight:400;
+  color:var(--tx3);
+}
+
+/* ── DH: etiqueta de estado del tramo ── */
+.tv-dh-tag{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+.tv-dh-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:3px;
+  background:rgba(245,158,11,.18);
+  border:1.5px solid var(--amber2);
+  border-radius:8px;
+  padding:4px 10px;
+  font-size:11px;
+  font-weight:800;
+  color:var(--amber2);
+  letter-spacing:.3px;
+  flex-shrink:0;
+}
+.tv-dh-detail{
+  font-size:11px;
+  font-weight:600;
+  color:var(--tx2);
+  line-height:1.3;
+}
+
+/* ── DH: borde especial en el bloque ── */
+.tv-block.tv-block-dh{
+  border-color:rgba(245,158,11,.35);
+  background:linear-gradient(135deg,var(--s2),rgba(245,158,11,.04));
+}
+
+/* ── BOTÓN FLOTANTE AYUDA (WhatsApp) ──
+   Módulo puramente visual/navegación externa. No lee ni
+   escribe en TV, TV2, AJ, SF, AGENDA ni ninguna otra
+   estructura de datos de la app. No añade dependencias.
+   Arrastrable por touch. */
+#btn-ayuda-whatsapp{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:1000;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#25D366,#1da851);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:0 3px 10px rgba(37,211,102,.4);
+  text-decoration:none;
+  cursor:grab;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;
+  will-change:transform;
+  user-select:none;
+  transition:box-shadow .15s ease;
+}
+#btn-ayuda-whatsapp.wa-dragging{
+  cursor:grabbing;
+  box-shadow:0 6px 22px rgba(37,211,102,.6);
+  opacity:.92;
+}
 </style>
 </head>
 <body>
 <div class="ph" id="ph">
+
+<!-- BOTÓN FLOTANTE AYUDA — WhatsApp. Puramente visual/navegación
+     externa. No toca ninguna función ni dato existente de la app. -->
+<a href="https://wa.me/66660753771?text=Hola%2C%20tengo%20una%20duda%20sobre%20el%20calendario"
+   target="_blank" rel="noopener noreferrer"
+   id="btn-ayuda-whatsapp" aria-label="Ayuda por WhatsApp">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+  </svg>
+</a>
 
 <!-- STATUS BAR -->
 <div class="sb">
@@ -3056,33 +3231,43 @@ function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
-var NOV_VERSION = 'nov_v5';
+var NOV_VERSION = 'nov_v6';
 
 var listaNovedades = [
   {
-    ico: '⭐',
-    titulo: 'DOP — Día de Opción Personal',
-    desc: 'Solicita tu DOP desde el calendario. El sistema verifica que no hayas pedido otro ese mismo mes y genera el correo de solicitud automáticamente con tu nombre y matrícula. Un toque y listo.'
-  },
-  {
-    ico: '✉️',
-    titulo: 'Correos automáticos de compensatorios',
-    desc: 'Al registrar un turno compensatorio con los días elegidos, el correo se redacta solo con todos los datos (fecha del HTDL, días solicitados, nombre y matrícula) y se abre listo para enviar.'
-  },
-  {
-    ico: '⏰',
-    titulo: 'Recordatorio inteligente',
-    desc: 'Si pospones el envío de un correo de compensación, la app te avisa ese mismo día al abrirla — una sola vez. El correo ya está escrito con tus datos, solo tienes que pulsar enviar.'
+    ico: '🚂',
+    titulo: 'Número de tren siempre visible',
+    desc: 'Las celdas del calendario ahora muestran tu número de tren directamente, sin necesidad de hacer clic. De un vistazo sabes qué tren tienes cada día.'
   },
   {
     ico: '🔀',
-    titulo: 'Servicio DH',
-    desc: 'Marca cualquier tren como DH (servicio parcial) e indica hasta qué estación trabajas. Queda reflejado en tu turno.'
+    titulo: 'DH inteligente y coherente',
+    desc: 'El formato DH ahora es dinámico: «621 DH - 621» si el DH es en ida, «621 - 621 DH» si es en vuelta. Se muestra igual en el calendario, en el detalle del turno y en el panel de hoy. En pernoctas, cada día solo muestra su propio DH.'
   },
   {
-    ico: '🐛',
-    titulo: 'Correcciones',
-    desc: 'El cliente de correo (Outlook, Gmail…) ya abre sin problemas en todos los móviles.'
+    ico: '👆',
+    titulo: 'Clic en cualquier parte de la celda',
+    desc: 'Antes, tocar sobre un icono (DH, parking) no abría el detalle. Ahora puedes tocar en cualquier punto de la celda y siempre se abre el resumen del turno.'
+  },
+  {
+    ico: '💬',
+    titulo: 'Botón de ayuda arrastrable',
+    desc: 'El botón de WhatsApp ahora es más pequeño y puedes moverlo a cualquier posición de la pantalla sin que moleste. Toca para abrir el chat, arrastra para recolocarlo.'
+  },
+  {
+    ico: '🗑️',
+    titulo: 'Eliminación instantánea',
+    desc: 'Al eliminar un turno, el calendario se actualiza al instante: la celda se limpia, el popup se cierra y todo se refresca en un solo paso.'
+  },
+  {
+    ico: '⭐',
+    titulo: 'Control de DOP en Stats',
+    desc: 'Nueva barra de progreso en el panel de Estadísticas que muestra cuántos DOP llevas usados en el año (X de 6), con los meses utilizados y los disponibles.'
+  },
+  {
+    ico: '📋',
+    titulo: 'Pop-up simplificado',
+    desc: 'El detalle del turno ahora muestra solo lo esencial: tren, ruta y horario. Los datos económicos siguen disponibles en el historial del mes con el botón «Ver más detalles».'
   }
 ];
 
@@ -3967,43 +4152,77 @@ function renderSlide(gridId, fecha){
     // Icono "Turno Parking" — solo visual, no toca ningún dato del turno.
     var esParking = t && esTurnoParking(t);
     var parkingBadge = esParking
-      ? '<span class="dc-parking-ico" onclick="event.stopPropagation();toast(\'🚗 Este turno pertenece parking\')" '
-        +'style="position:absolute;top:1px;left:1px;font-size:8px;line-height:1;cursor:pointer">🚗</span>'
+      ? '<span class="dc-parking-ico" '
+        +'style="position:absolute;top:1px;left:1px;font-size:8px;line-height:1">🚗</span>'
       : '';
-    // Badge DH — lógica por tramo exacto según el tipo de celda.
-    // Cada día muestra solo el DH que le corresponde a su tramo.
-    var dhLabel = '';
-    if(t){
-      var tipo = t.tipo;
-      if(tipo === 'vuelta-pernocta'){
-        // Último día de pernocta → tramo de VUELTA
-        var tOri = (t.origenPernocta && TV[t.origenPernocta]) ? TV[t.origenPernocta] : t;
-        if(tOri.estadoServicioVuelta === 'dh') dhLabel = 'DH';
-      } else if(tipo === 'pernocta3-intermedio'){
-        // Día intermedio pernocta3 → sin tramo DH propio
-        dhLabel = '';
-      } else if(tipo === 'ordinario' || tipo === 'trabajado'){
-        var esPernocta = t.modo === 'pernocta' || t.modo === 'pernocta3';
-        var dhIda    = t.estadoServicio === 'dh';
-        var dhVuelta = t.estadoServicioVuelta === 'dh';
-        if(esPernocta){
-          // Día 1 de pernocta → solo tramo de IDA
-          if(dhIda) dhLabel = 'DH';
-        } else {
-          // Mismo día (ida + vuelta) → puede tener ambos
-          if(dhIda && dhVuelta) dhLabel = 'DH×2';
-          else if(dhIda || dhVuelta) dhLabel = 'DH';
-        }
+    // Badge DH — indicador visual compacto cuando el turno tiene DH activo en ida o vuelta.
+    // Para días derivados (vuelta-pernocta, pernocta3-intermedio), subir al origen.
+    var tParaDH = t;
+    if(t && (t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio') && t.origenPernocta && TV[t.origenPernocta]){
+      tParaDH = TV[t.origenPernocta];
+    }
+    var esDHIda    = tParaDH && tParaDH.estadoServicio === 'dh';
+    var esDHVuelta = tParaDH && tParaDH.estadoServicioVuelta === 'dh';
+    // ── CORRECCIÓN PERNOCTA ──
+    // Cada celda solo muestra el DH de su propio tramo:
+    //  · Celda de vuelta (vuelta-pernocta / pernocta3-intermedio) → solo DH vuelta
+    //  · Celda de ida en PERNOCTA → solo DH ida (el DH vuelta se ve en su propio día)
+    //  · Celda de ida-y-vuelta MISMO DÍA → ambos (DH×2 es correcto aquí)
+    var esCeldaVuelta = t && (t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio');
+    var esPernocta    = tParaDH && (tParaDH.modo==='pernocta'||tParaDH.modo==='pernocta3');
+    var mostrarDH, celdaDHIda, celdaDHVta;
+    if(esCeldaVuelta){
+      celdaDHIda = false;
+      celdaDHVta = esDHVuelta;
+      mostrarDH  = esDHVuelta;
+    } else if(esPernocta){
+      celdaDHIda = esDHIda;
+      celdaDHVta = false;
+      mostrarDH  = esDHIda;
+    } else {
+      celdaDHIda = esDHIda;
+      celdaDHVta = esDHVuelta;
+      mostrarDH  = esDHIda || esDHVuelta;
+    }
+
+    // ── BADGE DE TREN — siempre visible si hay número ──
+    // Prioridad: el trabajador debe ver su tren operativo sin hacer clic.
+    // Si hay DH, se concatena según Caso A/B. Si no, solo el número.
+    // Fondo naranja = DH activo. Fondo gris sutil = tren normal.
+    var trenBadge = '';
+    var tieneTren = tParaDH && (tParaDH.numTren || tParaDH.numTrenVuelta);
+
+    if(tieneTren){
+      var nI = esCeldaVuelta ? '' : (tParaDH.numTren||'');
+      var nV = esCeldaVuelta ? (tParaDH.numTrenVuelta||'') : (tParaDH.numTrenVuelta||'');
+      var texto = '';
+      var tieneDH = mostrarDH;
+
+      if(esCeldaVuelta){
+        texto = nV ? (nV + (celdaDHVta?' DH':'')) : '';
+      } else if(nI && nV && !esPernocta){
+        texto = nI + (celdaDHIda?' DH':'')
+              + ' - '
+              + nV + (celdaDHVta?' DH':'');
+      } else if(nI){
+        texto = nI + (celdaDHIda?' DH':'');
+      } else if(nV){
+        texto = nV + (celdaDHVta?' DH':'');
+      }
+
+      if(texto){
+        var bgColor = tieneDH ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
+        var txColor = tieneDH ? '#1a0a00' : '#fff';
+        trenBadge = '<span '
+          +'style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);'
+          +'font-size:6px;line-height:1;white-space:nowrap;'
+          +'background:'+bgColor+';color:'+txColor+';border-radius:3px;'
+          +'padding:1px 3px;font-weight:900;letter-spacing:.2px">'
+          +texto
+          +'</span>';
       }
     }
-    var dhBadge = dhLabel
-      ? '<span onclick="event.stopPropagation()" '
-        +'style="position:absolute;bottom:2px;right:2px;font-size:7px;line-height:1;'
-        +'background:rgba(245,158,11,.85);color:#1a0a00;border-radius:3px;'
-        +'padding:1px 3px;font-weight:900;letter-spacing:.3px">'
-        +dhLabel+'</span>'
-      : '';
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+dhBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
     // FIX closure: capturar d, k, t correctamente en cada iteración
     (function(dd, kk, tt){
       c.onclick=function(){ clickDia(dd, kk, tt); };
@@ -4069,15 +4288,19 @@ function buscarTurnoPorFecha(k){
 }
 
 function clickDia(d,k,t){
-  // Un solo toque — siempre abre la tarjeta o el selector de tipo.
-  // La edición se accede desde el botón "Editar" dentro de la tarjeta.
-  // (El doble toque para editar se eliminó por ser la causa del problema
-  //  de usabilidad: el usuario tenía que tocar dos veces el mismo día.)
+  // Segundo toque en el mismo día con turno → editar
+  if(selDay && selDay.k===k && t){
+    editarTurno();
+    return;
+  }
 
   // Buscar el turno real para este día (incluyendo pernoctas)
   var encontrado = buscarTurnoPorFecha(k);
   var tReal = encontrado.t;
+  var kReal = encontrado.k;
 
+  // selDay apunta siempre al día clicado (para la UI)
+  // pero t viene del origen real si es una pernocta
   selDay={d:d, k:k, t:tReal};
 
   // Actualizar colores de celdas (selección visual)
@@ -4092,7 +4315,7 @@ function clickDia(d,k,t){
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
     openOv('ov-tipo');
   } else {
-    // Día con turno → modal con tarjeta completa (siempre, en un solo toque)
+    // Día con turno (propio o de pernocta) → modal con tarjeta completa
     openOv('ov-dia-card');
     renderDiaArea();
   }
@@ -4108,6 +4331,125 @@ function irHoy(){
 
 function chM(dir){
   animSwipe(dir);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   POP-UP SIMPLIFICADO — Vista Resumida del día
+   Genera SOLO lo esencial para el bloque de tren: número
+   (con formato DH "12345 / 12345-DH"), ruta y horario.
+   No borra ni transforma ningún dato de TV[] — es una capa
+   puramente de presentación. El detalle completo (importes,
+   nocturnidad exacta, retrasos con impacto económico, pluses,
+   compensación, etc.) sigue disponible íntegro en el listado
+   "Turnos del mes" (acordeón) vía renderAcordeon(), que ya
+   incluye todos esos campos sin cambios.
+═══════════════════════════════════════════════════════════ */
+function renderizarPopUpSimplificado(t, esDiaVuelta){
+  var h = '';
+
+  // Fila de mini-badges — awareness al vistazo, sin detalle numérico.
+  // El importe/horas exactas de cada uno viven solo en el acordeón.
+  var badges = '';
+  if(t.nocturno)     badges += '<span class="tv-badge-mini" title="Nocturnidad activa">🌙</span>';
+  if(t.plusIntlAuto) badges += '<span class="tv-badge-mini" title="Plus Internacional">🌍</span>';
+  if(t.plusAct)      badges += '<span class="tv-badge-mini" title="Plus Activación">⚡</span>';
+  if(t.plusJT)       badges += '<span class="tv-badge-mini" title="Plus JT">🕐</span>';
+  if(badges) h += '<div class="tv-badges-row">'+badges+'</div>';
+
+  // ═══ Bloque IDA ═══
+  if(t.numTren || (t.sal&&t.lle)){
+    var idaEsDH = (t.estadoServicio==='dh') && t.numTren;
+    var numIdaHTML = '';
+
+    if(idaEsDH){
+      // Determinar qué tramo es DH y cuál es completo
+      var tramoIda = determinarTramoDH(t.estadoServicioDetalle, AJ.base);
+      var trenA = tramoIda==='primerTramo' ? t.numTren+'-DH' : t.numTren;
+      var trenB = tramoIda==='primerTramo' ? t.numTren       : t.numTren+'-DH';
+      // Renderizar con badge de color para la parte DH
+      numIdaHTML = '<div class="tv-num-row">'
+        + '<span class="tv-num-part'+(tramoIda==='primerTramo'?' tv-num-dh':'')+'">'+trenA+'</span>'
+        + '<span class="tv-num-sep">/</span>'
+        + '<span class="tv-num-part'+(tramoIda!=='primerTramo'?' tv-num-dh':'')+'">'+trenB+'</span>'
+        + '</div>';
+    } else if(t.numTren){
+      numIdaHTML = '<div class="tv-num">'+t.numTren+'</div>';
+    }
+
+    // Etiqueta DH con detalle del tramo (desde X hasta Y)
+    var dhIdaTag = '';
+    if(idaEsDH){
+      dhIdaTag = '<div class="tv-dh-tag">'
+        + '<span class="tv-dh-badge">🔀 DH</span>'
+        + '<span class="tv-dh-detail">'+(t.estadoServicioDetalle||'servicio parcial')+'</span>'
+        + '</div>';
+    }
+
+    h += '<div class="tv-block ida'+(idaEsDH?' tv-block-dh':'')+'">'
+      + '<div class="tv-block-tag">🚂 IDA</div>'
+      + numIdaHTML
+      + dhIdaTag
+      + (t.sal&&t.lle?'<div class="tv-route">'+t.sal+' → '+t.lle+'</div>':'')
+      + (t.hF&&t.hL?'<div class="tv-hours">'+t.hF+' – '+t.hL+'</div>':'')
+      + '</div>';
+  }
+
+  // ═══ Bloque VUELTA ═══
+  if(t.numTrenVuelta || (t.sal2&&t.lle2)){
+    var esP = t.modo==='pernocta'||t.modo==='pernocta3';
+    var vtaEsDH = (t.estadoServicioVuelta==='dh') && t.numTrenVuelta;
+    var numVtaHTML = '';
+
+    if(vtaEsDH){
+      var tramoV = determinarTramoDH(t.estadoServicioVueltaDetalle, AJ.base);
+      var vA = tramoV==='primerTramo' ? t.numTrenVuelta+'-DH' : t.numTrenVuelta;
+      var vB = tramoV==='primerTramo' ? t.numTrenVuelta        : t.numTrenVuelta+'-DH';
+      numVtaHTML = '<div class="tv-num-row">'
+        + '<span class="tv-num-part'+(tramoV==='primerTramo'?' tv-num-dh':'')+'">'+vA+'</span>'
+        + '<span class="tv-num-sep">/</span>'
+        + '<span class="tv-num-part'+(tramoV!=='primerTramo'?' tv-num-dh':'')+'">'+vB+'</span>'
+        + '</div>';
+    } else if(t.numTrenVuelta){
+      numVtaHTML = '<div class="tv-num">'+t.numTrenVuelta+'</div>';
+    }
+
+    var dhVtaTag = '';
+    if(vtaEsDH){
+      dhVtaTag = '<div class="tv-dh-tag">'
+        + '<span class="tv-dh-badge">🔀 DH</span>'
+        + '<span class="tv-dh-detail">'+(t.estadoServicioVueltaDetalle||'servicio parcial')+'</span>'
+        + '</div>';
+    }
+
+    h += '<div class="tv-block vuelta'+(vtaEsDH?' tv-block-dh':'')+'">'
+      + '<div class="tv-block-tag">'+(esP?'🌙 VUELTA (pernocta)':'↩ VUELTA')+'</div>'
+      + numVtaHTML
+      + dhVtaTag
+      + (t.sal2&&t.lle2?'<div class="tv-route">'+t.sal2+' → '+t.lle2+'</div>':'')
+      + (t.hF2&&t.hL2?'<div class="tv-hours">'+t.hF2+' – '+t.hL2+'</div>':'')
+      + '</div>';
+  }
+
+  if(!h) h = '<div style="font-size:11px;color:var(--tx3);padding:6px 0">Sin datos de tren para este turno.</div>';
+
+  return h;
+}
+
+// Lleva al usuario del pop-up al listado "Turnos del mes" (acordeón),
+// donde vive el detalle completo del día. No duplica datos, solo
+// navega y expande la entrada correspondiente si existe.
+function verDetallesEnHistorial(k){
+  closeOv('ov-dia-card');
+  setTimeout(function(){
+    var id = 'ac-'+k;
+    var el = document.getElementById(id);
+    if(el){
+      if(!el.classList.contains('open')) toggleAc(id);
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+    } else {
+      toast('Este día no aparece en el listado del mes visible');
+    }
+  }, 160);
 }
 
 function renderDiaArea(){
@@ -4177,130 +4519,14 @@ function renderDiaArea(){
     // Si selDay.k difiere de k (clave origen), el usuario tocó un día de
     // vuelta o intermedio → resaltar visualmente el tramo de vuelta.
     var kClicado = selDay ? selDay.k : k;
-    // kOrigen: la clave del turno origen en TV.
-    // Si TV[kClicado] tiene origenPernocta, usamos ese como origen.
-    // Si no, el origen es el mismo kClicado.
     var tClicadoRaw = TV[kClicado];
     var kOrigen = (tClicadoRaw && tClicadoRaw.origenPernocta) ? tClicadoRaw.origenPernocta : kClicado;
     var esDiaVuelta = (kClicado !== kOrigen) && (t.modo==='pernocta'||t.modo==='pernocta3');
-    var bIda    = esDiaVuelta ? '' : 'margin-bottom:4px;padding:5px 7px;background:rgba(37,99,235,.07);border-left:2px solid var(--c-ord);border-radius:6px';
-    var bVuelta = esDiaVuelta ? 'margin-top:4px;padding:5px 7px;background:rgba(217,119,6,.07);border-left:2px solid var(--amber2);border-radius:6px' : '';
 
-    if(t.numTren){
-      body+='<div style="'+bIda+'">';
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--nar)"></div>'
-        +'<div class="tr-route" style="font-weight:800">🚆 Tren '+t.numTren+(esDiaVuelta ? '' : ' · <span style="font-size:9px;background:rgba(37,99,235,.15);border-radius:4px;padding:1px 5px;color:var(--c-ord)">IDA</span>')+'</div>'
-        +'<div class="tr-time" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</div></div>';
-      // Duplicación visual DH — solo presentación, no toca datos
-      if(t.estadoServicio==='dh'){
-        var tramoIda = determinarTramoDH(t.estadoServicioDetalle, AJ.base);
-        var numIda = t.numTren;
-        var parteA_ida = tramoIda==='primerTramo' ? numIda+'-DH' : numIda;
-        var parteB_ida = tramoIda==='primerTramo' ? numIda        : numIda+'-DH';
-        body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
-          +'<div class="tr-route" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-          +'<span style="font-size:11px;font-weight:900;color:var(--amber2)">'+parteA_ida+'</span>'
-          +'<span style="font-size:10px;color:var(--tx3)">/</span>'
-          +'<span style="font-size:11px;font-weight:800;color:var(--tx3)">'+parteB_ida+'</span>'
-          +'<span style="background:rgba(245,158,11,.18);border:1px solid var(--amber2);'
-            +'border-radius:7px;padding:2px 7px;font-size:9px;font-weight:800;color:var(--amber2)">'
-            +'🔀 '+(t.estadoServicioDetalle||'servicio parcial')+'</span>'
-          +'</div></div>';
-      }
-      body+='</div>';
-    }
-    if(t.sal&&t.lle){
-      body+='<div class="tr-r"><div class="tr-dot" style="background:'+col+'"></div><div class="tr-route">🚂 '+t.sal+' → '+t.lle+'</div><div class="tr-time">'+t.hF+'–'+t.hL+'</div></div>';
-      body+='<div class="tr-r"><div class="tr-dot" style="background:transparent"></div><div class="tr-route" style="opacity:.55;font-size:10px">'+(t.linea||'')+'</div><div class="tr-time tr-hi">'+calcDur(t.hF,t.hL)+'</div></div>';
-    }
-    // Nocturnidad — automática para todos los tipos
-    if(t.nocturno){
-      var NOCd=parseFloat(AJ.nocturnidad||1.80);
-      var calcNocH=function(hF,hL){if(!hF||!hL)return 0;var p1=hF.split(':').map(Number);var p2=hL.split(':').map(Number);var ii=p1[0]*60+p1[1];var ff=p2[0]*60+p2[1];if(ff<=ii)ff+=1440;var nn=Math.max(0,Math.min(ff,1440)-Math.max(ii,1320));nn+=Math.max(0,Math.min(ff,1800)-Math.max(ii,1440));if(ii<360)nn+=Math.max(0,Math.min(ff,360)-ii);return Math.round(nn/60*100)/100;};
-      var hNd1=calcNocH(t.hF,t.hL), hNd2=calcNocH(t.hF2,t.hL2);
-      var hNdTot=Math.round((hNd1+hNd2)*100)/100;
-      var impNd=Math.round(hNdTot*NOCd*100)/100;
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber)"></div>'
-        +'<div class="tr-route" style="color:var(--amber2);font-size:10px">🌙 Nocturnidad';
-      if(hNd1>0&&t.hF&&t.hL) body+=' · '+t.hF+'-'+t.hL+' ('+hNd1.toFixed(2)+'h)';
-      if(hNd2>0&&t.hF2&&t.hL2) body+=' · '+t.hF2+'-'+t.hL2+' ('+hNd2.toFixed(2)+'h)';
-      body+='</div><div class="tr-time" style="color:var(--amber2);font-weight:800">'+impNd.toFixed(2)+'€</div></div>';
-    }
-    // Plus Internacional automático
-    if(t.plusIntlAuto){
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div>'
-        +'<div class="tr-route" style="color:var(--cyan2);font-size:10px">🌍 Plus Internacional aplicado</div></div>';
-    }
-    // Plus Activación y Plus JT — datos guardados, ahora visibles en el resumen
-    if(t.plusAct){
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div>'
-        +'<div class="tr-route" style="color:var(--acc2);font-size:10px">⚡ Plus Activación aplicado</div></div>';
-    }
-    if(t.plusJT){
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--violet2)"></div>'
-        +'<div class="tr-route" style="color:var(--violet2);font-size:10px">🕐 Plus Jornada Trabajada aplicado</div></div>';
-    }
-    if(t.sal2&&t.lle2){
-      var esP=t.modo==='pernocta';
-      body+='<div style="'+bVuelta+'">';
-      if(esDiaVuelta) body+='<div style="font-size:8px;font-weight:800;letter-spacing:.5px;color:var(--amber2);margin-bottom:4px">📍 TRAMO ACTIVO HOY</div>';
-      body+='<div class="tr-r"><div class="tr-dot" style="background:'+(esP?'var(--amber2)':col)+'"></div>'
-        +'<div class="tr-route" style="color:'+(esP?'var(--amber2)':'inherit')+'">'+(esP?'🌙 ':' ↩ ')+t.sal2+' → '+t.lle2+(t.numTrenVuelta?' · #'+t.numTrenVuelta:'')+'</div>'
-        +'<div class="tr-time">'+t.hF2+'–'+t.hL2+'</div></div>';
-      // Duplicación visual DH vuelta — solo presentación, no toca datos
-      if(t.estadoServicioVuelta==='dh'){
-        var tramoVuelta = determinarTramoDH(t.estadoServicioVueltaDetalle, AJ.base);
-        var numVuelta = t.numTrenVuelta||'Vuelta';
-        var parteA_v = tramoVuelta==='primerTramo' ? numVuelta+'-DH' : numVuelta;
-        var parteB_v = tramoVuelta==='primerTramo' ? numVuelta        : numVuelta+'-DH';
-        body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
-          +'<div class="tr-route" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-          +'<span style="font-size:11px;font-weight:900;color:var(--amber2)">'+parteA_v+'</span>'
-          +'<span style="font-size:10px;color:var(--tx3)">/</span>'
-          +'<span style="font-size:11px;font-weight:800;color:var(--tx3)">'+parteB_v+'</span>'
-          +'<span style="background:rgba(245,158,11,.18);border:1px solid var(--amber2);'
-            +'border-radius:7px;padding:2px 7px;font-size:9px;font-weight:800;color:var(--amber2)">'
-            +'🔀 '+(t.estadoServicioVueltaDetalle||'servicio parcial')+'</span>'
-          +'</div></div>';
-      }
-      body+='</div>'; // cierre bVuelta
-    } else if(t.numTrenVuelta){
-      // Tren de vuelta sin ruta detallada: mostrarlo igualmente para no ocultar el dato
-      body+='<div class="tr-r"><div class="tr-dot" style="background:var(--amber2)"></div>'
-        +'<div class="tr-route" style="color:var(--amber2)">↩ Tren de vuelta</div>'
-        +'<div class="tr-time" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</div></div>';
-    }
-    if(t.comp==='dinero'&&t.importe)body+='<div class="tr-r"><div class="tr-dot" style="background:var(--acc2)"></div><div class="tr-route">Compensación económica</div><div class="tr-time tr-hi">'+t.importe.toFixed(2)+' €</div></div>';
-    if(t.comp==='dias'&&(t.diasComp&&t.diasComp.length))body+='<div class="tr-r"><div class="tr-dot" style="background:var(--cyan)"></div><div class="tr-route" style="color:var(--cyan2)">📅 '+t.diasComp.length+' días comp. asignados</div></div>';
-    // ── MÓDULO B: Retrasos en tarjeta con impacto económico ──────
-    if(t.retrasos&&t.retrasos.length){
-      var HTDLd2=parseFloat(AJ.vh||12.5);
-      body+='<div style="margin-top:6px;padding:7px 10px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);border-radius:9px">';
-      body+='<div style="font-size:9px;font-weight:800;letter-spacing:.5px;color:var(--amber2);margin-bottom:4px">RETRASOS REGISTRADOS</div>';
-      t.retrasos.forEach(function(r){
-        var impacta=(t.comp==='dinero')&&r.tramo===2;
-        var impEco=impacta?Math.round((r.minutos/60)*HTDLd2*100)/100:0;
-        body+='<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(245,158,11,.1)">';
-        body+='<div style="font-size:10px;color:var(--tx2)">';
-        body+=(r.tren?'🚆 #'+r.tren+' · ':'');
-        body+='Tramo '+r.tramo+' · +'+r.minutos+' min';
-        body+='</div>';
-        body+='<div style="display:flex;gap:5px;align-items:center">';
-        if(impacta){
-          body+='<span style="font-size:9px;font-weight:800;color:var(--green2)">+'+impEco.toFixed(2)+'€</span>';
-          body+='<span style="font-size:8px;background:rgba(34,197,94,.15);color:var(--green2);border-radius:4px;padding:1px 5px;font-weight:700">HTDL</span>';
-        }else{
-          body+='<span style="font-size:8px;background:rgba(100,116,139,.15);color:var(--tx3);border-radius:4px;padding:1px 5px;font-weight:700">INFO</span>';
-        }
-        body+='</div></div>';
-      });
-      body+='</div>';
-    }else if(t.retrasoMin>0){
-      body+='<div style="margin-top:6px;padding:5px 8px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:8px;display:flex;justify-content:space-between">';
-      body+='<span style="font-size:10px;color:var(--amber2)">Retraso +'+t.retrasoMin+' min</span>';
-      body+='<span style="font-size:8px;color:var(--tx3)">'+((t.comp==='dinero')?'HTDL':'INFO')+'</span>';
-      body+='</div>';
-    }
+    // VISTA RESUMIDA — solo nº de tren (con formato DH), ruta y horario.
+    // Los importes, nocturnidad exacta, retrasos con impacto económico y
+    // pluses siguen intactos y visibles en el acordeón "Turnos del mes".
+    body += renderizarPopUpSimplificado(t, esDiaVuelta);
   } else if(t.tipo==='vuelta-pernocta'){
     body='<div class="ibox amber"><span class="ibox-i">🌙</span><span>Tramo de vuelta (pernocta). Salida: <strong>'+t.sal+'</strong> → <strong>'+t.lle+'</strong><br>'+t.hF+' – '+t.hL+'</span></div>';
   } else if(t.tipo==='reserva'){
@@ -4315,14 +4541,15 @@ function renderDiaArea(){
     body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>Día de compensación marcado automáticamente.</span></div>';
   }
 
+  // VISTA RESUMIDA — cabecera ligera. Los nº de tren ya se muestran
+  // dentro de los tv-block del cuerpo (sin duplicarlos aquí arriba);
+  // solo se conservan indicadores breves de estado (alerta, cambio, retraso).
   area.innerHTML='<div class="dc-turno" style="border-color:'+(alerta?'rgba(220,38,38,.5)':col+'44')+'">'
     +'<div class="dct-hdr" style="background:'+(alerta?'rgba(220,38,38,.08)':col+'14')+';border-bottom:1px solid '+col+'20">'
     +'<div class="dct-ico">'+ti.ico+'</div>'
     +'<div class="dct-info"><div class="dct-fecha">'+fstr+'</div>'
     +'<div class="dct-tipo" style="color:'+(alerta?'var(--red2)':col)+'">'+ti.lbl+(alerta?' ⚠️':'')+'</div></div>'
     +(t.hF?'<div class="dct-dur" style="color:'+col+'">'+calcDur(t.hF,t.hL)+'</div>':'')
-    +(t.numTren?'<div style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--nar2);margin-left:4px">#'+t.numTren+'</div>':'')
-    +(t.numTrenVuelta?'<div style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;color:var(--amber2);margin-left:4px">↩#'+t.numTrenVuelta+'</div>':'')
     +(t.cambioSolicitado?'<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--nar2);margin-left:3px">🔄 Enviado</div>':'')
     +retrasoTag
     +'</div>'
@@ -4339,15 +4566,17 @@ function renderDiaArea(){
     +'<div class="dct-foot-v2">'
     +'<div class="dct-row-main">'
     +'<button class="dct-btn-cambio" onclick="abrirCambio()">🔄 Cambio</button>'
-    +'<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir turno</button>'
+    +'<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir</button>'
     +'</div>'
     +'<div class="dct-row-main" style="margin-top:0">'
     +'<button class="dct-btn-edit" onclick="editarTurno()">✏️ Editar</button>'
     +'<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
     +'</div>'
+    +'<div class="dct-row-sec">'
     +((t.tipo==='ordinario'||t.tipo==='trabajado')
-      ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
+      ? '<button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
       : '')
+    +'<button class="dct-btn-sec" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Ver más detalles</button>'
     +'</div>'
     +'</div></div>';
   if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
@@ -4461,6 +4690,28 @@ function abrirTipo(){
 
 // Verifica si ya existe un DOP en el mes/año indicado.
 // Busca en TV[] que es el mismo objeto ya cargado en memoria.
+/* ═══════════════════════════════════════════════════════════
+   CONTADOR DOP — Solo lectura. No modifica TV ni localStorage.
+   Cuenta cuántos DOPs se han registrado en un año concreto.
+   Máximo permitido por convenio: 6 al año (1 por mes).
+═══════════════════════════════════════════════════════════ */
+var DOP_MAX_ANUAL = 6;
+
+function contarDOPAnio(anio){
+  if(!anio) anio = new Date().getFullYear();
+  var total = 0;
+  var meses = []; // meses donde ya hay DOP
+  var keys = Object.keys(TV);
+  for(var i=0; i<keys.length; i++){
+    var p = keys[i].split('-').map(Number);
+    if(p[0]===anio && TV[keys[i]] && TV[keys[i]].tipo==='dop'){
+      total++;
+      meses.push(p[1]);
+    }
+  }
+  return {total:total, meses:meses, max:DOP_MAX_ANUAL, restantes:Math.max(0,DOP_MAX_ANUAL-total)};
+}
+
 function esDOPDisponible(anio, mes){
   var keys = Object.keys(TV);
   for(var i=0; i<keys.length; i++){
@@ -4491,6 +4742,10 @@ function elegirDOP(){
   selDay.t = d;
   saveTV();
   renderCal();
+
+  // ── Alerta DOP con conteo anual ──
+  var dopInfo = contarDOPAnio(anio);
+  toast('⭐ DOP registrado — llevas ' + dopInfo.total + ' de ' + dopInfo.max);
 
   // Generar y mostrar el correo automáticamente
   var fstr = dd+' de '+MESES[mes-1].toLowerCase()+' de '+anio;
@@ -5526,7 +5781,10 @@ function confirmarEliminar(){
     delete TV[t.diaSiguiente];
   }
   delete TV[k]; selDay.t=null; saveTV();
-  closeOv('ov-del'); closeOv('ov-form');
+  // Cerrar TODOS los overlays relevantes y limpiar UI de golpe
+  closeOv('ov-del'); closeOv('ov-form'); closeOv('ov-dia-card');
+  clearSelDay();
+  document.getElementById('dia-area').innerHTML='';
   renderCal(); renderStats(); toast('Turno eliminado');
 }
 /* ═══════════════════════════════════════
@@ -5985,6 +6243,30 @@ function renderStats(){
       +'<div class="sc-v" style="color:'+x.c+'">'+x.v+'</div>'
       +'<div class="sc-l">'+x.l+'</div></div>';
   }).join('');
+  // ── BLOQUE DOP ANUAL — integrado en Stats ──
+  var dopY = contarDOPAnio(y);
+  var dopPct = Math.round((dopY.total / dopY.max) * 100);
+  var dopCol = dopY.total >= dopY.max ? 'var(--red2)' : dopY.total >= 4 ? 'var(--amber2)' : 'var(--c-dop)';
+  var dopMesesTxt = dopY.meses.length
+    ? dopY.meses.map(function(mm){ return MESES_C[mm-1]; }).join(', ')
+    : 'Ninguno';
+  document.getElementById('sg').innerHTML += ''
+    +'<div class="sc" style="grid-column:1/-1;border-color:'+dopCol+'33">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<div class="sc-i">⭐</div>'
+    +'<div style="flex:1">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+    +'<span style="font-size:11px;font-weight:800;color:var(--tx)">DOP '+y+'</span>'
+    +'<span style="font-size:18px;font-weight:900;color:'+dopCol+';font-variant-numeric:tabular-nums">'
+    +dopY.total+' <span style="font-size:12px;font-weight:600;color:var(--tx3)">/ '+dopY.max+'</span></span>'
+    +'</div>'
+    +'<div style="margin:6px 0 4px;height:6px;background:var(--div);border-radius:3px;overflow:hidden">'
+    +'<div style="width:'+dopPct+'%;height:100%;background:'+dopCol+';border-radius:3px;transition:width .3s"></div>'
+    +'</div>'
+    +'<div style="font-size:9px;color:var(--tx3)">Meses usados: '+dopMesesTxt
+    +' · <span style="color:'+dopCol+';font-weight:700">'+dopY.restantes+' disponible'+(dopY.restantes!==1?'s':'')+'</span></div>'
+    +'</div></div></div>';
+
   var cs=document.getElementById('cs-box');
   var dT=function(d){return d.length?'<div style="font-size:9px;color:var(--tx3)">📅 '+d.join(', ')+'</div>':'';};
   var row=function(lbl,val,col,dias){
@@ -6721,11 +7003,26 @@ function renderPanelHoy(){
   var ti=TIPO_INFO[t.tipo]||{ico:'📋',lbl:t.tipo||'Turno'};
   var rows='';
 
-  // Tren ida
+  // ── Variables DH para sincronizar con la cuadrícula ──
+  var esDHIda    = t.estadoServicio === 'dh';
+  var esDHVuelta = t.estadoServicioVuelta === 'dh';
+
+  // Tren ida — con formato DH si aplica
   if(t.numTren){
+    var trenIdaTxt = '#'+t.numTren;
+    var dhIdaBadge = '';
+    if(esDHIda){
+      var tramoI = determinarTramoDH(t.estadoServicioDetalle, AJ.base);
+      var partA = tramoI==='primerTramo' ? t.numTren+' DH' : t.numTren;
+      var partB = tramoI==='primerTramo' ? t.numTren       : t.numTren+' DH';
+      trenIdaTxt = partA + ' - ' + partB;
+      dhIdaBadge = ' <span style="background:rgba(245,158,11,.2);border:1px solid var(--amber2);'
+        +'border-radius:5px;padding:1px 6px;font-size:9px;font-weight:800;color:var(--amber2);'
+        +'margin-left:6px">🔀 DH</span>';
+    }
     rows+='<div class="hoy-card">'
       +'<span class="hoy-card-lbl">Tren ida</span>'
-      +'<span class="hoy-card-val hi">🚆 #'+t.numTren+'</span></div>';
+      +'<span class="hoy-card-val hi">🚆 '+trenIdaTxt+dhIdaBadge+'</span></div>';
   }
   // Ruta ida
   if(t.sal||t.lle){
@@ -6739,11 +7036,34 @@ function renderPanelHoy(){
       +'<span class="hoy-card-lbl">Horario</span>'
       +'<span class="hoy-card-val">'+(t.hF||'—')+' – '+(t.hL||'—')+'</span></div>';
   }
-  // Tren vuelta
+  // Detalle DH ida (desde X hasta Y)
+  if(esDHIda && t.estadoServicioDetalle){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">DH Ida</span>'
+      +'<span class="hoy-card-val" style="color:var(--amber2);font-size:11px">🔀 '+t.estadoServicioDetalle+'</span></div>';
+  }
+  // Tren vuelta — con formato DH si aplica
   if(t.numTrenVuelta){
+    var trenVtaTxt = '#'+t.numTrenVuelta;
+    var dhVtaBadge = '';
+    if(esDHVuelta){
+      var tramoV = determinarTramoDH(t.estadoServicioVueltaDetalle, AJ.base);
+      var vA = tramoV==='primerTramo' ? t.numTrenVuelta+' DH' : t.numTrenVuelta;
+      var vB = tramoV==='primerTramo' ? t.numTrenVuelta       : t.numTrenVuelta+' DH';
+      trenVtaTxt = vA + ' - ' + vB;
+      dhVtaBadge = ' <span style="background:rgba(245,158,11,.2);border:1px solid var(--amber2);'
+        +'border-radius:5px;padding:1px 6px;font-size:9px;font-weight:800;color:var(--amber2);'
+        +'margin-left:6px">🔀 DH</span>';
+    }
     rows+='<div class="hoy-card">'
       +'<span class="hoy-card-lbl">Tren vuelta</span>'
-      +'<span class="hoy-card-val hi">'+(t.modo==='pernocta'?'🌙':'↩')+' #'+t.numTrenVuelta+'</span></div>';
+      +'<span class="hoy-card-val hi">'+(t.modo==='pernocta'?'🌙':'↩')+' '+trenVtaTxt+dhVtaBadge+'</span></div>';
+  }
+  // Detalle DH vuelta (desde X hasta Y)
+  if(esDHVuelta && t.estadoServicioVueltaDetalle){
+    rows+='<div class="hoy-card">'
+      +'<span class="hoy-card-lbl">DH Vuelta</span>'
+      +'<span class="hoy-card-val" style="color:var(--amber2);font-size:11px">🔀 '+t.estadoServicioVueltaDetalle+'</span></div>';
   }
   // Ruta vuelta
   if(t.sal2||t.lle2){
@@ -7432,10 +7752,17 @@ function renderHoyResumen(){
   var horaFin = t.hL2 || t.hL || '';
   var horario = (horaIni || horaFin) ? (horaIni||'—')+' – '+(horaFin||'—') : '';
 
+  // Indicador DH en resumen compacto
+  var dhMini = '';
+  if(t.estadoServicio==='dh' || t.estadoServicioVuelta==='dh'){
+    var cuantos = (t.estadoServicio==='dh'?1:0) + (t.estadoServicioVuelta==='dh'?1:0);
+    dhMini = ' · <span style="background:rgba(245,158,11,.2);border-radius:4px;padding:0 4px;color:var(--amber2);font-weight:800;font-size:9px">DH'+(cuantos>1?'×'+cuantos:'')+'</span>';
+  }
+
   cont.innerHTML =
     '<span class="hoy-acc-ico">'+ti.ico+'</span>'
     +'<div class="hoy-acc-resumen-txt">'
-    +'<span class="hoy-acc-lbl">'+ti.lbl+'</span>'
+    +'<span class="hoy-acc-lbl">'+ti.lbl+dhMini+'</span>'
     +'<span class="hoy-acc-mini">'
     +'<strong>'+origen+'</strong>'
     +(destino!=='—'?' → <strong>'+destino+'</strong>':'')
@@ -7806,88 +8133,22 @@ document.getElementById('deleteBtn').addEventListener('click', async ()=>{
   }
 });
 
-document.getElementById('fileInput').addEventListener('change', async function(e){
-  var file = e.target.files[0];
-  // Resetear el input para permitir subir el mismo archivo otra vez si hace falta
-  e.target.value = '';
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
   if(!file) return;
-  var statusEl = document.getElementById('uploadStatus');
-
-  // ── VALIDACIÓN 1: tipo MIME ──
-  // Algunos navegadores móviles no rellenan el MIME — aceptamos si el nombre termina en .pdf
-  var esPdf = (file.type === 'application/pdf') || file.name.toLowerCase().endsWith('.pdf');
-  if(!esPdf){
-    statusEl.textContent = '⚠️ El archivo no parece un PDF. Por favor selecciona un archivo .pdf';
-    console.warn('[PDF] Tipo rechazado:', file.type, file.name);
-    return;
-  }
-
-  // ── VALIDACIÓN 2: tamaño ──
-  var MAX_MB = 25;
-  if(file.size > MAX_MB * 1024 * 1024){
-    statusEl.textContent = '⚠️ El PDF es demasiado grande (máx. '+MAX_MB+'MB). Intenta con un archivo más pequeño.';
-    console.warn('[PDF] Tamaño excedido:', (file.size/1024/1024).toFixed(1)+'MB');
-    return;
-  }
-
-  statusEl.textContent = '⏳ Leyendo PDF...';
-
-  // ── LECTURA: con fallback universal ──
-  // file.arrayBuffer() no existe en Safari iOS < 15.4 ni en algunos WebViews.
-  // FileReader.readAsArrayBuffer() funciona en todos los navegadores móviles desde iOS 8.
-  function leerComoArrayBuffer(f){
-    return new Promise(function(resolve, reject){
-      if(typeof f.arrayBuffer === 'function'){
-        // Timeout de seguridad: en iOS con archivos de iCloud o Google Drive,
-        // arrayBuffer() puede colgar sin lanzar error ni resolver nunca.
-        // Si no responde en 8 segundos, caemos al FileReader.
-        var _fallbackTimer = setTimeout(function(){
-          console.warn('[PDF] arrayBuffer() sin respuesta tras 8s. Usando FileReader (probable archivo en nube iOS).');
-          usarFileReader(f, resolve, reject);
-        }, 8000);
-        f.arrayBuffer().then(function(buf){
-          clearTimeout(_fallbackTimer);
-          resolve(buf);
-        }).catch(function(){
-          clearTimeout(_fallbackTimer);
-          console.warn('[PDF] arrayBuffer() nativo falló, usando FileReader como fallback');
-          usarFileReader(f, resolve, reject);
-        });
-      } else {
-        usarFileReader(f, resolve, reject);
-      }
-    });
-  }
-
-  function usarFileReader(f, resolve, reject){
-    var reader = new FileReader();
-    reader.onload  = function(ev){ resolve(ev.target.result); };
-    reader.onerror = function(){
-      var cod = reader.error ? reader.error.name : 'desconocido';
-      reject(new Error('FileReader falló ('+cod+'). Comprueba los permisos del navegador.'));
-    };
-    reader.readAsArrayBuffer(f);
-  }
-
+  const statusEl = document.getElementById('uploadStatus');
+  statusEl.textContent = 'Leyendo PDF...';
   try{
-    // ── VALIDACIÓN 3: pdfjsLib disponible ──
-    if(typeof pdfjsLib === 'undefined'){
-      throw new Error('La librería PDF no está cargada. Comprueba la conexión a internet y recarga la app.');
-    }
-
-    var buf = await leerComoArrayBuffer(file);
-
-    var pdf = await pdfjsLib.getDocument({data: buf}).promise;
-    var fullText = '';
-    for(var p=1; p<=pdf.numPages; p++){
-      var page    = await pdf.getPage(p);
-      var content = await page.getTextContent();
-      var items   = content.items.map(function(it){
-        return {str:it.str, x:it.transform[4], y:it.transform[5]};
-      });
-      items.sort(function(a,b){ return b.y - a.y || a.x - b.x; });
-      var lastY = null;
-      items.forEach(function(it){
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    let fullText = '';
+    for(let p=1; p<=pdf.numPages; p++){
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const items = content.items.map(it=>({str:it.str, x:it.transform[4], y:it.transform[5]}));
+      items.sort((a,b)=> b.y - a.y || a.x - b.x);
+      let lastY = null;
+      items.forEach(it=>{
         if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
         else if(lastY !== null){ fullText += ' '; }
         fullText += it.str;
@@ -7895,59 +8156,20 @@ document.getElementById('fileInput').addEventListener('change', async function(e
       });
       fullText += '\n';
     }
-
-    var parsed = parseSchedulePdfText(fullText);
-    var diasNuevo = parsed.dias, meta = parsed.meta;
-
+    const {dias: diasNuevo, meta} = parseSchedulePdfText(fullText);
     if(!diasNuevo.length){
-      statusEl.textContent = '⚠️ No se pudo interpretar el PDF (formato no reconocido). '
-        +'Asegúrate de que es el horario oficial de Serveo.';
-      console.warn('[PDF] Texto extraído sin días reconocibles:', fullText.substring(0,300));
+      statusEl.textContent = 'No se pudo interpretar el PDF (formato no reconocido).';
       return;
     }
-
-    var mesKey = meta.mes || ('SIN-MES-' + Date.now());
+    const mesKey = meta.mes || ('SIN-MES-' + Date.now());
     await saveMonth(mesKey, diasNuevo, meta);
     currentMonthKey = mesKey;
     renderAll(diasNuevo, meta);
     document.getElementById('deleteMonthLabel').textContent = mesKey;
-    statusEl.textContent = '✓ Horario de ' + mesKey + ' guardado (' + diasNuevo.length + ' días).';
-    console.log('[PDF] OK —', mesKey, '—', diasNuevo.length, 'días');
-
-  } catch(err){
-    // ── DIAGNÓSTICO DETALLADO para depuración remota ──
-    var msg = err.message || String(err);
-    var ua = navigator.userAgent;
-    var diag = '[PDF] Error — archivo: "'+file.name+'" ('+file.type+', '
-      +(file.size/1024).toFixed(0)+'KB) — '+msg+' | UA: '+ua;
-    console.error(diag, err);
-    // Código corto para que el compañero lo comparta contigo
-    var diagCorto = 'PDF|'+file.type+'|'+(file.size/1024).toFixed(0)+'KB|'+msg.substring(0,60);
-    console.info('[PDF-DIAG] Comparte este texto:\n'+diagCorto);
-
-    var msgUsuario = '❌ Error al leer el PDF.';
-    if(msg.indexOf('password')>-1 || msg.indexOf('contraseña')>-1){
-      msgUsuario = '❌ El PDF está protegido con contraseña. Usa la versión sin protección.';
-    } else if(msg.indexOf('FileReader')>-1 || msg.indexOf('permiso')>-1){
-      msgUsuario = '❌ El navegador no pudo acceder al archivo. '
-        +'Prueba: 1) Guardar el PDF en el dispositivo, 2) Seleccionarlo desde Archivos.';
-    } else if(msg.indexOf('network')>-1 || msg.indexOf('librería')>-1 || msg.indexOf('pdfjsLib')>-1){
-      msgUsuario = '❌ La librería PDF no está disponible. Recarga la app con conexión.';
-    } else if(msg.indexOf('Invalid PDF')>-1 || msg.indexOf('corrupt')>-1){
-      msgUsuario = '❌ El PDF parece estar dañado o no es un PDF válido.';
-    } else {
-      msgUsuario = '❌ No se pudo leer el PDF: ' + msg;
-    }
-    // Mostrar diagnóstico copiable en pantalla
-    statusEl.innerHTML = msgUsuario
-      +'<br><small style="font-size:9px;color:var(--tx3);display:block;margin-top:6px;word-break:break-all">'
-      +'📋 <span id="pdf-diag-txt" style="font-family:monospace">'
-      +diagCorto+'</span> '
-      +'<button onclick="navigator.clipboard&&navigator.clipboard.writeText('
-      +'document.getElementById(\'pdf-diag-txt\').textContent)'
-      +'.then(function(){toast(\'📋 Copiado — compártelo con Alex\');});return false" '
-      +'style="font-size:9px;padding:1px 6px;border-radius:4px;border:1px solid var(--div);'
-      +'background:var(--s2);color:var(--tx3);cursor:pointer">Copiar</button></small>';
+    statusEl.textContent = '✓ Horario de ' + mesKey + ' guardado (no afecta a otros meses).';
+  }catch(err){
+    console.error(err);
+    statusEl.textContent = 'Error al leer el PDF: ' + err.message;
   }
 });
 
@@ -9110,6 +9332,114 @@ function abrirComparador(){
       body.innerHTML = '<div class="c-loading">No se pudo generar el recorte: '+err.message+'</div>';
     });
   }
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO ARRASTRABLE — Botón WhatsApp
+   IIFE 100% aislada. No lee ni escribe TV, TV2, AJ, SF,
+   AGENDA, localStorage ni ninguna otra estructura de la app.
+   Solo manipula el elemento #btn-ayuda-whatsapp.
+═══════════════════════════════════════════════════════════ */
+(function(){
+  var el = document.getElementById('btn-ayuda-whatsapp');
+  if(!el) return;
+
+  var isDragging = false;
+  var wasDragged = false;   // distinguir drag de tap (para no bloquear el href)
+  var startX, startY, origX, origY;
+  var DRAG_THRESHOLD = 6;   // px mínimos para considerar drag vs tap
+
+  function clamp(val, min, max){ return Math.max(min, Math.min(max, val)); }
+
+  function posFix(x, y){
+    // Mantener siempre dentro del viewport visible
+    var w = el.offsetWidth, h = el.offsetHeight;
+    x = clamp(x, 0, window.innerWidth  - w);
+    y = clamp(y, 0, window.innerHeight - h);
+    el.style.left   = x + 'px';
+    el.style.top    = y + 'px';
+    el.style.right  = 'auto';
+    el.style.bottom = 'auto';
+  }
+
+  // ── TOUCH ──
+  el.addEventListener('touchstart', function(e){
+    var touch = e.touches[0];
+    var rect  = el.getBoundingClientRect();
+    startX = touch.clientX;
+    startY = touch.clientY;
+    origX  = rect.left;
+    origY  = rect.top;
+    isDragging = false;
+    wasDragged = false;
+  }, {passive:true});
+
+  el.addEventListener('touchmove', function(e){
+    var touch = e.touches[0];
+    var dx = touch.clientX - startX;
+    var dy = touch.clientY - startY;
+    if(!isDragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)){
+      isDragging = true;
+      wasDragged = true;
+      el.classList.add('wa-dragging');
+    }
+    if(isDragging){
+      e.preventDefault();
+      posFix(origX + dx, origY + dy);
+    }
+  }, {passive:false});
+
+  el.addEventListener('touchend', function(){
+    isDragging = false;
+    el.classList.remove('wa-dragging');
+  }, {passive:true});
+
+  // Bloquear navegación si fue drag (no tap)
+  el.addEventListener('click', function(e){
+    if(wasDragged){
+      e.preventDefault();
+      wasDragged = false;
+    }
+  });
+
+  // ── MOUSE (desktop) ──
+  el.addEventListener('mousedown', function(e){
+    var rect = el.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    origX  = rect.left;
+    origY  = rect.top;
+    isDragging = false;
+    wasDragged = false;
+
+    function onMove(ev){
+      var dx = ev.clientX - startX;
+      var dy = ev.clientY - startY;
+      if(!isDragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)){
+        isDragging = true;
+        wasDragged = true;
+        el.classList.add('wa-dragging');
+      }
+      if(isDragging){
+        ev.preventDefault();
+        posFix(origX + dx, origY + dy);
+      }
+    }
+    function onUp(){
+      isDragging = false;
+      el.classList.remove('wa-dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+
+  // Reajustar al girar pantalla / resize
+  window.addEventListener('resize', function(){
+    var rect = el.getBoundingClientRect();
+    posFix(rect.left, rect.top);
+  });
+})();
 
 </script>
 </body>
