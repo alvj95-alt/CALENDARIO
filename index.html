@@ -1949,6 +1949,268 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   box-shadow:0 6px 22px rgba(37,211,102,.6);
   opacity:.92;
 }
+
+/* ══════════ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ══════════ */
+#ov-buscador{align-items:stretch}
+#ov-buscador .at-shell{width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+
+
+.at-hdr{padding:16px 18px 14px;border-bottom:1px solid var(--div);flex-shrink:0}
+.at-hdr-top{display:flex;align-items:center;justify-content:space-between}
+.at-hdr-titulo{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.at-hdr-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:.8px;margin-top:5px}
+.at-pill-t{background:rgba(37,99,235,.15);color:var(--acc2);border:1px solid rgba(37,99,235,.3)}
+.at-pill-a{background:rgba(249,115,22,.15);color:var(--nar2);border:1px solid rgba(249,115,22,.3)}
+.at-hdr-sub{font-size:11px;color:var(--tx2);margin-top:2px}
+.at-hdr-btns{display:flex;gap:5px}
+.at-hbtn{width:34px;height:34px;border-radius:9px;background:var(--s2);border:none;color:var(--tx2);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .18s}
+.at-hbtn:hover{background:var(--acc);color:#fff}
+
+.at-body{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;min-height:0}
+.at-body::-webkit-scrollbar{display:none}
+
+.at-panel{display:none;flex-direction:column}
+.at-panel.on{display:flex}
+
+/* ── SELECTOR DE BASE ── */
+.sel-wrap{padding:26px 18px 20px;display:flex;flex-direction:column;gap:14px}
+.sel-intro{text-align:center;padding:8px 6px 4px}
+.sel-ico{font-size:34px;margin-bottom:8px}
+.sel-tit{font-size:17px;font-weight:800}
+.sel-sub{font-size:12px;color:var(--tx2);margin-top:4px;line-height:1.5}
+
+.base-card{display:flex;align-items:center;gap:13px;padding:14px 15px;
+           background:var(--s1);border-radius:16px;border:1px solid var(--div);
+           box-shadow:var(--sh-card);cursor:pointer;transition:all .16s;user-select:none}
+.base-card:hover{border-color:var(--acc2)}
+.base-card:active{transform:scale(.98)}
+.base-ico{width:44px;height:44px;border-radius:13px;flex-shrink:0;
+          display:flex;align-items:center;justify-content:center;font-size:20px}
+.base-ico.b-bcn{background:rgba(37,99,235,.15);color:var(--acc2)}
+.base-ico.b-mad{background:rgba(249,115,22,.15);color:var(--nar2)}
+.base-ico.b-new{background:rgba(148,163,184,.12);color:var(--tx2)}
+.base-info{flex:1;min-width:0}
+.base-name{font-size:14px;font-weight:800}
+.base-meta{font-size:11px;color:var(--tx3);margin-top:2px}
+.base-badge{font-size:9px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:20px;flex-shrink:0}
+.badge-ok{background:rgba(22,163,74,.15);color:var(--green2);border:1px solid rgba(22,163,74,.3)}
+.badge-pend{background:rgba(249,115,22,.15);color:var(--nar2);border:1px solid rgba(249,115,22,.3)}
+.base-arr{color:var(--tx3);font-size:16px;flex-shrink:0}
+
+.upload-form{background:var(--s2);border:1px solid var(--div);border-radius:14px;padding:14px;margin-top:2px;
+             display:none;flex-direction:column;gap:9px;animation:fadeUp .18s ease}
+.upload-form.on{display:flex}
+.upload-form label{font-size:10px;font-weight:700;color:var(--tx2);letter-spacing:.4px;text-transform:uppercase}
+.upload-form input[type=text]{background:var(--s1);border:1px solid var(--div);border-radius:9px;
+             color:var(--tx);font-size:13px;padding:10px 12px;outline:none}
+.upload-form input[type=text]:focus{border-color:var(--acc2)}
+.filepick{background:var(--s1);border:1.5px dashed var(--div);border-radius:10px;padding:16px 12px;
+          text-align:center;cursor:pointer;transition:border-color .16s}
+.filepick:hover{border-color:var(--acc2)}
+.filepick .fp-ico{font-size:20px;margin-bottom:4px}
+.filepick .fp-txt{font-size:11px;color:var(--tx2)}
+.filepick .fp-name{font-size:11px;color:var(--acc3);margin-top:5px;font-weight:600}
+.upload-btns{display:flex;gap:8px;margin-top:2px}
+.ubtn{flex:1;height:38px;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer}
+.ubtn-cancel{background:var(--s1);color:var(--tx2);border:1px solid var(--div)}
+.ubtn-go{background:var(--acc);color:#fff}
+.ubtn-go:disabled{opacity:.4;cursor:not-allowed}
+
+.progress-wrap{padding:40px 26px;text-align:center}
+.spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--div);border-top-color:var(--acc2);
+         margin:0 auto 16px;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-txt{font-size:12px;color:var(--tx2);line-height:1.6}
+.progress-bar-wrap{background:var(--s2);border-radius:20px;height:6px;margin-top:14px;overflow:hidden}
+.progress-bar{background:var(--acc2);height:100%;width:0%;transition:width .2s}
+.progress-err{margin-top:14px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.3);
+              border-radius:10px;padding:12px;font-size:11px;color:var(--red2);line-height:1.5}
+
+/* ── SEARCH ── */
+.srch-wrap{padding:14px 16px 6px}
+
+/* ── TABS dentro del buscador ── */
+/* ── ACORDEONES APILADOS (nombre / tren) ── */
+.acc-section{margin:14px 16px 0;background:var(--s1);border:1px solid var(--div);border-radius:14px;
+             overflow:hidden;box-shadow:var(--sh-card)}
+.acc-head{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:pointer;user-select:none;
+          transition:background .14s}
+.acc-head:hover{background:var(--s2)}
+.acc-ico{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;
+         justify-content:center;font-size:15px;background:rgba(37,99,235,.15);color:var(--acc3)}
+.acc-ico.at-tren{background:rgba(249,115,22,.15);color:var(--nar2)}
+.acc-title{flex:1;font-size:13px;font-weight:800}
+.acc-chev{color:var(--tx3);font-size:12px;transition:transform .22s}
+.acc-section.open .acc-chev{transform:rotate(90deg);color:var(--acc2)}
+.acc-body{max-height:0;overflow:hidden;transition:max-height .28s ease}
+.acc-section.open .acc-body{max-height:6000px}
+.acc-body-inner{border-top:1px solid var(--div)}
+
+/* ── DAY PICKER (tren) — timeline vertical ── */
+.tr-daypicker{display:flex;flex-direction:column;padding:10px 16px 4px;
+              max-height:280px;overflow-y:auto}
+.tr-dl-item{display:flex;align-items:center;gap:12px;padding:6px 2px;cursor:pointer;
+            position:relative;transition:all .12s}
+.tr-dl-rail{position:relative;width:42px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
+.tr-dl-node{width:42px;height:42px;border-radius:13px;background:var(--s2);border:1.5px solid var(--div);
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            flex-shrink:0;z-index:1;transition:all .15s}
+.tr-dl-node .wd{font-size:8px;font-weight:700;color:var(--tx3);letter-spacing:.3px}
+.tr-dl-node .num{font-size:15px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;margin-top:1px}
+.tr-dl-line{position:absolute;top:42px;bottom:-6px;width:2px;background:var(--div);z-index:0}
+.tr-dl-item:last-child .tr-dl-line{display:none}
+.tr-dl-body{flex:1;min-width:0;background:var(--s2);border:1px solid var(--div);border-radius:11px;
+            padding:9px 13px;font-size:12px;color:var(--tx2);font-weight:700;transition:all .15s}
+.tr-dl-item:hover .tr-dl-body{border-color:var(--acc2)}
+.tr-dl-item.weekend .tr-dl-node .wd{color:var(--red2)}
+.tr-dl-item.sel .tr-dl-node{background:var(--acc);border-color:var(--acc)}
+.tr-dl-item.sel .tr-dl-node .wd,.tr-dl-item.sel .tr-dl-node .num{color:#fff}
+.tr-dl-item.sel .tr-dl-body{background:rgba(37,99,235,.12);border-color:var(--acc2);color:var(--tx)}
+
+.tr-inputrow{display:flex;gap:8px;padding:10px 16px 4px;align-items:center}
+.tr-go{background:var(--acc);color:#fff;border:none;border-radius:11px;padding:0 18px;
+       font-size:13px;font-weight:800;cursor:pointer;transition:background .16s}
+.tr-go:hover{background:var(--acc2)}
+
+/* ── TREN VISUAL (vagones) ── */
+.train-scene{padding:20px 16px 16px}
+.train-meta{font-size:11px;color:var(--tx3);margin-bottom:12px;padding:0 2px}
+.train-meta b{color:var(--acc3)}
+.train-track{position:relative;overflow-x:auto;overflow-y:hidden;padding:10px 4px 18px;
+             scrollbar-width:thin}
+.train-rail{display:flex;align-items:flex-end;gap:0;min-width:min-content}
+
+.loco{flex-shrink:0;width:58px;height:74px;background:linear-gradient(160deg,var(--acc) 0%,#1d4ed8 100%);
+      border-radius:14px 8px 8px 14px;position:relative;box-shadow:0 6px 18px rgba(37,99,235,.4);
+      display:flex;align-items:center;justify-content:center;font-size:22px;
+      opacity:0;transform:translateX(-14px);animation:wagonIn .38s ease forwards}
+.loco::after{content:'';position:absolute;bottom:-7px;left:10px;right:10px;height:7px;
+             background:var(--s3);border-radius:0 0 6px 6px}
+
+.coupler{flex-shrink:0;width:10px;height:5px;background:var(--tx3);margin-bottom:26px;
+         opacity:0;animation:wagonIn .3s ease forwards}
+
+.wagon{flex-shrink:0;width:112px;min-height:74px;background:var(--s1);border:1.5px solid var(--div);
+       border-radius:10px;margin-bottom:0;position:relative;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+       padding:10px 8px;box-shadow:var(--sh-card);
+       opacity:0;transform:translateX(-14px) scale(.94);animation:wagonIn .4s ease forwards}
+.wagon::before{content:'';position:absolute;top:0;left:8px;right:8px;height:5px;
+               background:var(--acc2);border-radius:0 0 4px 4px}
+.wagon::after{content:'';position:absolute;bottom:-7px;left:10px;right:10px;height:7px;
+             background:var(--s3);border-radius:0 0 6px 6px}
+.wagon .w-av{width:28px;height:28px;border-radius:9px;background:rgba(37,99,235,.18);
+             color:var(--acc3);display:flex;align-items:center;justify-content:center;
+             font-size:11px;font-weight:800}
+.wagon .w-name{font-size:10px;font-weight:700;text-align:center;line-height:1.25;
+               overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+               -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.wagon .w-id{font-size:8px;color:var(--tx3);font-variant-numeric:tabular-nums}
+
+@keyframes wagonIn{
+  from{opacity:0;transform:translateX(-14px) scale(.94)}
+  to{opacity:1;transform:translateX(0) scale(1)}
+}
+
+.train-empty{background:var(--s2);border:1px solid var(--div);border-radius:14px;
+             padding:24px 18px;text-align:center;font-size:12px;color:var(--tx3);
+             line-height:1.6;animation:fadeUp .2s ease}
+.train-empty b{color:var(--tx2)}
+.srch{background:var(--s2);border-radius:12px;padding:11px 14px;
+      display:flex;align-items:center;gap:9px;border:1px solid var(--div);
+      transition:border-color .16s}
+.srch:focus-within{border-color:var(--acc2)}
+.srch-ico{font-size:15px;color:var(--tx2);flex-shrink:0}
+.srch input{background:none;border:none;color:var(--tx);font-size:14px;outline:none;flex:1;font-weight:500}
+.srch input::placeholder{color:var(--tx3)}
+.srch-clear{background:none;border:none;color:var(--tx3);font-size:15px;cursor:pointer;padding:2px 4px;display:none}
+
+.hint-empty{text-align:center;color:var(--tx3);font-size:12px;padding:40px 26px;line-height:1.6}
+.hint-empty b{color:var(--tx2)}
+
+/* ── RESULT LIST (contact-style) ── */
+.list{padding:6px 16px 16px}
+.pcard{display:flex;align-items:center;gap:11px;padding:12px 13px;
+       background:var(--s2);border-radius:12px;border:1px solid var(--div);
+       margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
+.pcard:active{transform:scale(.98)}
+.pcard:hover{border-color:var(--acc2)}
+.pcard-av{width:38px;height:38px;border-radius:12px;background:rgba(37,99,235,.15);
+          display:flex;align-items:center;justify-content:center;
+          font-size:14px;font-weight:800;color:var(--acc2);flex-shrink:0}
+.pcard-info{flex:1;min-width:0}
+.pcard-name{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard-id{font-size:10px;color:var(--tx3);margin-top:1px;font-variant-numeric:tabular-nums}
+.pcard-arr{color:var(--tx3);font-size:15px;flex-shrink:0}
+
+/* ── PROFILE VIEW (centered, non-grid) ── */
+.profile{padding:8px 16px 20px;animation:fadeUp .22s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.p-back{display:inline-flex;align-items:center;gap:5px;background:none;border:none;
+        color:var(--acc2);font-size:12px;font-weight:700;cursor:pointer;padding:6px 0 10px}
+.p-head{display:flex;align-items:center;gap:13px;padding:8px 4px 18px}
+.p-av{width:54px;height:54px;border-radius:16px;background:rgba(37,99,235,.15);
+      display:flex;align-items:center;justify-content:center;
+      font-size:20px;font-weight:800;color:var(--acc2);flex-shrink:0}
+.p-name{font-size:17px;font-weight:800;letter-spacing:-.2px;line-height:1.25}
+.p-id{font-size:11px;color:var(--tx3);margin-top:2px;font-variant-numeric:tabular-nums}
+
+.p-legend{display:flex;gap:6px;flex-wrap:wrap;padding:0 4px 16px}
+.p-leg{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--tx2);
+       background:var(--s2);border:1px solid var(--div);border-radius:20px;padding:3px 9px}
+.p-leg .at-dot{width:6px;height:6px;border-radius:50%}
+
+/* ── TIMELINE VERTICAL (nueva estética de calendario) ── */
+.at-timeline{position:relative;padding:4px 4px 4px 6px}
+.tl-item{position:relative;display:flex;gap:13px;padding-bottom:14px;cursor:pointer}
+.tl-item:last-child{padding-bottom:2px}
+.tl-rail{position:relative;width:34px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
+.tl-node{width:34px;height:34px;border-radius:11px;background:var(--s2);border:1.5px solid var(--div);
+         display:flex;flex-direction:column;align-items:center;justify-content:center;
+         flex-shrink:0;z-index:1;transition:all .16s}
+.tl-node .tnum{font-size:12px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.tl-node .twd{font-size:6px;font-weight:700;color:var(--tx3);letter-spacing:.3px;margin-top:1px}
+.tl-line{position:absolute;top:34px;bottom:-14px;width:2px;background:var(--div);z-index:0}
+.tl-item:last-child .tl-line{display:none}
+
+.tl-card{flex:1;min-width:0;background:var(--s2);border:1px solid var(--div);border-radius:12px;
+         padding:10px 13px;transition:all .16s}
+.tl-item:hover .tl-card{border-color:var(--acc2)}
+.tl-item.sel .tl-card{background:rgba(37,99,235,.1);border-color:var(--acc2)}
+.tl-item.sel .tl-node{background:var(--acc);border-color:var(--acc)}
+.tl-item.sel .tl-node .tnum,.tl-item.sel .tl-node .twd{color:#fff}
+.tl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tl-tag{font-size:8px;font-weight:800;letter-spacing:.4px;padding:2px 7px;border-radius:20px}
+.tl-val{font-size:12px;font-weight:600;line-height:1.4;word-break:break-word;margin-top:4px}
+.tl-item.off .tl-val{color:var(--tx3);font-weight:400}
+.tl-item.off .tl-node{opacity:.55}
+.tl-arr{color:var(--tx3);font-size:11px;flex-shrink:0}
+
+.tag-ord{background:rgba(59,130,246,.15);color:var(--acc3)}
+.tag-des{background:rgba(74,222,128,.15);color:var(--green2)}
+.tag-res{background:rgba(252,211,77,.15);color:var(--amber2)}
+.tag-dop{background:rgba(249,168,212,.15);color:#F9A8D4}
+.tag-oth{background:rgba(148,163,184,.15);color:var(--tx2)}
+
+.comp-wrap{margin-top:14px;animation:fadeUp .2s ease}
+.comp-hdr{display:flex;align-items:baseline;gap:7px;padding:0 4px 9px}
+.comp-hdr .ct{font-size:13px;font-weight:800}
+.comp-hdr .at-cs{font-size:11px;color:var(--tx3)}
+.comp-list .pcard{margin-bottom:7px}
+.comp-cell{font-size:10px;color:var(--acc3);margin-top:2px;font-weight:600}
+.comp-none{background:var(--s2);border:1px solid var(--div);border-radius:12px;
+           padding:16px 14px;text-align:center;font-size:12px;color:var(--tx3);line-height:1.5}
+.comp-none b{color:var(--tx2)}
+
+.at-dot-ord{background:var(--acc2)}
+.at-dot-des{background:var(--green2)}
+.at-dot-res{background:var(--amber2)}
+.at-dot-dop{background:#F9A8D4}
+.at-dot-oth{background:var(--tx3)}
+
+.at-footer{text-align:center;padding:14px 16px 6px;font-size:9px;color:var(--tx3);line-height:1.5;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -2437,7 +2699,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div style="padding:0 10px">
   <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
   <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
-  <button id="btnComparador" class="upload-btn" style="margin-top:8px;background:rgba(255,176,0,.12);border:1px solid rgba(255,176,0,.4);color:#ffb000" onclick="abrirComparador()">🔍 Comparar Turnos</button>
+  <button id="btnBuscadorCompaneros" class="upload-btn" style="margin-top:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="openOv('ov-buscador')">🚆 Buscador de Compañeros</button>
 </div>
 
 
@@ -2493,16 +2755,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     MÓDULO COMPARADOR DE TURNOS — completamente aditivo.
-     HTML/CSS scoped dentro de #comparador-wrap. Su JS vive en
-     un IIFE propio (ver final del bloque de JavaScript
-     principal) que NO
-     declara ninguna variable ni función en el scope global de
-     la app — cero riesgo de colisión con TV, AJ, key(), etc.
-     PDF independiente: usa su propio pdfjsLib.getDocument(),
-     sin tocar el parser de Horario ni TV/localStorage.
-═══════════════════════════════════════════════════════════ -->
-<!-- ═══════════════════════════════════════════════════════════
      MÓDULO LISTA NEGRA — completamente aditivo.
      Datos en localStorage clave 'listaNegraApp', totalmente
      aislada de TV/AJ/tv5/aj5. Nunca toca turnos ni calendario.
@@ -2543,11 +2795,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="ayuda-item">
         <div class="ayuda-item-tit">📄 Cuadrante PDF (Horario)</div>
         <div class="ayuda-item-txt">Sube el horario oficial que te entrega tu empresa en formato PDF. La app lo lee automáticamente y calcula tus horas efectivas, de presencia, días de servicio, libres y de reserva — sin que tengas que contarlos a mano.</div>
-      </div>
-
-      <div class="ayuda-item">
-        <div class="ayuda-item-tit">🔍 Comparador de Turnos</div>
-        <div class="ayuda-item-txt">Sube el cuadrante de un compañero (otro PDF distinto al tuyo) y la app busca automáticamente quién comparte tu mismo tren, tu misma ruta, o un horario parecido al tuyo en un día concreto.</div>
       </div>
 
       <div class="ayuda-item">
@@ -2627,101 +2874,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
       <div class="fsec-lbl">Compañeros bloqueados</div>
       <div id="ln-lista"></div>
-    </div>
-  </div>
-</div>
-
-<div class="ov" id="ov-comparador" onclick="closeOv('ov-comparador')">
-  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
-    <div class="sh-handle"></div>
-    <div class="sh-hdr">
-      <div class="sh-ico">🔍</div>
-      <div><div class="sh-tit">Comparador de Turnos</div><div class="sh-sub">Sube el cuadrante de un compañero y compara</div></div>
-      <button class="sh-close" onclick="closeOv('ov-comparador')">✕</button>
-    </div>
-    <div id="comparador-wrap" style="overflow-y:auto;flex:1;min-height:0">
-      <style>
-        #comparador-wrap{font-family:'JetBrains Mono','SFMono-Regular',Consolas,monospace;--c-bg:#0c1410;--c-panel:#13201a;--c-panel2:#19281f;--c-line:#27392f;--c-amber:#ffb000;--c-amber-dim:#9c6e00;--c-green:#4fd17a;--c-yellow:#e8c34a;--c-blue:#5aa9e6;--c-text:#e7efe9;--c-muted:#7e978a;}
-        #comparador-wrap *{box-sizing:border-box;}
-        #comparador-wrap .c-main{padding:14px;}
-        #comparador-wrap .c-card{background:var(--c-panel);border:1px solid var(--c-line);border-radius:10px;padding:14px;margin-bottom:14px;color:var(--c-text);}
-        #comparador-wrap .c-card h2{margin:0 0 10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--c-muted);font-weight:600;}
-        #comparador-wrap label{display:block;font-size:11px;color:var(--c-muted);margin:10px 0 5px;letter-spacing:.03em;}
-        #comparador-wrap label:first-child{margin-top:0;}
-        #comparador-wrap input[type=file],#comparador-wrap input[type=text],#comparador-wrap input[type=number]{width:100%;background:var(--c-panel2);border:1px solid var(--c-line);color:var(--c-text);padding:10px 11px;border-radius:7px;font-family:inherit;font-size:14px;}
-        #comparador-wrap input[type=file]::file-selector-button{background:var(--c-amber-dim);color:#fff;border:none;border-radius:5px;padding:6px 10px;margin-right:8px;font-family:inherit;font-size:12px;}
-        #comparador-wrap .c-day-grid{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
-        #comparador-wrap .c-day-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--c-line);background:var(--c-panel2);color:var(--c-text);font-family:inherit;font-size:12px;display:flex;align-items:center;justify-content:center;}
-        #comparador-wrap .c-day-btn.active{background:var(--c-amber);color:#1a1300;border-color:var(--c-amber);font-weight:700;}
-        #comparador-wrap button.c-primary{width:100%;margin-top:14px;background:var(--c-amber);color:#1a1300;border:none;padding:13px;border-radius:8px;font-family:inherit;font-weight:700;font-size:13px;letter-spacing:.05em;text-transform:uppercase;}
-        #comparador-wrap button.c-primary:disabled{opacity:.4;}
-        #comparador-wrap .c-status{font-size:12px;color:var(--c-muted);margin-top:8px;min-height:16px;}
-        #comparador-wrap .c-status.err{color:#e85d5d;} #comparador-wrap .c-status.ok{color:var(--c-green);}
-        #comparador-wrap .c-you-card{border-left:3px solid var(--c-amber);}
-        #comparador-wrap .c-you-card .c-turno{font-size:18px;color:var(--c-amber);font-weight:700;letter-spacing:.02em;}
-        #comparador-wrap .c-you-card .c-ruta{color:var(--c-text);font-size:13px;margin-top:4px;}
-        #comparador-wrap .c-you-card .c-times{color:var(--c-muted);font-size:12px;margin-top:6px;}
-        #comparador-wrap .c-tier{margin-top:18px;}
-        #comparador-wrap .c-tier-head{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--c-muted);margin-bottom:8px;}
-        #comparador-wrap .c-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;display:inline-block;}
-        #comparador-wrap .c-dot.exact{background:var(--c-green);} #comparador-wrap .c-dot.route{background:var(--c-yellow);} #comparador-wrap .c-dot.time{background:var(--c-blue);}
-        #comparador-wrap .c-match-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--c-line);font-size:12.5px;color:var(--c-text);}
-        #comparador-wrap .c-match-row:last-child{border-bottom:none;}
-        #comparador-wrap .c-match-row.c-tappable{cursor:pointer;}
-        #comparador-wrap .c-match-row.c-tappable:active{background:var(--c-panel2);}
-        #comparador-wrap .c-match-row .c-who{color:var(--c-text);text-decoration:underline dotted var(--c-muted);}
-        #comparador-wrap .c-match-row .c-mat{color:var(--c-muted);font-size:11px;}
-        #comparador-wrap .c-match-row .c-what{text-align:right;color:var(--c-muted);font-size:11.5px;max-width:46%;}
-        #comparador-wrap .c-empty{color:var(--c-muted);font-size:12px;padding:6px 0;}
-        #comparador-wrap details{margin-top:14px;}
-        #comparador-wrap summary{font-size:11px;color:var(--c-muted);cursor:pointer;letter-spacing:.04em;}
-        #comparador-wrap pre.c-debug{background:#000;color:#7e978a;padding:10px;border-radius:6px;font-size:10.5px;max-height:260px;overflow:auto;margin-top:8px;line-height:1.5;}
-        #comparador-wrap .c-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:300;padding:18px;}
-        #comparador-wrap .c-modal-backdrop.open{display:flex;}
-        #comparador-wrap .c-modal{background:var(--c-panel);border:1px solid var(--c-line);border-radius:12px;padding:16px;max-width:94vw;width:100%;max-height:88vh;overflow:auto;}
-        #comparador-wrap .c-modal h3{margin:0 0 4px;font-size:13px;color:var(--c-amber);letter-spacing:.04em;}
-        #comparador-wrap .c-modal .c-meta{font-size:11px;color:var(--c-muted);margin-bottom:10px;}
-        #comparador-wrap .c-modal canvas{width:100%;background:#fff;border-radius:6px;display:block;}
-        #comparador-wrap .c-modal .c-closeBtn{margin-top:12px;width:100%;background:var(--c-panel2);color:var(--c-text);border:1px solid var(--c-line);padding:10px;border-radius:8px;font-family:inherit;font-size:12px;}
-        #comparador-wrap .c-modal .c-loading{color:var(--c-muted);font-size:12px;padding:20px 0;text-align:center;}
-      </style>
-
-      <div class="c-main">
-        <div class="c-card">
-          <h2>1 · Cuadrante de tu compañero (PDF)</h2>
-          <label>Archivo PDF (cuadrante mensual)</label>
-          <input type="file" id="compPdfInput" accept="application/pdf">
-          <div class="c-status" id="compPdfStatus"></div>
-        </div>
-        <div class="c-card">
-          <h2>2 · Tú</h2>
-          <label>Matrícula o nombre (lo que tengas a mano)</label>
-          <input type="text" id="compMatriculaInput" placeholder="ej. 4179742 o ALVARADO">
-        </div>
-        <div class="c-card">
-          <h2>3 · Día y tolerancia</h2>
-          <label>Margen de horario "similar" (minutos, sobre CI o CO)</label>
-          <input type="number" id="compMarginInput" value="30" min="0" max="180">
-          <label>Día del mes</label>
-          <div class="c-day-grid" id="compDayGrid"></div>
-          <button class="c-primary" id="compRunBtn" disabled>Comparar este día</button>
-          <div class="c-status" id="compRunStatus"></div>
-        </div>
-        <div id="compResults"></div>
-        <details>
-          <summary>Modo depuración (ver lo que ha leído el parser)</summary>
-          <pre class="c-debug" id="compDebugOut">Sin datos aún.</pre>
-        </details>
-      </div>
-
-      <div class="c-modal-backdrop" id="compModalBackdrop">
-        <div class="c-modal">
-          <h3 id="compModalTitle">Recorte del PDF</h3>
-          <div class="c-meta" id="compModalMeta"></div>
-          <div id="compModalBody"><div class="c-loading">Generando recorte…</div></div>
-          <button class="c-closeBtn" id="compModalClose">Cerrar</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -3059,6 +3211,165 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </button>
     </div>
   </div>
+</div>
+
+<!-- ═══ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ═══ -->
+<div class="ov" id="ov-buscador">
+<div class="at-shell">
+
+  <div class="at-hdr">
+    <div class="at-hdr-top">
+      <div>
+        <div class="at-hdr-titulo" id="hdrTitulo">App Turno</div>
+        <div class="at-hdr-pill at-pill-t" id="hdrPill">🔍 SELECCIONA UNA BASE</div>
+      </div>
+      <div class="at-hdr-btns" id="hdrBtns"><button class="at-hbtn" onclick="closeOv('ov-buscador')" title="Cerrar">✕</button></div>
+    </div>
+  </div>
+
+  <div class="at-body">
+
+    <!-- ═══ PANEL 1: SELECTOR DE BASE ═══ -->
+    <div class="at-panel on" id="panel-select">
+      <div class="sel-wrap">
+        <div class="sel-intro">
+          <div class="sel-ico">🗂️</div>
+          <div class="sel-tit">Seleccione su Base</div>
+          <div class="sel-sub">Cada base es independiente: los datos de una no se mezclan con los de otra. Tú subes tus propios datos — nada viene precargado.</div>
+        </div>
+
+        <div class="base-card" id="card-barcelona">
+          <div class="base-ico b-bcn">🚆</div>
+          <div class="base-info">
+            <div class="base-name">Barcelona</div>
+            <div class="base-meta" id="meta-barcelona">Aún sin plantilla cargada</div>
+          </div>
+          <div class="base-badge badge-pend" id="badge-barcelona">SUBIR PDF</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-barcelona">
+          <label>Sube el PDF de turnos de Barcelona</label>
+          <div class="filepick" id="filepick-barcelona">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-barcelona"></div>
+          </div>
+          <input type="file" accept="application/pdf" id="file-barcelona" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-barcelona">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-barcelona" disabled>Procesar PDF</button>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-madrid">
+          <div class="base-ico b-mad">🚆</div>
+          <div class="base-info">
+            <div class="base-name">Madrid</div>
+            <div class="base-meta" id="meta-madrid">Aún sin plantilla cargada</div>
+          </div>
+          <div class="base-badge badge-pend" id="badge-madrid">SUBIR PDF</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-madrid">
+          <label>Sube el PDF de turnos de Madrid</label>
+          <div class="filepick" id="filepick-madrid">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-madrid"></div>
+          </div>
+          <input type="file" accept="application/pdf" id="file-madrid" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-madrid">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-madrid" disabled>Procesar PDF</button>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-new">
+          <div class="base-ico b-new">＋</div>
+          <div class="base-info">
+            <div class="base-name">Subir otra base (PDF)</div>
+            <div class="base-meta">Para cualquier base que no esté en la lista</div>
+          </div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-new">
+          <label>Nombre de la base</label>
+          <input type="text" id="name-new" placeholder="p. ej. Valencia, Sevilla…">
+          <label>Archivo PDF de turnos</label>
+          <div class="filepick" id="filepick-new">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-new"></div>
+          </div>
+          <input type="file" accept="application/pdf" id="file-new" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-new">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-new" disabled>Procesar PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 2: PROGRESO DE CARGA ═══ -->
+    <div class="at-panel" id="panel-progress">
+      <div class="progress-wrap">
+        <div class="spinner"></div>
+        <div class="progress-txt" id="progressTxt">Analizando PDF…</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-err" id="progressErr" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 3: BUSCADOR + PERFIL ═══ -->
+    <div class="at-panel" id="panel-app">
+
+      <div class="acc-section open" id="acc-nombre">
+        <div class="acc-head" data-acc="nombre">
+          <div class="acc-ico">👤</div>
+          <div class="acc-title">Buscar por nombre</div>
+          <div class="acc-chev">›</div>
+        </div>
+        <div class="acc-body">
+          <div class="acc-body-inner">
+            <div class="srch-wrap">
+              <div class="srch">
+                <span class="srch-ico">👤</span>
+                <input type="text" id="q" placeholder="Escribe un nombre..." autocomplete="off">
+                <button class="srch-clear" id="clearBtn">✕</button>
+              </div>
+            </div>
+            <div id="view"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="acc-section" id="acc-tren">
+        <div class="acc-head" data-acc="tren">
+          <div class="acc-ico at-tren">🚆</div>
+          <div class="acc-title">Buscar por tren</div>
+          <div class="acc-chev">›</div>
+        </div>
+        <div class="acc-body">
+          <div class="acc-body-inner">
+        <div class="tr-daypicker" id="trDaypicker"></div>
+        <div class="tr-inputrow">
+          <div class="srch" style="flex:1">
+            <span class="srch-ico">🚆</span>
+            <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+          </div>
+          <button class="tr-go" id="trGoBtn">Buscar</button>
+        </div>
+        <div id="trainView"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
+  </div>
+</div>
+
 </div>
 
 <!-- TOAST -->
@@ -8612,23 +8923,6 @@ function sanitizarTexto(texto){
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MÓDULO COMPARADOR DE TURNOS — IIFE completamente aislado.
-   Ninguna de las ~109 funciones/variables internas del
-   comparador (parsePDF, findYou, renderTier, byMatricula,
-   touchDay, etc.) toca el scope global de la app. Solo se
-   exponen dos funciones necesarias para el HTML: abrirComparador
-   (botón) y _compModalClose (botón cerrar del visor de recorte).
-   No usa TV, AJ, saveTV, ni ninguna clave de localStorage de la
-   app principal — su propio PDF se procesa 100% en memoria con
-   pdfjsLib (ya cargado por la app, sin duplicar la etiqueta de carga).
-═══════════════════════════════════════════════════════════ */
-var _compPdfDocGlobal = null;
-var _compParsedRoster = null;
-var _compSelectedDay = null;
-var _compPageCanvasCache = {};
-var _compInitialized = false;
-
-/* ═══════════════════════════════════════════════════════════
    MÓDULO LISTA NEGRA — completamente aditivo.
    Almacena en localStorage('listaNegraApp'), totalmente
    aislado de tv5/aj5/TV/AJ. Borrar el calendario o los
@@ -8654,7 +8948,7 @@ function _obtenerPasosTour(){
   return [
     {ico:'👋', tit:'¡Bienvenido a TrenTurnos!', txt:'Una guía rápida de 30 segundos para que conozcas las funciones principales. Puedes saltarla en cualquier momento.'},
     {ico:'📅', tit:'Tu Calendario', txt:'Toca cualquier día para registrar tu turno: ordinario, descanso, reserva, pernocta... Cada tipo tiene su propio color para que lo veas de un vistazo.'},
-    {ico:'🗂️', tit:'Horario y PDF', txt:'En la pestaña Horario puedes subir el cuadrante oficial en PDF, comparar turnos con un compañero, y solicitar tus horas HTDL con un correo ya redactado.'},
+    {ico:'🗂️', tit:'Horario y PDF', txt:'En la pestaña Horario puedes subir el cuadrante oficial en PDF y solicitar tus horas HTDL con un correo ya redactado.'},
     {ico:'📊', tit:'Tus Estadísticas', txt:'La pestaña Stats calcula automáticamente tus horas trabajadas y el desglose económico del mes, a partir de los turnos que registres.'},
     {ico:'⚙️', tit:'Todo a tu medida', txt:'En Ajustes puedes configurar tu perfil, tu estación base, tus tarifas, y consultar esta misma ayuda cuando la necesites. ¡Ya estás listo!'}
   ];
@@ -9052,375 +9346,6 @@ function mostrarAvisoListaNegra(persona, onContinuar){
   });
 }
 
-function abrirComparador(){
-  initComparadorUI();
-  openOv('ov-comparador');
-}
-
-  function initComparadorUI(){
-    if(_compInitialized) return;
-    _compInitialized = true;
-
-    var dayGrid = document.getElementById('compDayGrid');
-    for(var d=1; d<=31; d++){
-      (function(dd){
-        var b = document.createElement('button');
-        b.className='c-day-btn'; b.textContent=dd; b.dataset.day=dd;
-        b.addEventListener('click', function(){
-          var all = dayGrid.querySelectorAll('.c-day-btn');
-          for(var i=0;i<all.length;i++) all[i].classList.remove('active');
-          b.classList.add('active');
-          _compSelectedDay = dd;
-          maybeEnableRun();
-        });
-        dayGrid.appendChild(b);
-      })(d);
-    }
-
-    function maybeEnableRun(){
-      document.getElementById('compRunBtn').disabled = !(_compParsedRoster && _compSelectedDay && document.getElementById('compMatriculaInput').value.trim());
-    }
-    document.getElementById('compMatriculaInput').addEventListener('input', maybeEnableRun);
-
-    document.getElementById('compPdfInput').addEventListener('change', function(e){
-      var file = e.target.files[0];
-      if(!file) return;
-      var statusEl = document.getElementById('compPdfStatus');
-      statusEl.className='c-status'; statusEl.textContent='Leyendo PDF…';
-      var reader = new FileReader();
-      reader.onload = function(){
-        pdfjsLib.getDocument({data: reader.result}).promise.then(function(pdfDoc){
-          _compPdfDocGlobal = pdfDoc;
-          return parsePDF(pdfDoc);
-        }).then(function(roster){
-          _compParsedRoster = roster;
-          statusEl.className='c-status c-ok'; statusEl.classList.add('ok');
-          statusEl.textContent = 'Listo. '+_compParsedRoster.employees.length+' trabajadores detectados, '+_compParsedRoster.numDays+' días.';
-          document.getElementById('compDebugOut').textContent = JSON.stringify(_compParsedRoster, function(k,v){return k==='items'?undefined:v;}, 1).slice(0, 6000) + '\n…(recortado)';
-          maybeEnableRun();
-        }).catch(function(err){
-          statusEl.className='c-status err';
-          statusEl.textContent = 'Error leyendo el PDF: ' + err.message;
-        });
-      };
-      reader.readAsArrayBuffer(file);
-    });
-
-    document.getElementById('compRunBtn').addEventListener('click', function(){
-      var query = document.getElementById('compMatriculaInput').value.trim();
-      var margin = parseInt(document.getElementById('compMarginInput').value,10) || 30;
-      var runStatus = document.getElementById('compRunStatus');
-      var resultsEl = document.getElementById('compResults');
-      resultsEl.innerHTML='';
-
-      var you = findYou(_compParsedRoster, query);
-      if(!you){
-        runStatus.className='c-status err';
-        runStatus.textContent = 'No encuentro esa matrícula ni ese nombre en el PDF cargado.';
-        return;
-      }
-      var youDay = you.days[_compSelectedDay] || {};
-      var yourTrains = extractTrainNumbers(youDay.turno);
-      var yourCI = toMinutes(youDay.ci);
-      var yourCO = toMinutes(youDay.co);
-
-      runStatus.className='c-status ok';
-      runStatus.textContent = 'Comparando día '+_compSelectedDay+' para '+(you.nombre || you.matricula)+'.';
-
-      var youCard = document.createElement('div');
-      youCard.className='c-card c-you-card';
-      youCard.innerHTML = '<h2>Tu turno · día '+_compSelectedDay+'</h2>'
-        +'<div class="c-turno">'+(youDay.turno || '— (sin turno detectado)')+'</div>'
-        +'<div class="c-ruta">'+(youDay.ruta || '')+'</div>'
-        +'<div class="c-times">'+(youDay.ci? 'CI '+youDay.ci : '')+' '+(youDay.co? '· CO '+youDay.co : '')+'</div>';
-      resultsEl.appendChild(youCard);
-
-      var travelWith=[], routeMatch=[], timeMatch=[];
-      for(var i=0;i<_compParsedRoster.employees.length;i++){
-        var emp = _compParsedRoster.employees[i];
-        if(emp.matricula===you.matricula) continue;
-        var d = emp.days[_compSelectedDay];
-        if(!d) continue;
-        var theirTrains = extractTrainNumbers(d.turno);
-        var shared = yourTrains.length ? sharedTrains(yourTrains, theirTrains) : [];
-        if(shared.length){ travelWith.push({emp:emp, d:d, shared:shared}); continue; }
-        if(youDay.ruta && d.ruta && d.ruta===youDay.ruta){ routeMatch.push({emp:emp, d:d}); continue; }
-        var ciDiff = (yourCI!==null && d.ci) ? Math.abs(toMinutes(d.ci)-yourCI) : null;
-        var coDiff = (yourCO!==null && d.co) ? Math.abs(toMinutes(d.co)-yourCO) : null;
-        var diffs = [ciDiff, coDiff].filter(function(v){return v!==null;}).sort(function(a,b){return a-b;});
-        var bestDiff = diffs[0];
-        if(bestDiff!==undefined && bestDiff<=margin){ timeMatch.push({emp:emp, d:d, diff:bestDiff}); }
-      }
-
-      resultsEl.appendChild(renderTier('exact','✓ Viajas con esta persona (mismo tren real)', travelWith, function(e){return 'Tren '+e.shared.join(', ');}));
-      resultsEl.appendChild(renderTier('route','Posible — mismo trayecto, tren distinto', routeMatch, function(e){return e.d.ruta;}));
-      timeMatch.sort(function(a,b){return a.diff-b.diff;});
-      resultsEl.appendChild(renderTier('time', 'Posible — horario parecido (±'+margin+' min en CI/CO)', timeMatch, function(e){return 'CI '+(e.d.ci||'?')+' / CO '+(e.d.co||'?')+' (Δ'+e.diff+'min)';}));
-    });
-
-    document.getElementById('compModalClose').addEventListener('click', function(){
-      document.getElementById('compModalBackdrop').classList.remove('open');
-    });
-    document.getElementById('compModalBackdrop').addEventListener('click', function(e){
-      if(e.target.id==='compModalBackdrop') document.getElementById('compModalBackdrop').classList.remove('open');
-    });
-  }
-
-  // ---------- PARSER (idéntico al original, solo var en vez de let/const) ----------
-  function parsePDF(pdf){
-    var employees = [];
-    var byMatricula = {};
-    var numDays = 31;
-    var lastDayCols = null;
-
-    function processPages(p){
-      if(p > pdf.numPages){
-        return Promise.resolve({employees: employees.map(function(e){return {matricula:e.matricula, nombre:cleanName(e.nombre), page:e.page, blockY:e.blockY, days:e.days};}), numDays: numDays});
-      }
-      return pdf.getPage(p).then(function(page){ return page.getTextContent().then(function(content){ return {page:page, content:content}; }); }).then(function(res){
-        var content = res.content;
-        var items = [];
-        for(var i=0;i<content.items.length;i++){
-          var it = content.items[i];
-          var str = it.str.trim();
-          if(str.length>0) items.push({str:str, x:it.transform[4], y:it.transform[5]});
-        }
-        if(items.length===0) return processPages(p+1);
-
-        var rows = clusterRows(items, 3.5);
-        var dayCols = null;
-        for(var ri=0; ri<rows.length; ri++){
-          var row = rows[ri];
-          var numsItems = row.filter(function(it){return /^\d{1,2}$/.test(it.str);});
-          var nums = numsItems.map(function(it){return parseInt(it.str,10);});
-          if(nums.length >= 15 && isAscendingRun(nums)){
-            dayCols = numsItems.map(function(it){return {day:parseInt(it.str,10), x:it.x};});
-            numDays = Math.max(numDays, Math.max.apply(null, nums));
-            break;
-          }
-        }
-        if(dayCols){ lastDayCols = dayCols; } else if(lastDayCols){ dayCols = lastDayCols; } else { return processPages(p+1); }
-
-        var dayBounds = computeDayBounds(dayCols);
-        var leftMargin = Math.min.apply(null, dayCols.map(function(d){return d.x;})) - 40;
-        var currentMatricula = null;
-
-        for(var rj=0; rj<rows.length; rj++){
-          var row2 = rows[rj];
-          var leftItems = row2.filter(function(it){return it.x < leftMargin;});
-          var rightItems = row2.filter(function(it){return it.x >= leftMargin;});
-          var rowY = row2[0] ? row2[0].y : null;
-
-          var matriculaItem = null;
-          for(var li=0; li<leftItems.length; li++){ if(/^\d{5,8}$/.test(leftItems[li].str)){ matriculaItem = leftItems[li]; break; } }
-
-          if(matriculaItem){
-            currentMatricula = matriculaItem.str;
-            if(!byMatricula[currentMatricula]){
-              byMatricula[currentMatricula] = {matricula: currentMatricula, nombre:'', page:p, blockY:matriculaItem.y, days:{}, nameOpen:true};
-              employees.push(byMatricula[currentMatricula]);
-            } else { byMatricula[currentMatricula].nameOpen = true; }
-            var nameText = leftItems.filter(function(it){return it!==matriculaItem;}).map(function(it){return it.str;}).join(' ');
-            if(nameText && !/HORAS\s+TOTALES/i.test(nameText)) byMatricula[currentMatricula].nombre = (byMatricula[currentMatricula].nombre + ' ' + nameText).trim();
-            continue;
-          }
-
-          if(currentMatricula && byMatricula[currentMatricula].nameOpen && leftItems.length){
-            var leftText = leftItems.map(function(it){return it.str;}).join(' ');
-            if(/HORAS\s+TOTALES/i.test(leftText)){ byMatricula[currentMatricula].nameOpen = false; }
-            else if(!/^(HORAS\s+EF|HORAS\s+PR|JOR\.?\s*PRORR|^CI$|^CO$)/i.test(leftText)){
-              byMatricula[currentMatricula].nombre = (byMatricula[currentMatricula].nombre + ' ' + leftText).trim();
-            }
-          }
-
-          if(!currentMatricula || rightItems.length===0) continue;
-
-          var isTimeRow = rightItems.every(function(it){return /^\d{1,2}:\d{2}$/.test(it.str);});
-          var labelHint = leftItems.map(function(it){return it.str;}).join(' ').toUpperCase();
-
-          if(isTimeRow){
-            rightItems.forEach(function(it){
-              var day = nearestDay(it.x, dayCols);
-              if(!day) return;
-              var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
-              if(/CO/.test(labelHint) && rec.ci!==undefined){ rec.co = it.str; }
-              else if(rec.ci===undefined){ rec.ci = it.str; }
-              else if(rec.co===undefined){ rec.co = it.str; }
-            });
-            continue;
-          }
-
-          var looksLikeRoute = rightItems.some(function(it){return /^[A-Z]{2,4}-[A-Z0-9]/.test(it.str);});
-          if(looksLikeRoute){
-            rightItems.forEach(function(it){
-              var day = nearestDay(it.x, dayCols);
-              if(!day) return;
-              var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
-              rec.ruta = (rec.ruta? rec.ruta+' ' : '') + it.str;
-            });
-            continue;
-          }
-
-          rightItems.forEach(function(it){
-            var day = nearestDay(it.x, dayCols);
-            if(!day) return;
-            var rec = touchDay(byMatricula[currentMatricula], day, p, rowY, dayBounds[day]);
-            rec.turno = (rec.turno? rec.turno+'-' : '') + it.str;
-          });
-        }
-        return processPages(p+1);
-      });
-    }
-    return processPages(1);
-  }
-
-  function cleanName(raw){
-    return (raw||'').replace(/\s*,\s*/g, ' ,').replace(/\s+/g,' ').replace(/^\s*,\s*/, '').trim();
-  }
-  function touchDay(emp, day, page, rowY, bounds){
-    if(!emp.days[day]) emp.days[day] = {page:page, x0:bounds.x0, x1:bounds.x1, y0:rowY, y1:rowY};
-    var rec = emp.days[day];
-    rec.page = page;
-    if(rowY!==null){
-      rec.y0 = (rec.y0===undefined || rowY>rec.y0) ? rowY : rec.y0;
-      rec.y1 = (rec.y1===undefined || rowY<rec.y1) ? rowY : rec.y1;
-    }
-    return rec;
-  }
-  function computeDayBounds(dayCols){
-    var sorted = dayCols.slice().sort(function(a,b){return a.x-b.x;});
-    var bounds = {};
-    for(var i=0;i<sorted.length;i++){
-      var cur = sorted[i];
-      var prevX = i>0 ? sorted[i-1].x : cur.x - 70;
-      var nextX = i<sorted.length-1 ? sorted[i+1].x : cur.x + 70;
-      bounds[cur.day] = { x0:(prevX+cur.x)/2, x1:(cur.x+nextX)/2 };
-    }
-    return bounds;
-  }
-  function clusterRows(items, tol){
-    var sorted = items.slice().sort(function(a,b){return b.y-a.y;});
-    var rows = []; var current = []; var lastY = null;
-    for(var i=0;i<sorted.length;i++){
-      var it = sorted[i];
-      if(lastY===null || Math.abs(it.y-lastY) <= tol){ current.push(it); }
-      else { if(current.length) rows.push(current.sort(function(a,b){return a.x-b.x;})); current=[it]; }
-      lastY = it.y;
-    }
-    if(current.length) rows.push(current.sort(function(a,b){return a.x-b.x;}));
-    return rows;
-  }
-  function isAscendingRun(nums){ var asc=0; for(var i=1;i<nums.length;i++) if(nums[i]>=nums[i-1]) asc++; return asc >= nums.length*0.7; }
-  function nearestDay(x, dayCols){
-    var best=null, bestDist=Infinity;
-    for(var i=0;i<dayCols.length;i++){ var dc=dayCols[i]; var d=Math.abs(dc.x-x); if(d<bestDist){bestDist=d; best=dc.day;} }
-    return bestDist < 60 ? best : null;
-  }
-  function toMinutes(hhmm){
-    if(!hhmm) return null;
-    var m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
-    if(!m) return null;
-    return parseInt(m[1],10)*60 + parseInt(m[2],10);
-  }
-  function extractTrainNumbers(code){
-    if(!code) return [];
-    var parts = code.split('-').map(function(p){return p.replace(/[A-Z]/g,'').trim();}).filter(function(p){return p.length>=2;});
-    var seen = {}; var out = [];
-    for(var i=0;i<parts.length;i++){ if(!seen[parts[i]]){ seen[parts[i]]=true; out.push(parts[i]); } }
-    return out;
-  }
-  function sharedTrains(a, b){
-    var setB = {}; for(var i=0;i<b.length;i++) setB[b[i]]=true;
-    return a.filter(function(t){return setB[t];});
-  }
-  function findYou(roster, query){
-    var q = query.trim().toLowerCase();
-    if(!q) return null;
-    for(var i=0;i<roster.employees.length;i++){ if(roster.employees[i].matricula===query.trim()) return roster.employees[i]; }
-    for(var j=0;j<roster.employees.length;j++){ if((roster.employees[j].nombre||'').toLowerCase().indexOf(q)>=0) return roster.employees[j]; }
-    return null;
-  }
-
-  function renderTier(kind, title, list, describe){
-    var wrap = document.createElement('div');
-    wrap.className='c-card c-tier';
-    var head = document.createElement('div');
-    head.className='c-tier-head';
-    head.innerHTML = '<span class="c-dot '+kind+'"></span>'+title+' ('+list.length+')';
-    wrap.appendChild(head);
-    if(list.length===0){
-      var e = document.createElement('div'); e.className='c-empty'; e.textContent='Sin coincidencias.'; wrap.appendChild(e);
-    } else {
-      list.forEach(function(item){
-        var row = document.createElement('div');
-        row.className='c-match-row c-tappable';
-        row.innerHTML = '<div><div class="c-who">'+(item.emp.nombre || '(sin nombre)')+'</div><div class="c-mat">'+item.emp.matricula+'</div></div>'
-          +'<div class="c-what">'+describe(item)+'</div>';
-        row.addEventListener('click', function(){ openCropModal(item.emp, item.d, _compSelectedDay); });
-        wrap.appendChild(row);
-      });
-    }
-    return wrap;
-  }
-
-  function getPageCanvas(pageNum, scale){
-    var key = pageNum+'_'+scale;
-    if(_compPageCanvasCache[key]) return Promise.resolve(_compPageCanvasCache[key]);
-    return _compPdfDocGlobal.getPage(pageNum).then(function(page){
-      var viewport = page.getViewport({scale:scale});
-      var canvas = document.createElement('canvas');
-      canvas.width = viewport.width; canvas.height = viewport.height;
-      var ctx = canvas.getContext('2d');
-      return page.render({canvasContext: ctx, viewport: viewport}).promise.then(function(){
-        var result = {canvas:canvas, viewport:viewport};
-        _compPageCanvasCache[key] = result;
-        return result;
-      });
-    });
-  }
-
-  function openCropModal(emp, dayCell, day){
-    var backdrop = document.getElementById('compModalBackdrop');
-    var body = document.getElementById('compModalBody');
-    document.getElementById('compModalTitle').textContent = emp.nombre || emp.matricula;
-    document.getElementById('compModalMeta').textContent = 'Matrícula '+emp.matricula+' · Día '+day+' · Página del PDF '+dayCell.page;
-    body.innerHTML = '<div class="c-loading">Generando recorte…</div>';
-    backdrop.classList.add('open');
-
-    var scale = 4.5;
-    getPageCanvas(dayCell.page, scale).then(function(res){
-      var fullCanvas = res.canvas, viewport = res.viewport;
-      var padPDF = 6;
-      var x0 = dayCell.x0 - padPDF;
-      var x1 = dayCell.x1 + padPDF;
-      var yTop = (dayCell.y0!==undefined ? dayCell.y0 : dayCell.y1) + padPDF;
-      var yBot = (dayCell.y1!==undefined ? dayCell.y1 : dayCell.y0) - padPDF;
-      var p1 = viewport.convertToViewportPoint(x0, yTop);
-      var p2 = viewport.convertToViewportPoint(x1, yBot);
-      var sx = Math.max(0, Math.min(p1[0], p2[0]));
-      var sy = Math.max(0, Math.min(p1[1], p2[1]));
-      var sw = Math.min(fullCanvas.width - sx, Math.abs(p2[0]-p1[0]));
-      var sh = Math.min(fullCanvas.height - sy, Math.abs(p2[1]-p1[1]));
-
-      var crop = document.createElement('canvas');
-      var labelH = 34;
-      crop.width = Math.max(1, sw);
-      crop.height = Math.max(1, sh) + labelH;
-      var cctx = crop.getContext('2d');
-      cctx.fillStyle = '#101c15';
-      cctx.fillRect(0, 0, crop.width, labelH);
-      cctx.fillStyle = '#ffb000';
-      cctx.font = 'bold 16px monospace';
-      cctx.textBaseline = 'middle';
-      cctx.fillText('Día '+day+' · '+emp.matricula+' · '+(emp.nombre || '(sin nombre)'), 8, labelH/2);
-      cctx.drawImage(fullCanvas, sx, sy, sw, sh, 0, labelH, sw, sh);
-
-      body.innerHTML = '';
-      body.appendChild(crop);
-    }).catch(function(err){
-      body.innerHTML = '<div class="c-loading">No se pudo generar el recorte: '+err.message+'</div>';
-    });
-  }
 /* ═══════════════════════════════════════════════════════════
    MÓDULO ARRASTRABLE — Botón WhatsApp
    IIFE 100% aislada. No lee ni escribe TV, TV2, AJ, SF,
@@ -9530,6 +9455,527 @@ function abrirComparador(){
   });
 })();
 
+
+/* ══════════ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido, aislado) ══════════ */
+(function(){
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+
+// ── REGISTRO DE BASES (independientes entre sí) ──
+const BASES = {
+  barcelona: { label: 'Barcelona', month: '—', data: null },
+  madrid:    { label: 'Madrid',    month: '—', data: null }
+};
+let activeBaseKey = null;
+let activeBase = null;
+
+function refreshBaseCards(){
+  const b = BASES.barcelona, m = BASES.madrid;
+  document.getElementById('meta-barcelona').textContent = b.data ? `${b.data.length} empleados · ${b.month}` : 'Aún sin plantilla cargada';
+  document.getElementById('badge-barcelona').textContent = b.data ? 'LISTA' : 'SUBIR PDF';
+  document.getElementById('badge-barcelona').className = 'base-badge ' + (b.data ? 'badge-ok' : 'badge-pend');
+  document.getElementById('meta-madrid').textContent = m.data ? `${m.data.length} empleados · ${m.month}` : 'Aún sin plantilla cargada';
+  document.getElementById('badge-madrid').textContent = m.data ? 'LISTA' : 'SUBIR PDF';
+  document.getElementById('badge-madrid').className = 'base-badge ' + (m.data ? 'badge-ok' : 'badge-pend');
+}
+refreshBaseCards();
+
+function showPanel(id){
+  document.querySelectorAll('.at-panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+
+// ═══ NAVEGACIÓN: SELECTOR ═══
+document.getElementById('card-barcelona').addEventListener('click', ()=>{
+  if(BASES.barcelona.data){ activateBase('barcelona'); return; }
+  toggleForm('form-barcelona');
+});
+document.getElementById('card-madrid').addEventListener('click', ()=>{
+  if(BASES.madrid.data){ activateBase('madrid'); return; }
+  toggleForm('form-madrid');
+});
+document.getElementById('card-new').addEventListener('click', ()=>{
+  toggleForm('form-new');
+});
+function toggleForm(id){
+  document.querySelectorAll('.upload-form').forEach(f=>{ if(f.id!==id) f.classList.remove('on'); });
+  document.getElementById(id).classList.toggle('on');
+}
+document.getElementById('cancel-madrid').addEventListener('click', ()=> document.getElementById('form-madrid').classList.remove('on'));
+document.getElementById('cancel-barcelona').addEventListener('click', ()=> document.getElementById('form-barcelona').classList.remove('on'));
+document.getElementById('cancel-new').addEventListener('click', ()=> document.getElementById('form-new').classList.remove('on'));
+
+// ── Selector de archivo: Barcelona ──
+document.getElementById('filepick-barcelona').addEventListener('click', ()=> document.getElementById('file-barcelona').click());
+document.getElementById('file-barcelona').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  document.getElementById('fpname-barcelona').textContent = f ? f.name : '';
+  document.getElementById('go-barcelona').disabled = !f;
+});
+document.getElementById('go-barcelona').addEventListener('click', async ()=>{
+  const f = document.getElementById('file-barcelona').files[0];
+  if(!f) return;
+  await procesarPdfParaBase('barcelona', 'Barcelona', f);
+});
+
+// ── Selector de archivo: Madrid ──
+document.getElementById('filepick-madrid').addEventListener('click', ()=> document.getElementById('file-madrid').click());
+document.getElementById('file-madrid').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  document.getElementById('fpname-madrid').textContent = f ? f.name : '';
+  document.getElementById('go-madrid').disabled = !f;
+});
+document.getElementById('go-madrid').addEventListener('click', async ()=>{
+  const f = document.getElementById('file-madrid').files[0];
+  if(!f) return;
+  await procesarPdfParaBase('madrid', 'Madrid', f);
+});
+
+// ── Selector de archivo: base nueva ──
+document.getElementById('filepick-new').addEventListener('click', ()=> document.getElementById('file-new').click());
+document.getElementById('file-new').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  document.getElementById('fpname-new').textContent = f ? f.name : '';
+  checkNewFormReady();
+});
+document.getElementById('name-new').addEventListener('input', checkNewFormReady);
+function checkNewFormReady(){
+  const name = document.getElementById('name-new').value.trim();
+  const f = document.getElementById('file-new').files[0];
+  document.getElementById('go-new').disabled = !(name && f);
+}
+document.getElementById('go-new').addEventListener('click', async ()=>{
+  const name = document.getElementById('name-new').value.trim();
+  const f = document.getElementById('file-new').files[0];
+  if(!name || !f) return;
+  const key = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+  BASES[key] = { label: name, month: '—', data: null };
+  await procesarPdfParaBase(key, name, f);
+});
+
+function activateBase(key){
+  activeBaseKey = key;
+  activeBase = BASES[key];
+  document.getElementById('hdrTitulo').textContent = activeBase.label;
+  document.getElementById('hdrPill').textContent = '📍 ' + (activeBase.month || 'BASE ACTIVA');
+  document.getElementById('hdrBtns').innerHTML = '<button class="at-hbtn" id="switchBaseBtn" title="Cambiar de base">⇄</button><button class="at-hbtn" onclick="closeOv(\'ov-buscador\')" title="Cerrar">✕</button>';
+  document.getElementById('switchBaseBtn').addEventListener('click', ()=>{
+    activeBaseKey = null; activeBase = null;
+    qInput.value=''; clearBtn.style.display='none';
+    document.getElementById('hdrTitulo').textContent = 'App Turno';
+    document.getElementById('hdrPill').textContent = '🔍 SELECCIONA UNA BASE';
+    document.getElementById('hdrBtns').innerHTML = '';
+    refreshBaseCards();
+    showPanel('panel-select');
+  });
+  qInput.value = '';
+  renderEmptyHint();
+  document.getElementById('acc-nombre').classList.add('open');
+  document.getElementById('acc-tren').classList.remove('open');
+  document.getElementById('trainView').innerHTML = '';
+  document.getElementById('trTrainInput').value = '';
+  trDaypicker.querySelectorAll('.tr-dl-item').forEach(c=>c.classList.remove('sel'));
+  selectedTrainDay = null;
+  showPanel('panel-app');
+}
+
+// ═══ PROCESADO DE PDF (cliente, pdf.js) ═══
+async function procesarPdfParaBase(key, label, file){
+  showPanel('panel-progress');
+  const progressTxt = document.getElementById('progressTxt');
+  const progressBar = document.getElementById('progressBar');
+  const progressErr = document.getElementById('progressErr');
+  progressErr.style.display = 'none';
+  progressTxt.textContent = 'Abriendo PDF de ' + label + '…';
+  progressBar.style.width = '4%';
+  try{
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    const numPages = pdf.numPages;
+    const empleados = [];
+    for(let pi=1; pi<=numPages; pi++){
+      progressTxt.textContent = `Procesando página ${pi} de ${numPages}…`;
+      progressBar.style.width = Math.round((pi/numPages)*100) + '%';
+      const page = await pdf.getPage(pi);
+      const viewport = page.getViewport({scale:1});
+      const pageHeight = viewport.height;
+      const content = await page.getTextContent();
+      const words = [];
+      for(const item of content.items){
+        const str = (item.str||'').trim();
+        if(!str) continue;
+        const x0 = item.transform[4];
+        const top = pageHeight - item.transform[5];
+        const parts = str.split(/\s+/).filter(Boolean);
+        if(parts.length<=1){
+          words.push({text: str, x0, top});
+        } else {
+          const w = item.width || 0;
+          parts.forEach((p, idx)=>{
+            words.push({text: p, x0: x0 + (w*idx/parts.length), top});
+          });
+        }
+      }
+      const parsed = parsePageWords(words);
+      empleados.push(...parsed);
+      await new Promise(r=>setTimeout(r, 0)); // deja respirar a la UI
+    }
+    if(empleados.length === 0){
+      throw new Error('No se detectó ninguna plantilla de turnos reconocible en este PDF.');
+    }
+    BASES[key].data = empleados;
+    progressTxt.textContent = `¡Listo! ${empleados.length} empleados cargados en ${label}.`;
+    progressBar.style.width = '100%';
+    refreshBaseCards();
+    setTimeout(()=>{
+      document.getElementById('form-barcelona').classList.remove('on');
+      document.getElementById('form-madrid').classList.remove('on');
+      document.getElementById('form-new').classList.remove('on');
+      activateBase(key);
+    }, 550);
+  } catch(err){
+    progressTxt.textContent = 'No se pudo procesar el PDF.';
+    progressErr.style.display = 'block';
+    progressErr.textContent = (err && err.message) ? err.message : String(err);
+    setTimeout(()=> showPanel('panel-select'), 2600);
+  }
+}
+
+const SHIFT_WHITELIST = new Set(['DO','F','R','LD','CP','DOP','B','EX','PP','FE','Pr']);
+function isShiftCode(text){
+  if(text.includes(':') || text.includes(',')) return false;
+  if(/^[0-9]/.test(text)) return true;
+  return SHIFT_WHITELIST.has(text);
+}
+function getDayColumns(words){
+  const cands = words.filter(w => /^[0-9]{1,2}$/.test(w.text) && w.top>=50 && w.top<=65);
+  cands.sort((a,b)=>a.x0-b.x0);
+  if(cands.length>=31) return cands.slice(0,31).map(w=>w.x0);
+  return null;
+}
+function parsePageWords(rawWords){
+  const daycols = getDayColumns(rawWords);
+  if(!daycols) return [];
+  const words = rawWords.filter(w=>w.top>60);
+  const jorTops = words.filter(w=>w.text==='Jor.' && w.x0<25).map(w=>w.top).sort((a,b)=>a-b);
+  if(jorTops.length===0) return [];
+  const blockRanges = [];
+  let start = 0;
+  for(const t of jorTops){ blockRanges.push([start, t+1]); start = t+1; }
+  const out = [];
+  for(const [btop, etop] of blockRanges){
+    const bwords = words.filter(w => w.top>=btop && w.top<=etop);
+    if(bwords.length===0) continue;
+    const idWords = bwords.filter(w => w.x0<25 && /^[0-9]{3,8}$/.test(w.text));
+    const empId = idWords.length ? idWords[0].text : '';
+    const horasWords = bwords.filter(w => w.x0<25 && w.text==='Horas');
+    const nameLimitTop = horasWords.length ? Math.min(...horasWords.map(w=>w.top)) : etop;
+    const nameWords = bwords.filter(w => w.x0>=20 && w.x0<101 && w.top<nameLimitTop && w.text!==empId);
+    nameWords.sort((a,b)=> a.top-b.top || a.x0-b.x0);
+    const name = nameWords.map(w=>w.text).join(' ').trim();
+    if(!name) continue;
+    const codeWords = bwords.filter(w => w.x0>=100 && isShiftCode(w.text));
+    const dayData = {};
+    for(const w of codeWords){
+      let bestIdx = 0, bestDiff = Infinity;
+      daycols.forEach((cx, idx)=>{ const d = Math.abs(w.x0-cx); if(d<bestDiff){bestDiff=d; bestIdx=idx;} });
+      const day = bestIdx+1;
+      (dayData[day] = dayData[day] || []).push([w.top, w.text]);
+    }
+    const daysFinal = {};
+    for(const day in dayData){
+      const items = dayData[day].sort((a,b)=>a[0]-b[0]);
+      daysFinal[day] = items.map(x=>x[1]).join(' ');
+    }
+    out.push([empId, name, daysFinal]);
+  }
+  return out;
+}
+
+// ═══ BUSCADOR + PERFIL (opera sobre activeBase.data) ═══
+const OFF_CODES = {"DO":"des","F":"res","R":"res","LD":"oth","CP":"oth","DOP":"dop","B":"oth","EX":"oth","PP":"oth","FE":"oth","Pr":"oth"};
+const WEEKDAYS = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
+function weekdayForDay(d){
+  const dt = new Date(2026,6,d);
+  return WEEKDAYS[dt.getDay()];
+}
+function classifyCell(cell){
+  const trimmed = (cell||'').trim();
+  if(!trimmed) return {type:'oth', dotClass:'dot-oth', off:true};
+  if(OFF_CODES[trimmed]) {
+    const t = OFF_CODES[trimmed];
+    return {type:t, dotClass:'dot-'+t, off:true};
+  }
+  return {type:'ord', dotClass:'dot-ord', off:false};
+}
+function trainTokens(cell){
+  const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
+  const nums = new Set();
+  for(const tok of tokens){
+    const m = tok.match(/^([0-9]{2,5})/);
+    if(m) nums.add(m[1]);
+  }
+  return nums;
+}
+function findCompanions(day, selfId, selfName, selfCell){
+  const selfTokens = trainTokens(selfCell);
+  if(selfTokens.size===0) return [];
+  const out = [];
+  for(const [id, name, days] of activeBase.data){
+    if(id===selfId && name===selfName) continue;
+    const cell = days[String(day)];
+    if(!cell) continue;
+    const tokens = trainTokens(cell);
+    let shared = false;
+    for(const t of selfTokens){ if(tokens.has(t)){ shared = true; break; } }
+    if(shared) out.push({id, name, cell});
+  }
+  return out;
+}
+// ═══ ACORDEONES APILADOS (nombre / tren) ═══
+document.querySelectorAll('.acc-head').forEach(head=>{
+  head.addEventListener('click', ()=>{
+    const section = head.closest('.acc-section');
+    section.classList.toggle('open');
+  });
+});
+
+// ═══ BUSCADOR POR TREN (vista animada de vagones) ═══
+let selectedTrainDay = null;
+const trDaypicker = document.getElementById('trDaypicker');
+const FULL_WD = {"DOM":"Domingo","LUN":"Lunes","MAR":"Martes","MIÉ":"Miércoles","JUE":"Jueves","VIE":"Viernes","SÁB":"Sábado"};
+function buildTrainDaypicker(){
+  trDaypicker.innerHTML = '';
+  selectedTrainDay = null;
+  for(let d=1; d<=31; d++){
+    const wd = weekdayForDay(d);
+    const isWeekend = (wd==='SÁB'||wd==='DOM');
+    const item = document.createElement('div');
+    item.className = 'tr-dl-item' + (isWeekend ? ' weekend' : '');
+    item.dataset.day = d;
+    item.innerHTML = `<div class="tr-dl-rail"><div class="tr-dl-node"><span class="wd">${wd}</span><span class="num">${d}</span></div><div class="tr-dl-line"></div></div><div class="tr-dl-body">${FULL_WD[wd]}</div>`;
+    item.addEventListener('click', ()=>{
+      trDaypicker.querySelectorAll('.tr-dl-item').forEach(c=>c.classList.remove('sel'));
+      item.classList.add('sel');
+      selectedTrainDay = d;
+    });
+    trDaypicker.appendChild(item);
+  }
+}
+
+function cellContainsTrain(cell, trainNum){
+  const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
+  for(const tok of tokens){
+    const m = tok.match(/^([0-9]+)/);
+    if(m && m[1] === trainNum) return true;
+  }
+  return false;
+}
+
+const trainView = document.getElementById('trainView');
+document.getElementById('trGoBtn').addEventListener('click', ()=>{
+  if(!activeBase){ return; }
+  const raw = document.getElementById('trTrainInput').value.trim().replace(/^0+/, '');
+  if(!selectedTrainDay){
+    trainView.innerHTML = `<div class="train-scene"><div class="train-empty">Selecciona primero un <b>día</b> de julio.</div></div>`;
+    return;
+  }
+  if(!raw){
+    trainView.innerHTML = `<div class="train-scene"><div class="train-empty">Escribe un <b>número de tren</b>.</div></div>`;
+    return;
+  }
+  const matches = [];
+  for(const [id, name, days] of activeBase.data){
+    const cell = days[String(selectedTrainDay)];
+    if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+  }
+  renderTrain(raw, selectedTrainDay, matches);
+});
+
+function renderTrain(trainNum, day, matches){
+  const wd = weekdayForDay(day);
+  if(matches.length===0){
+    trainView.innerHTML = `<div class="train-scene">
+      <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
+      <div class="train-empty">Nadie de <b>${activeBase.label}</b> hace el tren <b>${trainNum}</b> ese día.</div>
+    </div>`;
+    return;
+  }
+  let rail = `<div class="loco" style="animation-delay:0s">🚆</div>`;
+  matches.forEach((m, idx)=>{
+    const delay = (0.08 + idx*0.09).toFixed(2);
+    rail += `<div class="coupler" style="animation-delay:${delay}s"></div>`;
+    rail += `<div class="wagon" style="animation-delay:${delay}s">
+      <div class="w-av">${initials(m.name)}</div>
+      <div class="w-name">${m.name}</div>
+      ${m.id ? `<div class="w-id">ID ${m.id}</div>` : ''}
+    </div>`;
+  });
+  trainView.innerHTML = `<div class="train-scene">
+    <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${matches.length} compañero(s) en <b>${activeBase.label}</b></div>
+    <div class="train-track"><div class="train-rail">${rail}</div></div>
+  </div>`;
+}
+
+function initials(name){
+  const parts = name.replace(/,/g,' ').trim().split(/\s+/).filter(Boolean);
+  if(parts.length===0) return '?';
+  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[1][0]).toUpperCase();
+}
+
+const qInput = document.getElementById('q');
+const clearBtn = document.getElementById('clearBtn');
+const viewEl = document.getElementById('view');
+
+function renderEmptyHint(){
+  viewEl.innerHTML = `<div class="hint-empty">Escribe al menos <b>2 letras</b> del nombre de un compañero de <b>${activeBase ? activeBase.label : ''}</b> para ver su turno.</div>`;
+}
+
+function renderList(matches, query){
+  if(matches.length===0){
+    viewEl.innerHTML = `<div class="hint-empty">Sin resultados para "<b>${query}</b>" en ${activeBase.label}.</div>`;
+    return;
+  }
+  let html = '<div class="list">';
+  for(const [id, name] of matches){
+    html += `<div class="pcard" data-id="${id}" data-name="${encodeURIComponent(name)}">
+      <div class="pcard-av">${initials(name)}</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${name}</div>
+        ${id ? `<div class="pcard-id">ID ${id}</div>` : ''}
+      </div>
+      <div class="pcard-arr">›</div>
+    </div>`;
+  }
+  html += '</div>';
+  viewEl.innerHTML = html;
+  viewEl.querySelectorAll('.pcard[data-id]').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const id = card.dataset.id;
+      const name = decodeURIComponent(card.dataset.name);
+      const entry = activeBase.data.find(e => e[0]===id && e[1]===name);
+      if(entry) renderProfile(entry);
+    });
+  });
+}
+
+const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
+function renderProfile([id, name, days]){
+  let items = '';
+  for(let d=1; d<=31; d++){
+    const cell = days[String(d)] || '';
+    const info = classifyCell(cell);
+    const tag = TAG_LABEL[info.type] || 'OTROS';
+    items += `<div class="tl-item ${info.off?'off':''}" data-day="${d}">
+      <div class="tl-rail">
+        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d)}</span></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-card">
+        <div class="tl-card-top">
+          <span class="tl-tag tag-${info.type}">${tag}</span>
+          <span class="tl-arr">›</span>
+        </div>
+        <div class="tl-val">${cell || '—'}</div>
+      </div>
+    </div>`;
+  }
+  viewEl.innerHTML = `
+    <div class="profile">
+      <button class="p-back" id="backBtn">‹ Volver a la búsqueda</button>
+      <div class="p-head">
+        <div class="p-av">${initials(name)}</div>
+        <div>
+          <div class="p-name">${name}</div>
+          ${id ? `<div class="p-id">ID ${id}</div>` : ''}
+        </div>
+      </div>
+      <div class="p-legend">
+        <span class="p-leg"><span class="dot dot-ord"></span>Turno</span>
+        <span class="p-leg"><span class="dot dot-des"></span>Descanso</span>
+        <span class="p-leg"><span class="dot dot-res"></span>Franco / Reserva</span>
+        <span class="p-leg"><span class="dot dot-dop"></span>DOP</span>
+        <span class="p-leg"><span class="dot dot-oth"></span>Otros</span>
+      </div>
+      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día en la línea de tiempo para ver con quién compartes ese turno.</div>
+      <div class="timeline">${items}</div>
+      <div id="compZone"></div>
+    </div>
+  `;
+  document.getElementById('backBtn').addEventListener('click', ()=>{ doSearch(); });
+  viewEl.querySelectorAll('.tl-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const d = parseInt(item.dataset.day, 10);
+      const cell = days[String(d)] || '';
+      renderCompanions(d, id, name, cell);
+      viewEl.querySelectorAll('.tl-item').forEach(r=>{
+        r.classList.remove('sel');
+        r.querySelector('.tl-arr').textContent = '›';
+      });
+      item.classList.add('sel');
+      item.querySelector('.tl-arr').textContent = '▾';
+      document.getElementById('compZone').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+}
+
+function renderCompanions(day, id, name, cell){
+  const zone = document.getElementById('compZone');
+  const info = classifyCell(cell);
+  const wd = weekdayForDay(day);
+  if(info.off || !cell){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· sin tren asignado ese día</span></div>
+      <div class="comp-none">Ese día tienes <b>${cell || 'sin turno registrado'}</b>, así que no hay tren que compartir con nadie.</div>
+    </div>`;
+    return;
+  }
+  const companions = findCompanions(day, id, name, cell);
+  if(companions.length===0){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${cell}</span></div>
+      <div class="comp-none">Nadie más coincide contigo en ese tren <b>${wd} ${day}</b> según la plantilla.</div>
+    </div>`;
+    return;
+  }
+  let html = `<div class="comp-wrap">
+    <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${companions.length} compañero(s) · ${cell}</span></div>
+    <div class="comp-list">`;
+  for(const c of companions){
+    html += `<div class="pcard" style="cursor:default">
+      <div class="pcard-av">${initials(c.name)}</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${c.name}</div>
+        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        <div class="comp-cell">${c.cell}</div>
+      </div>
+    </div>`;
+  }
+  html += '</div></div>';
+  zone.innerHTML = html;
+}
+
+function doSearch(){
+  if(!activeBase) return;
+  const q = qInput.value.trim().toUpperCase();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if(q.length < 2){ renderEmptyHint(); return; }
+  const matches = activeBase.data.filter(([id,name]) => name.toUpperCase().includes(q)).slice(0, 40);
+  renderList(matches, qInput.value.trim());
+}
+
+qInput.addEventListener('input', doSearch);
+clearBtn.addEventListener('click', ()=>{
+  qInput.value = '';
+  clearBtn.style.display = 'none';
+  renderEmptyHint();
+  qInput.focus();
+});
+
+buildTrainDaypicker();
+
+})();
 </script>
 </body>
 </html>
