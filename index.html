@@ -1899,6 +1899,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   background:linear-gradient(135deg,var(--s2),rgba(245,158,11,.04));
 }
 
+/* ── Indicador de día dentro de pernocta ── */
+.tv-pernocta-dia{
+  margin-bottom:10px;
+}
+.tv-pernocta-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  background:rgba(217,119,6,.12);
+  border:1px solid rgba(217,119,6,.35);
+  border-radius:8px;
+  padding:5px 12px;
+  font-size:11px;
+  font-weight:800;
+  color:var(--amber2);
+  letter-spacing:.3px;
+}
+
 /* ── BOTÓN FLOTANTE AYUDA (WhatsApp) ──
    Módulo puramente visual/navegación externa. No lee ni
    escribe en TV, TV2, AJ, SF, AGENDA ni ninguna otra
@@ -3945,19 +3963,17 @@ function guardarServicioFrecuente(datos){
 }
 
 function autorellenarServicio(s){
+  // Solo rellena datos del tramo IDA — la vuelta es independiente.
+  // El usuario debe seleccionar/rellenar los datos de vuelta por separado.
   if(s.linea) F.linea = s.linea;
   if(s.sal)   F.sal   = s.sal;
   if(s.lle)   F.lle   = s.lle;
   if(s.hF)    F.hF    = s.hF;
   if(s.hL)    F.hL    = s.hL;
-  if(s.sal2)  F.sal2  = s.sal2;
-  if(s.lle2)  F.lle2  = s.lle2;
-  if(s.hF2)   F.hF2   = s.hF2;
-  if(s.hL2)   F.hL2   = s.hL2;
   // Actualizar plusIntlAuto si hay línea internacional
   if(s.linea) F.plusIntlAuto = s.linea.includes('Internacional');
   renderFormBody();
-  toast('⚡ Tren #'+s.numTren+' cargado automáticamente');
+  toast('⚡ Tren #'+s.numTren+' cargado (solo ida)');
 }
 
 function mostrarSugTren(val, campo){
@@ -3992,14 +4008,12 @@ function seleccionarSugTren(numTren, campo){
     if(inp2){ inp2.value=numTren; inp2.style.borderColor='var(--acc2)'; }
     var cont2 = document.getElementById('tren-sug-cont2');
     if(cont2) cont2.innerHTML='';
-    // Rellenar solo datos del tramo vuelta (sal2,lle2,hF2,hL2)
-    // Si el SF tiene datos de tramo vuelta, usarlos; si solo tiene tramo ida, invertir
+    // Rellenar solo datos del tramo vuelta desde el SF seleccionado.
+    // Solo se usan datos explícitos de vuelta del SF. Sin fallback.
     if(s.hF2&&s.hL2){
-      F.sal2=s.sal2||s.sal; F.lle2=s.lle2||s.lle; F.hF2=s.hF2; F.hL2=s.hL2;
-    } else if(s.hF&&s.hL){
-      // El SF solo tiene datos de ida — usarlos como vuelta
-      F.sal2=s.lle||s.sal; F.lle2=s.sal||s.lle; F.hF2=s.hF; F.hL2=s.hL;
+      F.sal2=s.sal2||''; F.lle2=s.lle2||''; F.hF2=s.hF2; F.hL2=s.hL2;
     }
+    // Si el SF no tiene datos de vuelta, no rellenar nada.
     renderFormBody();
   } else {
     // ── Campo IDA: comportamiento original ───────────────────
@@ -4186,40 +4200,55 @@ function renderSlide(gridId, fecha){
     }
 
     // ── BADGE DE TREN — siempre visible si hay número ──
-    // Prioridad: el trabajador debe ver su tren operativo sin hacer clic.
-    // Si hay DH, se concatena según Caso A/B. Si no, solo el número.
-    // Fondo naranja = DH activo. Fondo gris sutil = tren normal.
+    // Para días derivados (vuelta-pernocta, pernocta3-intermedio), el número
+    // de tren se lee del PROPIO registro (t.numTren), no del origen.
+    // Solo DH sube al origen porque la info de estado DH vive allí.
     var trenBadge = '';
-    var tieneTren = tParaDH && (tParaDH.numTren || tParaDH.numTrenVuelta);
 
-    if(tieneTren){
-      var nI = esCeldaVuelta ? '' : (tParaDH.numTren||'');
-      var nV = esCeldaVuelta ? (tParaDH.numTrenVuelta||'') : (tParaDH.numTrenVuelta||'');
-      var texto = '';
-      var tieneDH = mostrarDH;
-
-      if(esCeldaVuelta){
-        texto = nV ? (nV + (celdaDHVta?' DH':'')) : '';
-      } else if(nI && nV && !esPernocta){
-        texto = nI + (celdaDHIda?' DH':'')
-              + ' - '
-              + nV + (celdaDHVta?' DH':'');
-      } else if(nI){
-        texto = nI + (celdaDHIda?' DH':'');
-      } else if(nV){
-        texto = nV + (celdaDHVta?' DH':'');
-      }
-
-      if(texto){
-        var bgColor = tieneDH ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
-        var txColor = tieneDH ? '#1a0a00' : '#fff';
+    if(esCeldaVuelta){
+      // Celda de día derivado: leer t.numTren propio (guardado al crear la pernocta)
+      var nPropio = t.numTren || '';
+      if(nPropio){
+        var tieneDHPropio = celdaDHVta;
+        var textoPropio = nPropio + (tieneDHPropio?' DH':'');
+        var bgP = tieneDHPropio ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
+        var txP = tieneDHPropio ? '#1a0a00' : '#fff';
         trenBadge = '<span '
           +'style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);'
           +'font-size:6px;line-height:1;white-space:nowrap;'
-          +'background:'+bgColor+';color:'+txColor+';border-radius:3px;'
+          +'background:'+bgP+';color:'+txP+';border-radius:3px;'
           +'padding:1px 3px;font-weight:900;letter-spacing:.2px">'
-          +texto
-          +'</span>';
+          +textoPropio+'</span>';
+      }
+    } else {
+      // Celda de día de origen o turno de un solo día
+      var tieneTren = tParaDH && (tParaDH.numTren || tParaDH.numTrenVuelta);
+      if(tieneTren){
+        var nI = tParaDH.numTren||'';
+        var nV = tParaDH.numTrenVuelta||'';
+        var texto = '';
+        var tieneDH = mostrarDH;
+
+        if(nI && nV && !esPernocta){
+          texto = nI + (celdaDHIda?' DH':'')
+                + ' - '
+                + nV + (celdaDHVta?' DH':'');
+        } else if(nI){
+          texto = nI + (celdaDHIda?' DH':'');
+        } else if(nV){
+          texto = nV + (celdaDHVta?' DH':'');
+        }
+
+        if(texto){
+          var bgColor = tieneDH ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
+          var txColor = tieneDH ? '#1a0a00' : '#fff';
+          trenBadge = '<span '
+            +'style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);'
+            +'font-size:6px;line-height:1;white-space:nowrap;'
+            +'background:'+bgColor+';color:'+txColor+';border-radius:3px;'
+            +'padding:1px 3px;font-weight:900;letter-spacing:.2px">'
+            +texto+'</span>';
+        }
       }
     }
     c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
@@ -4256,18 +4285,15 @@ function abrirTipoDesdeCard(){
 function buscarTurnoPorFecha(k){
   var t = TV[k];
 
-  // Caso 1: día con turno origen (ordinario, reserva, vacaciones, etc.)
-  if(t && t.tipo !== 'vuelta-pernocta' && t.tipo !== 'pernocta3-intermedio'){
+  // Caso 1: día con turno propio (cualquier tipo, incluyendo vuelta-pernocta
+  // y pernocta3-intermedio). Devolver el registro TAL CUAL del día clicado
+  // para que el popup muestre los datos PROPIOS de ese día.
+  if(t){
     return {k:k, t:t};
   }
 
-  // Caso 2: día derivado con referencia directa al origen
-  if(t && t.origenPernocta && TV[t.origenPernocta]){
-    return {k:t.origenPernocta, t:TV[t.origenPernocta]};
-  }
-
-  // Caso 3: día vacío o derivado sin referencia — buscar hacia atrás
-  // hasta 3 días (máximo de una pernocta3)
+  // Caso 2: día vacío — buscar hacia atrás hasta 3 días
+  // para ver si pertenece a una pernocta no registrada explícitamente
   var partes = k.split('-').map(Number);
   var fecha = new Date(partes[0], partes[1]-1, partes[2]);
   for(var dias=1; dias<=3; dias++){
@@ -4275,7 +4301,6 @@ function buscarTurnoPorFecha(k){
     var kAnterior = key(fecha.getFullYear(), fecha.getMonth()+1, fecha.getDate());
     var tAnterior = TV[kAnterior];
     if(!tAnterior) continue;
-    // ¿Este turno anterior genera días que llegan hasta k?
     if(tAnterior.tipo === 'ordinario' || tAnterior.tipo === 'trabajado'){
       var modo = tAnterior.modo;
       if(modo === 'pernocta' && dias <= 1) return {k:kAnterior, t:tAnterior};
@@ -4283,7 +4308,7 @@ function buscarTurnoPorFecha(k){
     }
   }
 
-  // Caso 4: día realmente sin turno — devolver null para abrir selector de tipo
+  // Caso 3: día realmente sin turno
   return {k:k, t:null};
 }
 
@@ -4347,8 +4372,49 @@ function chM(dir){
 function renderizarPopUpSimplificado(t, esDiaVuelta){
   var h = '';
 
-  // Fila de mini-badges — awareness al vistazo, sin detalle numérico.
-  // El importe/horas exactas de cada uno viven solo en el acordeón.
+  // ── Determinar qué día del itinerario estamos viendo ──
+  // Para turnos de un solo día (ida-y-vuelta), mostrar todo.
+  // Para pernoctas, filtrar: día 1 → solo ida, último día → solo vuelta,
+  // día intermedio (pernocta3) → tránsito.
+  var esPernocta  = t.modo==='pernocta' || t.modo==='pernocta3';
+  var esPernocta3 = t.modo==='pernocta3';
+
+  // Detectar qué día concreto tocó el usuario
+  var kClicado = (typeof selDay !== 'undefined' && selDay) ? selDay.k : null;
+  var tClicadoRaw = kClicado ? TV[kClicado] : null;
+  var tipoClicado = tClicadoRaw ? tClicadoRaw.tipo : (t.tipo||'');
+
+  var mostrarIda    = true;
+  var mostrarVuelta = true;
+  var etiquetaDia   = '';
+
+  if(esPernocta){
+    if(tipoClicado === 'vuelta-pernocta'){
+      // Último día: solo vuelta
+      mostrarIda    = false;
+      mostrarVuelta = true;
+      etiquetaDia   = esPernocta3 ? 'Día 3 de 3' : 'Día 2 de 2';
+    } else if(tipoClicado === 'pernocta3-intermedio'){
+      // Día intermedio (pernocta3): en tránsito
+      mostrarIda    = false;
+      mostrarVuelta = false;
+      etiquetaDia   = 'Día 2 de 3';
+    } else {
+      // Día 1: solo ida
+      mostrarIda    = true;
+      mostrarVuelta = false;
+      etiquetaDia   = esPernocta3 ? 'Día 1 de 3' : 'Día 1 de 2';
+    }
+  }
+
+  // Indicador de día de pernocta
+  if(etiquetaDia){
+    h += '<div class="tv-pernocta-dia">'
+      + '<span class="tv-pernocta-badge">🌙 '+etiquetaDia+'</span>'
+      + '</div>';
+  }
+
+  // Fila de mini-badges
   var badges = '';
   if(t.nocturno)     badges += '<span class="tv-badge-mini" title="Nocturnidad activa">🌙</span>';
   if(t.plusIntlAuto) badges += '<span class="tv-badge-mini" title="Plus Internacional">🌍</span>';
@@ -4356,17 +4422,15 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
   if(t.plusJT)       badges += '<span class="tv-badge-mini" title="Plus JT">🕐</span>';
   if(badges) h += '<div class="tv-badges-row">'+badges+'</div>';
 
-  // ═══ Bloque IDA ═══
-  if(t.numTren || (t.sal&&t.lle)){
+  // ═══ Bloque IDA ═══ (solo si corresponde al día seleccionado)
+  if(mostrarIda && (t.numTren || (t.sal&&t.lle))){
     var idaEsDH = (t.estadoServicio==='dh') && t.numTren;
     var numIdaHTML = '';
 
     if(idaEsDH){
-      // Determinar qué tramo es DH y cuál es completo
       var tramoIda = determinarTramoDH(t.estadoServicioDetalle, AJ.base);
       var trenA = tramoIda==='primerTramo' ? t.numTren+'-DH' : t.numTren;
       var trenB = tramoIda==='primerTramo' ? t.numTren       : t.numTren+'-DH';
-      // Renderizar con badge de color para la parte DH
       numIdaHTML = '<div class="tv-num-row">'
         + '<span class="tv-num-part'+(tramoIda==='primerTramo'?' tv-num-dh':'')+'">'+trenA+'</span>'
         + '<span class="tv-num-sep">/</span>'
@@ -4376,7 +4440,6 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       numIdaHTML = '<div class="tv-num">'+t.numTren+'</div>';
     }
 
-    // Etiqueta DH con detalle del tramo (desde X hasta Y)
     var dhIdaTag = '';
     if(idaEsDH){
       dhIdaTag = '<div class="tv-dh-tag">'
@@ -4394,8 +4457,30 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       + '</div>';
   }
 
-  // ═══ Bloque VUELTA ═══
-  if(t.numTrenVuelta || (t.sal2&&t.lle2)){
+  // ═══ Bloque INTERMEDIO (pernocta3, día 2) ═══
+  // Lee datos PROPIOS del registro del día intermedio, no del origen.
+  if(esPernocta3 && tipoClicado === 'pernocta3-intermedio'){
+    // El día intermedio tiene sus propios datos (t = turno origen).
+    // Pero para renderizar el día 2, necesitamos leer TV[selDay.k] directamente.
+    var tInt = tClicadoRaw || {};
+    var tieneTramoInt = tInt.numTren || (tInt.sal && tInt.lle);
+    if(tieneTramoInt){
+      h += '<div class="tv-block" style="border-left:3px solid var(--violet2)">'
+        + '<div class="tv-block-tag">🏨 TRAMO INTERMEDIO</div>'
+        + (tInt.numTren?'<div class="tv-num">'+tInt.numTren+'</div>':'')
+        + (tInt.sal&&tInt.lle?'<div class="tv-route">'+tInt.sal+' → '+tInt.lle+'</div>':'')
+        + (tInt.hF&&tInt.hL?'<div class="tv-hours">'+tInt.hF+' – '+tInt.hL+'</div>':'')
+        + '</div>';
+    } else {
+      h += '<div class="tv-block" style="border-left:3px solid var(--violet2)">'
+        + '<div class="tv-block-tag">🏨 DÍA INTERMEDIO</div>'
+        + '<div style="font-size:11px;color:var(--tx3);padding:4px 0">Sin datos de servicio registrados para este día.</div>'
+        + '</div>';
+    }
+  }
+
+  // ═══ Bloque VUELTA ═══ (solo si corresponde al día seleccionado)
+  if(mostrarVuelta && (t.numTrenVuelta || (t.sal2&&t.lle2))){
     var esP = t.modo==='pernocta'||t.modo==='pernocta3';
     var vtaEsDH = (t.estadoServicioVuelta==='dh') && t.numTrenVuelta;
     var numVtaHTML = '';
@@ -4422,7 +4507,7 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
     }
 
     h += '<div class="tv-block vuelta'+(vtaEsDH?' tv-block-dh':'')+'">'
-      + '<div class="tv-block-tag">'+(esP?'🌙 VUELTA (pernocta)':'↩ VUELTA')+'</div>'
+      + '<div class="tv-block-tag">'+(esP?'🌙 VUELTA':'↩ VUELTA')+'</div>'
       + numVtaHTML
       + dhVtaTag
       + (t.sal2&&t.lle2?'<div class="tv-route">'+t.sal2+' → '+t.lle2+'</div>':'')
@@ -4527,8 +4612,29 @@ function renderDiaArea(){
     // Los importes, nocturnidad exacta, retrasos con impacto económico y
     // pluses siguen intactos y visibles en el acordeón "Turnos del mes".
     body += renderizarPopUpSimplificado(t, esDiaVuelta);
-  } else if(t.tipo==='vuelta-pernocta'){
-    body='<div class="ibox amber"><span class="ibox-i">🌙</span><span>Tramo de vuelta (pernocta). Salida: <strong>'+t.sal+'</strong> → <strong>'+t.lle+'</strong><br>'+t.hF+' – '+t.hL+'</span></div>';
+  } else if(t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio'){
+    // ── Días derivados de pernocta — cada uno tiene sus propios datos ──
+    // t.sal/t.lle/t.hF/t.hL/t.numTren son los datos PROPIOS de este día,
+    // guardados al crear la pernocta. NO repetimos datos del día anterior.
+    var esIntermedio = t.tipo==='pernocta3-intermedio';
+    var diaLbl = esIntermedio ? 'Día 2 de 3 · En tránsito' : 'Último día · Vuelta';
+    body = '<div class="tv-pernocta-dia"><span class="tv-pernocta-badge">🌙 '+diaLbl+'</span></div>';
+    if(t.numTren || (t.sal&&t.lle)){
+      body += '<div class="tv-block '+(esIntermedio?'':'vuelta')+'" style="'
+        +(esIntermedio?'border-left:3px solid var(--violet2)':'')
+        +'">'
+        + '<div class="tv-block-tag">'+(esIntermedio?'🏨 TRAMO INTERMEDIO':'↩ VUELTA')+'</div>'
+        + (t.numTren?'<div class="tv-num">'+t.numTren+'</div>':'')
+        + (t.sal&&t.lle?'<div class="tv-route">'+t.sal+' → '+t.lle+'</div>':'')
+        + (t.hF&&t.hL?'<div class="tv-hours">'+t.hF+' – '+t.hL+'</div>':'')
+        + '</div>';
+    } else {
+      body += '<div class="tv-block" style="border-left:3px solid var(--tx3)">'
+        + '<div class="tv-block-tag">'+(esIntermedio?'🏨 EN TRÁNSITO':'↩ VUELTA')+'</div>'
+        + '<div style="font-size:11px;color:var(--tx3);padding:4px 0">'
+        + (esIntermedio?'Jornada intermedia — sin datos de tren asignados':'Sin datos de vuelta registrados')
+        + '</div></div>';
+    }
   } else if(t.tipo==='reserva'){
     body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva guardada. Usa <strong>"Verificar"</strong> si trabajas.</span></div>'
       +'<button onclick="verificarReserva()" style="width:100%;padding:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#FCD34D;font-size:12px;font-weight:700;cursor:pointer">✅ Verificar reserva</button>';
@@ -4803,8 +4909,8 @@ function editarTurno(){
     return;
   }
 
-  // ── Vuelta pernocta → ir al día de ida y editarlo ─────────────
-  if(t.tipo==='vuelta-pernocta'){
+  // ── Vuelta pernocta o día intermedio → ir al día de ida y editarlo ──
+  if(t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio'){
     if(t.origenPernocta && TV[t.origenPernocta]){
       var kOri=t.origenPernocta;
       var _ko=kOri.split('-').map(Number);var y=_ko[0],mo=_ko[1],dd=_ko[2];
@@ -5118,8 +5224,14 @@ function renderFormBody(){
     h+=secLinea();
     h+=secPreguntaPernocta();
     h+=secTramo('ida');
-    if(F.modo) h+=secTramo('vuelta');
-    if(F.modo==='pernocta3') h+=secTramoIntermedio();
+    // Los tramos 2 y 3 se envuelven en contenedor-vuelta para que
+    // toggleSoloIda pueda ocultarlos/mostrarlos como grupo
+    if(F.modo){
+      h+='<div id="contenedor-vuelta">';
+      if(F.modo==='pernocta3') h+=secTramoIntermedio();
+      h+=secTramo('vuelta');
+      h+='</div>';
+    }
     if(t==='trabajado') h+=secDescFlow();
   } else if(t==='reserva'){
     h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
@@ -5135,130 +5247,40 @@ function renderFormBody(){
 }
 
 function secLinea(){
-  var numTrenVal  = F.numTren||'';
-  var numTren2Val = F.numTrenVuelta||'';
-  var modoActivo  = F.modo;
-  var bCol = numTrenVal?'var(--acc2)':'var(--div)';
+  var modoActivo = F.modo;
   var h = '<div class="fsec">';
-  h += '<div class="fsec-lbl">'+t('numTren')+' (Ida) <span style="color:var(--nar2)">*</span></div>';
-  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-  h += '<div style="font-size:20px">🚆</div>';
-  h += '<input id="inp-numtren" type="text" inputmode="numeric" placeholder="Ej: 2080"'
-     + ' value="'+numTrenVal+'"'
-     + ' oninput="F.numTren=this.value.trim();mostrarSugTren(this.value)"'
-     + ' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
-     + ' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value)"'
-     + ' style="flex:1;background:var(--s2);border:1.5px solid '+bCol+';border-radius:10px;'
-     + 'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
-     + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">';
-  h += '</div>';
-  h += '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
-  // ── BOTÓN DH (IDA) ──
-  var dhIdaActivo = F.estadoServicio==='dh';
-  var dhIdaDetalle = F.estadoServicioDetalle||'';
-  h += '<div id="dh-ida-wrap" style="margin-bottom:12px">';
-  if(dhIdaActivo){
-    // Estado activo: banner ámbar llamativo con el detalle
-    h += '<div onclick="abrirDHPopup(\'ida\')" style="'
-      +'display:flex;align-items:center;gap:10px;'
-      +'background:rgba(245,158,11,.15);'
-      +'border:2px solid var(--amber2);'
-      +'border-radius:12px;padding:11px 14px;cursor:pointer;'
-      +'box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
-      +'<span style="font-size:20px">🔀</span>'
-      +'<div style="flex:1">'
-      +'<div style="font-size:11px;font-weight:900;color:var(--amber2);letter-spacing:.3px">SERVICIO DH ACTIVO</div>'
-      +'<div style="font-size:11px;color:var(--tx2);margin-top:2px">📍 '+dhIdaDetalle+'</div>'
-      +'</div>'
-      +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
-      +'</div>';
-  } else {
-    // Estado inactivo: botón claro con borde naranja sutil
-    h += '<button id="dh-ida-btn" onclick="abrirDHPopup(\'ida\')" style="'
-      +'padding:9px 14px;border-radius:8px;'
-      +'border:1.5px solid var(--div);'
-      +'background:var(--s2);'
-      +'color:var(--tx3);'
-      +'font-size:12px;font-weight:700;cursor:pointer;'
-      +'display:inline-flex;align-items:center;gap:6px;'
-      +'transition:all .15s">'
-      +'🔀 Marcar DH'
-      +'</button>';
-  }
-  h += '</div>';
-  h += '<span id="dh-ida-badge" style="'+(dhIdaDetalle?'':'display:none;')
-    +'background:rgba(245,158,11,.1);border:1px solid var(--amber2);'
-    +'border-radius:8px;padding:4px 10px;font-size:10px;color:var(--amber2);font-weight:700">'
-    +(dhIdaDetalle?'📍 '+dhIdaDetalle:'')+'</span>';
-  h += '</div>';
+
+  // ── Chips de línea (restaurados) ──
+  h += '<div class="fsec-lbl">'+t('linea')+'</div>';
+  h += '<div class="linea-chips">'
+     + Object.keys(LINEAS).map(function(l){
+         return '<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>';
+       }).join('')
+     + '</div>';
+
+  // ── Switch Solo Ida + contenedor-vuelta (restaurados) ──
+  // Solo visible cuando hay modo (ida/pernocta/pernocta3)
   if(modoActivo){
-    var esP = modoActivo==='pernocta';
-    // ── SWITCH SOLO IDA ──
+    var esP = modoActivo==='pernocta'||modoActivo==='pernocta3';
     h += '<div style="display:flex;align-items:center;justify-content:space-between;'
       +'padding:10px 12px;background:var(--s2);border:1px solid var(--div);'
       +'border-radius:12px;margin-bottom:8px;margin-top:4px">'
       +'<div style="display:flex;align-items:center;gap:7px">'
       +'<span style="font-size:14px">'+(esP?'🌙':'↩')+'</span>'
-      +'<div><div style="font-size:9px;font-weight:800;color:var(--amber2);letter-spacing:.5px">TREN VUELTA</div>'
-      +'<div style="font-size:9px;color:var(--tx3);margin-top:1px">Desactiva si no hay vuelta</div></div>'
+      +'<div><div style="font-size:9px;font-weight:800;color:var(--amber2);letter-spacing:.5px">'
+      +(modoActivo==='pernocta3'?'TRAMOS 2 y 3':'TRAMO 2')+'</div>'
+      +'<div style="font-size:9px;color:var(--tx3);margin-top:1px">Desactiva si solo hay un tramo</div></div>'
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:7px;cursor:pointer" onclick="toggleSoloIda()">'
-      +'<span id="solo-ida-lbl" style="font-size:10px;font-weight:800;color:var(--tx3)">Solo Ida</span>'
+      +'<span id="solo-ida-lbl" style="font-size:10px;font-weight:800;color:var(--tx3)">Solo Tramo 1</span>'
       +'<div id="solo-ida-sw" style="width:38px;height:22px;background:var(--div);border-radius:11px;'
       +'position:relative;transition:background .25s;flex-shrink:0">'
       +'<div id="solo-ida-knob" style="width:18px;height:18px;background:var(--tx3);border-radius:50%;'
       +'position:absolute;top:2px;left:2px;transition:left .25s;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>'
       +'</div></div></div>';
-    // ── TREN VUELTA ──
-    h += '<div id="contenedor-vuelta">';
-    h += '<div class="numtren-vuelta-wrap">';
-    h += '<span style="font-size:16px">'+(esP?'🌙':'↩')+'</span>';
-    h += '<div style="flex:1">';
-    h += '<div style="font-size:8px;font-weight:800;color:var(--amber2);letter-spacing:.5px;margin-bottom:3px">';
-    h += 'Nº TREN '+(esP?'VUELTA (día siguiente)':'VUELTA')+'</div>';
-    h += '<input id="inp-numtren2" type="text" inputmode="numeric" placeholder="Ej: 2081"'
-       + ' value="'+numTren2Val+'"'
-       + ' oninput="F.numTrenVuelta=this.value.trim()"'
-       + ' style="width:100%;background:transparent;border:none;color:var(--tx);'
-       + 'font-size:18px;font-weight:800;padding:2px 0;outline:none;'
-       + 'font-variant-numeric:tabular-nums;-moz-appearance:textfield">';
-    h += '</div></div>';
-    // ── BOTÓN DH (VUELTA) ──
-    var dhVueltaActivo = F.estadoServicioVuelta==='dh';
-    var dhVueltaDetalle = F.estadoServicioVueltaDetalle||'';
-    h += '<div id="dh-vuelta-wrap" style="margin-top:10px">';
-    if(dhVueltaActivo){
-      h += '<div onclick="abrirDHPopup(\'vuelta\')" style="'
-        +'display:flex;align-items:center;gap:10px;'
-        +'background:rgba(245,158,11,.15);'
-        +'border:2px solid var(--amber2);'
-        +'border-radius:12px;padding:11px 14px;cursor:pointer;'
-        +'box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
-        +'<span style="font-size:20px">🔀</span>'
-        +'<div style="flex:1">'
-        +'<div style="font-size:11px;font-weight:900;color:var(--amber2);letter-spacing:.3px">VUELTA EN DH</div>'
-        +'<div style="font-size:11px;color:var(--tx2);margin-top:2px">📍 '+dhVueltaDetalle+'</div>'
-        +'</div>'
-        +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
-        +'</div>';
-    } else {
-      h += '<button id="dh-vuelta-btn" onclick="abrirDHPopup(\'vuelta\')" style="'
-        +'padding:9px 14px;border-radius:8px;'
-        +'border:1.5px solid var(--div);'
-        +'background:var(--s2);color:var(--tx3);'
-        +'font-size:12px;font-weight:700;cursor:pointer;'
-        +'display:inline-flex;align-items:center;gap:6px;'
-        +'transition:all .15s">'
-        +'🔀 Marcar DH'
-        +'</button>';
-    }
-    h += '</div>'; // dh-vuelta-wrap
-    h += '</div>'; // contenedor-vuelta
   }
-  h += '<div class="fsec-lbl">'+t('linea')+'</div>';
-  h += '<div class="linea-chips">'
-     + Object.keys(LINEAS).map(function(l){return '<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>';}).join('')
-     + '</div></div>';
+
+  h += '</div>';
   return h;
 }
 
@@ -5279,19 +5301,73 @@ function secTramo(tramo){
   var sk=esV?'sal2':'sal',lk=esV?'lle2':'lle',hFk=esV?'hF2':'hF',hLk=esV?'hL2':'hL';
   var sv=F[sk]||'',lv=F[lk]||'',hFv=F[hFk]||'',hLv=F[hLk]||'';
   var isBase=!esV&&sv&&sv===AJ.base;
-  // Sugerir estaciones invertidas en vuelta
-  var sShow=sv||(esV?F.lle:'');
-  var lShow=lv||(esV?F.sal:'');
+  var sShow=sv;
+  var lShow=lv;
   var esPernocta=(F.modo==='pernocta'||F.modo==='pernocta3');
-  var hdrColor=esV?(esPernocta?'rgba(245,158,11,.12)':'rgba(59,127,255,.1)'):'rgba(59,127,255,.08)';
-  var hdrTxtColor=esV?(esPernocta?'var(--amber2)':'var(--acc2)'):'var(--acc2)';
-  var hdrIco=esV?(esPernocta?'🌙':'↩'):'🚂';
-  var hdrTxt=esV?(esPernocta?'TRAMO VUELTA — día siguiente':'TRAMO VUELTA — mismo día'):'TRAMO IDA';
+
+  // ── Etiquetas por tramo/día ──
+  var hdrColor, hdrTxtColor, hdrIco, hdrTxt;
+  if(esV){
+    if(F.modo==='pernocta3'){
+      hdrIco='3️⃣'; hdrTxt='TRAMO 3 — Día 3';
+      hdrColor='rgba(245,158,11,.12)'; hdrTxtColor='var(--amber2)';
+    } else if(esPernocta){
+      hdrIco='2️⃣'; hdrTxt='TRAMO 2 — Día 2';
+      hdrColor='rgba(245,158,11,.12)'; hdrTxtColor='var(--amber2)';
+    } else {
+      hdrIco='2️⃣'; hdrTxt='TRAMO 2 — Mismo día';
+      hdrColor='rgba(59,127,255,.1)'; hdrTxtColor='var(--acc2)';
+    }
+  } else {
+    hdrIco='1️⃣'; hdrTxt='TRAMO 1 — Día 1';
+    hdrColor='rgba(59,127,255,.08)'; hdrTxtColor='var(--acc2)';
+  }
+
+  // ── Nº Tren (propio de este tramo) ──
+  var trenKey   = esV ? 'numTrenVuelta' : 'numTren';
+  var trenVal   = F[trenKey] || '';
+  var trenId    = esV ? 'inp-numtren2' : 'inp-numtren';
+  var trenBCol  = trenVal ? 'var(--acc2)' : 'var(--div)';
+  var trenOninput = esV
+    ? 'F.numTrenVuelta=this.value.trim()'
+    : 'F.numTren=this.value.trim();mostrarSugTren(this.value)';
+  var trenExtra = esV ? '' : ''
+    +' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
+    +' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value)"';
+  var sugCont = esV ? '' : '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
+
+  // ── DH de este tramo ──
+  var dhTramoKey = esV ? 'vuelta' : 'ida';
+  var dhActivo   = esV ? F.estadoServicioVuelta==='dh' : F.estadoServicio==='dh';
+  var dhDetalle  = esV ? (F.estadoServicioVueltaDetalle||'') : (F.estadoServicioDetalle||'');
+  var dhHTML = '';
+  if(dhActivo){
+    dhHTML = '<div onclick="abrirDHPopup(\''+dhTramoKey+'\')" style="'
+      +'display:flex;align-items:center;gap:10px;'
+      +'background:rgba(245,158,11,.15);border:2px solid var(--amber2);'
+      +'border-radius:12px;padding:10px 14px;cursor:pointer;margin-bottom:8px;'
+      +'box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
+      +'<span style="font-size:18px">🔀</span>'
+      +'<div style="flex:1">'
+      +'<div style="font-size:10px;font-weight:900;color:var(--amber2)">SERVICIO DH ACTIVO</div>'
+      +'<div style="font-size:10px;color:var(--tx2);margin-top:2px">📍 '+dhDetalle+'</div>'
+      +'</div>'
+      +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
+      +'</div>';
+  } else {
+    dhHTML = '<button onclick="abrirDHPopup(\''+dhTramoKey+'\')" style="'
+      +'padding:7px 12px;border-radius:8px;border:1.5px solid var(--div);'
+      +'background:var(--s2);color:var(--tx3);font-size:11px;font-weight:700;'
+      +'cursor:pointer;display:inline-flex;align-items:center;gap:5px;'
+      +'margin-bottom:8px;transition:all .15s">'
+      +'🔀 Marcar DH</button>';
+  }
+
+  // ── Duración y nocturnidad ──
   var dur=hFv&&hLv?'<div class="dur-badge" id="dur-'+(esV?'v':'i')+'">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-'+(esV?'v':'i')+'"></div>';
-  // Indicador nocturnidad automático — para todos los tipos de turno
-  var hayNocIda  = (F.hF && esHoraNocturna(F.hF))  || (F.hL  && esHoraNocturna(F.hL));
-  var hayNocVuel = (F.hF2&& esHoraNocturna(F.hF2)) || (F.hL2 && esHoraNocturna(F.hL2));
-  var hayNocEste = esV ? hayNocVuel : hayNocIda;
+  var hayNocEste = esV
+    ? ((F.hF2&&esHoraNocturna(F.hF2))||(F.hL2&&esHoraNocturna(F.hL2)))
+    : ((F.hF&&esHoraNocturna(F.hF))||(F.hL&&esHoraNocturna(F.hL)));
   var nocBadge = hayNocEste
     ? '<div style="display:inline-flex;align-items:center;gap:5px;'
       +'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);'
@@ -5305,6 +5381,21 @@ function secTramo(tramo){
     +'<span>'+hdrIco+'</span>'
     +'<span style="font-size:9px;font-weight:800;color:'+hdrTxtColor+'">'+hdrTxt+'</span>'
     +'</div>'
+    // Nº Tren — SIEMPRE arriba, dentro del bloque
+    +'<div class="fsec-lbl">Nº Tren</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+    +'<div style="font-size:20px">🚆</div>'
+    +'<input id="'+trenId+'" type="text" inputmode="numeric" placeholder="Ej: 2080"'
+    +' value="'+trenVal+'"'
+    +' oninput="'+trenOninput+'"'
+    +trenExtra
+    +' style="flex:1;background:var(--s2);border:1.5px solid '+trenBCol+';border-radius:10px;'
+    +'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
+    +'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">'
+    +'</div>'
+    +sugCont
+    +dhHTML
+    // Trayecto
     +'<div class="fsec-lbl">Trayecto</div>'
     +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\''+sk+'\')">'
     +'<div class="sf-i">🚉</div><div class="sf-b"><div class="sf-lbl">SALIDA</div>'
@@ -5315,6 +5406,7 @@ function secTramo(tramo){
     +'<div class="sf-i">🏁</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
     +'<div class="sf-val '+(lShow?'':'ph')+'" data-f="'+lk+'">'+(lShow||'Seleccionar')+'</div>'
     +'</div><span class="sf-arr">⌄</span></div>'
+    // Horario
     +'<div class="fsec-lbl" style="margin-top:5px">Horario</div>'
     +'<div class="hora-row">'
     +'<div class="sf '+(hFv?'fil':'')+'" onclick="openHora(\''+hFk+'\')">'
@@ -5348,17 +5440,18 @@ function secDescansoOpciones(){
 ═══════════════════════════════════════════════════════════ */
 function secTramoIntermedio(){
   var sv=F.sal3||'',lv=F.lle3||'',hFv=F.hF3||'',hLv=F.hL3||'';
-  var sShow=sv||F.lle2||'';
-  var lShow=lv||'';
+  // SIN sugerencias cruzadas — cada campo muestra SOLO lo que tiene
+  var sShow=sv;
+  var lShow=lv;
   var numTrenIntVal = F.numTrenIntermedio||'';
   var dur=hFv&&hLv?'<div class="dur-badge" id="dur-i3">⏱ '+calcDur(hFv,hLv)+'</div>':'<div id="dur-i3"></div>';
 
-  // ESCALA entre Tren 1 (ida, día 1) y Tren 2 (este tramo intermedio)
+  // Escalas informativas (solo lectura, no modifican datos)
   var escala12 = calcularEscala(F.hL, hFv);
   var escalaBadge12 = escala12
     ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,.1);'
       +'border:1px solid rgba(59,130,246,.3);border-radius:7px;padding:4px 10px;font-size:10px;'
-      +'font-weight:700;color:var(--acc2);margin-bottom:6px">⏳ Escala Tren 1→2: '+escala12.txt+'</div>'
+      +'font-weight:700;color:var(--acc2);margin-bottom:6px">⏳ Escala Tramo 1→2: '+escala12.txt+'</div>'
     : '';
   var hayNocEste=(hFv&&esHoraNocturna(hFv))||(hLv&&esHoraNocturna(hLv));
   var nocBadge=hayNocEste
@@ -5368,19 +5461,17 @@ function secTramoIntermedio(){
       +'color:var(--amber2);margin-bottom:6px">'
       +'🌙 Nocturnidad activa · +'+parseFloat(AJ.nocturnidad||0).toFixed(2)+' €/h</div>'
     : '';
-
-  // ESCALA entre Tren 2 (este tramo) y Tren 3 (vuelta final, día 3)
   var escala23 = calcularEscala(hLv, F.hF2);
   var escalaBadge23 = escala23
     ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(59,130,246,.1);'
       +'border:1px solid rgba(59,130,246,.3);border-radius:7px;padding:4px 10px;font-size:10px;'
-      +'font-weight:700;color:var(--acc2);margin-bottom:6px;margin-left:6px">⏳ Escala Tren 2→3: '+escala23.txt+'</div>'
+      +'font-weight:700;color:var(--acc2);margin-bottom:6px;margin-left:6px">⏳ Escala Tramo 2→3: '+escala23.txt+'</div>'
     : '';
 
   return '<div class="fsec" style="border-top:1px solid var(--div)">'
-    +'<div class="tramo-hdr" style="background:rgba(245,158,11,.12);margin-bottom:5px">'
-    +'<span>🌙</span>'
-    +'<span style="font-size:9px;font-weight:800;color:var(--amber2)">TRAMO INTERMEDIO — día 2 de 3</span>'
+    +'<div class="tramo-hdr" style="background:rgba(139,92,246,.12);margin-bottom:5px">'
+    +'<span>2️⃣</span>'
+    +'<span style="font-size:9px;font-weight:800;color:var(--violet2)">TRAMO 2 — Día 2</span>'
     +'</div>'
     +escalaBadge12+escalaBadge23
     +'<div class="fsec-lbl">Nº Tren (tramo intermedio)</div>'
@@ -5618,7 +5709,7 @@ function setModo(m){
     diasComp=[]; F.diasComp=[];
   }
   F.modo=m; F.comp=null;
-  if(m==='pernocta'||m==='pernocta3'){if(!F.sal2&&F.lle)F.sal2=F.lle;if(!F.lle2&&F.sal)F.lle2=F.sal;}
+  // Pernocta: NO autocompletar sal2/lle2 — cada tramo es independiente.
   renderFormBody();
 }
 function setComp(c){F.comp=c;renderFormBody();if(c==='dias')setTimeout(renderMiniCal,50);}
@@ -5647,8 +5738,8 @@ function guardarTurno(){
     d.estadoServicioDetalle=F.estadoServicioDetalle||'';
     d.estadoServicioVuelta=F.estadoServicioVuelta||'ordinario';
     d.estadoServicioVueltaDetalle=F.estadoServicioVueltaDetalle||'';
-    d.sal2=F.sal2||(F.lle||null);
-    d.lle2=F.lle2||(F.sal||null);
+    d.sal2=F.sal2||null;
+    d.lle2=F.lle2||null;
     d.hF2=F.hF2;d.hL2=F.hL2;
     var hIda=F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
     var hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
@@ -5668,7 +5759,8 @@ function guardarTurno(){
       var kSig=key(sig.getFullYear(),sig.getMonth()+1,sig.getDate());
       if(TV[kSig]&&TV[kSig].origenPernocta===k) delete TV[kSig];
       TV[kSig]={tipo:'vuelta-pernocta',linea:F.linea,
-        sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
+        sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
+        numTren:F.numTrenVuelta||'',
         nocturno:d.nocturno,origenPernocta:k};
       d.diaSiguiente=kSig;
       // Limpiar restos de una pernocta3 previa en este mismo día de origen
@@ -5689,7 +5781,8 @@ function guardarTurno(){
         numTren:F.numTrenIntermedio||'',
         nocturno:nocIntermedio,origenPernocta:k};
       TV[kFin]={tipo:'vuelta-pernocta',linea:F.linea,
-        sal:d.sal2,lle:d.lle2,hF:F.hF2,hL:F.hL2,
+        sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
+        numTren:F.numTrenVuelta||'',
         nocturno:d.nocturno,origenPernocta:k};
       d.numTrenIntermedio=F.numTrenIntermedio||'';
       d.diaIntermedio=kInt;
@@ -5893,11 +5986,7 @@ function selEst(e){
     var destinoSiguiente = F.modo==='pernocta3' ? 'sal3' : 'sal2';
     F[destinoSiguiente]=e;
   } else if(estField==='lle3' && F.modo==='pernocta3'){
-    F.sal2=e;
-    // Cierre automático del ciclo: en cuanto se conoce la salida del último
-    // tramo (C), la llegada final se fija sola a la Base — el usuario ya
-    // no tiene que elegirla manualmente.
-    if(AJ.base) F.lle2 = AJ.base;
+    // Pernocta3: NO autocompletar sal2/lle2 — el usuario elige cada campo.
   }
 
   var el=document.querySelector('[data-f="'+estField+'"]');
