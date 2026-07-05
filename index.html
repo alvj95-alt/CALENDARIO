@@ -639,6 +639,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             transition:all .18s}
 .aj-del-btn:hover{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.5);color:var(--red2)}
 
+/* Botón Apoyo al Desarrollo — Buy Me a Coffee */
+.bmc-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+         padding:13px;border-radius:14px;text-decoration:none;
+         font-size:14px;font-weight:800;letter-spacing:-.2px;
+         background:linear-gradient(135deg,var(--acc),var(--acc2));
+         color:#fff;box-shadow:var(--sh-btn);transition:all .2s}
+.bmc-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.bmc-btn:active{transform:scale(.98)}
+
 /* Footer versión */
 .aj-ver{text-align:center;font-size:9px;color:var(--tx3);padding:4px 0 8px;
         display:flex;align-items:center;justify-content:center;gap:6px}
@@ -1996,6 +2005,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .base-badge{font-size:9px;font-weight:800;letter-spacing:.4px;padding:2px 8px;border-radius:20px;flex-shrink:0}
 .badge-ok{background:rgba(22,163,74,.15);color:var(--green2);border:1px solid rgba(22,163,74,.3)}
 .badge-pend{background:rgba(249,115,22,.15);color:var(--nar2);border:1px solid rgba(249,115,22,.3)}
+.base-del-btn{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:var(--red2);
+              font-size:13px;width:28px;height:28px;border-radius:9px;flex-shrink:0;cursor:pointer;
+              display:flex;align-items:center;justify-content:center;transition:all .15s}
+.base-del-btn:hover{background:rgba(220,38,38,.22);border-color:var(--red)}
 .base-arr{color:var(--tx3);font-size:16px;flex-shrink:0}
 
 .upload-form{background:var(--s2);border:1px solid var(--div);border-radius:14px;padding:14px;margin-top:2px;
@@ -2616,6 +2629,29 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
         <div class="aj-card-body" style="padding:10px 14px 12px">
           <button class="upload-btn" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="abrirAyuda()">📖 Ver ayuda y conceptos</button>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      <!-- ── ACORDEÓN: Apoyo al Desarrollo ── -->
+      <div class="aj-acc-item" id="aj-acc-apoyo">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-apoyo')">
+          <span class="aj-acc-hdr-ico">☕</span>
+          <span class="aj-acc-hdr-tit">Apoyo al Desarrollo</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+<div class="aj-card">
+        <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(37,99,235,.04))">
+          <div class="aj-card-hdr-ico">☕</div>
+          <div class="aj-card-hdr-txt">
+            <div class="aj-card-hdr-tit" style="color:var(--acc2)">Apoyo al Desarrollo</div>
+            <div class="aj-card-hdr-sub" style="color:var(--acc2)">Si esta app te ahorra tiempo, considera invitarme un café</div>
+          </div>
+        </div>
+        <div class="aj-card-body" style="padding:10px 14px 12px">
+          <a href="https://buymeacoffee.com/calendario" target="_blank" rel="noopener noreferrer" class="bmc-btn">☕ Invítame a un café</a>
         </div>
       </div>
         </div>
@@ -3244,6 +3280,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="base-name">Barcelona</div>
             <div class="base-meta" id="meta-barcelona">Aún sin plantilla cargada</div>
           </div>
+          <button class="base-del-btn" id="del-barcelona" title="Eliminar PDF" style="display:none">🗑</button>
           <div class="base-badge badge-pend" id="badge-barcelona">SUBIR PDF</div>
           <div class="base-arr">›</div>
         </div>
@@ -3267,6 +3304,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="base-name">Madrid</div>
             <div class="base-meta" id="meta-madrid">Aún sin plantilla cargada</div>
           </div>
+          <button class="base-del-btn" id="del-madrid" title="Eliminar PDF" style="display:none">🗑</button>
           <div class="base-badge badge-pend" id="badge-madrid">SUBIR PDF</div>
           <div class="base-arr">›</div>
         </div>
@@ -8342,7 +8380,7 @@ function renderToday(diasData, meta){
   if(rowAbajo) rowAbajo.classList.add('is-today');
 }
 
-// === PARSER DEL PDF (formato individual Serveo) ===
+// === PARSER DEL PDF (formato individual) ===
 function parseSchedulePdfText(text){
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
@@ -9469,16 +9507,72 @@ const BASES = {
 let activeBaseKey = null;
 let activeBase = null;
 
+// ── Persistencia local (localStorage) — 100% en el dispositivo, nunca sale de aquí ──
+const AT_STORAGE_KEY = 'appTurnoBasesGuardadas';
+function atGuardarBases(){
+  try{
+    const payload = {
+      barcelona: { month: BASES.barcelona.month, data: BASES.barcelona.data },
+      madrid:    { month: BASES.madrid.month,    data: BASES.madrid.data }
+    };
+    localStorage.setItem(AT_STORAGE_KEY, JSON.stringify(payload));
+  }catch(e){
+    console.warn('No se pudieron guardar los datos de turnos localmente.', e);
+  }
+}
+function atCargarBases(){
+  try{
+    const raw = localStorage.getItem(AT_STORAGE_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(saved && saved.barcelona && Array.isArray(saved.barcelona.data)){
+      BASES.barcelona.data = saved.barcelona.data;
+      BASES.barcelona.month = saved.barcelona.month || '—';
+    }
+    if(saved && saved.madrid && Array.isArray(saved.madrid.data)){
+      BASES.madrid.data = saved.madrid.data;
+      BASES.madrid.month = saved.madrid.month || '—';
+    }
+  }catch(e){
+    console.warn('No se pudieron leer los datos guardados; se ignoran.', e);
+  }
+}
+atCargarBases();
+
 function refreshBaseCards(){
   const b = BASES.barcelona, m = BASES.madrid;
   document.getElementById('meta-barcelona').textContent = b.data ? `${b.data.length} empleados · ${b.month}` : 'Aún sin plantilla cargada';
   document.getElementById('badge-barcelona').textContent = b.data ? 'LISTA' : 'SUBIR PDF';
   document.getElementById('badge-barcelona').className = 'base-badge ' + (b.data ? 'badge-ok' : 'badge-pend');
+  document.getElementById('del-barcelona').style.display = b.data ? 'flex' : 'none';
   document.getElementById('meta-madrid').textContent = m.data ? `${m.data.length} empleados · ${m.month}` : 'Aún sin plantilla cargada';
   document.getElementById('badge-madrid').textContent = m.data ? 'LISTA' : 'SUBIR PDF';
   document.getElementById('badge-madrid').className = 'base-badge ' + (m.data ? 'badge-ok' : 'badge-pend');
+  document.getElementById('del-madrid').style.display = m.data ? 'flex' : 'none';
 }
 refreshBaseCards();
+
+function atEliminarBase(key, label){
+  const ok = confirm('¿Eliminar el PDF de ' + label + '? Se borrarán los datos guardados en este dispositivo y tendrás que subir uno nuevo para volver a buscar.');
+  if(!ok) return;
+  BASES[key].data = null;
+  BASES[key].month = '—';
+  atGuardarBases();
+  refreshBaseCards();
+  if(activeBaseKey === key){
+    activeBaseKey = null;
+    activeBase = null;
+    showPanel('panel-select');
+  }
+}
+document.getElementById('del-barcelona').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  atEliminarBase('barcelona', 'Barcelona');
+});
+document.getElementById('del-madrid').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  atEliminarBase('madrid', 'Madrid');
+});
 
 function showPanel(id){
   document.querySelectorAll('.at-panel').forEach(p=>p.classList.remove('on'));
@@ -9624,6 +9718,7 @@ async function procesarPdfParaBase(key, label, file){
       throw new Error('No se detectó ninguna plantilla de turnos reconocible en este PDF.');
     }
     BASES[key].data = empleados;
+    atGuardarBases();
     progressTxt.textContent = `¡Listo! ${empleados.length} empleados cargados en ${label}.`;
     progressBar.style.width = '100%';
     refreshBaseCards();
