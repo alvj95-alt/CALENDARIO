@@ -1582,6 +1582,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   .tramo{
     display:flex;
     align-items:center;
+    flex-wrap:wrap;
     gap:10px;
     padding:8px 0;
     border-top:1px dashed var(--line);
@@ -1643,6 +1644,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     color:var(--text-dim);
   }
   .day-foot b{color:var(--text);font-family:'Space Mono',monospace;}
+
+  /* ── DH manual por tramo — botón que abre el pop-up de validación ── */
+  .tramo-dh-row{width:100%;flex-basis:100%;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+  .tramo-dh-btn{
+    font-family:'Inter',sans-serif;font-size:10px;font-weight:700;
+    background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    color:var(--text-dim);padding:5px 10px;cursor:pointer;
+  }
+  .tramo-dh-btn.active{background:rgba(245,166,35,.15);border-color:var(--amber);color:var(--amber)}
 
   @media (max-width:480px){
     .day{grid-template-columns:48px 1fr;}
@@ -2349,6 +2359,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="mn-btn" onclick="chSM(1)">›</button>
     </div>
     <div class="st-body">
+      <button id="btnHorasComparativa" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="toggleHorasComparativa()">⏱ Horas</button>
+      <div id="horas-comparativa-panel" style="display:none;margin-bottom:10px"></div>
       <div id="role-card"></div>
       <div class="sg" id="sg"></div>
       <div id="cs-box"></div>
@@ -2876,7 +2888,36 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <input id="dh-desde" type="text" placeholder="Vacío = desde el origen" autocomplete="off"
         style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
         color:var(--tx);font-size:14px;padding:12px 14px;outline:none;margin-bottom:20px;font-family:inherit">
-      <div style="display:flex;gap:8px">
+
+      <div class="fsec-lbl">¿ES EL MISMO TREN O UN TREN DIFERENTE? <span style="color:var(--nar2)">*</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button id="dh-btn-mismo" onclick="seleccionarMismoTrenDHCal(true)"
+          style="flex:1;padding:12px 6px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;
+          background:var(--s2);border:1.5px solid var(--div);color:var(--tx2);transition:all .15s">
+          Mismo tren
+        </button>
+        <button id="dh-btn-dif" onclick="seleccionarMismoTrenDHCal(false)"
+          style="flex:1;padding:12px 6px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;
+          background:var(--s2);border:1.5px solid var(--div);color:var(--tx2);transition:all .15s">
+          Tren diferente
+        </button>
+      </div>
+      <div class="fsec-lbl">¿CUÁL ES EL NÚMERO DE TREN DH? <span style="color:var(--nar2)">*</span></div>
+      <input id="dh-tren" type="text" inputmode="numeric" placeholder="Ej: 4501" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:14px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="fsec-lbl">¿CUÁL ES LA DURACIÓN EXACTA DEL DH (MINUTOS)? <span style="color:var(--nar2)">*</span></div>
+      <input id="dh-min" type="number" inputmode="numeric" min="0" max="999" placeholder="Ej: 45" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:8px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="ibox blue" style="margin-top:6px;margin-bottom:6px">
+        <span class="ibox-i">ℹ️</span>
+        <span>Estos minutos se contarán como Horas de Presencia, nunca como Horas Efectivas.</span>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
         <button onclick="cancelarDH()"
           style="flex:1;padding:14px;background:var(--s2);border:1px solid var(--div);
           border-radius:11px;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer">
@@ -2889,6 +2930,75 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           ✓ Confirmar DH
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO VALIDACIÓN DH POR TRAMO — Pop-up obligatorio que se
+     muestra al marcar un tramo del horario individual como DH.
+     Completamente aditivo: no toca TV, AJ, ni el parseo del PDF.
+     Guarda el resultado en tramos[].dh = {mismoTren, trenDH, duracionMin}.
+     Los minutos confirmados aquí se etiquetan como Horas de
+     Presencia (nunca Efectivas) en calcularHorasAppDesdeDias().
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-dh-validacion" onclick="if(event.target===this)cancelarValidacionDH()">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:78%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔀</div>
+      <div>
+        <div class="sh-tit">Validación DH</div>
+        <div class="sh-sub" id="dhval-subtit">Confirma los datos de este tramo</div>
+      </div>
+      <button class="sh-close" onclick="cancelarValidacionDH()">✕</button>
+    </div>
+    <div style="padding:16px 18px 28px;overflow-y:auto">
+      <div class="fsec-lbl">¿ES EL MISMO TREN O UN TREN DIFERENTE? <span style="color:var(--nar2)">*</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button id="dhval-btn-mismo" onclick="seleccionarMismoTrenDH(true)"
+          style="flex:1;padding:12px 6px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;
+          background:var(--s2);border:1.5px solid var(--div);color:var(--tx2);transition:all .15s">
+          Mismo tren
+        </button>
+        <button id="dhval-btn-dif" onclick="seleccionarMismoTrenDH(false)"
+          style="flex:1;padding:12px 6px;border-radius:10px;cursor:pointer;font-size:12px;font-weight:700;
+          background:var(--s2);border:1.5px solid var(--div);color:var(--tx2);transition:all .15s">
+          Tren diferente
+        </button>
+      </div>
+      <div class="fsec-lbl">¿CUÁL ES EL NÚMERO DE TREN DH? <span style="color:var(--nar2)">*</span></div>
+      <input id="dhval-tren" type="text" inputmode="numeric" placeholder="Ej: 4501" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:14px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="fsec-lbl">¿CUÁL ES LA DURACIÓN EXACTA DEL DH (MINUTOS)? <span style="color:var(--nar2)">*</span></div>
+      <input id="dhval-min" type="number" inputmode="numeric" min="0" max="999" placeholder="Ej: 45" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:8px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="ibox blue" style="margin-top:6px">
+        <span class="ibox-i">ℹ️</span>
+        <span>Estos minutos se contarán como Horas de Presencia, nunca como Horas Efectivas.</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button onclick="cancelarValidacionDH()"
+          style="flex:1;padding:14px;background:var(--s2);border:1px solid var(--div);
+          border-radius:11px;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer">
+          Cancelar
+        </button>
+        <button onclick="confirmarValidacionDH()"
+          style="flex:2;padding:14px;background:linear-gradient(135deg,var(--amber2),#b45309);
+          border:none;border-radius:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;
+          box-shadow:0 4px 16px rgba(245,158,11,.3)">
+          ✓ Confirmar validación
+        </button>
+      </div>
+      <button id="dhval-quitar" onclick="quitarValidacionDH()" style="display:none;width:100%;margin-top:10px;
+        padding:10px;background:none;border:none;color:var(--tx3);font-size:12px;cursor:pointer;
+        text-decoration:underline">
+        Quitar DH de este tramo
+      </button>
     </div>
   </div>
 </div>
@@ -3643,14 +3753,15 @@ function init(){
   ['tv3','tv4','aj3','aj4'].forEach(function(k){localStorage.removeItem(k);});
   // Detectar y limpiar datos con días comp en mes incorrecto
   limpiarDatosObsoletos();
+  // Reubicar retrasos de tramo 2 guardados antes de esta versión en la
+  // celda de origen de una pernocta — pasan a vivir en la celda del día
+  // de vuelta, que es donde ocurren realmente. Solo mueve datos, nunca
+  // los elimina.
+  migrarRetrasosPernocta();
 
   setInterval(function(){var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());},15000);
   var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
   loadAjUI();
-  // Cargar idioma guardado (en tiempo real, sin reiniciar)
-  // Selector de idiomas eliminado: la app trabaja exclusivamente en español.
-  // Se ignora cualquier AJ.idioma guardado de sesiones anteriores.
-  AJ.idioma = 'es';
   renderCal();
   renderStats();
   initSwipe(); // activar swipe táctil en calendario
@@ -3680,376 +3791,50 @@ function limpiarDatosObsoletos(){
   return;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   MIGRACIÓN — Retrasos de pernocta a su celda real.
+   Antes, el tramo 2 (vuelta) de una pernocta podía quedar guardado
+   en la celda de origen (día 1) en vez de en la celda del día de
+   vuelta. Esta función, puramente aditiva, reubica ese dato una
+   sola vez: MUEVE el retraso de tramo 2 desde el registro de
+   origen hasta el registro de TV[diaSiguiente], y lo retira del
+   de origen. Nunca borra información sin haberla copiado antes.
+   No toca ningún otro campo ni afecta a los turnos "mismo día".
+═══════════════════════════════════════════════════════════ */
+function migrarRetrasosPernocta(){
+  try{
+    var cambios = false;
+    Object.keys(TV).forEach(function(k){
+      var t = TV[k];
+      if(!t) return;
+      var esPernocta = (t.tipo==='ordinario'||t.tipo==='trabajado') && (t.modo==='pernocta'||t.modo==='pernocta3');
+      if(!esPernocta || !t.diaSiguiente || !TV[t.diaSiguiente]) return;
+      if(!t.retrasos || !t.retrasos.length) return;
+      var tramo2 = t.retrasos.filter(function(r){ return r.tramo===2; })[0];
+      if(!tramo2) return;
+      var destino = TV[t.diaSiguiente];
+      if(!destino.retrasos) destino.retrasos = [];
+      // No sobrescribir si el destino ya tiene su propio tramo 2 registrado.
+      var yaExiste = destino.retrasos.some(function(r){ return r.tramo===2; });
+      if(!yaExiste){
+        destino.retrasos.push({tramo:2, minutos:tramo2.minutos, tren:tramo2.tren||''});
+        cambios = true;
+      }
+      // Retirar el tramo 2 del origen — su lugar correcto es el día de vuelta.
+      t.retrasos = t.retrasos.filter(function(r){ return r.tramo!==2; });
+      if(t.retrasos.length===0) delete t.retrasos;
+      cambios = true;
+    });
+    if(cambios) saveTV();
+  }catch(e){
+    console.warn('No se pudo completar la migración de retrasos de pernocta; los datos originales se mantienen intactos.', e);
+  }
+}
+
 /* ═══════════════════════════════════════
    CALENDARIO
 ═══════════════════════════════════════ */
-/* ═══════════════════════════════════════
-   INTERNACIONALIZACIÓN (i18n)
-   Equivalente a flutter_localizations + intl
-   Idiomas: es, en, fr, ca, zh
-═══════════════════════════════════════ */
-const I18N = {
-  es: {
-    // App general
-    appTitulo:'Mis Turnos', idioma:'Idioma',
-    // Nav
-    navCal:'CALENDARIO', navStats:'STATS', navAjustes:'AJUSTES',
-    // Header pills
-    tripulante:'TRIPULANTE', auxiliar:'AUXILIAR',
-    // Tipos de turno
-    tipoOrdinario:'Ordinario', tipoReserva:'Reserva', tipoDescanso:'Descanso',
-    tipoBaja:'Baja', tipoTrabajado:'Trabajado', tipoComp:'Comp.', tipoVuelta:'Vuelta',
-    // Subtipos descripcion
-    descOrdinario:'Turno normal de trabajo', descReserva:'De guardia, sin tramo aún',
-    descDescanso:'Día libre o trabajado', descBaja:'Médica o laboral',
-    // Meses
-    meses:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
-    mesesCorto:['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
-    dias:['lunes','martes','miércoles','jueves','viernes','sábado','domingo'],
-    hoy:'Hoy',
-    // Formulario
-    guardar:'Guardar', eliminar:'Eliminar', cancelar:'Cancelar',
-    editar:'✏️ Editar', nuevoTurno:'Agregar turno', sinTurno:'Sin turno asignado',
-    // Tramos
-    tramoIda:'TRAMO IDA', tramoVuelta:'TRAMO VUELTA',
-    mismodia:'Mismo día', pernocta:'Pernocta',
-    vueltaMismodia:'Ida y vuelta hoy', vueltaDiaSig:'Vuelta al día siguiente',
-    salida:'SALIDA', llegada:'LLEGADA', firma:'FIRMA',
-    seleccionar:'Seleccionar', seleccionarEst:'Seleccionar estación',
-    horario:'Horario', trayecto:'Trayecto', linea:'Línea',
-    numTren:'Número de Tren', notas:'Notas opcionales…',
-    // Compensación
-    compensacion:'Compensación', enDinero:'En dinero', enDias:'días',
-    pagoEuro:'Pago €', mesSiguiente:'Mes siguiente',
-    totalCobrar:'Total a cobrar', horasIda:'Horas ida', horasVuelta:'Horas vuelta',
-    totalHoras:'Total horas', tarifa:'Tarifa',
-    seleccionaDias:'Selecciona', diasMesSig:'días en el mes siguiente',
-    // Pluses
-    plusActivacion:'Plus Activación', plusJT:'Plus JT', plusIntl:'Plus Internacional',
-    plusViaje:'€/viaje', nocturnidad:'Nocturnidad activa',
-    plusIntlAuto:'Plus Internacional activado automáticamente',
-    // Ajustes
-    perfil:'Perfil', nombreMatricula:'Nombre, matrícula y rol activo',
-    tuNombre:'Nombre completo…', tuMatricula:'Número de matrícula…',
-    estBase:'Estación Base', estBaseDesc:'Salida autocompletada en cada turno',
-    tocaSeleccionar:'Toca para seleccionar', estBaseLabel:'ESTACIÓN BASE FIJA',
-    economia:'Economía', tarifasPluses:'Tarifas y pluses por viaje',
-    valorHora:'Valor hora base', nocturno:'Plus Nocturnidad',
-    nocturnoDesc:'22:00 – 06:00 · suma al valor hora',
-    plusesViaje:'PLUSES FIJOS POR VIAJE',
-    plusManual:'se activan manualmente en cada viaje',
-    plusAutoIntl:'se activa automáticamente en líneas internacionales',
-    almacenamiento:'Almacenamiento', sinInternet:'100% local, sin internet',
-    offline:'Sin conexión a internet', offlineDesc:'Todos los datos en tu dispositivo',
-    autoguardado:'Guardado automático', autoguardadoDesc:'Cada cambio persiste al instante',
-    backup:'Backup de datos', backupDesc:'Exportar e importar todos tus turnos',
-    exportar:'📤 Exportar / Descargar backup', importar:'📥 Importar backup',
-    guardarAjustes:'💾  Guardar ajustes', borrarTurnos:'🗑  Borrar todos los turnos',
-    ajustesGuardados:'✅ Ajustes guardados',
-    // Agenda
-    agenda:'Agenda de Compañeros', agendaDesc:'Toca un contacto para seleccionarlo',
-    buscarAgenda:'Buscar por nombre o matrícula…', addContacto:'➕ Añadir compañero manualmente',
-    nuevoContacto:'Nuevo compañero', nuevoContactoDesc:'Se guardará en tu agenda',
-    guardarAgenda:'💾 Guardar en agenda', agendaVacia:'Tu agenda está vacía.',
-    // Cambio
-    cambio:'🔄 Cambio', solicitarCambio:'🔄 Solicitar Cambio de Turno',
-    cambioDesc:'Genera el mensaje automáticamente', miTurno:'MI TURNO',
-    datosCompanero:'DATOS DEL COMPAÑERO', btnAgenda:'📒 Agenda',
-    nombreCompleto:'Nombre completo', matriculaComp:'Matrícula del compañero',
-    nTrenComp:'Nº de tren del compañero', vistaPrevia:'VISTA PREVIA',
-    abrirCorreo:'✉️ Abrir en Correo',
-    // Mensajes
-    turnoGuardado:'✅ Turno guardado', turnoEliminado:'🗑 Turno eliminado',
-    diasLibres:'días compensación asignados', nDiasAsig:'días asignados',
-    // Búsqueda
-    buscar:'Buscar…', sinResultados:'Sin resultados',
-    // Confirmaciones
-    borrarTodo:'¿Borrar todos los turnos?',
-    borrarTodoDesc:'Se eliminarán todos los turnos del calendario. Los ajustes se conservan.',
-    si:'Sí, borrar todo', noCancelar:'Cancelar',
-    editarHoras:'Editando horas', editarMinutos:'Editando minutos',
-    confirmarHora:'✓ Confirmar',
-  },
-  en: {
-    appTitulo:'My Shifts', idioma:'Language',
-    navCal:'CALENDAR', navStats:'STATS', navAjustes:'SETTINGS',
-    tripulante:'CREW', auxiliar:'AUXILIARY',
-    tipoOrdinario:'Ordinary', tipoReserva:'Reserve', tipoDescanso:'Rest',
-    tipoBaja:'Sick leave', tipoTrabajado:'Worked', tipoComp:'Comp.', tipoVuelta:'Return',
-    descOrdinario:'Normal work shift', descReserva:'On call, no leg yet',
-    descDescanso:'Day off or worked', descBaja:'Medical or labour',
-    meses:['January','February','March','April','May','June','July','August','September','October','November','December'],
-    mesesCorto:['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'],
-    dias:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
-    hoy:'Today',
-    guardar:'Save', eliminar:'Delete', cancelar:'Cancel',
-    editar:'✏️ Edit', nuevoTurno:'Add shift', sinTurno:'No shift assigned',
-    tramoIda:'OUTBOUND LEG', tramoVuelta:'RETURN LEG',
-    mismodia:'Same day', pernocta:'Overnight',
-    vueltaMismodia:'Return same day', vueltaDiaSig:'Return next day',
-    salida:'DEPARTURE', llegada:'ARRIVAL', firma:'CHECK-IN',
-    seleccionar:'Select', seleccionarEst:'Select station',
-    horario:'Schedule', trayecto:'Route', linea:'Line',
-    numTren:'Train Number', notas:'Optional notes…',
-    compensacion:'Compensation', enDinero:'Cash', enDias:'days',
-    pagoEuro:'€ payment', mesSiguiente:'Next month',
-    totalCobrar:'Total payable', horasIda:'Outbound hours', horasVuelta:'Return hours',
-    totalHoras:'Total hours', tarifa:'Rate',
-    seleccionaDias:'Select', diasMesSig:'days in next month',
-    plusActivacion:'Activation Bonus', plusJT:'JT Bonus', plusIntl:'International Bonus',
-    plusViaje:'€/trip', nocturnidad:'Night shift active',
-    plusIntlAuto:'International bonus activated automatically',
-    perfil:'Profile', nombreMatricula:'Name, ID and active role',
-    tuNombre:'Full name…', tuMatricula:'Employee ID…',
-    estBase:'Home Station', estBaseDesc:'Auto-filled as departure in each shift',
-    tocaSeleccionar:'Tap to select', estBaseLabel:'HOME STATION',
-    economia:'Economics', tarifasPluses:'Rates and bonuses per trip',
-    valorHora:'Base hourly rate', nocturno:'Night bonus',
-    nocturnoDesc:'22:00 – 06:00 · added to hourly rate',
-    plusesViaje:'FIXED BONUSES PER TRIP',
-    plusManual:'activated manually per trip',
-    plusAutoIntl:'activated automatically on international lines',
-    almacenamiento:'Storage', sinInternet:'100% local, no internet',
-    offline:'No internet connection', offlineDesc:'All data on your device',
-    autoguardado:'Auto-save', autoguardadoDesc:'Every change saved instantly',
-    backup:'Data backup', backupDesc:'Export and import all your shifts',
-    exportar:'📤 Export / Download backup', importar:'📥 Import backup',
-    guardarAjustes:'💾  Save settings', borrarTurnos:'🗑  Delete all shifts',
-    ajustesGuardados:'✅ Settings saved',
-    agenda:'Colleagues Directory', agendaDesc:'Tap a contact to select',
-    buscarAgenda:'Search by name or ID…', addContacto:'➕ Add colleague manually',
-    nuevoContacto:'New colleague', nuevoContactoDesc:'Will be saved to your directory',
-    guardarAgenda:'💾 Save to directory', agendaVacia:'Your directory is empty.',
-    cambio:'🔄 Swap', solicitarCambio:'🔄 Request Shift Swap',
-    cambioDesc:'Generate the message automatically', miTurno:'MY SHIFT',
-    datosCompanero:'COLLEAGUE DATA', btnAgenda:'📒 Directory',
-    nombreCompleto:'Full name', matriculaComp:'Colleague ID',
-    nTrenComp:'Colleague train no.', vistaPrevia:'PREVIEW',
-    abrirCorreo:'✉️ Open in Mail',
-    turnoGuardado:'✅ Shift saved', turnoEliminado:'🗑 Shift deleted',
-    diasLibres:'comp days assigned', nDiasAsig:'days assigned',
-    buscar:'Search…', sinResultados:'No results',
-    borrarTodo:'Delete all shifts?',
-    borrarTodoDesc:'All calendar shifts will be deleted. Settings are kept.',
-    si:'Yes, delete all', noCancelar:'Cancel',
-    editarHoras:'Editing hours', editarMinutos:'Editing minutes',
-    confirmarHora:'✓ Confirm',
-    idioma:'Language',
-  },
-  fr: {
-    appTitulo:'Mes Services', idioma:'Langue',
-    navCal:'CALENDRIER', navStats:'STATS', navAjustes:'RÉGLAGES',
-    tripulante:'AGENT', auxiliar:'AUXILIAIRE',
-    tipoOrdinario:'Ordinaire', tipoReserva:'Réserve', tipoDescanso:'Repos',
-    tipoBaja:'Arrêt maladie', tipoTrabajado:'Travaillé', tipoComp:'Comp.', tipoVuelta:'Retour',
-    descOrdinario:'Service normal de travail', descReserva:'En attente, sans trajet',
-    descDescanso:'Jour de repos ou travaillé', descBaja:'Médicale ou professionnelle',
-    meses:['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
-    mesesCorto:['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'],
-    dias:['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'],
-    hoy:"Aujourd'hui",
-    guardar:'Enregistrer', eliminar:'Supprimer', cancelar:'Annuler',
-    editar:'✏️ Modifier', nuevoTurno:'Ajouter service', sinTurno:'Aucun service',
-    tramoIda:'TRAJET ALLER', tramoVuelta:'TRAJET RETOUR',
-    mismodia:'Même jour', pernocta:'Nuit sur place',
-    vueltaMismodia:'Aller-retour le même jour', vueltaDiaSig:'Retour le lendemain',
-    salida:'DÉPART', llegada:'ARRIVÉE', firma:'PRISE DE SERVICE',
-    seleccionar:'Sélectionner', seleccionarEst:'Sélectionner une gare',
-    horario:'Horaire', trayecto:'Trajet', linea:'Ligne',
-    numTren:'Numéro de train', notas:'Notes optionnelles…',
-    compensacion:'Compensation', enDinero:'Espèces', enDias:'jours',
-    pagoEuro:'Paiement €', mesSiguiente:'Mois suivant',
-    totalCobrar:'Total à percevoir', horasIda:'Heures aller', horasVuelta:'Heures retour',
-    totalHoras:'Total heures', tarifa:'Tarif',
-    seleccionaDias:'Sélectionnez', diasMesSig:'jours le mois prochain',
-    plusActivacion:'Prime activation', plusJT:'Prime JT', plusIntl:'Prime internationale',
-    plusViaje:'€/service', nocturnidad:'Nuit activée',
-    plusIntlAuto:'Prime internationale activée automatiquement',
-    perfil:'Profil', nombreMatricula:'Nom, matricule et rôle actif',
-    tuNombre:'Nom complet…', tuMatricula:'Numéro de matricule…',
-    estBase:'Gare de base', estBaseDesc:'Rempli automatiquement comme départ',
-    tocaSeleccionar:'Appuyer pour sélectionner', estBaseLabel:'GARE DE BASE',
-    economia:'Économie', tarifasPluses:'Tarifs et primes par service',
-    valorHora:'Taux horaire de base', nocturno:'Prime de nuit',
-    nocturnoDesc:'22h00 – 06h00 · ajoutée au taux horaire',
-    plusesViaje:'PRIMES FIXES PAR SERVICE',
-    plusManual:'activées manuellement par service',
-    plusAutoIntl:'activée automatiquement sur lignes internationales',
-    almacenamiento:'Stockage', sinInternet:'100% local, sans internet',
-    offline:'Sans connexion internet', offlineDesc:'Toutes les données sur votre appareil',
-    autoguardado:'Sauvegarde auto', autoguardadoDesc:'Chaque modification enregistrée instantanément',
-    backup:'Sauvegarde des données', backupDesc:'Exporter et importer vos services',
-    exportar:'📤 Exporter / Télécharger', importar:'📥 Importer sauvegarde',
-    guardarAjustes:'💾  Enregistrer les réglages', borrarTurnos:'🗑  Supprimer tous les services',
-    ajustesGuardados:'✅ Réglages enregistrés',
-    agenda:'Annuaire des collègues', agendaDesc:'Appuyez sur un contact pour sélectionner',
-    buscarAgenda:'Rechercher par nom ou matricule…', addContacto:'➕ Ajouter un collègue',
-    nuevoContacto:'Nouveau collègue', nuevoContactoDesc:'Sera enregistré dans votre annuaire',
-    guardarAgenda:'💾 Enregistrer dans l\'annuaire', agendaVacia:'Votre annuaire est vide.',
-    cambio:'🔄 Échange', solicitarCambio:'🔄 Demande d\'échange de service',
-    cambioDesc:'Générer le message automatiquement', miTurno:'MON SERVICE',
-    datosCompanero:'DONNÉES DU COLLÈGUE', btnAgenda:'📒 Annuaire',
-    nombreCompleto:'Nom complet', matriculaComp:'Matricule du collègue',
-    nTrenComp:'N° de train du collègue', vistaPrevia:'APERÇU',
-    abrirCorreo:'✉️ Ouvrir dans Mail',
-    turnoGuardado:'✅ Service enregistré', turnoEliminado:'🗑 Service supprimé',
-    diasLibres:'jours de compensation assignés', nDiasAsig:'jours assignés',
-    buscar:'Rechercher…', sinResultados:'Aucun résultat',
-    borrarTodo:'Supprimer tous les services?',
-    borrarTodoDesc:'Tous les services du calendrier seront supprimés.',
-    si:'Oui, tout supprimer', noCancelar:'Annuler',
-    editarHoras:'Édition heures', editarMinutos:'Édition minutes',
-    confirmarHora:'✓ Confirmer',
-  },
-  ca: {
-    appTitulo:'Els Meus Torns', idioma:'Idioma',
-    navCal:'CALENDARI', navStats:'STATS', navAjustes:'AJUSTOS',
-    tripulante:'TRIPULANT', auxiliar:'AUXILIAR',
-    tipoOrdinario:'Ordinari', tipoReserva:'Reserva', tipoDescanso:'Descans',
-    tipoBaja:'Baixa', tipoTrabajado:'Treballat', tipoComp:'Comp.', tipoVuelta:'Tornada',
-    descOrdinario:'Torn normal de treball', descReserva:'De guàrdia, sense tram',
-    descDescanso:'Dia lliure o treballat', descBaja:'Mèdica o laboral',
-    meses:['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'],
-    mesesCorto:['gen','feb','mar','abr','mai','jun','jul','ago','set','oct','nov','des'],
-    dias:['dilluns','dimarts','dimecres','dijous','divendres','dissabte','diumenge'],
-    hoy:'Avui',
-    guardar:'Desar', eliminar:'Eliminar', cancelar:'Cancel·lar',
-    editar:'✏️ Editar', nuevoTurno:'Afegir torn', sinTurno:'Sense torn assignat',
-    tramoIda:'TRAM ANADA', tramoVuelta:'TRAM TORNADA',
-    mismodia:'Mateix dia', pernocta:'Pernoctació',
-    vueltaMismodia:'Anada i tornada avui', vueltaDiaSig:'Tornada l\'endemà',
-    salida:'SORTIDA', llegada:'ARRIBADA', firma:'FITXATGE',
-    seleccionar:'Seleccionar', seleccionarEst:'Seleccionar estació',
-    horario:'Horari', trayecto:'Trajecte', linea:'Línia',
-    numTren:'Número de tren', notas:'Notes opcionals…',
-    compensacion:'Compensació', enDinero:'En diners', enDias:'dies',
-    pagoEuro:'Pagament €', mesSiguiente:'Mes següent',
-    totalCobrar:'Total a cobrar', horasIda:'Hores anada', horasVuelta:'Hores tornada',
-    totalHoras:'Total hores', tarifa:'Tarifa',
-    seleccionaDias:'Selecciona', diasMesSig:'dies al mes següent',
-    plusActivacion:'Plus activació', plusJT:'Plus JT', plusIntl:'Plus internacional',
-    plusViaje:'€/viatge', nocturnidad:'Nocturnitat activa',
-    plusIntlAuto:'Plus internacional activat automàticament',
-    perfil:'Perfil', nombreMatricula:'Nom, matrícula i rol actiu',
-    tuNombre:'Nom complet…', tuMatricula:'Número de matrícula…',
-    estBase:'Estació base', estBaseDesc:'Autoomplert com a sortida en cada torn',
-    tocaSeleccionar:'Toca per seleccionar', estBaseLabel:'ESTACIÓ BASE',
-    economia:'Economia', tarifasPluses:'Tarifes i plusos per viatge',
-    valorHora:'Valor hora base', nocturno:'Plus nocturnitat',
-    nocturnoDesc:'22:00 – 06:00 · suma al valor hora',
-    plusesViaje:'PLUSOS FIXOS PER VIATGE',
-    plusManual:'s\'activen manualment a cada viatge',
-    plusAutoIntl:'s\'activa automàticament a línies internacionals',
-    almacenamiento:'Emmagatzematge', sinInternet:'100% local, sense internet',
-    offline:'Sense connexió a internet', offlineDesc:'Totes les dades al teu dispositiu',
-    autoguardado:'Desat automàtic', autoguardadoDesc:'Cada canvi es desa a l\'instant',
-    backup:'Còpia de seguretat', backupDesc:'Exportar i importar tots els torns',
-    exportar:'📤 Exportar / Descarregar', importar:'📥 Importar còpia',
-    guardarAjustes:'💾  Desar ajustos', borrarTurnos:'🗑  Esborrar tots els torns',
-    ajustesGuardados:'✅ Ajustos desats',
-    agenda:'Agenda de companys', agendaDesc:'Toca un contacte per seleccionar',
-    buscarAgenda:'Cerca per nom o matrícula…', addContacto:'➕ Afegir company manualment',
-    nuevoContacto:'Nou company', nuevoContactoDesc:'Es desarà a la teva agenda',
-    guardarAgenda:'💾 Desar a l\'agenda', agendaVacia:'La teva agenda és buida.',
-    cambio:'🔄 Canvi', solicitarCambio:'🔄 Sol·licitar canvi de torn',
-    cambioDesc:'Genera el missatge automàticament', miTurno:'EL MEU TORN',
-    datosCompanero:'DADES DEL COMPANY', btnAgenda:'📒 Agenda',
-    nombreCompleto:'Nom complet', matriculaComp:'Matrícula del company',
-    nTrenComp:'Nº de tren del company', vistaPrevia:'PREVISUALITZACIÓ',
-    abrirCorreo:'✉️ Obrir al correu',
-    turnoGuardado:'✅ Torn desat', turnoEliminado:'🗑 Torn eliminat',
-    diasLibres:'dies de compensació assignats', nDiasAsig:'dies assignats',
-    buscar:'Cerca…', sinResultados:'Sense resultats',
-    borrarTodo:'Esborrar tots els torns?',
-    borrarTodoDesc:'S\'eliminaran tots els torns del calendari.',
-    si:'Sí, esborrar tot', noCancelar:'Cancel·lar',
-    editarHoras:'Editant hores', editarMinutos:'Editant minuts',
-    confirmarHora:'✓ Confirmar',
-  },
-  zh: {
-    appTitulo:'我的班次', idioma:'语言',
-    navCal:'日历', navStats:'统计', navAjustes:'设置',
-    tripulante:'乘务员', auxiliar:'辅助人员',
-    tipoOrdinario:'普通班', tipoReserva:'备班', tipoDescanso:'休息',
-    tipoBaja:'病假', tipoTrabajado:'已工作', tipoComp:'补偿', tipoVuelta:'返程',
-    descOrdinario:'正常工作班次', descReserva:'待命中，暂无行程',
-    descDescanso:'休息或工作日', descBaja:'医疗或劳动假',
-    meses:['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'],
-    mesesCorto:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
-    dias:['周一','周二','周三','周四','周五','周六','周日'],
-    hoy:'今天',
-    guardar:'保存', eliminar:'删除', cancelar:'取消',
-    editar:'✏️ 编辑', nuevoTurno:'添加班次', sinTurno:'未分配班次',
-    tramoIda:'去程', tramoVuelta:'返程',
-    mismodia:'当天', pernocta:'过夜',
-    vueltaMismodia:'当天往返', vueltaDiaSig:'次日返程',
-    salida:'出发', llegada:'到达', firma:'签到',
-    seleccionar:'选择', seleccionarEst:'选择车站',
-    horario:'时刻表', trayecto:'路线', linea:'线路',
-    numTren:'列车号', notas:'可选备注…',
-    compensacion:'补偿', enDinero:'现金', enDias:'天',
-    pagoEuro:'€支付', mesSiguiente:'下月',
-    totalCobrar:'应收合计', horasIda:'去程时间', horasVuelta:'返程时间',
-    totalHoras:'总时数', tarifa:'费率',
-    seleccionaDias:'选择', diasMesSig:'天（下月）',
-    plusActivacion:'激活津贴', plusJT:'JT津贴', plusIntl:'国际津贴',
-    plusViaje:'€/次', nocturnidad:'夜班已激活',
-    plusIntlAuto:'已自动激活国际津贴',
-    perfil:'个人资料', nombreMatricula:'姓名、工号及职务',
-    tuNombre:'全名…', tuMatricula:'员工工号…',
-    estBase:'基地车站', estBaseDesc:'每次班次自动填写为出发站',
-    tocaSeleccionar:'点击选择', estBaseLabel:'基地车站',
-    economia:'经济', tarifasPluses:'每次班次的费率和津贴',
-    valorHora:'基本小时费率', nocturno:'夜班津贴',
-    nocturnoDesc:'22:00 – 06:00 · 添加至小时费率',
-    plusesViaje:'每次班次固定津贴',
-    plusManual:'每次班次手动激活',
-    plusAutoIntl:'在国际线路上自动激活',
-    almacenamiento:'存储', sinInternet:'100%本地，无需网络',
-    offline:'无网络连接', offlineDesc:'所有数据在您的设备上',
-    autoguardado:'自动保存', autoguardadoDesc:'每次更改即时保存',
-    backup:'数据备份', backupDesc:'导出和导入所有班次',
-    exportar:'📤 导出/下载备份', importar:'📥 导入备份',
-    guardarAjustes:'💾  保存设置', borrarTurnos:'🗑  删除所有班次',
-    ajustesGuardados:'✅ 设置已保存',
-    agenda:'同事通讯录', agendaDesc:'点击联系人进行选择',
-    buscarAgenda:'按姓名或工号搜索…', addContacto:'➕ 手动添加同事',
-    nuevoContacto:'新同事', nuevoContactoDesc:'将保存到您的通讯录',
-    guardarAgenda:'💾 保存到通讯录', agendaVacia:'您的通讯录为空。',
-    cambio:'🔄 换班', solicitarCambio:'🔄 申请换班',
-    cambioDesc:'自动生成消息', miTurno:'我的班次',
-    datosCompanero:'同事信息', btnAgenda:'📒 通讯录',
-    nombreCompleto:'全名', matriculaComp:'同事工号',
-    nTrenComp:'同事列车号', vistaPrevia:'预览',
-    abrirCorreo:'✉️ 在邮件中打开',
-    turnoGuardado:'✅ 班次已保存', turnoEliminado:'🗑 班次已删除',
-    diasLibres:'已分配补偿天', nDiasAsig:'天已分配',
-    buscar:'搜索…', sinResultados:'无结果',
-    borrarTodo:'删除所有班次？',
-    borrarTodoDesc:'日历中的所有班次将被删除。',
-    si:'是，全部删除', noCancelar:'取消',
-    editarHoras:'编辑小时', editarMinutos:'编辑分钟',
-    confirmarHora:'✓ 确认',
-  }
-};
 
-// Idioma activo — se lee de AJ.idioma o por defecto 'es'
-var LANG = 'es';
-// Función de traducción: t('clave') → texto en idioma activo
-function t(k){ return (I18N[LANG] || I18N.es)[k] || I18N.es[k] || k; }
-
-// Aplicar traducciones a elementos estáticos del HTML
-function aplicarIdioma(lang){
-  LANG=lang;AJ.idioma=lang;
-  Object.assign(MESES,t('meses'));Object.assign(MESES_C,t('mesesCorto'));Object.assign(DIAS_L,t('dias'));
-  document.querySelectorAll('.bl').forEach(function(el,i){var ks=['navCal','navStats','navAjustes'];if(ks[i])el.textContent=t(ks[i]);});
-  var ms=document.getElementById('m-del');if(ms)ms.innerHTML='🗑 '+t('eliminar');
-  var mv=document.querySelector('.m-save');if(mv)mv.textContent=t('guardar');
-  var hc=document.querySelector('.hora-conf');if(hc)hc.textContent=t('confirmarHora');
-  var es=document.getElementById('est-srch-inp');if(es)es.placeholder=t('buscar');
-  var ag=document.getElementById('agenda-srch-inp');if(ag)ag.placeholder=t('buscarAgenda');
-  horaRefresh();renderCal();updHeader();
-}
 
 /* ═══════════════════════════════════════
    GESTIÓN DE JORNADA
@@ -4125,28 +3910,54 @@ function verificarDescansosMes(){
 // ALERTAS_DESCANSO declarada en bloque ESTADO GLOBAL (ver inicio del script)
 
 // ── Gestión de Retrasos ───────────────────────────────────────
+// Cada retraso vive en la celda/día donde ocurre realmente:
+//  · Ida y vuelta el mismo día → los dos tramos siguen en la misma celda.
+//  · Pernocta → el tramo de ida (día 1) se guarda en la celda del día 1;
+//    el tramo de vuelta (día 2, o día 3 en pernocta de 3 días) se guarda
+//    en la celda propia de ese día (tipo 'vuelta-pernocta'), nunca en la
+//    del día de origen.
+//  · Día intermedio de una pernocta de 3 días (tránsito) tiene su propio
+//    y único tramo, independiente de ida/vuelta.
 
 function cerrarRetrasoPanel(){var rp=document.getElementById('retraso-panel');if(rp)rp.remove();}
 function abrirRetraso(){
   if(!selDay||!selDay.t) return;
-  var t=selDay.t;
+  var t=selDay.t; // t === TV[selDay.k]: el registro real de ESTA celda
   var wrap=document.getElementById('retraso-panel');
   if(wrap){wrap.remove();return;}
+
+  var esOrigenPernocta = (t.tipo==='ordinario'||t.tipo==='trabajado') && (t.modo==='pernocta'||t.modo==='pernocta3');
+  var esVueltaPernocta = (t.tipo==='vuelta-pernocta');
+  var esIntermedioPernocta = (t.tipo==='pernocta3-intermedio');
+  var soloUnTramo = esOrigenPernocta || esVueltaPernocta || esIntermedioPernocta;
+  // Tramo fijo que corresponde a ESTA celda cuando solo aplica uno:
+  var tramoFijo = esVueltaPernocta ? 2 : 1;
+  var etiquetaTramoFijo = esVueltaPernocta ? '2 · Vuelta (este día)'
+                        : (esIntermedioPernocta ? 'Tránsito (este día)' : '1 · Ida (este día)');
+
   var retrasos=t.retrasos||[];
-  var r1=retrasos.filter(function(r){return r.tramo===1;})[0]||{minutos:parseInt(t.retrasoMin)||0,tren:t.numTren||''};
+  var r1=retrasos.filter(function(r){return r.tramo===(soloUnTramo?tramoFijo:1);})[0]
+        ||{minutos:parseInt(t.retrasoMin)||0,tren:t.numTren||''};
   var r2=retrasos.filter(function(r){return r.tramo===2;})[0]||{minutos:0,tren:t.numTrenVuelta||''};
   wrap=document.createElement('div');
   wrap.id='retraso-panel';
   wrap.className='retraso-wrap';
   wrap.style.cssText='flex-direction:column;gap:8px;padding:10px 12px';
+  var filaTramo = soloUnTramo
+    ? ('<div style="display:flex;gap:6px;align-items:center">'
+      +'<span style="font-size:10px;color:var(--tx3);width:52px">Tramo</span>'
+      +'<div style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;'
+      +'color:var(--tx2);font-size:12px;padding:5px 8px">'+etiquetaTramoFijo+'</div>'
+      +'</div>')
+    : ('<div style="display:flex;gap:6px;align-items:center">'
+      +'<span style="font-size:10px;color:var(--tx3);width:52px">Tramo</span>'
+      +'<select id="sel-tramo-ret" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
+      +'<option value="1">1 Tramo ida</option>'
+      +'<option value="2">2 Tramo vuelta</option>'
+      +'</select></div>');
   wrap.innerHTML=
     '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-bottom:2px">RETRASO</div>'
-    +'<div style="display:flex;gap:6px;align-items:center">'
-    +'<span style="font-size:10px;color:var(--tx3);width:52px">Tramo</span>'
-    +'<select id="sel-tramo-ret" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
-    +'<option value="1">1 Tramo ida</option>'
-    +'<option value="2">2 Tramo vuelta</option>'
-    +'</select></div>'
+    +filaTramo
     +'<div style="display:flex;gap:6px;align-items:center">'
     +'<span style="font-size:10px;color:var(--tx3);width:52px">Minutos</span>'
     +'<input id="inp-retraso" class="retraso-inp" type="number" inputmode="numeric" min="0" max="999"'
@@ -4163,16 +3974,20 @@ function abrirRetraso(){
     +'<button onclick="guardarRetraso()" style="flex:1;padding:7px;background:rgba(245,158,11,.18);border:1px solid rgba(245,158,11,.4);border-radius:8px;color:var(--amber2);font-size:11px;font-weight:800;cursor:pointer">Aplicar</button>'
     +'<button onclick="cerrarRetrasoPanel()" style="padding:7px 12px;background:none;border:1px solid var(--div);border-radius:8px;color:var(--tx3);font-size:12px;cursor:pointer">X</button>'
     +'</div>';
-  var selEl=wrap.querySelector('[id=sel-tramo-ret]');
-  if(selEl) selEl.onchange=function(){
-    var tv=parseInt(this.value);
-    var rv=tv===1?r1:r2;
-    var ii=document.getElementById('inp-retraso');
-    var ti=document.getElementById('inp-tren-ret');
-    if(ii)ii.value=rv.minutos||0;
-    if(ti)ti.value=rv.tren||'';
-    previsualizarRetraso(rv.minutos||0);
-  };
+  if(soloUnTramo){
+    wrap.dataset.tramoFijo = tramoFijo;
+  } else {
+    var selEl=wrap.querySelector('[id=sel-tramo-ret]');
+    if(selEl) selEl.onchange=function(){
+      var tv=parseInt(this.value);
+      var rv=tv===1?r1:r2;
+      var ii=document.getElementById('inp-retraso');
+      var ti=document.getElementById('inp-tren-ret');
+      if(ii)ii.value=rv.minutos||0;
+      if(ti)ti.value=rv.tren||'';
+      previsualizarRetraso(rv.minutos||0);
+    };
+  }
   // FIX: buscar .dc-turno en modal (dia-card-body) Y en dia-area como fallback
   var dct=null;
   var cardBody=document.getElementById('dia-card-body');
@@ -4225,9 +4040,12 @@ function guardarRetraso(){
   var inp=document.getElementById('inp-retraso');
   if(!inp) return;
   var min=Math.max(0,parseInt(inp.value)||0);
+  var wrap=document.getElementById('retraso-panel');
   var tramEl=document.getElementById('sel-tramo-ret');
   var trenEl=document.getElementById('inp-tren-ret');
-  var tramo=tramEl?parseInt(tramEl.value)||1:1;
+  var tramo = tramEl
+    ? (parseInt(tramEl.value)||1)
+    : (wrap&&wrap.dataset.tramoFijo ? parseInt(wrap.dataset.tramoFijo)||1 : 1);
   var tren=trenEl?(trenEl.value.trim()||''):'';
   TV[selDay.k].retrasoMin=min>0?min:undefined;
   if(!TV[selDay.k].retrasos) TV[selDay.k].retrasos=[];
@@ -4311,23 +4129,64 @@ function guardarServicioFrecuente(datos){
   saveSF();
 }
 
-function autorellenarServicio(s){
-  // Solo rellena datos del tramo IDA — la vuelta es independiente.
-  // El usuario debe seleccionar/rellenar los datos de vuelta por separado.
-  if(s.linea) F.linea = s.linea;
-  if(s.sal)   F.sal   = s.sal;
-  if(s.lle)   F.lle   = s.lle;
-  if(s.hF)    F.hF    = s.hF;
-  if(s.hL)    F.hL    = s.hL;
-  // Actualizar plusIntlAuto si hay línea internacional
-  if(s.linea) F.plusIntlAuto = s.linea.includes('Internacional');
-  renderFormBody();
-  toast('⚡ Tren #'+s.numTren+' cargado (solo ida)');
+/* ═══════════════════════════════════════════════════════════
+   AUTO-COMPLETADO DE Nº DE TREN — sistema único y universal.
+   Sustituye la lógica anterior (limitada a ida/vuelta con
+   ramas if/else fijas) por una tabla de configuración: cada
+   tramo (ida, vuelta, intermedio, y cualquiera que se añada
+   en el futuro) es una entrada de TRAMO_CFG con sus propios
+   campos de F, su propio input y su propio contenedor de
+   sugerencias. Añadir un tramo nuevo = añadir una entrada aquí,
+   sin tocar el resto de la lógica.
+   Cada tramo es independiente: rellenar T2 nunca sobrescribe
+   T1 ni T3, porque cada uno opera solo sobre sus propios campos.
+═══════════════════════════════════════════════════════════ */
+var TRAMO_CFG = {
+  ida: {
+    numField:'numTren', inputId:'inp-numtren', sugContId:'tren-sug-cont',
+    salField:'sal',  lleField:'lle',  hFField:'hF',  hLField:'hL',
+    sfSal:'sal',  sfLle:'lle',  sfHF:'hF',  sfHL:'hL',
+    etiqueta:''
+  },
+  vuelta: {
+    numField:'numTrenVuelta', inputId:'inp-numtren2', sugContId:'tren-sug-cont2',
+    salField:'sal2', lleField:'lle2', hFField:'hF2', hLField:'hL2',
+    sfSal:'sal2', sfLle:'lle2', sfHF:'hF2', sfHL:'hL2', // sub-tramo vuelta del mismo tren
+    etiqueta:' (vuelta)'
+  },
+  intermedio: {
+    numField:'numTrenIntermedio', inputId:'inp-numtren3', sugContId:'tren-sug-cont3',
+    salField:'sal3', lleField:'lle3', hFField:'hF3', hLField:'hL3',
+    sfSal:'sal',  sfLle:'lle',  sfHF:'hF',  sfHL:'hL', // usa el tramo principal de ese nº de tren
+    etiqueta:' (tramo intermedio)'
+  }
+};
+
+/* ── Auto-relleno relacional: número de tren → objeto completo ──
+   Única fuente de verdad para "qué datos completos tiene guardados
+   este número de tren". Devuelve siempre la misma forma de objeto,
+   independientemente del tramo que la consuma:
+     { numero, estacionSalida, estacionLlegada, horarioSalida, horarioLlegada, linea }
+   Cada tramo (ida/vuelta/intermedio) decide, vía TRAMO_CFG, DE QUÉ
+   sub-slot de la base de datos local (SF) lee esos cuatro campos —
+   pero el objeto que recibe el llamante siempre tiene esta forma. */
+function obtenerDatosTren(numero, campo){
+  var cfg = TRAMO_CFG[campo] || TRAMO_CFG.ida;
+  var s = SF.filter(function(x){ return x.numTren === String(numero); })[0];
+  if(!s) return null;
+  return {
+    numero: s.numTren,
+    estacionSalida: s[cfg.sfSal] || '',
+    estacionLlegada: s[cfg.sfLle] || '',
+    horarioSalida: s[cfg.sfHF] || '',
+    horarioLlegada: s[cfg.sfHL] || '',
+    linea: s.linea || ''
+  };
 }
 
 function mostrarSugTren(val, campo){
-  var contId=(campo==='vuelta')?'tren-sug-cont2':'tren-sug-cont';
-  var cont=document.getElementById(contId);
+  var cfg = TRAMO_CFG[campo] || TRAMO_CFG.ida;
+  var cont=document.getElementById(cfg.sugContId);
   if(!cont) return;
   var sugs=searchByTrainNumber(val);
   if(!sugs.length||!val){cont.innerHTML='';return;}
@@ -4347,32 +4206,33 @@ function mostrarSugTren(val, campo){
 }
 
 function seleccionarSugTren(numTren, campo){
-  var s = SF.filter(function(x){ return x.numTren === String(numTren); })[0];
-  if(!s) return;
+  var cfg = TRAMO_CFG[campo] || TRAMO_CFG.ida;
+  var datos = obtenerDatosTren(numTren, campo);
+  if(!datos) return;
 
-  if(campo === 'vuelta'){
-    // ── MÓDULO 2A: rellena solo el campo VUELTA ──────────────
-    F.numTrenVuelta = numTren;
-    var inp2 = document.getElementById('inp-numtren2');
-    if(inp2){ inp2.value=numTren; inp2.style.borderColor='var(--acc2)'; }
-    var cont2 = document.getElementById('tren-sug-cont2');
-    if(cont2) cont2.innerHTML='';
-    // Rellenar solo datos del tramo vuelta desde el SF seleccionado.
-    // Solo se usan datos explícitos de vuelta del SF. Sin fallback.
-    if(s.hF2&&s.hL2){
-      F.sal2=s.sal2||''; F.lle2=s.lle2||''; F.hF2=s.hF2; F.hL2=s.hL2;
-    }
-    // Si el SF no tiene datos de vuelta, no rellenar nada.
-    renderFormBody();
-  } else {
-    // ── Campo IDA: comportamiento original ───────────────────
-    F.numTren = numTren;
-    var inp = document.getElementById('inp-numtren');
-    if(inp){ inp.value=numTren; inp.style.borderColor='var(--acc2)'; }
-    var cont = document.getElementById('tren-sug-cont');
-    if(cont) cont.innerHTML='';
-    autorellenarServicio(s);
+  F[cfg.numField] = datos.numero;
+  var inp = document.getElementById(cfg.inputId);
+  if(inp){ inp.value=datos.numero; inp.style.borderColor='var(--acc2)'; }
+  var cont = document.getElementById(cfg.sugContId);
+  if(cont) cont.innerHTML='';
+
+  // Datos generales del turno (línea, plus internacional) solo aplican al
+  // tramo ida — ida define el turno; vuelta/intermedio son independientes.
+  if(campo==='ida' && datos.linea){
+    F.linea = datos.linea;
+    F.plusIntlAuto = datos.linea.includes('Internacional');
   }
+
+  // Auto-relleno relacional completo: estación de salida, estación de
+  // llegada y ambos horarios — siempre los cuatro juntos, nunca solo uno.
+  // Rellena SOLO los campos propios de este tramo — nunca los de otro.
+  if(datos.estacionSalida)  F[cfg.salField]=datos.estacionSalida;
+  if(datos.estacionLlegada) F[cfg.lleField]=datos.estacionLlegada;
+  if(datos.horarioSalida)   F[cfg.hFField] =datos.horarioSalida;
+  if(datos.horarioLlegada)  F[cfg.hLField] =datos.horarioLlegada;
+
+  renderFormBody();
+  toast('⚡ Tren #'+datos.numero+' cargado'+cfg.etiqueta);
 }
 
 // FIX ANCLAJE: flag de bloqueo para evitar swipes superpuestos
@@ -5028,7 +4888,7 @@ function renderDiaArea(){
     +'<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
     +'</div>'
     +'<div class="dct-row-sec">'
-    +((t.tipo==='ordinario'||t.tipo==='trabajado')
+    +((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
       ? '<button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
       : '')
     +'<button class="dct-btn-sec" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Ver más detalles</button>'
@@ -5600,7 +5460,7 @@ function secLinea(){
   var h = '<div class="fsec">';
 
   // ── Chips de línea (restaurados) ──
-  h += '<div class="fsec-lbl">'+t('linea')+'</div>';
+  h += '<div class="fsec-lbl">Línea</div>';
   h += '<div class="linea-chips">'
      + Object.keys(LINEAS).map(function(l){
          return '<div class="lchip '+(F.linea===l?'on':'')+'" onclick="setLinea(\''+l+'\')">'+l+'</div>';
@@ -5678,12 +5538,16 @@ function secTramo(tramo){
   var trenId    = esV ? 'inp-numtren2' : 'inp-numtren';
   var trenBCol  = trenVal ? 'var(--acc2)' : 'var(--div)';
   var trenOninput = esV
-    ? 'F.numTrenVuelta=this.value.trim()'
-    : 'F.numTren=this.value.trim();mostrarSugTren(this.value)';
-  var trenExtra = esV ? '' : ''
-    +' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
-    +' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value)"';
-  var sugCont = esV ? '' : '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
+    ? 'F.numTrenVuelta=this.value.trim();mostrarSugTren(this.value,\'vuelta\')'
+    : 'F.numTren=this.value.trim();mostrarSugTren(this.value,\'ida\')';
+  var trenExtra = (esV
+    ? ' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont2\');if(c)c.innerHTML=\'\'}, 200)"'
+      +' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value,\'vuelta\')"'
+    : ' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont\');if(c)c.innerHTML=\'\'}, 200)"'
+      +' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value,\'ida\')"');
+  var sugCont = esV
+    ? '<div id="tren-sug-cont2" style="margin-bottom:6px"></div>'
+    : '<div id="tren-sug-cont" style="margin-bottom:6px"></div>';
 
   // ── DH de este tramo ──
   var dhTramoKey = esV ? 'vuelta' : 'ida';
@@ -5734,7 +5598,7 @@ function secTramo(tramo){
     +'<div class="fsec-lbl">Nº Tren</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:20px">🚆</div>'
-    +'<input id="'+trenId+'" type="text" inputmode="numeric" placeholder="Ej: 2080"'
+    +'<input id="'+trenId+'" class="tren-input" data-tramo="'+(esV?'vuelta':'ida')+'" type="text" inputmode="numeric" placeholder="Ej: 2080"'
     +' value="'+trenVal+'"'
     +' oninput="'+trenOninput+'"'
     +trenExtra
@@ -5824,15 +5688,18 @@ function secTramoIntermedio(){
     +'</div>'
     +escalaBadge12+escalaBadge23
     +'<div class="fsec-lbl">Nº Tren (tramo intermedio)</div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:18px">🚆</div>'
-    +'<input id="inp-numtren3" type="text" inputmode="numeric" placeholder="Ej: 2095"'
+    +'<input id="inp-numtren3" class="tren-input" data-tramo="intermedio" type="text" inputmode="numeric" placeholder="Ej: 2095"'
     +' value="'+numTrenIntVal+'"'
-    +' oninput="F.numTrenIntermedio=this.value.trim()"'
+    +' oninput="F.numTrenIntermedio=this.value.trim();mostrarSugTren(this.value,\'intermedio\')"'
+    +' onblur="setTimeout(function(){var c=document.getElementById(\'tren-sug-cont3\');if(c)c.innerHTML=\'\'}, 200)"'
+    +' onfocus="this.style.borderColor=\'var(--acc2)\';mostrarSugTren(this.value,\'intermedio\')"'
     +' style="flex:1;background:var(--s2);border:1.5px solid '+(numTrenIntVal?'var(--amber2)':'var(--div)')+';border-radius:10px;'
     +'color:var(--tx);font-size:18px;font-weight:800;padding:7px 12px;outline:none;'
     +'font-variant-numeric:tabular-nums;letter-spacing:1px">'
     +'</div>'
+    +'<div id="tren-sug-cont3" style="margin-bottom:6px"></div>'
     +'<div class="fsec-lbl">Trayecto</div>'
     +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\'sal3\')">'
     +'<div class="sf-i">🚉</div><div class="sf-b"><div class="sf-lbl">SALIDA</div>'
@@ -6087,6 +5954,12 @@ function guardarTurno(){
     d.estadoServicioDetalle=F.estadoServicioDetalle||'';
     d.estadoServicioVuelta=F.estadoServicioVuelta||'ordinario';
     d.estadoServicioVueltaDetalle=F.estadoServicioVueltaDetalle||'';
+    d.dhMismoTren=(typeof F.dhMismoTren==='boolean')?F.dhMismoTren:null;
+    d.dhTrenDH=F.dhTrenDH||'';
+    d.dhMinutos=(F.dhMinutos!=null)?F.dhMinutos:null;
+    d.dhMismoTrenVuelta=(typeof F.dhMismoTrenVuelta==='boolean')?F.dhMismoTrenVuelta:null;
+    d.dhTrenDHVuelta=F.dhTrenDHVuelta||'';
+    d.dhMinutosVuelta=(F.dhMinutosVuelta!=null)?F.dhMinutosVuelta:null;
     d.sal2=F.sal2||null;
     d.lle2=F.lle2||null;
     d.hF2=F.hF2;d.hL2=F.hL2;
@@ -6145,7 +6018,13 @@ function guardarTurno(){
   if(t==='trabajado'){
     d.comp=F.comp;
     if(F.comp==='dinero'){
-      d.importe=calcImp(d.horas,F.hF,F.hL,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
+      // Misma regla que en calculateEarnings(): mismo día → solo cuenta
+      // el tramo 2 (vuelta); pernocta → se suman ida (día 1) y vuelta (día 2/3).
+      var esPernoctaImp = (F.modo==='pernocta'||F.modo==='pernocta3');
+      var horasComputablesHTDL = esPernoctaImp ? d.horas : hVuelta;
+      var hFparaTasa = esPernoctaImp ? F.hF : F.hF2;
+      var hLparaTasa = esPernoctaImp ? F.hL : F.hL2;
+      d.importe=calcImp(horasComputablesHTDL,hFparaTasa,hLparaTasa,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
       d.plusAct=F.plusAct; d.plusJT=F.plusJT;
     }
     if(F.comp==='dias'&&diasComp.length>0){
@@ -6195,6 +6074,13 @@ function guardarTurno(){
         numTren:d.numTrenVuelta, linea:d.linea,
         sal:d.sal2||d.lle, lle:d.lle2||d.sal,
         hF:d.hF2, hL:d.hL2
+      });
+    }
+    if(F.modo==='pernocta3' && F.numTrenIntermedio && F.numTrenIntermedio!==d.numTren){
+      guardarServicioFrecuente({
+        numTren:F.numTrenIntermedio, linea:d.linea,
+        sal:F.sal3||'', lle:F.lle3||'',
+        hF:F.hF3||'', hL:F.hL3||''
       });
     }
   }
@@ -6549,31 +6435,6 @@ function actualizarCalculo(){
 /* ═══════════════════════════════════════
    AJUSTES
 ═══════════════════════════════════════ */
-const IDIOMAS = [
-  {code:'es', flag:'🇪🇸', nombre:'Español'},
-  {code:'en', flag:'🇬🇧', nombre:'English'},
-  {code:'fr', flag:'🇫🇷', nombre:'Français'},
-  {code:'ca', flag:'🏴󠁥󠁳󠁣󠁴󠁿', nombre:'Català'},
-  {code:'zh', flag:'🇨🇳', nombre:'中文'},
-];
-
-function renderIdiomaBtns(){
-  var cont=document.getElementById('idioma-btns');if(!cont)return;
-  cont.innerHTML=IDIOMAS.map(function(item){
-    var code=item.code,flag=item.flag,nombre=item.nombre,act=LANG===code;
-    return '<div onclick="setIdioma(\''+code+'\')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:'+(act?'rgba(139,92,246,.15)':'var(--s2)')+';border:1.5px solid '+(act?'var(--violet2)':'var(--div)')+';border-radius:11px;cursor:pointer;transition:all .18s;user-select:none;'+(act?'box-shadow:0 0 0 2px rgba(139,92,246,.2)':'')+'\">'
-      +'<span style="font-size:18px">'+flag+'</span>'
-      +'<div style="flex:1"><div style="font-size:12px;font-weight:'+(act?'800':'600')+';color:'+(act?'var(--violet2)':'var(--tx2)')+'">'+nombre+'</div>'+(act?'<div style="font-size:9px;color:var(--violet2);margin-top:1px">✓ Activo</div>':'')+'</div>'
-      +'</div>';
-  }).join('');
-}
-
-function setIdioma(code){
-  aplicarIdioma(code);
-  localStorage.setItem('aj5', JSON.stringify(AJ));
-  toast('🌐 '+(IDIOMAS.find(function(i){return i.code===code;})||{}).nombre);
-}
-
 function loadAjUI(){
   // Inicializar UI de alarmas
   var aSw = document.getElementById('alarm-sw');
@@ -6593,11 +6454,10 @@ function loadAjUI(){
   document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
   var bv=document.getElementById('aj-base-v');
   if(AJ.base){bv.textContent=AJ.base;bv.className='aj-base-val';}
-  else{bv.textContent=t('tocaSeleccionar');bv.className='aj-base-val ph';}
+  else{bv.textContent='Toca para seleccionar';bv.className='aj-base-val ph';}
   setRolUI(AJ.rol||'tripulante');
   renderPlusGrid();
   updHeader();
-  renderIdiomaBtns();
 }
 function setRol(r){AJ.rol=r;setRolUI(r);renderPlusGrid();}
 function setRolUI(r){
@@ -6619,9 +6479,8 @@ function saveAj(){
   AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
   AJ.vh=parseFloat(document.getElementById('aj-vh').value)||12.5;
   AJ.nocturnidad=parseFloat(document.getElementById('aj-noc').value)||1.80;
-  // idioma ya está en AJ.idioma actualizado por setIdioma()
   localStorage.setItem('aj5',JSON.stringify(AJ));
-  updHeader();toast(t('ajustesGuardados'));
+  updHeader();toast('✅ Ajustes guardados');
 }
 function updHeader(){
   document.getElementById('hdr-nom').textContent=AJ.nombre||'Mis Turnos';
@@ -6719,17 +6578,20 @@ function renderStats(){
     if(e.totalHTDL>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
         e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
-      // Desglose por día HTDL: fecha, tren, horas ida+escala+vuelta
+      // Desglose por día HTDL: mismo día → solo vuelta computa; pernocta → ida+vuelta
       if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
         e.diasHTDLdetail.forEach(function(d){
+          var partes=[];
+          if(d.esPernocta && d.hIda>0) partes.push(d.hIda.toFixed(2)+'h ida');
+          if(d.hVuelta>0) partes.push(d.hVuelta.toFixed(2)+'h vuelta');
+          if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
+          var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
+          var notaIda = (!d.esPernocta && d.hIda>0) ? ' <span style="opacity:.55">(ida no computable)</span>' : '';
           des+='<div class="cs-r" style="padding-left:12px;opacity:.8">'
             +'<span class="cl" style="font-size:10px">'
-            +d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+            +d.lbl+(d.tren?' · Tren #'+d.tren:'')+notaIda+'</span>'
             +'<span class="cv" style="font-size:10px;color:var(--acc2)">'
-            +d.hIda.toFixed(2)+'h'
-            +(d.hEscala>0?'+'+d.hEscala.toFixed(2)+'h':'')
-            +(d.hVuelta>0?'+'+d.hVuelta.toFixed(2)+'h':'')
-            +' = '+d.hTotal.toFixed(2)+'h</span></div>';
+            +detalleTxt+'</span></div>';
         });
       }
     }
@@ -7049,6 +6911,7 @@ function calculateEarnings(ks){
   var HTDL=parseFloat(AJ.vh||12.5),NOC=parseFloat(AJ.nocturnidad||0);
   var P_ACT=parseFloat(p.activacion||0),P_JT=parseFloat(p.jt||0),P_INTL=parseFloat(p.internacional||0);
   var tH=0,tN=0,tA=0,tJ=0,tI=0,tHr=0,hHTDL=0;
+  var minEfectivasCal=0, minPresenciaCal=0; // Horas Efectivas/Presencia — DH validado (aditivo, no toca tHr/tH)
   var dN=[],dA=[],dJ=[],dI=[],dHTDL=[];
   var cn = function(hF, hL){
     if(!hF||!hL) return 0;
@@ -7069,14 +6932,19 @@ function calculateEarnings(ks){
     var t=TV[k];if(!t)return;
     var _ks2=k.split('-');var mo2=parseInt(_ks2[1]),dd2=_ks2[2];
     var dL2=parseInt(dd2)+' '+MESES_C[parseInt(mo2)-1];
+    // Si esta celda es un día derivado de pernocta (vuelta o intermedio),
+    // el "es HTDL por dinero" se determina por el turno de ORIGEN, ya que
+    // el campo comp solo vive en el registro de origen.
+    var origenParaComp = t.origenPernocta ? TV[t.origenPernocta] : t;
+    var esCompDinero = !!(origenParaComp && origenParaComp.comp==='dinero');
     // Retrasos nuevos (con tramo+tren)
     if(t.retrasos&&t.retrasos.length){
       t.retrasos.forEach(function(r){
-        retMes.push({fecha:dL2,tramo:r.tramo,minutos:r.minutos,tren:r.tren||'',numTren:t.numTren||'',esHTDL:t.comp==='dinero'});
+        retMes.push({fecha:dL2,tramo:r.tramo,minutos:r.minutos,tren:r.tren||'',numTren:t.numTren||'',esHTDL:esCompDinero});
       });
     } else if(t.retrasoMin>0){
       // Retrasos antiguos (solo minutos)
-      retMes.push({fecha:dL2,tramo:0,minutos:t.retrasoMin,tren:'',numTren:t.numTren||'',esHTDL:t.comp==='dinero'});
+      retMes.push({fecha:dL2,tramo:0,minutos:t.retrasoMin,tren:'',numTren:t.numTren||'',esHTDL:esCompDinero});
     }
   });
 
@@ -7087,6 +6955,25 @@ function calculateEarnings(ks){
     var hI=(t.hF&&t.hL)?Math.round(calcMins(t.hF,t.hL)/60*100)/100:0;
     var hV=(t.hF2&&t.hL2)?Math.round(calcMins(t.hF2,t.hL2)/60*100)/100:0;
     var h=Math.round((hI+hV)*100)/100;
+    // ── Horas Efectivas / Presencia — DH validado del calendario principal ──
+    // Puramente aditivo: usa sus propios acumuladores, no modifica tHr/tH/hHTDL.
+    //  · Mismo tren → esos minutos se restan de Efectivas y pasan a Presencia.
+    //  · Tren diferente → esos minutos se suman aparte a Presencia; Efectivas
+    //    conserva el tramo de servicio íntegro.
+    if(t.tipo==='ordinario'||t.tipo==='trabajado'){
+      var minEfectivasEste = Math.round(hI*60) + Math.round(hV*60);
+      var minPresenciaEste = 0;
+      if(t.estadoServicio==='dh' && typeof t.dhMismoTren==='boolean' && t.dhMinutos!=null){
+        if(t.dhMismoTren) minEfectivasEste = Math.max(0, minEfectivasEste - t.dhMinutos);
+        minPresenciaEste += t.dhMinutos;
+      }
+      if(t.estadoServicioVuelta==='dh' && typeof t.dhMismoTrenVuelta==='boolean' && t.dhMinutosVuelta!=null){
+        if(t.dhMismoTrenVuelta) minEfectivasEste = Math.max(0, minEfectivasEste - t.dhMinutosVuelta);
+        minPresenciaEste += t.dhMinutosVuelta;
+      }
+      minEfectivasCal += minEfectivasEste;
+      minPresenciaCal += minPresenciaEste;
+    }
     if(t.tipo==='ordinario'){tHr+=h;
       if(t.nocturno&&h>0){
         var nOrd1=cn(t.hF,t.hL), nOrd2=cn(t.hF2,t.hL2);
@@ -7100,28 +6987,47 @@ function calculateEarnings(ks){
     }
     if(t.tipo==='trabajado'){tHr+=h;
       if(t.comp==='dinero'){
-        var hEscala=(t.hL&&t.hF2)?Math.round(calcMins(t.hL,t.hF2)/60*100)/100:0;
+        // ── Regla de cómputo económico HTDL ──
+        // · Ida y vuelta el mismo día → cuenta EXCLUSIVAMENTE el tramo 2 (vuelta).
+        // · Pernocta (2 o 3 días) → se acumulan el tramo de ida (día 1) y el
+        //   tramo de vuelta (día 2/3); ambos ya viven combinados en este mismo
+        //   registro de origen (hF/hL = ida, hF2/hL2 = vuelta).
+        var esPernoctaHTDL = (t.modo==='pernocta'||t.modo==='pernocta3');
         // MÓDULO A: Retraso T2 en HTDL suma al computable
         // T1 = solo informativo. T2 = suma económica.
+        // En pernocta, el tramo 2 (vuelta) ocurre en la celda del día
+        // siguiente — su retraso vive en esa celda, no en la de origen.
         var minRetT2=0;
-        if(t.retrasos&&t.retrasos.length){
-          t.retrasos.forEach(function(r){
-            if(r.tramo===2) minRetT2+=r.minutos||0;
-          });
-        } else if(t.retrasoMin>0 && !t.retrasos){
-          // retraso legacy (sin tramo) — tratamos como T2 para no perder datos
-          minRetT2=t.retrasoMin;
+        if(esPernoctaHTDL){
+          var tVuelta = t.diaSiguiente ? TV[t.diaSiguiente] : null;
+          if(tVuelta && tVuelta.retrasos && tVuelta.retrasos.length){
+            tVuelta.retrasos.forEach(function(r){
+              if(r.tramo===2) minRetT2+=r.minutos||0;
+            });
+          } else if(tVuelta && tVuelta.retrasoMin>0){
+            minRetT2=tVuelta.retrasoMin;
+          }
+        } else {
+          if(t.retrasos&&t.retrasos.length){
+            t.retrasos.forEach(function(r){
+              if(r.tramo===2) minRetT2+=r.minutos||0;
+            });
+          } else if(t.retrasoMin>0 && !t.retrasos){
+            // retraso legacy (sin tramo) — tratamos como T2 para no perder datos
+            minRetT2=t.retrasoMin;
+          }
         }
         var hRetT2=Math.round(minRetT2/60*100)/100;
-        var hTotalHTDL=Math.round((h+hEscala+hRetT2)*100)/100;
+        var hComputable = esPernoctaHTDL ? h : hV;
+        var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
         // Guardar detalle: fecha, tren, horas desglosadas
         dHTDL.push({
           lbl:dL,
           tren:t.numTren||'',
+          esPernocta:esPernoctaHTDL,
           hIda:hI,
-          hEscala:hEscala,
           hVuelta:hV,
           hRetT2:hRetT2,
           minRetT2:minRetT2,
@@ -7148,6 +7054,7 @@ function calculateEarnings(ks){
     totalAct:Math.round(tA*100)/100,totalJT:Math.round(tJ*100)/100,totalIntl:Math.round(tI*100)/100,
     totalBruto:Math.round((tH+tN+tA+tJ+tI)*100)/100,
     totalHoras:Math.round(tHr*100)/100,horasHTDL:Math.round(hHTDL*100)/100,
+    efectivasCalMin:minEfectivasCal,presenciaCalMin:minPresenciaCal,
     diasNocDetail:dN,
     diasNoc:dN.map(function(d){return typeof d==='object'?d.lbl+(d.tren?' #'+d.tren:''):d;}),
     diasAct:dA,diasJT:dJ,diasIntl:dI,
@@ -7747,7 +7654,7 @@ function renderDiaAreaMulti(){
     + '<button class="dct-btn-edit" onclick="editarTurno()">✏️ Editar</button>'
     + '<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
     + '</div>'
-    + ((t.tipo==='ordinario'||t.tipo==='trabajado')
+    + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
       ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
       : '')
     + '</div>';
@@ -8225,7 +8132,10 @@ const todayWrap = document.getElementById('todayWrap');
 const todayContent = document.getElementById('todayContent');
 const chevronSvg = `<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
 
-function tramoHtml(t){
+function tramoHtml(t, diaN, ti){
+  var tieneDH = t.dh && t.dh.trenDH;
+  var dhMinMostrar = t.dh ? (t.dh.duracionMin!=null ? t.dh.duracionMin : _duracionDHLegacy(t.dh)) : 0;
+  var dhBtnTxt = tieneDH ? ('🔀 DH: Tren '+t.dh.trenDH+' · '+dhMinMostrar+' min') : '🔀 Marcar DH';
   return `
   <div class="tramo">
     <div class="tren-chip">${t.tren}</div>
@@ -8239,10 +8149,15 @@ function tramoHtml(t){
       <div class="arrow">›</div>
       <div class="tpoint end"><div class="lbl">Fin turno</div><div class="val">${t.CO}</div></div>
     </div>
+    <div class="tramo-dh-row">
+      <button class="tramo-dh-btn${tieneDH?' active':''}" onclick="abrirValidacionDH(${diaN},${ti})">${dhBtnTxt}</button>
+    </div>
   </div>`;
 }
 
 function renderAll(diasData, meta){
+  horarioActualDias = diasData;
+  horarioActualMeta = meta;
   cont.innerHTML = '';
   let nServicio=0, nLibre=0, nReserva=0;
 
@@ -8281,7 +8196,7 @@ function renderAll(diasData, meta){
             <span class="badge servicio">Servicio</span>
             <span class="codigo">${d.codigo||''}</span>
           </div>
-          ${tramos.map(tramoHtml).join('')}
+          ${tramos.map((t,ti)=>tramoHtml(t, d.n, ti)).join('')}
           <div class="day-foot">
             <div>Horas efectivas: <b>${d.HE||'00:00'}</b></div>
             <div>Horas presencia: <b>${d.HP||'00:00'}</b></div>
@@ -8448,6 +8363,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 // motivo localStorage no está disponible, cae a un respaldo en memoria
 // (no persiste al recargar, pero la app no se rompe).
 let currentMonthKey = null; // ej. "MARZO 2026"
+let horarioActualDias = null; // caché del array de días actualmente mostrado
+let horarioActualMeta = null; // caché de los metadatos (empleado, mes, totales oficiales)
 
 const memoryFallback = {};
 function hasLocalStorage(){
@@ -8504,6 +8421,269 @@ async function loadMonth(mesKey){
     return JSON.parse(raw);
   }catch(e){ return null; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO HORAS — comparativa PDF oficial vs cálculo de la app.
+   Puramente aditivo y de solo lectura: no modifica TV, AJ, ni
+   los datos del horario guardado. Lee siempre desde localStore
+   (vía loadMonth), así que persiste igual al navegar entre
+   pestañas — no depende de ninguna variable temporal en memoria.
+   · Datos del PDF (oficial): meta.totalHE / meta.totalHP, tal
+     como los reporta la empresa en el propio documento.
+   · Datos calculados (app):
+       Horas de Presencia = Σ escalas (huecos entre tramos de un
+       mismo día de servicio) + Σ horas previstas de los días de
+       reserva (HP propio de cada día RESERVA).
+       Horas Efectivas = Σ tiempo "arriba del tren" (salida→llegada)
+       de cada tramo de los días de servicio.
+═══════════════════════════════════════════════════════════ */
+function _horasToMin(hhmm){
+  if(!hhmm || typeof hhmm !== 'string') return null;
+  var p = hhmm.split(':').map(Number);
+  if(p.length<2 || isNaN(p[0]) || isNaN(p[1])) return null;
+  return p[0]*60+p[1];
+}
+function _minToHoras(mins){
+  mins = Math.max(0, Math.round(mins||0));
+  var h = Math.floor(mins/60), m = mins%60;
+  return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+}
+// Compatibilidad con validaciones DH guardadas antes de este cambio,
+// cuando el dato se guardaba como salida/llegada en vez de minutos.
+function _duracionDHLegacy(dh){
+  if(!dh || !dh.salida || !dh.llegada) return 0;
+  var s=_horasToMin(dh.salida), l=_horasToMin(dh.llegada);
+  if(s==null || l==null) return 0;
+  var d=l-s; if(d<0) d+=1440;
+  return d;
+}
+function calcularHorasAppDesdeDias(dias){
+  var minEfectivas=0, minEscala=0, minReserva=0, minDHPresencia=0;
+  (dias||[]).forEach(function(d){
+    if(d.tipo==='SERVICIO' && d.tramos && d.tramos.length){
+      d.tramos.forEach(function(t){
+        var dep=_horasToMin(t.dep), arr=_horasToMin(t.arr);
+        var durTramo=0;
+        if(dep!=null && arr!=null){
+          durTramo=arr-dep; if(durTramo<0) durTramo+=1440;
+        }
+        if(t.dh && t.dh.trenDH){
+          var durDH = (t.dh.duracionMin!=null) ? t.dh.duracionMin : _duracionDHLegacy(t.dh);
+          var mismoTren = (typeof t.dh.mismoTren==='boolean')
+            ? t.dh.mismoTren
+            : (String(t.dh.trenDH).trim() === String(t.tren||'').trim());
+          if(mismoTren){
+            // Caso B: el DH ocupa una parte del mismo bloque de tren.
+            // Ese tiempo pasa a Presencia; el resto del bloque sigue en Efectivas.
+            minEfectivas += Math.max(0, durTramo-durDH);
+            minDHPresencia += durDH;
+          } else {
+            // Caso A: DH en un tren distinto al de servicio.
+            // El servicio activo cuenta íntegro en Efectivas; el DH se
+            // suma aparte en Presencia — nunca se restan entre sí.
+            minEfectivas += durTramo;
+            minDHPresencia += durDH;
+          }
+        } else {
+          minEfectivas += durTramo;
+        }
+      });
+      for(var i=0;i<d.tramos.length-1;i++){
+        var arrA=_horasToMin(d.tramos[i].arr), depB=_horasToMin(d.tramos[i+1].dep);
+        if(arrA!=null && depB!=null){
+          var gap=depB-arrA; if(gap<0) gap+=1440;
+          minEscala+=gap;
+        }
+      }
+    } else if(d.tipo==='RESERVA'){
+      var hp=_horasToMin(d.HP);
+      if(hp!=null) minReserva+=hp;
+    }
+  });
+  var minPresencia = minEscala+minReserva+minDHPresencia;
+  return {
+    efectivas:_minToHoras(minEfectivas), presencia:_minToHoras(minPresencia),
+    efectivasMin:minEfectivas, presenciaMin:minPresencia,
+    escalaMin:minEscala, reservaMin:minReserva, dhPresenciaMin:minDHPresencia
+  };
+}
+async function renderHorasComparativa(){
+  var panel = document.getElementById('horas-comparativa-panel');
+  if(!panel || panel.style.display==='none') return;
+  panel.innerHTML = '<div class="ibox blue"><span class="ibox-i">⏳</span><span>Calculando…</span></div>';
+
+  // ── Fuente 1: horario individual en PDF (oficial vs calculado por la app) ──
+  var data = (typeof currentMonthKey !== 'undefined' && currentMonthKey) ? await loadMonth(currentMonthKey) : null;
+  var bloquePdf = '';
+  if(data && data.dias){
+    var meta = data.meta||{};
+    var app = calcularHorasAppDesdeDias(data.dias);
+    bloquePdf =
+      '<div class="cs-box">'
+      +'<div class="cs-t">Horario individual · PDF oficial vs app calculada</div>'
+      +'<div class="cs-r"><span class="cl">📄 Efectivas (oficial)</span><span class="cv" style="color:var(--acc2)">'+(meta.totalHE||'—')+'</span></div>'
+      +'<div class="cs-r"><span class="cl">📄 Presencia (oficial)</span><span class="cv" style="color:var(--acc2)">'+(meta.totalHP||'—')+'</span></div>'
+      +'<div style="height:1px;background:var(--div);margin:9px 0"></div>'
+      +'<div class="cs-r"><span class="cl">⚙️ Efectivas (app)</span><span class="cv" style="color:var(--green2)">'+app.efectivas+'</span></div>'
+      +'<div class="cs-r"><span class="cl">⚙️ Presencia (app)</span><span class="cv" style="color:var(--green2)">'+app.presencia+'</span></div>'
+      +'</div>';
+  } else {
+    bloquePdf = '<div class="ibox blue"><span class="ibox-i">📄</span>'
+      +'<span>Sube el horario oficial en PDF (pestaña Horario) para ver aquí la comparativa de horas.</span></div>';
+  }
+
+  // ── Fuente 2: calendario principal (turnos con DH validado) ──
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  var pref=y+'-'+pad(m);
+  var ksCal=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
+  var eCal = calculateEarnings(ksCal);
+  var bloqueCal =
+    '<div class="cs-box">'
+    +'<div class="cs-t">Calendario · Horas Efectivas / Presencia (DH validado)</div>'
+    +'<div class="cs-r"><span class="cl">⚙️ Efectivas</span><span class="cv" style="color:var(--green2)">'+_minToHoras(eCal.efectivasCalMin)+'</span></div>'
+    +'<div class="cs-r"><span class="cl">⚙️ Presencia</span><span class="cv" style="color:var(--green2)">'+_minToHoras(eCal.presenciaCalMin)+'</span></div>'
+    +'</div>';
+
+  panel.innerHTML = bloquePdf + bloqueCal;
+}
+async function toggleHorasComparativa(){
+  var panel = document.getElementById('horas-comparativa-panel');
+  if(!panel) return;
+  var abierto = panel.style.display !== 'none';
+  if(abierto){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  await renderHorasComparativa();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VALIDACIÓN ASISTIDA DH — extensión del motor de cálculo.
+   Al marcar un tramo del horario individual como DH, la app
+   pausa el registro automático y exige, mediante un pop-up,
+   tres respuestas antes de aceptar el tramo como válido:
+     1) ¿Mismo tren o tren diferente?
+     2) Número de tren DH.
+     3) Duración exacta del DH, en minutos.
+   El sistema no calcula ningún total hasta que estas tres
+   respuestas quedan confirmadas. Los minutos confirmados se
+   etiquetan siempre como Horas de Presencia, nunca Efectivas.
+     · Mismo tren → esos minutos se restan del tiempo del
+       tramo en Horas Efectivas y pasan a Horas de Presencia.
+     · Tren diferente → esos minutos se suman aparte a Horas
+       de Presencia; el tramo de servicio cuenta íntegro en
+       Horas Efectivas.
+   No modifica el parseo del PDF ni los campos originales del
+   tramo — todo vive en el campo adicional t.dh.
+═══════════════════════════════════════════════════════════ */
+var _dhValDia = null, _dhValTramo = null, _dhValMismoTren = null;
+
+function abrirValidacionDH(diaN, ti){
+  if(!horarioActualDias) return;
+  var dia = horarioActualDias.find(function(d){ return d.n === diaN; });
+  if(!dia || !dia.tramos || !dia.tramos[ti]) return;
+  var t = dia.tramos[ti];
+  _dhValDia = diaN;
+  _dhValTramo = ti;
+  _dhValMismoTren = (t.dh && typeof t.dh.mismoTren==='boolean') ? t.dh.mismoTren : null;
+
+  var subtit = document.getElementById('dhval-subtit');
+  if(subtit) subtit.textContent = 'Tramo · Tren '+(t.tren||'—')+' · '+(t.est||'');
+
+  var trenEl = document.getElementById('dhval-tren');
+  var minEl  = document.getElementById('dhval-min');
+  if(trenEl) trenEl.value = (t.dh && t.dh.trenDH) ? t.dh.trenDH : '';
+  if(minEl)  minEl.value  = (t.dh && t.dh.duracionMin!=null) ? t.dh.duracionMin : '';
+
+  var quitarBtn = document.getElementById('dhval-quitar');
+  if(quitarBtn) quitarBtn.style.display = (t.dh && t.dh.trenDH) ? 'block' : 'none';
+
+  _pintarSeleccionMismoTrenDH();
+  openOv('ov-dh-validacion');
+  setTimeout(function(){ if(trenEl) trenEl.focus(); }, 350);
+}
+
+function seleccionarMismoTrenDH(esMismo){
+  _dhValMismoTren = esMismo;
+  _pintarSeleccionMismoTrenDH();
+}
+
+function _pintarSeleccionMismoTrenDH(){
+  var btnMismo = document.getElementById('dhval-btn-mismo');
+  var btnDif   = document.getElementById('dhval-btn-dif');
+  if(!btnMismo || !btnDif) return;
+  var estilizarActivo = function(el){
+    el.style.background = 'rgba(245,158,11,.15)';
+    el.style.borderColor = 'var(--amber2)';
+    el.style.color = 'var(--amber2)';
+  };
+  var estilizarInactivo = function(el){
+    el.style.background = 'var(--s2)';
+    el.style.borderColor = 'var(--div)';
+    el.style.color = 'var(--tx2)';
+  };
+  if(_dhValMismoTren===true){ estilizarActivo(btnMismo); estilizarInactivo(btnDif); }
+  else if(_dhValMismoTren===false){ estilizarActivo(btnDif); estilizarInactivo(btnMismo); }
+  else { estilizarInactivo(btnMismo); estilizarInactivo(btnDif); }
+}
+
+function _marcarCampoDHInvalido(el){
+  if(el){
+    el.style.borderColor = '#ef4444';
+    setTimeout(function(){ el.style.borderColor = 'var(--div)'; }, 1500);
+  }
+}
+
+function cancelarValidacionDH(){
+  _dhValDia = null; _dhValTramo = null; _dhValMismoTren = null;
+  closeOv('ov-dh-validacion');
+}
+
+async function quitarValidacionDH(){
+  if(_dhValDia===null || _dhValTramo===null || !horarioActualDias) return;
+  var dia = horarioActualDias.find(function(d){ return d.n === _dhValDia; });
+  if(!dia || !dia.tramos || !dia.tramos[_dhValTramo]) return;
+  delete dia.tramos[_dhValTramo].dh;
+  if(typeof currentMonthKey !== 'undefined' && currentMonthKey){
+    await saveMonth(currentMonthKey, horarioActualDias, horarioActualMeta);
+  }
+  renderAll(horarioActualDias, horarioActualMeta);
+  await renderHorasComparativa();
+  cancelarValidacionDH();
+  toast('DH del tramo eliminado');
+}
+
+async function confirmarValidacionDH(){
+  // El registro no se completa hasta que las tres preguntas quedan respondidas.
+  if(_dhValMismoTren !== true && _dhValMismoTren !== false){
+    var btnMismo = document.getElementById('dhval-btn-mismo');
+    if(btnMismo) _marcarCampoDHInvalido(btnMismo);
+    return;
+  }
+  var trenEl = document.getElementById('dhval-tren');
+  var minEl  = document.getElementById('dhval-min');
+  var trenDH = trenEl ? trenEl.value.trim() : '';
+  var duracionMin = minEl ? parseInt(minEl.value) : NaN;
+  if(!trenDH){ _marcarCampoDHInvalido(trenEl); return; }
+  if(isNaN(duracionMin) || duracionMin<0){ _marcarCampoDHInvalido(minEl); return; }
+
+  if(_dhValDia===null || _dhValTramo===null || !horarioActualDias) return;
+  var dia = horarioActualDias.find(function(d){ return d.n === _dhValDia; });
+  if(!dia || !dia.tramos || !dia.tramos[_dhValTramo]) return;
+
+  dia.tramos[_dhValTramo].dh = {
+    mismoTren: _dhValMismoTren,
+    trenDH: trenDH,
+    duracionMin: duracionMin
+  };
+
+  if(typeof currentMonthKey !== 'undefined' && currentMonthKey){
+    await saveMonth(currentMonthKey, horarioActualDias, horarioActualMeta);
+  }
+  renderAll(horarioActualDias, horarioActualMeta);
+  await renderHorasComparativa();
+  cancelarValidacionDH();
+  toast('✓ DH validado — '+duracionMin+' min a Horas de Presencia');
+}
+
 
 async function deleteMonth(mesKey){
   localStore.remove('horario:' + mesKey);
@@ -9138,6 +9318,7 @@ function determinarTramoDH(detalle, base){
 }
 
 var _dhTramo = null; // 'ida' | 'vuelta'
+var _dhMismoTren = null; // true | false | null (sin responder)
 
 function abrirDHPopup(tramo){
   _dhTramo = tramo;
@@ -9154,8 +9335,51 @@ function abrirDHPopup(tramo){
   var desdeEl = document.getElementById('dh-desde');
   if(hastaEl) hastaEl.value = parts[0].replace('hasta ','') || '';
   if(desdeEl) desdeEl.value = parts[1] || '';
+
+  // Precargar mismo tren / tren DH / minutos, si ya se habían respondido
+  var dhMismoTren = tramo==='ida' ? F.dhMismoTren : F.dhMismoTrenVuelta;
+  var dhTrenDH    = tramo==='ida' ? (F.dhTrenDH||'')    : (F.dhTrenDHVuelta||'');
+  var dhMinutos   = tramo==='ida' ? F.dhMinutos    : F.dhMinutosVuelta;
+  _dhMismoTren = (typeof dhMismoTren==='boolean') ? dhMismoTren : null;
+  var trenEl = document.getElementById('dh-tren');
+  var minEl  = document.getElementById('dh-min');
+  if(trenEl) trenEl.value = dhTrenDH;
+  if(minEl)  minEl.value  = (dhMinutos!=null) ? dhMinutos : '';
+  _pintarSeleccionMismoTrenDHCal();
+
   openOv('ov-dh');
   setTimeout(function(){ if(hastaEl) hastaEl.focus(); }, 350);
+}
+
+function seleccionarMismoTrenDHCal(esMismo){
+  _dhMismoTren = esMismo;
+  _pintarSeleccionMismoTrenDHCal();
+}
+
+function _pintarSeleccionMismoTrenDHCal(){
+  var btnMismo = document.getElementById('dh-btn-mismo');
+  var btnDif   = document.getElementById('dh-btn-dif');
+  if(!btnMismo || !btnDif) return;
+  var activo = function(el){
+    el.style.background='rgba(245,158,11,.15)';
+    el.style.borderColor='var(--amber2)';
+    el.style.color='var(--amber2)';
+  };
+  var inactivo = function(el){
+    el.style.background='var(--s2)';
+    el.style.borderColor='var(--div)';
+    el.style.color='var(--tx2)';
+  };
+  if(_dhMismoTren===true){ activo(btnMismo); inactivo(btnDif); }
+  else if(_dhMismoTren===false){ activo(btnDif); inactivo(btnMismo); }
+  else { inactivo(btnMismo); inactivo(btnDif); }
+}
+
+function _marcarCampoDHCalInvalido(el){
+  if(el){
+    el.style.borderColor='#ef4444';
+    setTimeout(function(){ el.style.borderColor='var(--div)'; }, 1500);
+  }
 }
 
 function cancelarDH(){
@@ -9168,6 +9392,7 @@ function cancelarDH(){
     F.estadoServicioVuelta='ordinario';
     _actualizarBtnDH('vuelta', false);
   }
+  _dhMismoTren = null;
   closeOv('ov-dh');
 }
 
@@ -9185,6 +9410,20 @@ function confirmarDH(){
     }
     return;
   }
+  // Validación obligatoria: mismo/diferente tren, número de tren DH, minutos.
+  // El registro no se completa hasta que las tres respuestas quedan confirmadas.
+  if(_dhMismoTren !== true && _dhMismoTren !== false){
+    var btnMismo = document.getElementById('dh-btn-mismo');
+    if(btnMismo) _marcarCampoDHCalInvalido(btnMismo);
+    return;
+  }
+  var trenEl = document.getElementById('dh-tren');
+  var minEl  = document.getElementById('dh-min');
+  var trenDH = trenEl ? trenEl.value.trim() : '';
+  var minutos = minEl ? parseInt(minEl.value) : NaN;
+  if(!trenDH){ _marcarCampoDHCalInvalido(trenEl); return; }
+  if(isNaN(minutos) || minutos<0){ _marcarCampoDHCalInvalido(minEl); return; }
+
   var desdeEl = document.getElementById('dh-desde');
   var desde = desdeEl ? desdeEl.value.trim() : '';
   var detalle = 'hasta '+hasta+(desde?' · desde '+desde:'');
@@ -9192,13 +9431,19 @@ function confirmarDH(){
   if(tramo==='ida'){
     F.estadoServicio='dh';
     F.estadoServicioDetalle=detalle;
+    F.dhMismoTren=_dhMismoTren;
+    F.dhTrenDH=trenDH;
+    F.dhMinutos=minutos;
   } else {
     F.estadoServicioVuelta='dh';
     F.estadoServicioVueltaDetalle=detalle;
+    F.dhMismoTrenVuelta=_dhMismoTren;
+    F.dhTrenDHVuelta=trenDH;
+    F.dhMinutosVuelta=minutos;
   }
   _actualizarBtnDH(tramo, true, detalle);
   closeOv('ov-dh');
-  toast('✓ DH — '+detalle);
+  toast('✓ DH — '+detalle+' · '+minutos+' min a Presencia');
 }
 
 function _actualizarBtnDH(tramo, activo, detalle){
