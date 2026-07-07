@@ -6253,10 +6253,11 @@ function guardarTurno(){
   if(t==='trabajado'){
     d.comp=F.comp;
     if(F.comp==='dinero'){
-      // Misma regla que en calculateEarnings(): mismo día → solo cuenta
-      // el tramo 2 (vuelta); pernocta → se suman ida (día 1) y vuelta (día 2/3).
+      // Misma regla que en calculateEarnings(): mismo día → suma ida +
+      // escala + vuelta; pernocta → se suman ida (día 1) y vuelta (día 2/3).
       var esPernoctaImp = (F.modo==='pernocta'||F.modo==='pernocta3');
-      var horasComputablesHTDL = esPernoctaImp ? d.horas : hVuelta;
+      var hEscalaImp = (!esPernoctaImp && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
+      var horasComputablesHTDL = esPernoctaImp ? d.horas : Math.round((hIda+hEscalaImp+hVuelta)*100)/100;
       var hFparaTasa = esPernoctaImp ? F.hF : F.hF2;
       var hLparaTasa = esPernoctaImp ? F.hL : F.hL2;
       d.importe=calcImp(horasComputablesHTDL,hFparaTasa,hLparaTasa,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
@@ -6813,18 +6814,18 @@ function renderStats(){
     if(e.totalHTDL>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
         e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
-      // Desglose por día HTDL: mismo día → solo vuelta computa; pernocta → ida+vuelta
+      // Desglose por día HTDL: mismo día → ida + escala + vuelta; pernocta → ida+vuelta
       if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
         e.diasHTDLdetail.forEach(function(d){
           var partes=[];
-          if(d.esPernocta && d.hIda>0) partes.push(d.hIda.toFixed(2)+'h ida');
+          if(d.hIda>0) partes.push(d.hIda.toFixed(2)+'h ida');
+          if(d.hEscala>0) partes.push(d.hEscala.toFixed(2)+'h escala');
           if(d.hVuelta>0) partes.push(d.hVuelta.toFixed(2)+'h vuelta');
           if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
           var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
-          var notaIda = (!d.esPernocta && d.hIda>0) ? ' <span style="opacity:.55">(ida no computable)</span>' : '';
           des+='<div class="cs-r" style="padding-left:12px;opacity:.8">'
             +'<span class="cl" style="font-size:10px">'
-            +d.lbl+(d.tren?' · Tren #'+d.tren:'')+notaIda+'</span>'
+            +d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
             +'<span class="cv" style="font-size:10px;color:var(--acc2)">'
             +detalleTxt+'</span></div>';
         });
@@ -7190,6 +7191,15 @@ function calcularJornadaDiaria(turnos, fecha){
       var efEste = minI + minV;
       var prEste = 0;
 
+      // Escala entre ida y vuelta del MISMO turno (mismo día): el hueco
+      // entre la llegada de ida (hL) y la salida de vuelta (hF2) es
+      // tiempo de Presencia obligatorio — nunca se descarta ni se
+      // cuenta como Efectivas.
+      if(t.hL && t.hF2){
+        var huecoIdaVuelta = calcMins(t.hL, t.hF2);
+        if(huecoIdaVuelta>0) prEste += huecoIdaVuelta;
+      }
+
       if(t.estadoServicio==='dh' && typeof t.dhMismoTren==='boolean' && t.dhMinutos!=null){
         if(t.dhMismoTren) efEste = Math.max(0, efEste - t.dhMinutos);
         prEste += t.dhMinutos;
@@ -7347,7 +7357,10 @@ function calculateEarnings(ks){
           }
         }
         var hRetT2=Math.round(minRetT2/60*100)/100;
-        var hComputable = esPernoctaHTDL ? h : hV;
+        // Escala entre ida y vuelta del mismo día: se suma al total
+        // computable de la jornada HTDL, junto con ida y vuelta.
+        var hEscalaHTDL = (!esPernoctaHTDL && t.hL && t.hF2) ? Math.round(calcMins(t.hL,t.hF2)/60*100)/100 : 0;
+        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hV)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
@@ -7357,6 +7370,7 @@ function calculateEarnings(ks){
           tren:t.numTren||'',
           esPernocta:esPernoctaHTDL,
           hIda:hI,
+          hEscala:hEscalaHTDL,
           hVuelta:hV,
           hRetT2:hRetT2,
           minRetT2:minRetT2,
