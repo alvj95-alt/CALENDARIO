@@ -1825,6 +1825,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   margin-bottom:8px;
   font-variant-numeric:tabular-nums;
   line-height:1.2;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  white-space:normal;
 }
 .tv-route{
   font-size:14px;
@@ -1832,12 +1835,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   color:var(--tx2);
   margin-bottom:6px;
   line-height:1.4;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  white-space:normal;
 }
 .tv-hours{
   font-size:13px;
   font-weight:700;
   color:var(--acc3);
   font-variant-numeric:tabular-nums;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  white-space:normal;
 }
 
 /* ── DH: número de tren partido (12345-DH / 12345) ── */
@@ -1853,6 +1862,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   font-weight:900;
   color:var(--tx);
   font-variant-numeric:tabular-nums;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  white-space:normal;
   line-height:1.2;
 }
 .tv-num-part.tv-num-dh{
@@ -2055,29 +2067,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 /* ═══════════════════════════════════════════════════════════
    CALENDARIO FERROVIARIO — selector de fecha 100% propio, sin
-   input nativo. Disparador + panel desplegable + grid de días.
-   Todas las animaciones usan solo transform/opacity (excepto la
-   línea de "vías", que anima background-position de un gradiente
-   ya compuesto) — ambas son propiedades que el navegador puede
-   animar en la capa de composición, sin recalcular layout/paint
-   en cada frame, así que el coste de batería es mínimo incluso
-   con el panel abierto un buen rato.
+   input nativo. Exclusivo del Comparador de Compañero (búsqueda
+   por tren): se renderiza siempre visible, sin lógica de acordeón
+   ni disparador — el calendario forma parte fija de esta vista.
+   Las animaciones de selección de día usan solo transform/opacity
+   (además de la línea de "vías", que anima background-position de
+   un gradiente ya compuesto) — propiedades que el navegador anima
+   en la capa de composición, sin recalcular layout/paint en cada
+   frame, así que el coste de batería es mínimo.
 ═══════════════════════════════════════════════════════════ */
-.cal-tren-trigger{display:flex;align-items:center;gap:8px;width:100%;
-  background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
-  color:var(--tx);font-size:14px;padding:11px 13px;margin-bottom:8px;
-  cursor:pointer;user-select:none;transition:border-color .15s}
-.cal-tren-trigger:hover{border-color:var(--acc2)}
-.cal-tren-ico{font-size:15px;flex-shrink:0}
-.cal-tren-txt{flex:1;font-weight:600}
-.cal-tren-txt-capturado{color:var(--acc2);font-weight:800}
-.cal-tren-chev{color:var(--tx3);font-size:12px;transition:transform .2s}
-.cal-tren-trigger.on .cal-tren-chev{transform:rotate(180deg)}
-
-.cal-tren-panel{max-height:0;overflow:hidden;opacity:0;
-  transform:translateY(-8px);transition:opacity .22s ease, transform .22s ease;
-  margin-bottom:0}
-.cal-tren-panel.on{max-height:420px;opacity:1;transform:translateY(0);margin-bottom:8px}
+.cal-tren-panel{margin-bottom:10px}
 
 .cal-tren-box{background:var(--s2);border:1.5px solid var(--div);border-radius:14px;
   padding:12px;position:relative;overflow:hidden}
@@ -3575,19 +3574,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
         <div class="acc-body">
           <div class="acc-body-inner">
-        <div class="cal-tren-trigger" id="calTrenTrigger">
-          <span class="cal-tren-ico">📅</span>
-          <span class="cal-tren-txt" id="calTrenTxt">Selecciona una fecha</span>
-          <span class="cal-tren-chev">⌄</span>
+        <div class="srch" style="margin-bottom:10px">
+          <span class="srch-ico">🚆</span>
+          <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
         </div>
         <div class="cal-tren-panel" id="calTrenPanel"></div>
-        <div class="tr-inputrow">
-          <div class="srch" style="flex:1">
-            <span class="srch-ico">🚆</span>
-            <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
-          </div>
-          <button class="tr-go" id="trGoBtn">Buscar</button>
-        </div>
+        <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
         <div id="trainView"></div>
           </div>
         </div>
@@ -3630,6 +3622,64 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 </div><!-- /ph -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     MÓDULO COMPARTIR TURNO (Snapshot) — plantilla oculta.
+     No es decorativa: generarSnapshot() la rellena con los datos
+     reales del turno, y el dibujado en canvas LEE su contenido
+     (textContent de estos mismos nodos) para que la imagen nunca
+     pueda desincronizarse de lo que aquí se ve. display:none +
+     posición fuera de pantalla — nunca visible para el usuario.
+     Separación de responsabilidades: esta plantilla SOLO contiene
+     datos del viaje (tramos) y la marca de agua. El mensaje de
+     texto del usuario nunca se inyecta aquí — viaja aparte, como
+     texto plano, en la propia llamada a navigator.share().
+═══════════════════════════════════════════════════════════ -->
+<div id="share_container_template" style="display:none;position:absolute;left:-9999px;top:0;
+  width:360px;background:#07111F;border-radius:16px;padding:24px;
+  font-family:'Inter',sans-serif;color:#E8EDF5;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:18px;
+    border-bottom:1px solid rgba(255,255,255,.12)">
+    <span style="font-size:30px">🚆</span>
+    <span style="font-size:17px;font-weight:800;color:#5B6B82;letter-spacing:.4px">TrenTurno V5</span>
+  </div>
+  <!-- share_titulo / share_fecha: la lógica de datos los sigue rellenando
+       tal cual (no se ha tocado), pero ya no se muestran en la cabecera —
+       cada tramo lleva su propia fecha, así que repetirla arriba era
+       redundante. Se mantienen ocultos para no alterar ninguna función. -->
+  <div id="share_titulo" style="display:none"></div>
+  <div id="share_fecha" style="display:none"></div>
+  <div id="share_tramos"></div>
+</div>
+
+<!-- ═══ Modal de edición social — el mensaje que se captura aquí NUNCA
+     entra en la imagen; se envía como texto plano junto a ella ═══ -->
+<div class="ov" id="ov-compartir-edit" onclick="if(event.target===this)cancelarModalCompartir()">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:60%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📤</div>
+      <div>
+        <div class="sh-tit">Compartir turno</div>
+        <div class="sh-sub">Este mensaje se envía como texto, no en la imagen</div>
+      </div>
+      <button class="sh-close" onclick="cancelarModalCompartir()">✕</button>
+    </div>
+    <div style="padding:16px 18px 24px">
+      <textarea id="compartir-mensaje-input" rows="3" style="width:100%;background:var(--s2);
+        border:1.5px solid var(--div);border-radius:10px;color:var(--tx);font-size:13px;
+        padding:11px 13px;outline:none;font-family:inherit;resize:none"></textarea>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button onclick="cancelarModalCompartir()" style="flex:1;padding:13px;background:var(--s2);
+          border:1px solid var(--div);border-radius:11px;color:var(--tx3);font-size:13px;
+          font-weight:700;cursor:pointer">Cancelar</button>
+        <button onclick="confirmarModalCompartir()" style="flex:2;padding:13px;
+          background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:11px;
+          color:#fff;font-size:13px;font-weight:800;cursor:pointer">🖼️ Generar imagen</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════
@@ -3947,6 +3997,55 @@ function checkRestTime(turnoA,turnoB,keyA,keyB){
            :'✅ '+dH+'h '+(dMin>0?dMin+'m ':'')+' de descanso'};
 }
 
+/* ═══════════════════════════════════════════════════════════
+   calcularEnlaceJornada(turnoA, turnoB, keyA, keyB) — matriz de
+   decisión del enlace entre dos jornadas consecutivas. Reutiliza
+   checkRestTime() para toda la matemática de descanso (12h en
+   base / 8h fuera de base, ya existente) y solo añade la
+   clasificación de a qué contador debe ir el tiempo incumplido,
+   según un flag de tipo de jornada (Ordinaria / HTDL) de cada lado:
+
+     · Ordinaria + Ordinaria → el descanso incumplido computa como
+       Horas de Presencia del cómputo principal.
+     · HTDL + HTDL           → el descanso incumplido SÍ computa
+       para el pago (se suma al cómputo financiero de HTDL).
+     · Ordinaria + HTDL (o al revés) → NO computa para nada; debe
+       mostrarse el aviso "Ojo: este enlace no computa para el
+       pago/cómputo" junto al popup de falta de descanso.
+
+   No toca TV ni ningún dato guardado — es una función de solo
+   lectura que interpreta lo que ya hay.
+═══════════════════════════════════════════════════════════ */
+function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
+  var resultado = checkRestTime(turnoA, turnoB, keyA, keyB);
+  if(!turnoA || !turnoB) return resultado;
+
+  // Flag interno de tipo de jornada — Ordinaria o HTDL (trabajado) —
+  // se resuelve ANTES de decidir si el tiempo computa o no.
+  var esHTDL_A = (turnoA.tipo === 'trabajado');
+  var esHTDL_B = (turnoB.tipo === 'trabajado');
+
+  var tipoEnlace = 'ORDINARIA_ORDINARIA';
+  if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';
+  else if(esHTDL_A || esHTDL_B) tipoEnlace = 'ORDINARIA_HTDL';
+
+  resultado.tipoEnlace = tipoEnlace;
+  resultado.computaPresencia = false;
+  resultado.computaFinanciero = false;
+  resultado.avisoNoComputa = '';
+
+  if(resultado.incumple){
+    if(tipoEnlace==='ORDINARIA_ORDINARIA'){
+      resultado.computaPresencia = true;
+    } else if(tipoEnlace==='HTDL_HTDL'){
+      resultado.computaFinanciero = true;
+    } else {
+      resultado.avisoNoComputa = 'Ojo: Este enlace no computa para el pago/cómputo.';
+    }
+  }
+  return resultado;
+}
+
 // ── Verificar todos los turnos del mes visible ────────────────
 // L-02 FIX: también compara el último turno del mes anterior
 // con el primero del mes actual (cruce de límite de mes).
@@ -3979,7 +4078,7 @@ function verificarDescansosMes(){
     if(!tA||!tB)continue;
     if(['descanso','baja','comp','reserva'].indexOf(tA.tipo)>=0)continue;
     if(['descanso','baja','comp','reserva'].indexOf(tB.tipo)>=0)continue;
-    var r=checkRestTime(tA,tB,kA2,kB);
+    var r=calcularEnlaceJornada(tA,tB,kA2,kB);
     if(r.incumple)alertas[kB]=Object.assign({},r,{kAnterior:kA2});
   }
 
@@ -4718,10 +4817,10 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       + '</div>';
 
     // Tramos de continuidad (T2, T3...): un bloque independiente por
-    // cada uno, con su propio nº de tren y horario. Solo se muestran
-    // cuando el tramo principal NO es DH (el DH ya tiene su propia
-    // visualización de dos trenes).
-    if(!idaEsDH && t.continuidad && t.continuidad.length){
+    // cada uno, con su propio nº de tren y horario. Se muestran
+    // SIEMPRE que existan, tenga o no DH activo el tramo principal —
+    // son datos independientes y no deben ocultarse entre sí.
+    if(t.continuidad && t.continuidad.length){
       t.continuidad.forEach(function(c, idx){
         if(!c || !c.tren) return;
         h += '<div class="tv-block ida">'
@@ -4797,8 +4896,9 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       + (t.hF2&&t.hL2?'<div class="tv-hours">'+t.hF2+' – '+t.hL2+'</div>':'')
       + '</div>';
 
-    // Tramos de continuidad de la vuelta (T2, T3...): mismo criterio que en ida
-    if(!vtaEsDH && t.continuidadVuelta && t.continuidadVuelta.length){
+    // Tramos de continuidad de la vuelta (T2, T3...): se muestran
+    // siempre que existan, tenga o no DH activo el tramo de vuelta.
+    if(t.continuidadVuelta && t.continuidadVuelta.length){
       t.continuidadVuelta.forEach(function(c, idx){
         if(!c || !c.tren) return;
         h += '<div class="tv-block vuelta">'
@@ -4831,6 +4931,318 @@ function verDetallesEnHistorial(k){
       toast('Este día no aparece en el listado del mes visible');
     }
   }, 160);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MÓDULO COMPARTIR TURNO (Snapshot) — módulo independiente.
+   Genera una imagen del turno seleccionado y la comparte con
+   navigator.share() (WhatsApp, Telegram, Correo... lo que el
+   usuario elija en el selector nativo). Sin librerías externas:
+   la imagen se dibuja a mano sobre un <canvas>. Si el navegador
+   no soporta compartir archivos, cae a copiar el texto del turno
+   al portapapeles — nunca se queda sin hacer nada.
+═══════════════════════════════════════════════════════════ */
+function compartirTurnoSeleccionado(){
+  if(!selDay || !selDay.t){ toast('Selecciona un turno primero'); return; }
+  abrirModalCompartir();
+}
+
+// ── Modal de edición social — mensaje previo, editable, antes de generar la imagen ──
+function abrirModalCompartir(){
+  var input = document.getElementById('compartir-mensaje-input');
+  if(input) input.value = 'Hola compis, cambio este turno por otro';
+  openOv('ov-compartir-edit');
+  setTimeout(function(){ if(input) input.focus(); }, 350);
+}
+function cancelarModalCompartir(){
+  // Cierra sin dejar residuos: no se llama a generarSnapshot ni se
+  // toca ninguna plantilla — el turno seleccionado queda intacto.
+  closeOv('ov-compartir-edit');
+}
+function confirmarModalCompartir(){
+  var input = document.getElementById('compartir-mensaje-input');
+  var mensaje = input ? input.value.trim() : '';
+  closeOv('ov-compartir-edit');
+  if(!selDay || !selDay.t){ toast('Selecciona un turno primero'); return; }
+  setTimeout(function(){ generarSnapshot(selDay.t, mensaje); }, 160);
+}
+
+/* ── _obtenerTramosDelTurno(turno) — ÚNICA función que decide qué
+   segmentos de tren tiene un turno. Ya no distingue "ida" o "vuelta"
+   como conceptos especiales: simplemente recorre, en orden
+   cronológico, cada segmento que exista (tramo principal, sus
+   tramos de continuidad, y su DH si lo tiene) y los añade a una
+   lista plana. Añadir un tramo nuevo al modelo del turno en el
+   futuro no requiere tocar ninguna otra parte del módulo de
+   compartir — solo esta función. ── */
+function _formatearFechaCorta(dt){
+  return dt.getDate()+' '+MESES_C[dt.getMonth()];
+}
+
+function _obtenerTramosDelTurno(turno, fechaIda, fechaVuelta){
+  var tramos = [];
+  if(turno.numTren) tramos.push({tren:turno.numTren, origen:turno.sal, destino:turno.lle, hIni:turno.hF, hFin:turno.hL, fecha:fechaIda});
+  (turno.continuidad||[]).forEach(function(c){
+    if(c.tren) tramos.push({tren:c.tren, origen:null, destino:null, hIni:c.horaInicio, hFin:c.horaFin, fecha:fechaIda});
+  });
+  if(turno.estadoServicio==='dh' && turno.dhTrenDH){
+    tramos.push({tren:turno.dhTrenDH, origen:null, destino:null, hIni:turno.dhHoraInicio, hFin:turno.dhHoraFin, esDH:true, fecha:fechaIda});
+  }
+  if(turno.numTrenVuelta) tramos.push({tren:turno.numTrenVuelta, origen:turno.sal2, destino:turno.lle2, hIni:turno.hF2, hFin:turno.hL2, fecha:fechaVuelta});
+  (turno.continuidadVuelta||[]).forEach(function(c){
+    if(c.tren) tramos.push({tren:c.tren, origen:null, destino:null, hIni:c.horaInicio, hFin:c.horaFin, fecha:fechaVuelta});
+  });
+  if(turno.estadoServicioVuelta==='dh' && turno.dhTrenDHVuelta){
+    tramos.push({tren:turno.dhTrenDHVuelta, origen:null, destino:null, hIni:turno.dhHoraInicioVuelta, hFin:turno.dhHoraFinVuelta, esDH:true, fecha:fechaVuelta});
+  }
+  return tramos;
+}
+
+// Formatea un tramo como una única línea "Fecha | Tren #N | Origen ->
+// Destino | Hora Inicio - Hora Fin". Prioridad explícita: SIEMPRE se
+// usa t.fecha (la fecha propia de ESE tramo) si existe; solo si un
+// tramo concreto no la trajera, se recurre a fechaPadre (la fecha
+// principal del turno) como respaldo — nunca al revés, y nunca queda
+// vacía. El resto de partes se omiten si no tienen dato.
+function _formatearLineaTramo(t, fechaPadre){
+  var fecha = (t.fecha!=null && t.fecha!=='') ? t.fecha : (fechaPadre || '—');
+  var partes = [fecha];
+  partes.push('🚆 Tren #'+t.tren+(t.esDH?' (DH)':''));
+  if(t.origen && t.destino) partes.push(t.origen+' → '+t.destino);
+  if(t.hIni && t.hFin) partes.push(t.hIni+' - '+t.hFin);
+  return partes.join(' | ');
+}
+
+// Formato de DOS líneas para el diseño de lista fluida (sin cuadros):
+// línea 1 = icono + tren + ruta; línea 2 = horario, siempre en su
+// propia línea para que nunca se corte. No sustituye a
+// _formatearLineaTramo() (esa la sigue usando el texto plano de
+// respaldo/portapapeles, que no se ha tocado).
+function _formatearLineasTramo(t){
+  var linea1Partes = ['🚆 Tren #'+t.tren+(t.esDH?' (DH)':'')];
+  if(t.origen && t.destino) linea1Partes.push(t.origen+' → '+t.destino);
+  return {
+    linea1: linea1Partes.join(' | '),
+    linea2: (t.hIni && t.hFin) ? (t.hIni+' - '+t.hFin) : ''
+  };
+}
+
+function generarSnapshot(turno, mensajePersonalizado){
+  if(!turno) return;
+  var cont = document.getElementById('share_container_template');
+  if(!cont) return;
+
+  var DIAS_H = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  var ti = TIPO_INFO[turno.tipo] || {ico:'📋', lbl:turno.tipo||'Turno'};
+
+  // 1) Rellenar cabecera de la plantilla con los datos reales del turno.
+  // La imagen SOLO lleva datos del viaje — el mensaje del usuario nunca
+  // se escribe en esta plantilla; viaja aparte, como texto plano.
+  var titEl = document.getElementById('share_titulo');
+  if(titEl) titEl.textContent = ti.lbl;
+  var k = selDay ? selDay.k : null;
+  var dtBase = null;
+  if(k){
+    var kp = k.split('-').map(Number);
+    dtBase = new Date(kp[0], kp[1]-1, kp[2]);
+  }
+  var fechaEl = document.getElementById('share_fecha');
+  if(fechaEl){
+    fechaEl.textContent = dtBase
+      ? DIAS_H[dtBase.getDay()]+' '+dtBase.getDate()+' de '+MESES[dtBase.getMonth()].toLowerCase()+' '+dtBase.getFullYear()
+      : '';
+  }
+
+  // 1b) Fecha real de cada tramo: la vuelta de una pernocta ocurre en
+  // un día distinto al de origen (día+1 en pernocta de 2, día+2 en
+  // pernocta de 3) — cada tramo debe reflejar SU propia fecha.
+  var fechaIdaCorta = dtBase ? _formatearFechaCorta(dtBase) : '—';
+  var fechaVueltaCorta = fechaIdaCorta;
+  if(dtBase){
+    var dtVuelta = new Date(dtBase);
+    if(turno.modo==='pernocta') dtVuelta.setDate(dtVuelta.getDate()+1);
+    else if(turno.modo==='pernocta3') dtVuelta.setDate(dtVuelta.getDate()+2);
+    fechaVueltaCorta = _formatearFechaCorta(dtVuelta);
+  }
+
+  // 2) Recorrer TODOS los tramos del turno (principal, continuidad y
+  // DH, ida y vuelta indistintamente) con un único forEach.
+  var tramos = _obtenerTramosDelTurno(turno, fechaIdaCorta, fechaVueltaCorta);
+
+  var tramosEl = document.getElementById('share_tramos');
+  if(tramosEl){
+    if(!tramos.length){
+      tramosEl.innerHTML = '<div style="font-size:12px;color:#9AABC2;text-align:center;padding:10px 0">Sin tramos de tren registrados</div>';
+    } else {
+      // Agrupación por fecha con reduce(): cada fecha se convierte en
+      // la clave de un objeto índice; todos los tramos de ese mismo
+      // día caen bajo esa misma clave, en el orden en que ya venían
+      // (ida, continuidad, DH, vuelta...). Los objetos en JS conservan
+      // el orden de inserción de sus claves, así que "15 jul" sale
+      // siempre antes que "16 jul" sin necesidad de ordenar aparte.
+      var grupos = tramos.reduce(function(acc, t){
+        var clave = t.fecha || fechaIdaCorta;
+        if(!acc[clave]) acc[clave] = [];
+        acc[clave].push(t);
+        return acc;
+      }, {});
+
+      tramosEl.innerHTML = Object.keys(grupos).map(function(fecha){
+        var itemsHtml = grupos[fecha].map(function(t){
+          var l = _formatearLineasTramo(t);
+          return '<div class="share-tren-item" style="margin-bottom:12px">'
+            + '<div data-linea1 style="font-size:14px;font-weight:700;color:#E8EDF5;line-height:1.4">'+l.linea1+'</div>'
+            + (l.linea2 ? '<div data-linea2 style="font-size:13px;font-weight:600;color:#9AABC2;margin-top:2px">'+l.linea2+'</div>' : '')
+            + '</div>';
+        }).join('');
+        return '<div class="share-fecha-grupo" style="margin-bottom:16px">'
+          + '<div class="share-fecha-titulo" style="font-size:15px;font-weight:800;color:#93C5FD;'
+            + 'padding-bottom:8px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1)">'+fecha+'</div>'
+          + itemsHtml
+          + '</div>';
+      }).join('');
+    }
+  }
+
+  // 3) La plantilla ya está poblada con los datos reales — ahora se
+  // dibuja el canvas LEYENDO ese mismo contenido, nunca datos aparte.
+  dibujarSnapshotEnCanvas(function(blob){
+    compartirOFallback(blob, tramos, mensajePersonalizado);
+  });
+}
+
+function dibujarSnapshotEnCanvas(onBlobReady){
+  try{
+    var tramosEl = document.getElementById('share_tramos');
+    var gruposDom = tramosEl ? tramosEl.querySelectorAll('.share-fecha-grupo') : [];
+
+    var ancho = 380;
+    var altoCabecera = 76;
+    var altoTitulo = 34;   // cabecera de cada grupo de fecha
+    var altoItem = 46;     // línea 1 + línea 2 de cada tren
+    var espacioGrupo = 16; // margen tras cada grupo
+
+    // Altura total: se mide recorriendo los mismos grupos que ya
+    // están en el DOM, sin recalcular ni un solo dato aparte.
+    var altoTramos = 0;
+    gruposDom.forEach(function(grupo){
+      var items = grupo.querySelectorAll('.share-tren-item');
+      altoTramos += altoTitulo + items.length*altoItem + espacioGrupo;
+    });
+    var alto = altoCabecera + (altoTramos || 46) + 20;
+
+    // ── Escalado HD fijo a 3x: se dibuja en coordenadas "CSS" normales,
+    // pero el lienzo real tiene el triple de píxeles. Un solo ctx.scale()
+    // al principio hace que TODO lo que sigue se pinte nítido, sin tener
+    // que multiplicar cada coordenada de dibujo a mano. ──
+    var escalaHD = 3;
+
+    var canvas = document.createElement('canvas');
+    canvas.width = ancho*escalaHD;
+    canvas.height = alto*escalaHD;
+    var ctx = canvas.getContext('2d');
+    if(!ctx){ onBlobReady(null); return; }
+    ctx.scale(escalaHD, escalaHD);
+
+    // Fondo — mismo tono oscuro que la plantilla HTML
+    ctx.fillStyle = '#07111F';
+    ctx.fillRect(0,0,ancho,alto);
+
+    // Cabecera: icono del tren + "TrenTurno V5" como marca integrada.
+    ctx.fillStyle = '#E8EDF5';
+    ctx.font = '28px Arial';
+    ctx.fillText('🚆', 20, 44);
+    ctx.fillStyle = '#5B6B82';
+    ctx.font = '800 17px Arial';
+    ctx.fillText('TrenTurno V5', 58, 42);
+
+    ctx.strokeStyle = 'rgba(255,255,255,.12)';
+    ctx.beginPath(); ctx.moveTo(20,altoCabecera-10); ctx.lineTo(ancho-20,altoCabecera-10); ctx.stroke();
+
+    // Tramos — agrupados por fecha, como agenda: el título de fecha
+    // sale una sola vez, y debajo una lista fluida SIN cuadros: cada
+    // tren en dos líneas propias (tren+ruta, y horario aparte), leídas
+    // directamente de [data-linea1]/[data-linea2].
+    var y = altoCabecera + 14;
+    if(!gruposDom.length){
+      ctx.fillStyle = '#9AABC2';
+      ctx.font = '13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Sin tramos de tren registrados', ancho/2, y+22);
+      ctx.textAlign = 'left';
+    } else {
+      gruposDom.forEach(function(grupo){
+        var tituloEl = grupo.querySelector('.share-fecha-titulo');
+        ctx.fillStyle = '#93C5FD';
+        ctx.font = '800 15px Arial';
+        ctx.fillText(tituloEl ? tituloEl.textContent : '', 20, y+14);
+        y += 22;
+        ctx.strokeStyle = 'rgba(255,255,255,.1)';
+        ctx.beginPath(); ctx.moveTo(20,y); ctx.lineTo(ancho-20,y); ctx.stroke();
+        y += 12;
+
+        var items = grupo.querySelectorAll('.share-tren-item');
+        items.forEach(function(item){
+          var l1 = item.querySelector('[data-linea1]');
+          var l2 = item.querySelector('[data-linea2]');
+          ctx.fillStyle = '#E8EDF5';
+          ctx.font = '700 14px Arial';
+          ctx.fillText(l1 ? l1.textContent : '', 20, y+14);
+          if(l2 && l2.textContent){
+            ctx.fillStyle = '#9AABC2';
+            ctx.font = '600 13px Arial';
+            ctx.fillText(l2.textContent, 20, y+32);
+          }
+          y += altoItem;
+        });
+        y += espacioGrupo;
+      });
+    }
+
+    canvas.toBlob(function(blob){ onBlobReady(blob||null); }, 'image/png');
+  }catch(e){
+    console.warn('No se pudo generar la imagen del turno; se usará el modo texto.', e);
+    onBlobReady(null);
+  }
+}
+
+function _construirTextoPlanoTurno(tramos, mensajePersonalizado){
+  var lineas = tramos.map(_formatearLineaTramo);
+  var cuerpo = (lineas.length ? lineas.join('\n') : 'Sin tramos registrados');
+  if(mensajePersonalizado) cuerpo = mensajePersonalizado+'\n\n'+cuerpo;
+  return cuerpo+'\n\nGenerado por TrenTurno V5';
+}
+
+function _copiarTurnoAlPortapapeles(texto){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(function(){
+      toast('📋 Turno copiado — pégalo donde quieras compartirlo');
+    }).catch(function(){
+      toast('No se pudo copiar el turno');
+    });
+  } else {
+    toast('No se pudo generar la imagen ni copiar el turno');
+  }
+}
+
+function compartirOFallback(blob, tramos, mensajePersonalizado){
+  if(!blob){
+    // Sin imagen: el texto plano debe llevarlo todo, incluida la marca.
+    _copiarTurnoAlPortapapeles(_construirTextoPlanoTurno(tramos, mensajePersonalizado));
+    return;
+  }
+  var archivo = new File([blob], 'turno-trenturno.png', {type:'image/png'});
+  if(navigator.canShare && navigator.canShare({files:[archivo]})){
+    // Con imagen: el texto que acompaña es EXCLUSIVAMENTE el mensaje
+    // del usuario — el tren, el horario y la marca de agua viajan
+    // dentro del propio snapshot, nunca duplicados en el texto.
+    navigator.share({files:[archivo], title:'Mi turno', text: mensajePersonalizado||''})
+      .catch(function(err){
+        if(err && err.name !== 'AbortError') _copiarTurnoAlPortapapeles(_construirTextoPlanoTurno(tramos, mensajePersonalizado));
+      });
+  } else {
+    _copiarTurnoAlPortapapeles(_construirTextoPlanoTurno(tramos, mensajePersonalizado));
+  }
 }
 
 function renderDiaArea(){
@@ -4880,6 +5292,9 @@ function renderDiaArea(){
       +'<div style="font-size:10px;opacity:.8">'+alerta.msg+'</div>'
       +'<div style="font-size:9px;color:var(--tx3);margin-top:2px">'
       +'Turno anterior: '+_keyAFechaLbl(alerta.kAnterior||'')+'</div>'
+      +(alerta.avisoNoComputa
+        ? '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-top:4px">⚠️ '+alerta.avisoNoComputa+'</div>'
+        : '')
       +'</div></div>';
   }
 
@@ -4997,6 +5412,7 @@ function renderDiaArea(){
       ? '<button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
       : '')
     +'<button class="dct-btn-sec" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Ver más detalles</button>'
+    +'<button class="dct-btn-sec" onclick="compartirTurnoSeleccionado()">📤 Compartir</button>'
     +'</div>'
     +'</div></div>';
   if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
@@ -5042,14 +5458,20 @@ function renderAcordeon(){
     if(ALERTAS_DESCANSO[k])det+='<div class="ac-row"><span class="ak">🔴 Descanso</span><span class="av" style="color:var(--red2)">'+ALERTAS_DESCANSO[k].msg+'</span></div>';
     if(t.cambioSolicitado)det+='<div class="ac-row"><span class="ak">🔄 Cambio</span><span class="av" style="color:var(--nar2);font-weight:700">Solicitud enviada</span></div>';
     if(t.numTren){
-      var trenIdaHist='#'+t.numTren;
-      if(t.continuidad&&t.continuidad.length)trenIdaHist+=' / '+t.continuidad.map(function(c){return '#'+c.tren;}).join(' / ');
-      det+='<div class="ac-row"><span class="ak">Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">'+trenIdaHist+'</span></div>';
+      det+='<div class="ac-row"><span class="ak">Tren Ida</span><span class="av" style="color:var(--nar2);font-weight:800">#'+t.numTren+'</span></div>';
+      (t.continuidad||[]).forEach(function(c, idx){
+        if(!c.tren) return;
+        var etiquetaHora = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
+        det+='<div class="ac-row"><span class="ak">Tramo '+(idx+2)+'</span><span class="av" style="color:var(--nar2);font-weight:800">#'+c.tren+etiquetaHora+'</span></div>';
+      });
     }
     if(t.numTrenVuelta){
-      var trenVtaHist='#'+t.numTrenVuelta;
-      if(t.continuidadVuelta&&t.continuidadVuelta.length)trenVtaHist+=' / '+t.continuidadVuelta.map(function(c){return '#'+c.tren;}).join(' / ');
-      det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'Vuelta (noche)':'Tren Vuelta')+'</span><span class="av" style="color:var(--amber2);font-weight:800">'+trenVtaHist+'</span></div>';
+      det+='<div class="ac-row"><span class="ak">'+(t.modo==='pernocta'?'Vuelta (noche)':'Tren Vuelta')+'</span><span class="av" style="color:var(--amber2);font-weight:800">#'+t.numTrenVuelta+'</span></div>';
+      (t.continuidadVuelta||[]).forEach(function(c, idx){
+        if(!c.tren) return;
+        var etiquetaHoraV = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
+        det+='<div class="ac-row"><span class="ak">Tramo '+(idx+2)+'</span><span class="av" style="color:var(--amber2);font-weight:800">#'+c.tren+etiquetaHoraV+'</span></div>';
+      });
     }
     if(t.sal)det+='<div class="ac-row"><span class="ak">'+(t.tipo==='vuelta-pernocta'?'Vuelta':'Ida')+'</span><span class="av">'+t.sal+' → '+(t.lle||'')+'</span></div>';
     if(t.hF)det+='<div class="ac-row"><span class="ak">Firma</span><span class="av">'+t.hF+' - '+(t.hL||'')+'</span></div>';
@@ -5152,6 +5574,57 @@ function esDOPDisponible(anio, mes){
   return true; // mes libre
 }
 
+/* ═══════════════════════════════════════════════════════════
+   generarCuerpoCorreo(datos) — función base ÚNICA para el cuerpo
+   de cualquier correo saliente de la app. Todas las funciones que
+   generan un correo (DOP, Cambio de turno, Compensación —manual y
+   automática—, Disponibilidad HTDL) pasan por aquí para las dos
+   partes que antes vivían duplicadas, cada una con su propia
+   suerte: la referencia al tren y el cierre con la firma.
+     datos.saludo       — cadena ya resuelta ('Buenos dias', etc.)
+     datos.mensaje       — texto propio de ese correo, ya redactado
+                            por quien llama (cada tipo de correo
+                            sigue teniendo su propia redacción)
+     datos.mostrarTren   — true si este correo debe incluir un
+                            bloque de tren; false en correos que no
+                            aplican (DOP, disponibilidad HTDL)
+     datos.tramosIda     — array de números de tren de ida,
+                            incluyendo los tramos de continuidad
+     datos.tramosVuelta  — array de números de tren de vuelta,
+                            incluyendo los tramos de continuidad
+     datos.firma         — nombre del remitente
+     datos.matricula     — matrícula del remitente
+   Si mostrarTren es true y no hay ningún número de tren disponible,
+   imprime "Sin tren asignado" — nunca deja el hueco en blanco.
+   La marca de agua final se añade SIEMPRE, aquí y solo aquí, así
+   que es matemáticamente imposible que un correo salga sin ella.
+═══════════════════════════════════════════════════════════ */
+function generarCuerpoCorreo(datos){
+  datos = datos || {};
+  var partes = [];
+  partes.push((datos.saludo||'Buenos dias')+'.');
+  if(datos.mensaje) partes.push(datos.mensaje);
+
+  if(datos.mostrarTren){
+    var ida = (datos.tramosIda||[]).filter(Boolean);
+    var vuelta = (datos.tramosVuelta||[]).filter(Boolean);
+    var trenTxt;
+    if(!ida.length && !vuelta.length){
+      trenTxt = 'Sin tren asignado';
+    } else if(ida.length && vuelta.length){
+      trenTxt = ida.map(function(n){return 'Tren '+n;}).join(' - ')
+        +' - '+vuelta.map(function(n){return 'Tren '+n;}).join(' - ');
+    } else {
+      trenTxt = (ida.length?ida:vuelta).map(function(n){return 'Tren '+n;}).join(' - ');
+    }
+    partes.push('Referencia: '+trenTxt+'.');
+  }
+
+  partes.push('Atentamente,\n'+(datos.firma||'')+'\nMatricula: '+(datos.matricula||''));
+
+  return partes.join('\n\n')+'\n\nSolicitud generada automaticamente por TrenTurno V5';
+}
+
 // Punto de entrada al seleccionar DOP en el selector de tipos.
 function elegirDOP(){
   if(!selDay){ toast('Selecciona un día primero'); return; }
@@ -5180,9 +5653,13 @@ function elegirDOP(){
   var mn = AJ.nombre||'', mm = AJ.matricula||'';
   var hora = new Date().getHours();
   var sal = hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
-  var cuerpo = sal+', me gustaria solicitar el dia '+fstr
-    +' como DOP. Espero su confirmacion.'
-    +'\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
+  var cuerpo = generarCuerpoCorreo({
+    saludo: sal,
+    mensaje: 'Me gustaria solicitar el dia '+fstr+' como DOP. Espero su confirmacion.',
+    mostrarTren: false,
+    firma: mn,
+    matricula: mm
+  });
   var asunto = 'Solicitud DOP - '+fstr;
 
   closeOv('ov-tipo');
@@ -5458,12 +5935,16 @@ function actualizarPrevCambio(){
 function generarMensajeCambio(params){
   var fstr=params.fstr,miTren=params.miTren,nombre=params.nombre,mat=params.mat;
   var trenComp=params.trenComp,miNombre=params.miNombre,miMat=params.miMat,saludo=params.saludo;
-  return 'Hola, buenos dias.\n\n'
-    +'Me gustaria solicitar un cambio de turno para el dia '+fstr+'.\n\n'
-    +'Quiero intercambiar mi turno '+miTren+' con la companera '+nombre+' (Matricula: '+mat+'), '
-    +'quien realiza el servicio en el tren '+trenComp+'.\n\n'
-    +'Yo realizare su turno y ella realizara el mio. Quedo a la espera de su aprobacion.\n\n'
-    +'Atentamente,\n'+miNombre+'\n'+miMat;
+  return generarCuerpoCorreo({
+    saludo: 'Hola, '+saludo,
+    mensaje: 'Me gustaria solicitar un cambio de turno para el dia '+fstr+'.\n\n'
+      +'Quiero intercambiar mi turno '+miTren+' con la companera '+nombre+' (Matricula: '+mat+'), '
+      +'quien realiza el servicio en el tren '+trenComp+'.\n\n'
+      +'Yo realizare su turno y ella realizara el mio. Quedo a la espera de su aprobacion.',
+    mostrarTren: false,
+    firma: miNombre,
+    matricula: miMat
+  });
 }
 
 function enviarCambio(){
@@ -5497,7 +5978,9 @@ function _ejecutarEnvioCambio(){
   var trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
   var miNombre = AJ.nombre||'—';
   var miMat    = AJ.matricula||'—';
-  var miTren   = t.numTren||'—';
+  var miTrenesIda = [t.numTren].concat((t.continuidad||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var miTrenesVuelta = [t.numTrenVuelta].concat((t.continuidadVuelta||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var miTren   = miTrenesIda.concat(miTrenesVuelta).join(' - ') || '—';
   var asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
   var cuerpo   = encodeURIComponent(sanitizarTexto(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo})));
   // Marcar que se solicitó cambio en este turno (persiste en localStorage)
@@ -7390,6 +7873,35 @@ function calculateEarnings(ks){
       if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
     }
   });
+
+  // ── Enlaces de jornada: descanso incumplido entre días consecutivos ──
+  // Puramente aditivo: construido sobre calcularEnlaceJornada(), que a
+  // su vez reutiliza checkRestTime() sin duplicar su matemática. No
+  // toca ningún dato de TV, solo decide en qué contador entra el
+  // tiempo de descanso incumplido, según la matriz de decisión:
+  //   Ordinaria + Ordinaria → se suma a Presencia (minPresenciaCal).
+  //   HTDL + HTDL           → computa financieramente (hHTDL / tH).
+  //   Ordinaria + HTDL      → no se suma a ningún contador; el aviso
+  //                           ya se muestra en el banner del día
+  //                           (ALERTAS_DESCANSO / avisoNoComputa).
+  var ksOrdenados = ks.slice().sort();
+  for(var iEnl=1; iEnl<ksOrdenados.length; iEnl++){
+    var kAEnl=ksOrdenados[iEnl-1], kBEnl=ksOrdenados[iEnl];
+    var tAEnl=TV[kAEnl], tBEnl=TV[kBEnl];
+    if(!tAEnl || !tBEnl) continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tAEnl.tipo)>=0) continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tBEnl.tipo)>=0) continue;
+    var enlace = calcularEnlaceJornada(tAEnl, tBEnl, kAEnl, kBEnl);
+    if(!enlace.incumple) continue;
+    if(enlace.computaPresencia){
+      minPresenciaCal += enlace.descMin;
+    } else if(enlace.computaFinanciero){
+      var horasEnlaceHTDL = Math.round((enlace.descMin/60)*100)/100;
+      hHTDL += horasEnlaceHTDL;
+      tH += horasEnlaceHTDL*HTDL;
+    }
+  }
+
   // diasHTDL is now array of objects with detail
   var diasHTDLlbl=dHTDL.map(function(d){return d.tren?d.lbl+' #'+d.tren:d.lbl;});
   return{HTDL:HTDL,NOC:NOC,
@@ -7433,19 +7945,32 @@ function enviarSolicitudCompensacion(k){
   var kp=k.split('-').map(Number);var y=kp[0],mo=kp[1],dd=kp[2];
   var fstr=dd+' de '+MESES[mo-1].toLowerCase()+' de '+y;
   var nDias=(t.diasComp||[]).length||(t.modo==='pernocta'?4:2);
-  var nt=t.numTren||'',mn=AJ.nombre||'',mm=AJ.matricula||'';
+  var mn=AJ.nombre||'',mm=AJ.matricula||'';
   var hora=new Date().getHours();
   var sal=hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
   var diasCompTxt = (t.diasComp||[]).map(function(iso){
     var p=iso.split('-').map(Number);
     return p[2]+' de '+MESES[p[1]-1];
   }).join(', ');
-  var cuerpo=sal+'.\n\nMediante el presente solicito la compensacion de '
-    +nDias+' dia'+(nDias===1?'':'s')+' por el servicio realizado el dia '+fstr
-    +(nt?' en el tren '+nt:'')+'.'
+  // Extrae TODOS los tramos del día (ida, vuelta y sus tramos de
+  // continuidad) — antes solo se leía t.numTren y el resto se perdía.
+  var tramosIda = [t.numTren].concat((t.continuidad||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var tramosVuelta = [t.numTrenVuelta].concat((t.continuidadVuelta||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var mensaje = 'Mediante el presente solicito la compensacion de '
+    +nDias+' dia'+(nDias===1?'':'s')+' por el servicio realizado el dia '+fstr+'.'
     +(diasCompTxt?'\n\nDias solicitados: '+diasCompTxt+'.' : '')
-    +'\n\nQuedo a la espera de su validacion.\n\nAtentamente,\n'+mn+'\nMatricula: '+mm;
-  var asunto='Solicitud de Compensacion - '+fstr+(nt?' - Tren '+nt:'');
+    +'\n\nQuedo a la espera de su validacion.';
+  var cuerpo = generarCuerpoCorreo({
+    saludo: sal,
+    mensaje: mensaje,
+    mostrarTren: true,
+    tramosIda: tramosIda,
+    tramosVuelta: tramosVuelta,
+    firma: mn,
+    matricula: mm
+  });
+  var trenAsunto = tramosIda.concat(tramosVuelta).join('/');
+  var asunto='Solicitud de Compensacion - '+fstr+(trenAsunto?' - Tren '+trenAsunto:'');
   handleEmailSubmission('Solicitud de Compensacion',nDias+' dia'+(nDias===1?'':'s')+' · '+fstr,asunto,cuerpo,
     function(){
       TV[k].pendienteEnvio=false;
@@ -7918,22 +8443,34 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
     if(!val) return '';
     return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 14px;border-bottom:1px solid var(--div)">'
       + '<span style="font-size:9px;font-weight:800;letter-spacing:.4px;color:var(--tx3);min-width:56px;padding-top:2px">'+lbl+'</span>'
-      + '<span style="font-size:12px;color:'+(col||'var(--tx2)')+';font-weight:600;flex:1;line-height:1.4">'+val+'</span>'
+      + '<span style="font-size:12px;color:'+(col||'var(--tx2)')+';font-weight:600;flex:1;line-height:1.4;min-width:0;word-wrap:break-word;overflow-wrap:break-word;white-space:normal">'+val+'</span>'
       + '</div>';
   };
 
-  // Tren ida
-  if(t.numTren)
+  // Tren ida (+ tramos de continuidad, si los hay) — una fila por tramo
+  if(t.numTren){
     rows += fila('TREN IDA', '🚆 #'+t.numTren, 'var(--nar2)');
+    (t.continuidad||[]).forEach(function(c, idx){
+      if(!c.tren) return;
+      var horaTxt = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
+      rows += fila('TRAMO '+(idx+2), '🚆 #'+c.tren+horaTxt, 'var(--nar2)');
+    });
+  }
   // Ruta ida
   if(t.sal||t.lle)
     rows += fila('IDA', (t.sal||'—')+' → '+(t.lle||'—'), 'var(--tx)');
   // Horario ida
   if(t.hF||t.hL)
     rows += fila('HORARIO', (t.hF||'—')+' – '+(t.hL||'—'), 'var(--tx2)');
-  // Tren vuelta
-  if(t.numTrenVuelta)
+  // Tren vuelta (+ tramos de continuidad, si los hay) — una fila por tramo
+  if(t.numTrenVuelta){
     rows += fila('TREN VUELTA', (t.modo==='pernocta'?'🌙 ':'↩ ')+'#'+t.numTrenVuelta, 'var(--amber2)');
+    (t.continuidadVuelta||[]).forEach(function(c, idx){
+      if(!c.tren) return;
+      var horaTxtV = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
+      rows += fila('TRAMO '+(idx+2), '🚆 #'+c.tren+horaTxtV, 'var(--amber2)');
+    });
+  }
   // Ruta vuelta
   if(t.sal2||t.lle2)
     rows += fila('VUELTA', (t.sal2||'—')+' → '+(t.lle2||'—'), 'var(--tx)');
@@ -9360,9 +9897,13 @@ function confirmarHTDL(e){
   var mn = AJ.nombre||'', mm = AJ.matricula||'';
   var hora = new Date().getHours();
   var sal = hora<13?'Buenos dias':hora<20?'Buenas tardes':'Buenas noches';
-  var cuerpo = sal+', envio este correo para informar que los dias '
-    +diasTxt+', estoy a disposicion para realizar HTDL.'
-    +'\n\nSaludos,\n'+mn+'\nMatricula: '+mm;
+  var cuerpo = generarCuerpoCorreo({
+    saludo: sal,
+    mensaje: 'Envio este correo para informar que los dias '+diasTxt+', estoy a disposicion para realizar HTDL.',
+    mostrarTren: false,
+    firma: mn,
+    matricula: mm
+  });
   var asunto = 'Disponibilidad HTDL - '+diasTxt;
   closeOv('ov-htdl-dias');
   // Esperar a que el modal cierre (140ms animación) antes de abrir el correo
@@ -9469,11 +10010,24 @@ function generarCorreoDesdeDatos(fechaKey){
     return p[2]+' de '+MESES[p[1]-1].toLowerCase();
   }).join(' y ');
 
-  var nt = t.numTren ? ' en el tren '+t.numTren : '';
-  var cuerpo = sal+'. Por haber realizado el dia '+fstr+nt+' como HTDL,'
-    +' me gustaria solicitar como dias compensatorios'
-    +(diasTxt ? ' el '+diasTxt : ' los dias correspondientes')+'.'
-    +'\n\nSaludos,\n'+mn+'\nMatricula: '+mm;
+  // Recorre ida, vuelta y sus tramos de continuidad — nunca solo el
+  // primero. El bloque de tren en sí (formato y "Sin tren asignado"
+  // si no hubiera ninguno) lo resuelve generarCuerpoCorreo().
+  var tramosIda = [t.numTren].concat((t.continuidad||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var tramosVuelta = [t.numTrenVuelta].concat((t.continuidadVuelta||[]).map(function(c){return c.tren;})).filter(Boolean);
+
+  var mensaje = 'Por haber realizado el dia '+fstr+' como HTDL, me gustaria solicitar como dias compensatorios'
+    +(diasTxt ? ' el '+diasTxt : ' los dias correspondientes')+'.';
+
+  var cuerpo = generarCuerpoCorreo({
+    saludo: sal,
+    mensaje: mensaje,
+    mostrarTren: true,
+    tramosIda: tramosIda,
+    tramosVuelta: tramosVuelta,
+    firma: mn,
+    matricula: mm
+  });
   var asunto = 'Solicitud compensacion HTDL - '+fstr;
   return {asunto: asunto, cuerpo: cuerpo};
 }
@@ -10439,13 +10993,6 @@ function activateBase(key){
   document.getElementById('acc-tren').classList.remove('open');
   document.getElementById('trainView').innerHTML = '';
   document.getElementById('trTrainInput').value = '';
-  var _calTrenTxtReset = document.getElementById('calTrenTxt');
-  if(_calTrenTxtReset){
-    _calTrenTxtReset.textContent = 'Selecciona una fecha';
-    _calTrenTxtReset.classList.remove('cal-tren-txt-capturado');
-  }
-  var _calTrenPanelReset = document.getElementById('calTrenPanel');
-  if(_calTrenPanelReset) _calTrenPanelReset.classList.remove('on');
   fecha_seleccionada_busqueda = null;
   selectedTrainDay = null;
   showPanel('panel-app');
@@ -10698,46 +11245,13 @@ function generarCalendarioUI(contenedorId, callback){
 }
 
 // ── Conexión del calendario ferroviario con la búsqueda por tren ──
-function toggleCalendarioTren(e){
-  if(e) e.stopPropagation();
-  const trigger = document.getElementById('calTrenTrigger');
-  const panel = document.getElementById('calTrenPanel');
-  if(!trigger || !panel) return;
-  const abrir = !panel.classList.contains('on');
-  panel.classList.toggle('on', abrir);
-  trigger.classList.toggle('on', abrir);
-  if(abrir && !panel.dataset.iniciado){
-    generarCalendarioUI('calTrenPanel', (fecha)=>{
-      selectedTrainDay = fecha.getDate();
-      fecha_seleccionada_busqueda = fecha;
-      const txtEl = document.getElementById('calTrenTxt');
-      if(txtEl){
-        txtEl.textContent = fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
-        txtEl.classList.add('cal-tren-txt-capturado'); // retroalimentación visual: valor ya capturado
-      }
-      // Cerrar el panel poco después de elegir, con la misma transición de entrada/salida
-      setTimeout(()=>{
-        panel.classList.remove('on');
-        trigger.classList.remove('on');
-      }, 320);
-    });
-    panel.dataset.iniciado = '1';
-  }
-}
-// Conexión explícita del disparador — un único addEventListener de
-// tipo click sobre #calTrenTrigger, sin atributos onclick inline.
-document.getElementById('calTrenTrigger').addEventListener('click', toggleCalendarioTren);
-
-// Cerrar el calendario si se toca fuera de él (no altera la fecha
-// ya capturada: si el usuario cierra sin elegir, selectedTrainDay y
-// fecha_seleccionada_busqueda simplemente no se tocan).
-document.addEventListener('click', (e)=>{
-  const panel = document.getElementById('calTrenPanel');
-  const trigger = document.getElementById('calTrenTrigger');
-  if(!panel || !panel.classList.contains('on')) return;
-  if(panel.contains(e.target) || (trigger && trigger.contains(e.target))) return;
-  panel.classList.remove('on');
-  if(trigger) trigger.classList.remove('on');
+// El calendario del Comparador de Compañero ya no se despliega con un
+// disparador — es parte fija de esta vista, visible desde el primer
+// momento. Se renderiza una única vez con generarCalendarioUI()
+// (la misma función reutilizable de siempre, sin tocar su lógica).
+generarCalendarioUI('calTrenPanel', (fecha)=>{
+  selectedTrainDay = fecha.getDate();
+  fecha_seleccionada_busqueda = fecha;
 });
 
 function cellContainsTrain(cell, trainNum){
@@ -10750,7 +11264,7 @@ function cellContainsTrain(cell, trainNum){
 }
 
 const trainView = document.getElementById('trainView');
-document.getElementById('trGoBtn').addEventListener('click', ()=>{
+document.getElementById('trGoBtn').addEventListener('click', async ()=>{
   if(!activeBase){ return; }
   const raw = document.getElementById('trTrainInput').value.trim().replace(/^0+/, '');
   if(!selectedTrainDay){
@@ -10761,12 +11275,25 @@ document.getElementById('trGoBtn').addEventListener('click', ()=>{
     trainView.innerHTML = `<div class="train-scene"><div class="train-empty">Escribe un <b>número de tren</b>.</div></div>`;
     return;
   }
-  const matches = [];
-  for(const [id, name, days] of activeBase.data){
-    const cell = days[String(selectedTrainDay)];
-    if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+  const btn = document.getElementById('trGoBtn');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Buscando...';
+  try{
+    const matches = [];
+    for(const [id, name, days] of activeBase.data){
+      const cell = days[String(selectedTrainDay)];
+      if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+    }
+    renderTrain(raw, selectedTrainDay, matches);
+    // Misma duración que la animación de carga del resultado
+    // (mostrarConAnimacionTren, ~380ms), para que "Buscando..." no
+    // desaparezca antes de que el resultado esté realmente pintado.
+    await new Promise(resolve => setTimeout(resolve, 380));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
   }
-  renderTrain(raw, selectedTrainDay, matches);
 });
 
 // Avatar placeholder (SVG inline, sin dependencias externas) para las
