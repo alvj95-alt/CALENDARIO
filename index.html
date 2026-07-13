@@ -64,13 +64,36 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   body::before{content:'TrenTurnos v5';display:block;text-align:center;font-size:11px;letter-spacing:3px;color:var(--tx3);margin-bottom:10px}}
 
 /* ── PHONE SHELL ── */
-.ph{width:min(390px,100vw);height:min(844px,100vh);background:var(--bg);border-radius:clamp(0px,44px,44px);
+.ph{width:min(390px,100vw);height:min(844px,100vh);
+    background-color:var(--bg); /* respaldo sólido oscuro mientras carga el gradiente */
+    background-image:linear-gradient(-45deg,#1A1A2E,#16213E,#0F3460,#16213E,#1A1A2E);
+    background-size:400% 400%;
+    animation:gradientAnimation 22s ease infinite;
+    border-radius:clamp(0px,44px,44px);
     border:1.5px solid #1a2f50;overflow:hidden;position:relative;display:flex;flex-direction:column;
     box-shadow:0 40px 120px rgba(0,0,0,.85)}
+
+@keyframes gradientAnimation{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
 
 /* ── STATUS ── */
 .sb{height:44px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .sb-t{font-size:14px;font-weight:700}
+
+/* ── MINI-TREN ANIMADO (status bar) — puramente cosmético ── */
+.sb-left{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
+.train-track{position:relative;width:56px;height:15px;overflow:hidden;flex-shrink:0;pointer-events:none}
+.train-animation{position:absolute;top:0;left:0;width:32px;height:15px;
+  animation:moveTrain 12s linear infinite;will-change:transform;pointer-events:none}
+@keyframes moveTrain{
+  0%{transform:translateX(-38px);opacity:0}
+  6%{opacity:1}
+  94%{opacity:1}
+  100%{transform:translateX(60px);opacity:0}
+}
 .sb-r{font-size:10px;color:var(--tx2);display:flex;gap:5px;align-items:center}
 
 /* ── HEADER ── */
@@ -2303,7 +2326,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 <!-- STATUS BAR -->
 <div class="sb">
-  <div class="sb-t" id="sbt">--:--</div>
+  <div class="sb-left">
+    <div class="sb-t" id="sbt">--:--</div>
+    <div class="train-track" aria-hidden="true">
+      <svg class="train-animation" viewBox="0 0 64 28" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.55">
+        <path d="M2 20 h6 a3 3 0 0 0 3-2.2 L14 10 a4 4 0 0 1 3.6-2.2 H50 a6 6 0 0 1 6 6 v6 a2 2 0 0 1-2 2 H2 Z"/>
+        <line x1="20" y1="7.8" x2="20" y2="20"/>
+        <line x1="30" y1="7.8" x2="30" y2="20"/>
+        <line x1="40" y1="10" x2="40" y2="20"/>
+        <circle cx="12" cy="22.5" r="2.3" fill="currentColor" stroke="none"/>
+        <circle cx="48" cy="22.5" r="2.3" fill="currentColor" stroke="none"/>
+        <line x1="30" y1="7.8" x2="30" y2="3.5"/>
+        <line x1="30" y1="3.5" x2="34" y2="3.5"/>
+      </svg>
+    </div>
+  </div>
   <div class="sb-r"><span class="sb-firma">@ALVJ95</span><span>🔋</span></div>
 </div>
 
@@ -4741,6 +4778,18 @@ function clickDia(d,k,t){
   var tReal = encontrado.t;
   var kReal = encontrado.k;
 
+  // ── PRIORIDAD: Referencia Informativa (Cambio con Compañero) ──
+  // Si este día no tiene turno PROPIO (TV[k]/pernocta), pero sí existe
+  // un registro informativo en TV2[k] (turno_referencia_externa —
+  // el mismo flag que ya excluye estos registros del cálculo de
+  // horas; esTurnoIntercambiado se revisa también por compatibilidad
+  // con registros antiguos), se prioriza el resumen del día sobre el
+  // selector de "Añadir Jornada". Solo se CONSULTA TV2 aquí — no se
+  // toca su estructura de guardado.
+  var hayTurnoIntercambiado = !tReal && !!(TV2[k] && TV2[k].some(function(r){
+    return r.turno_referencia_externa || r.esTurnoIntercambiado;
+  }));
+
   // selDay apunta siempre al día clicado (para la UI)
   // pero t viene del origen real si es una pernocta
   selDay={d:d, k:k, t:tReal};
@@ -4748,8 +4797,8 @@ function clickDia(d,k,t){
   // Actualizar colores de celdas (selección visual)
   renderCal();
 
-  if(!tReal){
-    // Día vacío → selector de tipo
+  if(!tReal && !hayTurnoIntercambiado){
+    // Día vacío de verdad (sin turno propio ni referencia informativa) → selector de tipo
     var _km2=k.split('-').map(Number);
     var y=_km2[0],mo=_km2[1];
     var dt=new Date(y,mo-1,d);
@@ -4757,7 +4806,11 @@ function clickDia(d,k,t){
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
     openOv('ov-tipo');
   } else {
-    // Día con turno (propio o de pernocta) → modal con tarjeta completa
+    // Día con turno (propio, de pernocta, o solo referencia informativa
+    // del compañero) → modal con tarjeta completa. renderDiaArea() ya
+    // sabe delegar en renderDiaAreaMulti() cuando hay entradas en TV2,
+    // aunque no exista turno propio ese día — no hace falta tocar nada
+    // de ese renderizado, ya funciona correctamente.
     openOv('ov-dia-card');
     renderDiaArea();
   }
@@ -6116,9 +6169,22 @@ function _renderDiasIntercambio(){
   if(!cont) return;
   var n = _numDiasIntercambio();
   var html = '';
+  // Etiqueta del TREN de cada tramo — distinta de la etiqueta del bloque
+  // (que ya usa _etiquetaTramoIntercambio para IDA/VUELTA o DÍA N):
+  // siempre "Tren Ida" en el primer tramo y "Tren Vuelta" en el último,
+  // para que el usuario entienda de un vistazo qué tren es cada uno,
+  // sea cual sea el tipo de servicio elegido. El tramo intermedio de
+  // Pernocta 3 días (tránsito) usa "Tren Día 2".
+  var etiquetaTren = function(idx){
+    if(idx===0) return 'Tren Ida';
+    if(idx===n-1) return 'Tren Vuelta';
+    return 'Tren Día '+(idx+1);
+  };
   for(var i=1; i<=n; i++){
     html += '<div style="background:var(--s2);border:1px solid var(--div);border-radius:11px;padding:12px;margin-bottom:10px">'
       + '<div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--tx3);margin-bottom:8px">'+_etiquetaTramoIntercambio(i-1)+'</div>'
+      + '<div style="margin-bottom:7px"><div class="aj-nombre-wrap"><span class="aj-nombre-ico">🚆</span>'
+      + '<input id="reg-interc-tren-'+i+'" class="aj-nombre-inp" inputmode="numeric" placeholder="'+etiquetaTren(i-1)+'" style="font-size:14px;font-weight:800"></div></div>'
       + '<div style="display:flex;gap:7px;margin-bottom:7px">'
       + '<input id="reg-interc-est-ini-'+i+'" placeholder="Estación inicio" style="flex:1;background:var(--s1);'
       + 'border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:12px;padding:9px 10px;outline:none">'
@@ -6134,6 +6200,14 @@ function _renderDiasIntercambio(){
       + '</div>';
   }
   cont.innerHTML = html;
+  // Primer tramo (Ida): si el usuario ya escribió un tren "general"
+  // arriba (reg-interc-tren, autocompletado desde el Pop-up 1), se
+  // precarga aquí como punto de partida — nunca se pierde ese dato.
+  var trenGeneralEl = document.getElementById('reg-interc-tren');
+  var trenIdaEl = document.getElementById('reg-interc-tren-1');
+  if(trenGeneralEl && trenIdaEl && trenGeneralEl.value.trim() && !trenIdaEl.value){
+    trenIdaEl.value = trenGeneralEl.value.trim();
+  }
 }
 
 async function guardarRegistroIntercambio(){
@@ -6156,12 +6230,14 @@ async function guardarRegistroIntercambio(){
   var n = _numDiasIntercambio();
   var tramos = [];
   for(var i=1; i<=n; i++){
+    var trenTramoEl = document.getElementById('reg-interc-tren-'+i);
     var estIniEl = document.getElementById('reg-interc-est-ini-'+i);
     var estFinEl = document.getElementById('reg-interc-est-fin-'+i);
     var hIniEl = document.getElementById('reg-interc-hini-'+i);
     var hFinEl = document.getElementById('reg-interc-hfin-'+i);
     tramos.push({
       etiqueta: _etiquetaTramoIntercambio(i-1),
+      tren: (trenTramoEl?trenTramoEl.value.trim():'') || null,
       estacionInicio: (estIniEl?estIniEl.value.trim():'') || null,
       estacionFinal: (estFinEl?estFinEl.value.trim():'') || null,
       horaInicio: (hIniEl?hIniEl.value:'') || null,
@@ -6171,37 +6247,172 @@ async function guardarRegistroIntercambio(){
 
   var k = selDay.k;
   var ultimoTramo = tramos.length ? tramos[tramos.length-1] : null;
-  var dd = {
-    tipo: 'ordinario',
-    numTren: tren,
-    hF: tramos[0] ? tramos[0].horaInicio : null,
-    hL: tramos[0] ? tramos[0].horaFinal : null,
-    // hL2: fin real del ÚLTIMO tramo del bloque (la vuelta en Ida y
-    // Vuelta, o el último día en pernocta) — checkRestTime ya
-    // prioriza hL2 sobre hL como "fin de la jornada" para el chequeo
-    // de descanso con el turno siguiente.
-    hL2: (tramos.length>1 && ultimoTramo) ? ultimoTramo.horaFinal : null,
-    notas: 'Referencia informativa (cambio) con '+nombre,
-    turno_referencia_externa: true,
-    companeroNombre: nombre,
-    companeroMatricula: mat,
-    companeroTren: tren,
-    tipoServicio: _intercambioTipoServicio,
-    // Todos los tramos (ida+vuelta, o los días de la pernocta) se
-    // guardan JUNTOS bajo esta misma clave — un único registro de
-    // referencia, nunca uno por tramo.
-    tramos: tramos
-  };
-  if(!TV2[k]) TV2[k] = [];
-  TV2[k].push(dd);
-  saveTV2();
 
-  verificarEnlaceTurnoIntercambiado(k, dd);
+  // ── DESGLOSE ESTRUCTURADO DE TRENES ──────────────────────────
+  // Tren_Ida = primer tramo, Tren_Vuelta = segundo tramo, y
+  // Tren_Dia3 = tercer tramo SOLO si aplica (Pernocta 3 días).
+  // Si el usuario no rellenó el tren de un tramo concreto, se cae
+  // en el campo general "tren" (reg-interc-tren) para no perder el
+  // dato ya escrito arriba.
+  var trenes = {
+    ida: (tramos[0] && tramos[0].tren) || tren || null,
+    vuelta: (tramos[1] && tramos[1].tren) || null
+  };
+  if(n===3) trenes.dia3 = (tramos[2] && tramos[2].tren) || null;
+
+  // ── VALIDACIÓN DE JORNADA (peso del turno) ──────────────────
+  // Compara el "peso" del turno PROPIO (selDay.t.modo: ida | pernocta |
+  // pernocta3 — el mismo campo que ya usa el resto de la app, ver
+  // esPernocta más arriba) con el tipo de servicio elegido para el
+  // compañero (_intercambioTipoServicio: idaVuelta | pernocta2 | pernocta3).
+  // Si no coinciden (ej: tu turno es Ida y Vuelta pero registras un
+  // Pernocta para el compañero), NO se bloquea el guardado — solo se
+  // marca el registro con avisoDesajuste=true (para el historial) y se
+  // avisa al final con un toast, tal y como ya hace esta función con
+  // el resto de avisos no bloqueantes.
+  var miTurno = selDay.t || {};
+  var MODO_A_SERVICIO = {ida:'idaVuelta', pernocta:'pernocta2', pernocta3:'pernocta3'};
+  var miServicioEquivalente = MODO_A_SERVICIO[miTurno.modo] || null;
+  var hayDesajuste = !!(miServicioEquivalente && miServicioEquivalente !== _intercambioTipoServicio);
+
+  var esPernoctaRegistro = (_intercambioTipoServicio==='pernocta2' || _intercambioTipoServicio==='pernocta3');
+
+  if(esPernoctaRegistro){
+    // PERNOCTA: cada tramo se guarda en la fecha de calendario que le
+    // corresponde de verdad (día 1 en k, día 2 en k+1, etc.) — ver
+    // registrarTurnoPernocta(). No se usa el guardado de "un solo día"
+    // de más abajo para este caso.
+    registrarTurnoPernocta(k, tramos, {
+      notas: 'Referencia informativa (cambio) con '+nombre,
+      companeroNombre: nombre,
+      companeroMatricula: mat,
+      tipoServicio: _intercambioTipoServicio,
+      avisoDesajuste: hayDesajuste
+    });
+  } else {
+    // IDA Y VUELTA (mismo día): comportamiento existente, sin cambios.
+    var dd = {
+      tipo: 'ordinario',
+      // Se reutilizan numTren/numTrenVuelta — los MISMOS campos que ya
+      // sabe pintar renderTarjetaTurno() como filas "TREN IDA"/"TREN
+      // VUELTA" para un turno normal — así el historial muestra el
+      // desglose preciso sin duplicar ninguna lógica de renderizado.
+      numTren: trenes.ida,
+      numTrenVuelta: trenes.vuelta,
+      hF: tramos[0] ? tramos[0].horaInicio : null,
+      hL: tramos[0] ? tramos[0].horaFinal : null,
+      // hL2: fin real del ÚLTIMO tramo del bloque (la vuelta) —
+      // checkRestTime ya prioriza hL2 sobre hL como "fin de la
+      // jornada" para el chequeo de descanso con el turno siguiente.
+      hL2: (tramos.length>1 && ultimoTramo) ? ultimoTramo.horaFinal : null,
+      notas: 'Referencia informativa (cambio) con '+nombre,
+      turno_referencia_externa: true,
+      companeroNombre: nombre,
+      companeroMatricula: mat,
+      companeroTren: trenes.ida,
+      tipoServicio: _intercambioTipoServicio,
+      // Desglose estructurado — Tren_Ida / Tren_Vuelta. Es la fuente
+      // que lee el correo (generarMensajeCambio) para redactar de
+      // forma natural, y la que usa el historial.
+      trenes: trenes,
+      // Ambos tramos (ida+vuelta) se guardan JUNTOS bajo esta misma
+      // clave — un único registro de referencia, mismo día.
+      tramos: tramos,
+      // Etiqueta de aviso para el historial — ver renderTarjetaTurno().
+      avisoDesajuste: hayDesajuste
+    };
+    if(!TV2[k]) TV2[k] = [];
+    TV2[k].push(dd);
+    saveTV2();
+
+    verificarEnlaceTurnoIntercambiado(k, dd);
+  }
 
   renderCal();
   renderDiaArea();
   cerrarRegistrarIntercambio();
-  toast('📎 Referencia informativa guardada — no computa en tus horas');
+
+  if(hayDesajuste){
+    var SERVICIO_LBL = {idaVuelta:'Ida y Vuelta', pernocta2:'Pernocta 2 días', pernocta3:'Pernocta 3 días'};
+    toast('⚠️ Aviso de Desajuste: tu turno es "'+(SERVICIO_LBL[miServicioEquivalente]||miTurno.modo)+'" y registraste "'+(SERVICIO_LBL[_intercambioTipoServicio]||_intercambioTipoServicio)+'" para el compañero. Guardado igualmente — revisa si es correcto.');
+  } else if(esPernoctaRegistro){
+    toast('📎 Pernocta guardada — un registro por cada día, no computa en tus horas');
+  } else {
+    toast('📎 Referencia informativa guardada — no computa en tus horas');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   registrarTurnoPernocta() — FUNCIÓN AUXILIAR NUEVA Y AISLADA.
+   Distribuye los tramos de una Pernocta (2 o 3 días) en la fecha
+   de calendario real que le corresponde a cada uno, en vez de
+   agruparlos todos bajo el día en que se abrió el formulario.
+   No toca ni reutiliza el guardado de "Ida y Vuelta" (mismo día),
+   que sigue intacto dentro de guardarRegistroIntercambio().
+   Puramente informativo: cada entrada se guarda en TV2 (nunca en
+   TV) con turno_referencia_externa=true, así que
+   calcularJornadaDiaria() la sigue excluyendo del cálculo de horas
+   exactamente igual que cualquier otra referencia — esa función no
+   se toca ni se necesita tocar.
+═══════════════════════════════════════════════════════════ */
+function registrarTurnoPernocta(kInicio, tramos, datosComunes){
+  var partes = kInicio.split('-').map(Number);
+  var dtBase = new Date(partes[0], partes[1]-1, partes[2]);
+  var entradas = []; // {k, dd} de cada día, en orden — para el chequeo de enlace de descanso
+
+  tramos.forEach(function(tramo, idx){
+    // Salto de fecha: día 0 = kInicio, día 1 = kInicio+1, día 2 =
+    // kInicio+2 — el mismo criterio +1/+2 día que ya usa el resto de
+    // la app para pernoctas (ver dtVuelta.setDate(...+1) / (...+2)
+    // en la lógica de creación de turnos propios).
+    var dtDia = new Date(dtBase);
+    dtDia.setDate(dtDia.getDate() + idx);
+    var kDia = key(dtDia.getFullYear(), dtDia.getMonth()+1, dtDia.getDate());
+
+    var dd = {
+      tipo: 'ordinario',
+      // OJO: aquí NO se usa numTren/numTrenVuelta (los campos
+      // genéricos que sí se reutilizan en el caso "Ida y Vuelta"
+      // mismo día). Cada entrada de una pernocta es UN solo día, así
+      // que etiquetarlo siempre como "TREN IDA" sería incorrecto en
+      // el día de vuelta o en el día intermedio. El tren de este día
+      // se muestra en su lugar dentro de la fila del tramo (ver
+      // renderTarjetaTurno → tramos.forEach), que ya usa la etiqueta
+      // correcta (IDA / VUELTA / DÍA N) guardada en tramo.etiqueta.
+      hF: tramo.horaInicio,
+      hL: tramo.horaFinal,
+      notas: datosComunes.notas,
+      turno_referencia_externa: true,
+      companeroNombre: datosComunes.companeroNombre,
+      companeroMatricula: datosComunes.companeroMatricula,
+      companeroTren: tramo.tren,
+      tipoServicio: datosComunes.tipoServicio,
+      // Solo el tramo de ESTE día — ya vive en su propia fecha, no
+      // hace falta repetir el array completo de los demás días.
+      tramos: [tramo],
+      // El aviso de desajuste (si lo hay) solo se muestra una vez,
+      // en el primer día, para no repetir la misma advertencia N
+      // veces en el historial.
+      avisoDesajuste: idx===0 ? !!datosComunes.avisoDesajuste : false
+    };
+
+    if(!TV2[kDia]) TV2[kDia] = [];
+    TV2[kDia].push(dd);
+    entradas.push({k:kDia, dd:dd});
+  });
+
+  saveTV2();
+
+  // Chequeo de enlace de descanso — se reutiliza la función EXISTENTE
+  // (sin tocarla), aplicada a los dos extremos reales de la pernocta:
+  // el primer día (enlace con el turno propio del día anterior) y el
+  // último día (enlace con el turno propio del día siguiente).
+  if(entradas.length){
+    verificarEnlaceTurnoIntercambiado(entradas[0].k, entradas[0].dd);
+    if(entradas.length>1){
+      verificarEnlaceTurnoIntercambiado(entradas[entradas.length-1].k, entradas[entradas.length-1].dd);
+    }
+  }
 }
 
 // Comprueba el enlace de descanso entre el turno intercambiado recién
@@ -6230,6 +6441,32 @@ function verificarEnlaceTurnoIntercambiado(k, turnoIntercambiado){
   if(avisos.length) toast('⚠️ '+avisos[0]);
 }
 
+// Une varios números de tren de forma natural para el texto del correo
+// ("621 y 634" / "621, 634 y 812") — nunca con separadores técnicos
+// como guiones ("621 - 634"). La usan tanto la vista previa como el
+// envío real, para que ambas coincidan y no se dupliquen dos criterios
+// distintos de redacción.
+function _unirTrenesNatural(lista){
+  var trenes = (lista||[]).filter(Boolean);
+  if(trenes.length===0) return '';
+  if(trenes.length===1) return trenes[0];
+  return trenes.slice(0,-1).join(', ')+' y '+trenes[trenes.length-1];
+}
+
+// Busca si ya existe una Referencia Informativa (Registrar Intercambio)
+// guardada en TV2 para este mismo día y compañero, y si tiene el
+// desglose estructurado de trenes (trenes.ida/vuelta/dia3). Se usa
+// para redactar el correo con los trenes reales del compañero sin
+// tener que volver a pedirlos — reutiliza el dato ya guardado.
+function _trenesCompaneroGuardados(k, nombre, mat){
+  var ref = (TV2[k]||[]).filter(function(r){
+    return r.turno_referencia_externa && r.trenes
+      && ((nombre && r.companeroNombre===nombre) || (mat && r.companeroMatricula===mat));
+  }).pop();
+  if(!ref) return null;
+  return [ref.trenes.ida, ref.trenes.vuelta, ref.trenes.dia3];
+}
+
 function actualizarPrevCambio(){
   var t=(selDay&&selDay.t)||{};
   var k=selDay?selDay.k:null;
@@ -6241,9 +6478,13 @@ function actualizarPrevCambio(){
   var nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'[Nombre compañero]');
   var mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'[Matrícula]');
   var trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'[Nº tren]');
+  var trenesGuardados = _trenesCompaneroGuardados(k, nombre, mat);
+  if(trenesGuardados) trenComp = _unirTrenesNatural(trenesGuardados) || trenComp;
   var miNombre = AJ.nombre||'[Mi nombre]';
   var miMat    = AJ.matricula||'[Mi matrícula]';
-  var miTren   = t.numTren||'[Mi Nº tren]';
+  var miTrenesIda = [t.numTren].concat((t.continuidad||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var miTrenesVuelta = [t.numTrenVuelta].concat((t.continuidadVuelta||[]).map(function(c){return c.tren;})).filter(Boolean);
+  var miTren   = _unirTrenesNatural(miTrenesIda.concat(miTrenesVuelta)) || '[Mi Nº tren]';
   var prev = document.getElementById('cbio-prev');
   if(prev) prev.textContent = generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo});
 }
@@ -6292,11 +6533,13 @@ function _ejecutarEnvioCambio(){
   var nombre   = (document.getElementById('cbio-nombre')?document.getElementById('cbio-nombre').value.trim():'—');
   var mat      = (document.getElementById('cbio-mat')?document.getElementById('cbio-mat').value.trim():'—');
   var trenComp = (document.getElementById('cbio-tren')?document.getElementById('cbio-tren').value.trim():'—');
+  var trenesGuardados = _trenesCompaneroGuardados(k, nombre, mat);
+  if(trenesGuardados) trenComp = _unirTrenesNatural(trenesGuardados) || trenComp;
   var miNombre = AJ.nombre||'—';
   var miMat    = AJ.matricula||'—';
   var miTrenesIda = [t.numTren].concat((t.continuidad||[]).map(function(c){return c.tren;})).filter(Boolean);
   var miTrenesVuelta = [t.numTrenVuelta].concat((t.continuidadVuelta||[]).map(function(c){return c.tren;})).filter(Boolean);
-  var miTren   = miTrenesIda.concat(miTrenesVuelta).join(' - ') || '—';
+  var miTren   = _unirTrenesNatural(miTrenesIda.concat(miTrenesVuelta)) || '—';
   var asunto   = encodeURIComponent('Solicitud de Cambio de Turno - Tren '+miTren+' - '+fstr);
   var cuerpo   = encodeURIComponent(sanitizarTexto(generarMensajeCambio({fstr,miTren,nombre,mat,trenComp,miNombre,miMat,saludo})));
   // Marcar que se solicitó cambio en este turno (persiste en localStorage)
@@ -8783,16 +9026,31 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
       + '<span style="font-size:11px;font-weight:800;color:var(--amber2)">'
       + 'Referencia Informativa'+(t.companeroNombre?' — '+t.companeroNombre:'')+': No computa para horas'
       + '</span></div>';
+    // Aviso de Desajuste — no bloqueó el registro, solo lo señala aquí
+    // en el historial (ver validación en guardarRegistroIntercambio()).
+    if(t.avisoDesajuste){
+      rows += '<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;'
+        + 'background:rgba(220,38,38,.12);border-bottom:1px solid var(--div)">'
+        + '<span style="font-size:14px">⚠️</span>'
+        + '<span style="font-size:10px;font-weight:800;color:var(--red2)">'
+        + 'Aviso de Desajuste — el tipo de servicio no coincide con tu jornada habitual'
+        + '</span></div>';
+    }
     if(t.companeroMatricula) rows += fila('MATRÍCULA', t.companeroMatricula, 'var(--tx2)');
     if(tipoServicioLbl) rows += fila('SERVICIO', tipoServicioLbl, 'var(--tx2)');
+    // TREN DÍA 3 — el único tren que no cubren las filas genéricas
+    // TREN IDA / TREN VUELTA de más abajo (que ya leen t.numTren /
+    // t.numTrenVuelta). Solo aparece en Pernocta 3 días.
+    if(t.trenes && t.trenes.dia3) rows += fila('TREN DÍA 3', '🚆 #'+t.trenes.dia3, 'var(--amber2)');
     // Recorre TODOS los tramos guardados (ida+vuelta, o los días de
     // la pernocta) — nunca solo el primero. t.tramos es el campo
     // actual; t.dias se mantiene por compatibilidad con registros
     // guardados antes de esta corrección (usaba etiqueta "DÍA N" fija).
     (t.tramos || t.dias || []).forEach(function(d, idx){
+      var trenTxt = d.tren ? '🚆 #'+d.tren : '';
       var rutaTxt = (d.estacionInicio||d.estacionFinal) ? (d.estacionInicio||'—')+' → '+(d.estacionFinal||'—') : '';
       var horaTxt = (d.horaInicio&&d.horaFinal) ? d.horaInicio+' – '+d.horaFinal : '';
-      var valorTxt = [rutaTxt, horaTxt].filter(Boolean).join(' · ');
+      var valorTxt = [trenTxt, rutaTxt, horaTxt].filter(Boolean).join(' · ');
       var etiqueta = d.etiqueta || ('DÍA '+(idx+1));
       if(valorTxt) rows += fila(etiqueta, valorTxt, 'var(--tx)');
     });
