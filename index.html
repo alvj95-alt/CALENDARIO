@@ -358,6 +358,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .retraso-inp::-webkit-inner-spin-button{-webkit-appearance:none}
 .retraso-inp:focus{border-color:var(--amber2)}
 .ov-top{z-index:400!important}
+/* Pop-up 1 "en standby": sigue montado y con sus datos intactos,
+   solo se atenúa visualmente y se bloquea su interacción mientras
+   el Pop-up 2 (.ov-top) está abierto encima. */
+.ov.standby .sh{opacity:.35;pointer-events:none;filter:saturate(.4)}
 /* Campo numTren vuelta */
 .numtren-vuelta-wrap{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);
                      border-radius:10px;padding:9px 12px;margin-bottom:10px;
@@ -3291,6 +3295,52 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- OV: REGISTRAR TURNO DEL COMPAÑERO (Pop-up 2 — se apila sobre ov-cambio,
+     que queda "en standby" detrás, sin perder sus datos) -->
+<div class="ov" id="ov-registrar-intercambio" onclick="if(event.target===this)cerrarRegistrarIntercambio()">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📎</div>
+      <div>
+        <div class="sh-tit">Referencia Informativa</div>
+        <div class="sh-sub">El turno del compañero — no computa en tus horas</div>
+      </div>
+      <button class="sh-close" onclick="cerrarRegistrarIntercambio()">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px 24px">
+      <div class="ibox blue" style="margin-bottom:12px"><span class="ibox-i">ℹ️</span>
+        <span>Esto es solo una referencia informativa del turno de tu compañero — se guarda aparte y el motor de cálculo lo ignora por completo.</span>
+      </div>
+      <div class="aj-nombre-wrap" style="margin-bottom:7px"><span class="aj-nombre-ico">👤</span>
+        <input id="reg-interc-nombre" class="aj-nombre-inp" placeholder="Nombre del companero" autocomplete="off"></div>
+      <div class="aj-nombre-wrap" style="margin-bottom:7px"><span class="aj-nombre-ico">🪪</span>
+        <input id="reg-interc-mat" class="aj-nombre-inp" placeholder="Matricula" autocomplete="off"></div>
+      <div class="aj-nombre-wrap" style="margin-bottom:14px"><span class="aj-nombre-ico">🚆</span>
+        <input id="reg-interc-tren" class="aj-nombre-inp" inputmode="numeric" placeholder="Numero de tren" style="font-size:15px;font-weight:800"></div>
+
+      <div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:7px">TIPO DE SERVICIO</div>
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button id="reg-interc-tipo-idaVuelta" onclick="seleccionarTipoServicioIntercambio('idaVuelta')"
+          style="flex:1;padding:9px 4px;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;
+          color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer">Ida y Vuelta</button>
+        <button id="reg-interc-tipo-pernocta2" onclick="seleccionarTipoServicioIntercambio('pernocta2')"
+          style="flex:1;padding:9px 4px;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;
+          color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer">Pernocta 2 días</button>
+        <button id="reg-interc-tipo-pernocta3" onclick="seleccionarTipoServicioIntercambio('pernocta3')"
+          style="flex:1;padding:9px 4px;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;
+          color:var(--tx2);font-size:11px;font-weight:700;cursor:pointer">Pernocta 3 días</button>
+      </div>
+
+      <div id="reg-interc-dias"></div>
+
+      <button onclick="guardarRegistroIntercambio()" style="width:100%;padding:14px;margin-top:4px;
+        background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;
+        color:#fff;font-size:14px;font-weight:800;cursor:pointer">Guardar Referencia Informativa</button>
+    </div>
+  </div>
+</div>
+
 <!-- OV: EDITAR DÍA COMPENSATORIO -->
 <div class="ov" id="ov-edit-comp">
   <div class="sh" style="max-height:70%">
@@ -4020,6 +4070,22 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
   var resultado = checkRestTime(turnoA, turnoB, keyA, keyB);
   if(!turnoA || !turnoB) return resultado;
 
+  resultado.computaPresencia = false;
+  resultado.computaFinanciero = false;
+  resultado.avisoNoComputa = '';
+
+  // Prioridad absoluta: si cualquiera de los dos lados del enlace es
+  // un Turno Intercambiado, nunca computa — ni siquiera aunque ambos
+  // sean HTDL. Esta comprobación va ANTES de la matriz Ordinaria/HTDL
+  // porque la sustituye por completo cuando aplica.
+  if(turnoA.turno_referencia_externa || turnoB.turno_referencia_externa || turnoA.esTurnoIntercambiado || turnoB.esTurnoIntercambiado){
+    resultado.tipoEnlace = 'TURNO_INTERCAMBIADO';
+    if(resultado.incumple){
+      resultado.avisoNoComputa = 'Ojo: Este enlace de jornada no computa para el pago (Turno de cambio).';
+    }
+    return resultado;
+  }
+
   // Flag interno de tipo de jornada — Ordinaria o HTDL (trabajado) —
   // se resuelve ANTES de decidir si el tiempo computa o no.
   var esHTDL_A = (turnoA.tipo === 'trabajado');
@@ -4030,9 +4096,6 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
   else if(esHTDL_A || esHTDL_B) tipoEnlace = 'ORDINARIA_HTDL';
 
   resultado.tipoEnlace = tipoEnlace;
-  resultado.computaPresencia = false;
-  resultado.computaFinanciero = false;
-  resultado.avisoNoComputa = '';
 
   if(resultado.incumple){
     if(tipoEnlace==='ORDINARIA_ORDINARIA'){
@@ -5962,8 +6025,209 @@ function abrirCambio(){
     +'<div id="cbio-prev" style="background:var(--s2);border:1px solid var(--div);border-radius:10px;padding:11px 13px;font-size:11px;color:var(--tx2);line-height:1.65;margin-bottom:14px;white-space:pre-wrap;max-height:150px;overflow-y:auto"></div>'
     +'<button onclick="enviarCambio()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--nar),var(--nar2));border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:var(--sh-nar)">✉️ Abrir en Correo</button>'
     +'<div style="font-size:9px;color:var(--tx3);text-align:center;margin-top:7px">Abre tu app de correo con el mensaje completo</div>'
+    +'<div style="height:1px;background:var(--div);margin:16px 0"></div>'
+    +'<button onclick="abrirRegistrarIntercambio()" style="width:100%;padding:12px;background:var(--s2);'
+    +'border:1.5px dashed var(--div);border-radius:11px;color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer">'
+    +'🔁 Registrar Intercambio</button>'
     +'</div>';
   actualizarPrevCambio();openOv('ov-cambio');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   REGISTRO DE INTERCAMBIO — flujo en dos niveles de pop-up.
+   Pop-up 1 (ov-cambio) se queda "on" y visible detrás — solo se
+   le añade la clase .standby (bloquea su interacción, lo atenúa)
+   mientras el Pop-up 2 (ov-registrar-intercambio) está abierto
+   encima, con openOvTop() — el mismo mecanismo de superposición
+   que ya usa el resto de la app (z-index 400 de .ov-top por
+   encima del z-index 200 base de .ov), sin inventar nada nuevo.
+   Los datos del Pop-up 1 (nombre/matrícula/tren del compañero)
+   nunca se tocan ni se pierden: siguen en su sitio en el DOM.
+
+   Se guarda como turno_referencia_externa=true — el motor de
+   cálculo lo excluye por completo (ver calcularJornadaDiaria).
+   Mantiene compatibilidad con esTurnoIntercambiado (el metadato
+   de la versión anterior de este mismo módulo), así que cualquier
+   registro ya guardado sigue excluyéndose igual.
+═══════════════════════════════════════════════════════════ */
+var _intercambioTipoServicio = 'idaVuelta'; // idaVuelta | pernocta2 | pernocta3
+
+function abrirRegistrarIntercambio(){
+  var pop1 = document.getElementById('ov-cambio');
+  if(pop1) pop1.classList.add('standby');
+
+  // Autocompletar Nombre/Matrícula/Tren desde el Pop-up 1
+  var nombre = (document.getElementById('cbio-nombre')||{}).value || '';
+  var mat = (document.getElementById('cbio-mat')||{}).value || '';
+  var tren = (document.getElementById('cbio-tren')||{}).value || '';
+  var elN = document.getElementById('reg-interc-nombre'); if(elN) elN.value = nombre;
+  var elM = document.getElementById('reg-interc-mat'); if(elM) elM.value = mat;
+  var elT = document.getElementById('reg-interc-tren'); if(elT) elT.value = tren;
+
+  _intercambioTipoServicio = 'idaVuelta';
+  _pintarSeleccionTipoServicioIntercambio();
+  _renderDiasIntercambio();
+
+  openOvTop('ov-registrar-intercambio');
+}
+
+function cerrarRegistrarIntercambio(){
+  closeOv('ov-registrar-intercambio');
+  var pop1 = document.getElementById('ov-cambio');
+  if(pop1) pop1.classList.remove('standby');
+}
+
+function seleccionarTipoServicioIntercambio(tipo){
+  _intercambioTipoServicio = tipo;
+  _pintarSeleccionTipoServicioIntercambio();
+  _renderDiasIntercambio();
+}
+
+function _pintarSeleccionTipoServicioIntercambio(){
+  ['idaVuelta','pernocta2','pernocta3'].forEach(function(tipo){
+    var btn = document.getElementById('reg-interc-tipo-'+tipo);
+    if(!btn) return;
+    var activo = (tipo===_intercambioTipoServicio);
+    btn.style.background = activo ? 'rgba(245,158,11,.15)' : 'var(--s2)';
+    btn.style.borderColor = activo ? 'var(--amber2)' : 'var(--div)';
+    btn.style.color = activo ? 'var(--amber2)' : 'var(--tx2)';
+  });
+}
+
+function _numDiasIntercambio(){
+  if(_intercambioTipoServicio==='pernocta3') return 3;
+  if(_intercambioTipoServicio==='pernocta2') return 2;
+  return 2; // Ida y Vuelta: DOS tramos (ida + vuelta), aunque sea el mismo día —
+            // antes devolvía 1 y la vuelta nunca tenía dónde guardarse.
+}
+
+// Etiqueta de cada bloque según el tipo de servicio: en Ida y Vuelta
+// son "IDA"/"VUELTA" (mismo día, dos tramos); en pernocta son días
+// de calendario reales ("DÍA 1", "DÍA 2"...).
+function _etiquetaTramoIntercambio(idx){
+  if(_intercambioTipoServicio==='idaVuelta') return idx===0 ? 'IDA' : 'VUELTA';
+  return 'DÍA '+(idx+1);
+}
+
+// Despliega dinámicamente 2 o 3 bloques según el tipo de servicio
+// elegido — nunca un número fijo de campos.
+function _renderDiasIntercambio(){
+  var cont = document.getElementById('reg-interc-dias');
+  if(!cont) return;
+  var n = _numDiasIntercambio();
+  var html = '';
+  for(var i=1; i<=n; i++){
+    html += '<div style="background:var(--s2);border:1px solid var(--div);border-radius:11px;padding:12px;margin-bottom:10px">'
+      + '<div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--tx3);margin-bottom:8px">'+_etiquetaTramoIntercambio(i-1)+'</div>'
+      + '<div style="display:flex;gap:7px;margin-bottom:7px">'
+      + '<input id="reg-interc-est-ini-'+i+'" placeholder="Estación inicio" style="flex:1;background:var(--s1);'
+      + 'border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:12px;padding:9px 10px;outline:none">'
+      + '<input id="reg-interc-est-fin-'+i+'" placeholder="Estación final" style="flex:1;background:var(--s1);'
+      + 'border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:12px;padding:9px 10px;outline:none">'
+      + '</div>'
+      + '<div style="display:flex;gap:7px">'
+      + '<input id="reg-interc-hini-'+i+'" type="time" style="flex:1;background:var(--s1);border:1.5px solid var(--div);'
+      + 'border-radius:9px;color:var(--tx);font-size:13px;padding:9px 10px;outline:none;text-align:center;font-family:inherit;color-scheme:dark">'
+      + '<input id="reg-interc-hfin-'+i+'" type="time" style="flex:1;background:var(--s1);border:1.5px solid var(--div);'
+      + 'border-radius:9px;color:var(--tx);font-size:13px;padding:9px 10px;outline:none;text-align:center;font-family:inherit;color-scheme:dark">'
+      + '</div>'
+      + '</div>';
+  }
+  cont.innerHTML = html;
+}
+
+async function guardarRegistroIntercambio(){
+  if(!selDay) return;
+  var nombreEl = document.getElementById('reg-interc-nombre');
+  var matEl = document.getElementById('reg-interc-mat');
+  var trenEl = document.getElementById('reg-interc-tren');
+  var nombre = nombreEl ? nombreEl.value.trim() : '';
+  var mat = matEl ? matEl.value.trim() : '';
+  var tren = trenEl ? trenEl.value.trim() : '';
+
+  if(!nombre){ if(nombreEl){nombreEl.style.borderColor='#ef4444';setTimeout(function(){nombreEl.style.borderColor='';},1500);} return; }
+  if(!tren){ if(trenEl){trenEl.style.borderColor='#ef4444';setTimeout(function(){trenEl.style.borderColor='';},1500);} return; }
+
+  // Array de tramos — nunca un objeto único. Antes, "Ida y Vuelta"
+  // solo generaba 1 bloque de campos, así que al guardar solo existía
+  // un tramo (la ida) y la vuelta no tenía dónde quedar registrada.
+  // Ahora se recorren SIEMPRE los N bloques reales que hay en el DOM
+  // (2 en Ida y Vuelta, 2 o 3 en pernocta) y se guardan todos juntos.
+  var n = _numDiasIntercambio();
+  var tramos = [];
+  for(var i=1; i<=n; i++){
+    var estIniEl = document.getElementById('reg-interc-est-ini-'+i);
+    var estFinEl = document.getElementById('reg-interc-est-fin-'+i);
+    var hIniEl = document.getElementById('reg-interc-hini-'+i);
+    var hFinEl = document.getElementById('reg-interc-hfin-'+i);
+    tramos.push({
+      etiqueta: _etiquetaTramoIntercambio(i-1),
+      estacionInicio: (estIniEl?estIniEl.value.trim():'') || null,
+      estacionFinal: (estFinEl?estFinEl.value.trim():'') || null,
+      horaInicio: (hIniEl?hIniEl.value:'') || null,
+      horaFinal: (hFinEl?hFinEl.value:'') || null
+    });
+  }
+
+  var k = selDay.k;
+  var ultimoTramo = tramos.length ? tramos[tramos.length-1] : null;
+  var dd = {
+    tipo: 'ordinario',
+    numTren: tren,
+    hF: tramos[0] ? tramos[0].horaInicio : null,
+    hL: tramos[0] ? tramos[0].horaFinal : null,
+    // hL2: fin real del ÚLTIMO tramo del bloque (la vuelta en Ida y
+    // Vuelta, o el último día en pernocta) — checkRestTime ya
+    // prioriza hL2 sobre hL como "fin de la jornada" para el chequeo
+    // de descanso con el turno siguiente.
+    hL2: (tramos.length>1 && ultimoTramo) ? ultimoTramo.horaFinal : null,
+    notas: 'Referencia informativa (cambio) con '+nombre,
+    turno_referencia_externa: true,
+    companeroNombre: nombre,
+    companeroMatricula: mat,
+    companeroTren: tren,
+    tipoServicio: _intercambioTipoServicio,
+    // Todos los tramos (ida+vuelta, o los días de la pernocta) se
+    // guardan JUNTOS bajo esta misma clave — un único registro de
+    // referencia, nunca uno por tramo.
+    tramos: tramos
+  };
+  if(!TV2[k]) TV2[k] = [];
+  TV2[k].push(dd);
+  saveTV2();
+
+  verificarEnlaceTurnoIntercambiado(k, dd);
+
+  renderCal();
+  renderDiaArea();
+  cerrarRegistrarIntercambio();
+  toast('📎 Referencia informativa guardada — no computa en tus horas');
+}
+
+// Comprueba el enlace de descanso entre el turno intercambiado recién
+// guardado y los turnos ORIGINALES tuyos del día anterior/siguiente.
+// Si detecta que uno de los dos lados del enlace es un turno
+// intercambiado, el aviso "no computa (Turno de cambio)" tiene
+// prioridad sobre cualquier otra clasificación — ver
+// calcularEnlaceJornada(), que ya centraliza esa regla.
+function verificarEnlaceTurnoIntercambiado(k, turnoIntercambiado){
+  var partes = k.split('-').map(Number);
+  var dtHoy = new Date(partes[0], partes[1]-1, partes[2]);
+  var dtAyer = new Date(dtHoy); dtAyer.setDate(dtAyer.getDate()-1);
+  var dtManana = new Date(dtHoy); dtManana.setDate(dtManana.getDate()+1);
+  var kAyer = key(dtAyer.getFullYear(), dtAyer.getMonth()+1, dtAyer.getDate());
+  var kManana = key(dtManana.getFullYear(), dtManana.getMonth()+1, dtManana.getDate());
+
+  var avisos = [];
+  if(TV[kAyer]){
+    var enlaceAntes = calcularEnlaceJornada(TV[kAyer], turnoIntercambiado, kAyer, k);
+    if(enlaceAntes.incumple && enlaceAntes.avisoNoComputa) avisos.push(enlaceAntes.avisoNoComputa);
+  }
+  if(TV[kManana]){
+    var enlaceDespues = calcularEnlaceJornada(turnoIntercambiado, TV[kManana], k, kManana);
+    if(enlaceDespues.incumple && enlaceDespues.avisoNoComputa) avisos.push(enlaceDespues.avisoNoComputa);
+  }
+  if(avisos.length) toast('⚠️ '+avisos[0]);
 }
 
 function actualizarPrevCambio(){
@@ -7718,6 +7982,15 @@ function calcularJornadaDiaria(turnos, fecha){
 
   (turnos||[]).forEach(function(t){
     if(!t) return;
+    // Turno Intercambiado / Referencia Informativa: no suma nada a
+    // ningún contador — ni Efectivas, ni Presencia, ni huecos de
+    // escala. Filtro EXPLÍCITO por las dos propiedades posibles
+    // (turno_referencia_externa es la actual; esTurnoIntercambiado se
+    // mantiene por compatibilidad con registros ya guardados). Es la
+    // única condición que activa este comportamiento; cualquier turno
+    // sin ninguna de las dos sigue calculándose exactamente igual que
+    // siempre — el objeto jornada original del usuario, sin tocar.
+    if(t.turno_referencia_externa || t.esTurnoIntercambiado) return;
     if(t.tipo==='trabajado') esHTDL = true;
 
     if(t.tipo==='ordinario' || t.tipo==='trabajado'){
@@ -8498,6 +8771,42 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
       + '<span style="font-size:12px;color:'+(col||'var(--tx2)')+';font-weight:600;flex:1;line-height:1.4;min-width:0;word-wrap:break-word;overflow-wrap:break-word;white-space:normal">'+val+'</span>'
       + '</div>';
   };
+
+  // Marca visual — no sustituye a las filas de tren/horario normales
+  // (que siguen mostrando lo que trabajaste), solo añade el aviso de
+  // que este bloque no computa en los contadores.
+  if(t.turno_referencia_externa){
+    var tipoServicioLbl = {idaVuelta:'Ida y Vuelta', pernocta2:'Pernocta 2 días', pernocta3:'Pernocta 3 días'}[t.tipoServicio] || '';
+    rows += '<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;'
+      + 'background:rgba(245,158,11,.1);border-bottom:1px solid var(--div)">'
+      + '<span style="font-size:14px">📎</span>'
+      + '<span style="font-size:11px;font-weight:800;color:var(--amber2)">'
+      + 'Referencia Informativa'+(t.companeroNombre?' — '+t.companeroNombre:'')+': No computa para horas'
+      + '</span></div>';
+    if(t.companeroMatricula) rows += fila('MATRÍCULA', t.companeroMatricula, 'var(--tx2)');
+    if(tipoServicioLbl) rows += fila('SERVICIO', tipoServicioLbl, 'var(--tx2)');
+    // Recorre TODOS los tramos guardados (ida+vuelta, o los días de
+    // la pernocta) — nunca solo el primero. t.tramos es el campo
+    // actual; t.dias se mantiene por compatibilidad con registros
+    // guardados antes de esta corrección (usaba etiqueta "DÍA N" fija).
+    (t.tramos || t.dias || []).forEach(function(d, idx){
+      var rutaTxt = (d.estacionInicio||d.estacionFinal) ? (d.estacionInicio||'—')+' → '+(d.estacionFinal||'—') : '';
+      var horaTxt = (d.horaInicio&&d.horaFinal) ? d.horaInicio+' – '+d.horaFinal : '';
+      var valorTxt = [rutaTxt, horaTxt].filter(Boolean).join(' · ');
+      var etiqueta = d.etiqueta || ('DÍA '+(idx+1));
+      if(valorTxt) rows += fila(etiqueta, valorTxt, 'var(--tx)');
+    });
+  } else if(t.esTurnoIntercambiado){
+    // Compatibilidad con registros guardados con el formato anterior
+    rows += '<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;'
+      + 'background:rgba(245,158,11,.1);border-bottom:1px solid var(--div)">'
+      + '<span style="font-size:14px">🔁</span>'
+      + '<span style="font-size:11px;font-weight:800;color:var(--amber2)">'
+      + 'Turno de cambio'+(t.companeroNombre?' con '+t.companeroNombre:'')+': No computa para horas'
+      + '</span></div>';
+    if(t.estacionInicio||t.estacionFinal)
+      rows += fila('RUTA', (t.estacionInicio||'—')+' → '+(t.estacionFinal||'—'), 'var(--tx)');
+  }
 
   // Tren ida (+ tramos de continuidad, si los hay) — una fila por tramo
   if(t.numTren){
