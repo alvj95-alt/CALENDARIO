@@ -7,12 +7,6 @@
 <!-- Requerido por el panel Horario (parseo de PDF) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     PUBLICIDAD — Google AdSense (añadido, 100% removible)
-     Para quitarlo: borra solo este bloque <script> de abajo,
-     entre las marcas INICIO/FIN. No afecta a ninguna otra
-     parte de la app si se elimina.
-═══════════════════════════════════════════════════════════ -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif}
@@ -160,6 +154,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dc-tra{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.5);color:#C4B5FD;font-weight:700}
 .dc-cmp{background:rgba(8,145,178,.25);border-color:rgba(8,145,178,.6);color:#67E8F9;font-weight:700}
 .dc-dop{background:rgba(219,39,119,.2);border-color:rgba(219,39,119,.5);color:#F9A8D4;font-weight:700}
+/* NUEVO — FIX: esta regla faltaba. TIPO_INFO.art5152.cls='dc-art5152' se
+   asignaba correctamente en renderSlide() pero, al no existir la regla,
+   la celda no mostraba ningún color distintivo (bug reportado). */
+.dc-art5152{background:rgba(59,127,255,.2);border-color:rgba(59,127,255,.5);color:#93C5FD;font-weight:700}
 
 /* ── COMPANION CALENDAR STYLES ── */
 .dc-comp-ordinario{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.4)}
@@ -282,6 +280,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .topt.t-des:hover{border-color:var(--c-des);background:rgba(34,197,94,.1);color:#86EFAC}
 .topt.t-baj:hover{border-color:var(--c-baj);background:rgba(239,68,68,.1);color:#FCA5A5}
 .topt.t-dop:hover{border-color:var(--c-dop);background:rgba(219,39,119,.1);color:#F9A8D4}
+.topt.t-art:hover{border-color:var(--acc);background:rgba(59,127,255,.1);color:var(--acc)}
 
 /* ── FORMULARIO ── */
 .fsec{padding:8px 13px}
@@ -367,6 +366,35 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
                  font-weight:600;animation:pulseRed 2s infinite}
 @keyframes pulseRed{0%,100%{border-color:rgba(220,38,38,.3)}50%{border-color:rgba(220,38,38,.7)}}
 .alerta-ico{font-size:16px;flex-shrink:0}
+/* NUEVO — botón de correo dentro de la alerta de descanso (retraso en tren de ida) */
+.alerta-mail-btn{display:flex;align-items:center;justify-content:center;
+  width:26px;height:26px;flex-shrink:0;align-self:flex-start;
+  border-radius:7px;background:var(--s2);border:1px solid var(--div);
+  color:var(--acc3);text-decoration:none;font-size:13px;transition:all .18s;
+  cursor:pointer;font-family:'Inter',sans-serif;outline:none}
+.alerta-mail-btn:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
+
+/* NUEVO — Modal intermedio de confirmación de correo (capa UX) */
+.correo-modal-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.62);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.correo-modal-box{background:var(--s1);border:1px solid var(--div);border-radius:18px;
+  width:min(360px,100%);max-height:88vh;overflow-y:auto;box-shadow:var(--sh-card);
+  padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px}
+.correo-modal-hdr{display:flex;align-items:center;gap:8px}
+.correo-modal-ico{font-size:18px;flex-shrink:0}
+.correo-modal-title{font-size:14px;font-weight:800;color:var(--tx)}
+.correo-modal-sub{font-size:10px;color:var(--tx2);margin-top:1px}
+.correo-modal-textarea{width:100%;min-height:220px;resize:vertical;background:var(--s2);
+  border:1px solid var(--div);border-radius:10px;color:var(--tx);font-size:12px;
+  line-height:1.5;padding:10px;outline:none;font-family:'Inter',sans-serif}
+.correo-modal-textarea:focus{border-color:var(--acc)}
+.correo-modal-btns{display:flex;gap:8px;margin-top:2px}
+.correo-modal-btn{flex:1;padding:9px;border-radius:10px;font-size:12px;font-weight:800;
+  cursor:pointer;border:1px solid var(--div);transition:all .18s}
+.correo-modal-btn-cancel{background:var(--s2);color:var(--tx2)}
+.correo-modal-btn-cancel:hover{background:var(--s3);color:var(--tx)}
+.correo-modal-btn-send{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:var(--sh-btn)}
+.correo-modal-btn-send:hover{background:var(--acc2)}
 /* Icono rojo sutil en celda del calendario */
 .dc-alerta::after{content:'⚠';position:absolute;top:1px;right:1px;font-size:7px;
                   color:var(--red2);line-height:1}
@@ -2584,6 +2612,51 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
+      <!-- NUEVO — ACORDEÓN: Artículo 51 y 52 (módulo aditivo, autónomo) -->
+      <div class="aj-acc-item" id="aj-acc-art5152">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-art5152')">
+          <span class="aj-acc-hdr-ico">⚖️</span>
+          <span class="aj-acc-hdr-tit">Artículo 51 y 52</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+          <div class="aj-card">
+            <div class="aj-card-hdr c-gold">
+              <div class="aj-card-hdr-ico">⚖️</div>
+              <div class="aj-card-hdr-txt">
+                <div class="aj-card-hdr-tit">Artículo 51 y 52</div>
+                <div class="aj-card-hdr-sub">Compensación por pernocta / ida-vuelta</div>
+              </div>
+            </div>
+            <div class="aj-card-body">
+              <div class="aj-num-row">
+                <div class="aj-num-ico">💶</div>
+                <div class="aj-num-info">
+                  <div class="aj-num-lbl">Monto a pagar</div>
+                  <div class="aj-num-sub">Por hora de tiempo efectivo (opción Dinero)</div>
+                </div>
+                <div class="aj-num-right">
+                  <input class="aj-num-inp" id="aj-art5152-monto" type="number" step="0.50" min="0">
+                  <span class="aj-num-unit">€/h</span>
+                </div>
+              </div>
+              <div class="aj-num-row">
+                <div class="aj-num-ico">📐</div>
+                <div class="aj-num-info">
+                  <div class="aj-num-lbl">Valor base</div>
+                  <div class="aj-num-sub">Importe fijo adicional por registro</div>
+                </div>
+                <div class="aj-num-right">
+                  <input class="aj-num-inp" id="aj-art5152-base" type="number" step="0.50" min="0">
+                  <span class="aj-num-unit">€</span>
+                </div>
+              </div>
+              <button class="m-save" style="width:100%;margin-top:8px" onclick="guardarAjustesArt5152()">Guardar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── ACORDEÓN: Almacenamiento ── -->
       <div class="aj-acc-item" id="aj-acc-almacen">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-almacen')">
@@ -3170,6 +3243,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="topt t-baj" onclick="elegirTipo('baja')"><div class="to-ico">🏥</div><div class="to-lbl">Baja</div><div class="to-sub">Médica o laboral</div></div>
         <div class="topt t-vac" onclick="elegirTipo('vacaciones')"><div class="to-ico">🏖</div><div class="to-lbl">Vacaciones</div><div class="to-sub">Días de vacaciones anuales</div></div>
         <div class="topt t-dop" onclick="elegirDOP()"><div class="to-ico">⭐</div><div class="to-lbl">DOP</div><div class="to-sub">Día de descanso opcional</div></div>
+        <div class="topt t-art" onclick="elegirArt5152()"><div class="to-ico">⚖️</div><div class="to-lbl">Artículo 51 y 52</div><div class="to-sub">Dinero, días o mix</div></div>
       </div>
     </div>
   </div>
@@ -3329,6 +3403,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
     <!-- SingleChildScrollView equivalent: overflow-y:auto en el body -->
     <div id="cambio-body" style="overflow-y:auto;flex:1;min-height:0"></div>
+  </div>
+</div>
+
+<!-- OV: CORREO MIX (HTDL y Art. 51/52) — mismo patrón exacto que ov-cambio,
+     reutilizado tal cual (misma estructura .ov/.sh/.sh-hdr), sin inventar
+     ningún componente nuevo. -->
+<div class="ov" id="ov-correo-mix" onclick="closeOv('ov-correo-mix')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">✉️</div>
+      <div>
+        <div class="sh-tit">Notificar Mix a Programación</div>
+        <div class="sh-sub">Revisa, edita y envía</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-correo-mix')">✕</button>
+    </div>
+    <div id="correo-mix-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
   </div>
 </div>
 
@@ -3876,6 +3968,10 @@ const TIPO_INFO={
   vacaciones:       {ico:'✈',lbl:'Vacaciones',   col:'var(--c-vac)',cls:'dc-vac'},
   dop:              {ico:'⭐',lbl:'DOP',          col:'var(--c-dop)',cls:'dc-dop'},
 };
+// NUEVO — Registro aditivo del tipo 'art5152' (Artículo 51 y 52).
+// No se edita el objeto TIPO_INFO original de arriba; se añade como
+// propiedad nueva justo después de su declaración.
+TIPO_INFO.art5152 = {ico:'⚖️', lbl:'Art. 51/52', col:'var(--acc3)', cls:'dc-art5152'};
 // ── PLUSES: Activación, Internacional, JT — fijos por viaje ──
 const PLUS_DEF={
   tripulante:{activacion:3.20,internacional:4.50,jt:2.80},
@@ -3922,6 +4018,16 @@ var COMP_DATA  = JSON.parse(localStorage.getItem('comp5') || '{}');
 var vistaMode  = 'mio'; // 'mio' | 'comp' | 'ambos'
 
 function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
+
+// ── NUEVO — Módulo Artículo 51 y 52 (100% aditivo, claves propias) ──
+// ART5152_DIAS: bolsa de días de descanso generados, indexada por el
+//   mes DESTINO ('YYYY-MM') al que se suman (el mes siguiente al del registro).
+// ART5152_USO: nº de veces que se ha usado el artículo, indexado por el
+//   mes de ORIGEN ('YYYY-MM') del turno — para la validación de una vez al mes.
+var ART5152_DIAS = JSON.parse(localStorage.getItem('art5152_dias') || '{}');
+var ART5152_USO  = JSON.parse(localStorage.getItem('art5152_uso')  || '{}');
+function _saveArt5152Dias(){ localStorage.setItem('art5152_dias', JSON.stringify(ART5152_DIAS)); }
+function _saveArt5152Uso(){ localStorage.setItem('art5152_uso', JSON.stringify(ART5152_USO)); }
 
 /* ═══════════════════════════════════════
    INIT
@@ -4189,6 +4295,613 @@ function verificarDescansosMes(){
 
 // ALERTAS_DESCANSO declarada en bloque ESTADO GLOBAL (ver inicio del script)
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Detección de retraso en tren de IDA como causa de
+   incumplimiento de descanso fuera de base.
+   Función de solo lectura: no modifica TV, ALERTAS_DESCANSO,
+   checkRestTime() ni calcularEnlaceJornada(). Únicamente lee
+   los datos ya existentes (alerta + t.retrasos del turno
+   anterior) y devuelve un objeto listo para pintar en el banner.
+═══════════════════════════════════════════════════════════ */
+function detectarCausaRetrasoIda(alerta){
+  if(!alerta) return null;
+  var turnoAnterior = TV[alerta.kAnterior];
+  if(!turnoAnterior) return null;
+  // Solo aplica cuando el incumplimiento es FUERA de base (esEnBase===false)
+  if(alerta.esEnBase !== false) return null;
+  // NUEVO: si el día anterior es la "vuelta" de una pernocta (2 o 3 días),
+  // el tramo de IDA real vive en la celda de ORIGEN (origenPernocta),
+  // no en esta celda de vuelta. Resolvemos esa referencia primero.
+  var esVueltaDePernocta = (turnoAnterior.tipo === 'vuelta-pernocta' || turnoAnterior.tipo === 'pernocta3-intermedio');
+  var turnoIda = (esVueltaDePernocta && turnoAnterior.origenPernocta && TV[turnoAnterior.origenPernocta])
+    ? TV[turnoAnterior.origenPernocta]
+    : turnoAnterior;
+  var retrasos = turnoIda.retrasos || [];
+  var rIda = retrasos.filter(function(r){ return r.tramo === 1; })[0];
+  var minIda = rIda ? (parseInt(rIda.minutos)||0) : 0;
+  var trenIda = rIda ? (rIda.tren||'').trim() : '';
+  if(!(minIda > 0 && trenIda)) return null;
+  return {trenIda:trenIda, minIda:minIda};
+}
+
+function construirMailtoRetrasoIda(causa, alerta, turnoActual, fechaLbl){
+  var destinatario = 'programación@empresa.com';
+  var asunto = encodeURIComponent('Incumplimiento de descanso — Tren '+causa.trenIda+' (ida)');
+  var turnoUsuario = (turnoActual && (turnoActual.numTren || turnoActual.tipo)) || '—';
+  var cuerpo = encodeURIComponent(
+    'Buenas,\n\n'
+    +'Se ha detectado un incumplimiento del descanso mínimo fuera de base '+fechaLbl+',\n'
+    +'motivado por un retraso de '+causa.minIda+' min en el tren '+causa.trenIda+' de ida.\n\n'
+    +'Turno afectado: '+turnoUsuario+'\n'
+    +'Descanso registrado: '+(alerta.descStr||'—')+' (mínimo requerido: '+(alerta.limStr||'—')+')\n\n'
+    +'Quedo a la espera de indicaciones.\n'
+  );
+  return 'mailto:'+destinatario+'?subject='+asunto+'&body='+cuerpo;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Mailto GENÉRICO para cualquier alerta de enlace de
+   jornada, exista o no un tren de ida identificado. Complementa
+   (no sustituye) a construirMailtoRetrasoIda: cuando hay causa
+   específica se usa el texto detallado con tren+minutos; cuando
+   no la hay, se usa el mensaje general con los datos que sí
+   existen siempre en toda alerta (msg, descStr, limStr, kAnterior).
+   Solo lectura — no modifica TV, ALERTAS_DESCANSO ni funciones
+   de cálculo existentes.
+═══════════════════════════════════════════════════════════ */
+function construirMailtoAlertaJornada(alerta, turnoActual, fechaLbl, causaIda){
+  var destinatario = 'programación@empresa.com';
+  var turnoUsuario = (turnoActual && (turnoActual.numTren || turnoActual.tipo)) || '—';
+  var turnoAnteriorLbl = (typeof _keyAFechaLbl === 'function') ? _keyAFechaLbl(alerta.kAnterior||'') : (alerta.kAnterior||'—');
+
+  if(causaIda){
+    // Delega en el mailto específico ya existente (mismo contenido, sin duplicar lógica)
+    return construirMailtoRetrasoIda(causaIda, alerta, turnoActual, fechaLbl);
+  }
+
+  var asunto = encodeURIComponent('Incumplimiento de enlace de jornada — '+fechaLbl);
+  var cuerpo = encodeURIComponent(
+    'Buenas,\n\n'
+    +'Se ha detectado un incumplimiento de descanso en el enlace de jornada '+fechaLbl+'.\n'
+    +'Turno anterior: '+turnoAnteriorLbl+'\n\n'
+    +'Detalle: '+(alerta.msg||'—')+'\n'
+    +'Descanso registrado: '+(alerta.descStr||'—')+' (mínimo requerido: '+(alerta.limStr||'—')+')\n'
+    +(alerta.avisoNoComputa ? ('Aviso adicional: '+alerta.avisoNoComputa+'\n') : '')
+    +'\nTurno afectado: '+turnoUsuario+'\n\n'
+    +'Quedo a la espera de indicaciones.\n'
+  );
+  return 'mailto:'+destinatario+'?subject='+asunto+'&body='+cuerpo;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Capa de UX intermedia: modal de confirmación antes
+   de abrir el cliente de correo. Puramente aditivo: reutiliza
+   ALERTAS_DESCANSO, TV, AJ, _keyAFechaLbl() y
+   detectarCausaRetrasoIda() ya existentes, sin modificarlos.
+   No sustituye construirMailtoAlertaJornada()/construirMailtoRetrasoIda()
+   (siguen intactas y usables); esta capa solo añade un paso
+   intermedio de revisión/edición antes de invocar el mailto: final.
+═══════════════════════════════════════════════════════════ */
+
+function _saludoPorHora(){
+  var h = new Date().getHours();
+  if(h < 12) return 'Buenos días';
+  if(h < 20) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function _generarMensajeCorreoJornada(k){
+  var alerta = ALERTAS_DESCANSO[k];
+  var t = TV[k];
+  if(!alerta || !t) return '';
+  var causaIda = detectarCausaRetrasoIda(alerta);
+  var fechaTurno = _keyAFechaLbl(k);
+  var nombre = AJ.nombre || '[Nombre no configurado en Ajustes]';
+  var matricula = AJ.matricula || '[Matrícula no configurada en Ajustes]';
+  var saludo = _saludoPorHora();
+  var ambito = (alerta.esEnBase===false) ? 'fuera de base' : 'dentro de base';
+
+  var cuerpo = causaIda
+    ? ('Envío este correo porque el día '+fechaTurno+' se produjo un retraso de '+causaIda.minIda
+       +' min en el tren '+causaIda.trenIda+' de ida. Por este motivo, no cumplo con las horas de descanso '
+       +ambito+' correspondiente, resultando en un enlace de jornada. Envío este aviso para su conocimiento.')
+    : ('Envío este correo porque el día '+fechaTurno+' se ha producido un incumplimiento de las horas de descanso '
+       +ambito+' correspondiente ('+(alerta.msg||'')+'), resultando en un enlace de jornada. '
+       +'Envío este aviso para su conocimiento.');
+
+  return saludo+',\n\n'
+    +cuerpo+'\n\n'
+    +'Atentamente, '+nombre+' (Matrícula: '+matricula+')\n\n'
+    +'— Generado automáticamente por TrenTurnos v5';
+}
+
+function cerrarModalCorreoJornada(){
+  var ov = document.getElementById('correo-modal-overlay');
+  if(ov) ov.remove();
+}
+
+function abrirModalCorreoJornada(k){
+  cerrarModalCorreoJornada(); // por si ya hubiera uno abierto
+  var mensaje = _generarMensajeCorreoJornada(k);
+  if(!mensaje) return;
+
+  var overlay = document.createElement('div');
+  overlay.id = 'correo-modal-overlay';
+  overlay.className = 'correo-modal-overlay';
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) cerrarModalCorreoJornada();
+  });
+
+  overlay.innerHTML =
+    '<div class="correo-modal-box" onclick="event.stopPropagation()">'
+      +'<div class="correo-modal-hdr">'
+        +'<span class="correo-modal-ico">✉️</span>'
+        +'<div><div class="correo-modal-title">Notificar a Programación</div>'
+        +'<div class="correo-modal-sub">Revisa y edita el mensaje antes de enviarlo</div></div>'
+      +'</div>'
+      +'<textarea id="correo-modal-textarea" class="correo-modal-textarea"></textarea>'
+      +'<div class="correo-modal-btns">'
+        +'<button class="correo-modal-btn correo-modal-btn-cancel" onclick="cerrarModalCorreoJornada()">Cancelar</button>'
+        +'<button class="correo-modal-btn correo-modal-btn-send" onclick="enviarCorreoJornadaModal(\''+k+'\')">Enviar Correo</button>'
+      +'</div>'
+    +'</div>';
+
+  document.body.appendChild(overlay);
+  // Se asigna por .value (no por HTML) para evitar cualquier problema de escapado
+  var ta = document.getElementById('correo-modal-textarea');
+  if(ta) ta.value = mensaje;
+}
+
+function enviarCorreoJornadaModal(k){
+  var ta = document.getElementById('correo-modal-textarea');
+  var cuerpoFinal = ta ? ta.value : '';
+  var alerta = ALERTAS_DESCANSO[k];
+  var causaIda = alerta ? detectarCausaRetrasoIda(alerta) : null;
+  var asuntoTxt = causaIda
+    ? ('Incumplimiento de descanso — Tren '+causaIda.trenIda+' (ida)')
+    : ('Incumplimiento de enlace de jornada — '+_keyAFechaLbl(k));
+  var url = 'mailto:programación@empresa.com?subject='+encodeURIComponent(asuntoTxt)+'&body='+encodeURIComponent(cuerpoFinal);
+  window.location.href = url;
+  cerrarModalCorreoJornada();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — MÓDULO ARTÍCULO 51 y 52 (100% aditivo)
+   No modifica: TV existente (usa su propio tipo 'art5152'),
+   AJ existente (solo añade art5152Monto/art5152ValorBase),
+   guardarTurno() (usa su propio flujo de guardado independiente),
+   renderStats() ni loadAjUI() (se enganchan mediante wrappers
+   definidos MÁS ABAJO, después de sus declaraciones originales,
+   sin tocar ni una línea de su código fuente).
+   Persistencia: TV[k] vía saveTV() ya existente; ART5152_DIAS y
+   ART5152_USO vía sus propias claves de localStorage.
+═══════════════════════════════════════════════════════════ */
+
+function _art5152MesSiguiente(k){
+  var p = k.split('-').map(Number);
+  var d = new Date(p[0], p[1]-1, p[2]);
+  d.setMonth(d.getMonth()+1);
+  return d.getFullYear()+'-'+pad(d.getMonth()+1);
+}
+
+function _diaSiguienteKey(k){
+  var p=k.split('-').map(Number);
+  var dt=new Date(p[0],p[1]-1,p[2]);
+  dt.setDate(dt.getDate()+1);
+  return key(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+}
+
+// ── Entrada desde el menú "Artículo 51 y 52" ──
+// REESCRITO: en vez de abrir un modal propio, reutiliza EXACTAMENTE
+// el mismo formulario nativo que usa Ordinario/Trabajado (HTDL),
+// llamando a elegirTipo() sin modificarla en absoluto — 'art5152'
+// no está en su lista de "tipos simples", así que ya cae de forma
+// natural en la rama resetF(tipo)+abrirForm(false).
+function elegirArt5152(){
+  if(!selDay){ toast('Selecciona un día primero'); return; }
+  elegirTipo('art5152');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — calcularMix()
+   Compara los dos tramos de una pernocta (ida vs vuelta) y decide
+   cuál va a compensación económica (el de MÁS horas) y cuál a
+   días de descanso (el de MENOS horas, siempre 2 días fijos).
+   Función pura, de solo lectura.
+═══════════════════════════════════════════════════════════ */
+function calcularMix(horasIda, horasVuelta, kIda, kVuelta){
+  var esIdaMayor = horasIda >= horasVuelta;
+  return {
+    diaDinero:   esIdaMayor ? kIda    : kVuelta,
+    horasDinero: esIdaMayor ? horasIda: horasVuelta,
+    diaDias:     esIdaMayor ? kVuelta : kIda,
+    horasDias:   esIdaMayor ? horasVuelta : horasIda,
+    diasGenerados: 2
+  };
+}
+
+// ── Selector de compensación DENTRO del propio formulario ──
+// Mismo patrón que setComp() (HTDL), pero con su propio campo
+// F.compArt5152 para no interferir en absoluto con F.comp de HTDL.
+function setCompArt5152(c){ F.compArt5152=c; renderFormBody(); }
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — secArt5152Flow()
+   Sección de compensación de Artículo 51/52, insertada dentro del
+   MISMO formulario que Ordinario/Trabajado (ver renderFormBody).
+   Replica al 100% las clases visuales de secDescFlow() (HTDL):
+   .fsec, .fsec-lbl, .cc-btn/.cci/.ccl/.ccs, .calc-result, .cr-row,
+   .cr-total — no se inventa ningún componente nuevo.
+   secDescFlow() (HTDL) permanece intacta y sin usar este campo.
+═══════════════════════════════════════════════════════════ */
+function secArt5152Flow(){
+  if(!F.modo) return '';
+  var esPernocta = (F.modo==='pernocta'||F.modo==='pernocta3');
+  var monto = parseFloat(AJ.art5152Monto)||0;
+  var base  = parseFloat(AJ.art5152ValorBase)||0;
+  var comp  = F.compArt5152||'dinero';
+
+  var hIda    = F.hF&&F.hL?Math.round(calcMins(F.hF,F.hL)/60*100)/100:0;
+  var hVuelta = F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
+  var hTotal  = Math.round((hIda+hVuelta)*100)/100;
+  var nDias   = esPernocta ? 4 : 2;
+
+  var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
+    +'<div class="fsec-lbl">Compensación — Artículo 51 y 52</div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+    +'<div class="cc-btn '+(comp==='dinero'?'on':'')+'" onclick="setCompArt5152(\'dinero\')">'
+    +'<div class="cci">💶</div><div class="ccl">En dinero</div><div class="ccs">Tiempo efectivo</div></div>'
+    +'<div class="cc-btn '+(comp==='dias'?'on':'')+'" onclick="setCompArt5152(\'dias\')">'
+    +'<div class="cci">📅</div><div class="ccl">'+nDias+' días</div><div class="ccs">Mes siguiente</div></div>';
+  if(esPernocta){
+    h += '<div class="cc-btn '+(comp==='mix'?'on':'')+'" onclick="setCompArt5152(\'mix\')">'
+      +'<div class="cci">🔀</div><div class="ccl">Mix</div><div class="ccs">Dinero + días</div></div>';
+  }
+  h += '</div>';
+
+  if(comp==='dinero'||comp==='dias'){
+    h += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);'
+      +'border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:9px;color:var(--amber2)">'
+      +'⚠️ Este artículo (Dinero o Días) solo puede registrarse una vez al mes.</div>';
+  }
+
+  h += '<div id="calc-result-cont" class="calc-result">';
+  if(comp==='mix' && esPernocta){
+    if(hIda>0 && hVuelta>0){
+      var mix = calcularMix(hIda, hVuelta, selDay.k, _diaSiguienteKey(selDay.k));
+      var importeMix = Math.round((mix.horasDinero*monto+base)*100)/100;
+      h += '<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>'
+        +'<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>'
+        +'<div class="cr-div"></div>'
+        +'<div class="cr-row"><span class="cr-l">💶 Tramo a Dinero ('+mix.horasDinero+'h)</span>'
+        +'<span class="cr-v" style="color:var(--green2)">'+importeMix.toFixed(2)+' €</span></div>'
+        +'<div class="cr-row"><span class="cr-l">📅 Tramo a Días</span>'
+        +'<span class="cr-v" style="color:var(--cyan2)">+'+mix.diasGenerados+' día(s)</span></div>'
+        +'<div style="font-size:9px;color:var(--tx3);margin-top:4px">📧 Al guardar se abrirá un correo automático para Programación.</div>'
+        // FIX: selector de calendario para elegir los 2 días concretos
+        // (antes esta rama no incluía el contenedor y no aparecía nada).
+        +'<div style="font-size:10px;color:var(--tx2);margin-top:8px">📅 Selecciona los 2 días en el mes siguiente:</div>'
+        +'<div id="mini-cal-cont"></div>';
+    } else {
+      h += '<div style="font-size:10px;color:var(--tx3)">⚠️ Completa ambos tramos (ida y vuelta) para calcular el Mix</div>';
+    }
+  } else if(comp==='dinero'){
+    // NUEVO: mismo criterio que el cálculo real de guardarTurno() —
+    // Ida y vuelta → Ida + Escala + Vuelta. Pernocta → solo trenes.
+    var hEscalaPrev = (!esPernocta && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
+    var hTotalPrev  = esPernocta ? hTotal : Math.round((hIda+hEscalaPrev+hVuelta)*100)/100;
+    if(hTotalPrev>0){
+      h += '<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>';
+      if(!esPernocta && hEscalaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas escala</span><span class="cr-v">'+hEscalaPrev+' h</span></div>';
+      if(hVuelta>0) h += '<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>';
+      h += '<div class="cr-row"><span class="cr-l"><strong>Total horas</strong></span><span class="cr-v"><strong>'+hTotalPrev+' h</strong></span></div>'
+        +'<div class="cr-row"><span class="cr-l">Tarifa Art. 51/52</span><span class="cr-v">'+monto.toFixed(2)+' €/h</span></div>'
+        +(base>0?'<div class="cr-row"><span class="cr-l">Valor base</span><span class="cr-v">+'+base.toFixed(2)+' €</span></div>':'')
+        +'<div class="cr-div"></div>'
+        +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span><span class="cr-tv">'+Math.round((hTotalPrev*monto+base)*100)/100+' €</span></div>'
+        +(esPernocta?'<div style="font-size:9px;color:var(--tx3);margin-top:4px">Pernocta: solo tiempo efectivo en tren (sin escala/descanso).</div>':'');
+    } else {
+      h += '<div style="font-size:10px;color:var(--tx3)">⚠️ Completa los tramos para ver el cálculo</div>';
+    }
+  } else {
+    h += '<div style="font-size:11px;color:var(--tx2)">➕ '+nDias+' día(s) de descanso se sumarán automáticamente al mes siguiente al guardar.</div>'
+    // FIX: reutiliza el MISMO contenedor y componente (#mini-cal-cont /
+    // renderMiniCal()) que ya usa HTDL para elegir los días — no se crea
+    // nada nuevo. Antes faltaba este div, por lo que renderMiniCal()
+    // encontraba el contenedor inexistente y no pintaba nada.
+    +'<div id="mini-cal-cont"></div>';
+  }
+  h += '</div>'; // cierra #calc-result-cont
+  h += '</div>'; // NUEVO: cierra el contenedor .fsec exterior (antes faltaba)
+  return h;
+}
+
+// ── Aviso normativo (Dinero/Días — una vez al mes). Mix y HTDL no lo disparan ──
+var _a5152SaltarAvisoMensual = false;
+function _abrirAvisoLimiteArt5152(){
+  var overlay = document.createElement('div');
+  overlay.id = 'art5152-limite-overlay';
+  overlay.className = 'correo-modal-overlay';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  overlay.innerHTML =
+    '<div class="correo-modal-box" onclick="event.stopPropagation()">'
+      +'<div class="correo-modal-hdr">'
+        +'<span class="correo-modal-ico">⚠️</span>'
+        +'<div><div class="correo-modal-title">Aviso normativo</div></div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--tx2);line-height:1.5">'
+      +'Por reglamento, el uso de este artículo está permitido solo una vez al mes. '
+      +'¿Desea continuar con el registro?</div>'
+      +'<div class="correo-modal-btns">'
+        +'<button class="correo-modal-btn correo-modal-btn-cancel" onclick="document.getElementById(\'art5152-limite-overlay\').remove()">Cancelar</button>'
+        +'<button class="correo-modal-btn correo-modal-btn-send" '
+        +'onclick="document.getElementById(\'art5152-limite-overlay\').remove();_a5152SaltarAvisoMensual=true;guardarTurno()">Continuar</button>'
+      +'</div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Correo automático del Mix (sin cambios respecto a la
+   versión anterior; solo se invoca ahora desde guardarTurno()).
+═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   UNIFICACIÓN — Correo de compensación Mix (HTDL y Art. 51/52)
+   Sustituye el pop-up anterior (div flotante) por el MISMO modal
+   estándar que ya usa la app para "Cambio de Turno": overlay
+   .ov + .sh, abierto/cerrado con openOv()/closeOv() — cero
+   componentes nuevos, solo se reutiliza el patrón existente.
+   mixInfo = {diaDinero, diaDias, trenDinero}
+═══════════════════════════════════════════════════════════ */
+function _generarMensajeMixUnificado(kIda, kVuelta, mixInfo){
+  var lblIda = _keyAFechaLbl(kIda), lblVuelta = _keyAFechaLbl(kVuelta);
+  var lblDinero = _keyAFechaLbl(mixInfo.diaDinero);
+  var lblDias   = _keyAFechaLbl(mixInfo.diaDias);
+  var nombre = AJ.nombre || 'Nombre no configurado en Ajustes';
+  var matricula = AJ.matricula || 'Matricula no configurada en Ajustes';
+  var trenDinero = mixInfo.trenDinero || 'sin numero asignado';
+  var trenDias   = mixInfo.trenDias   || 'sin numero asignado';
+
+  // Fechas de descanso REALMENTE seleccionadas en el mini calendario
+  // (mixInfo.diasDescanso, viene de d.mixDias.diasComp).
+  var descansos = mixInfo.diasDescanso || [];
+  var fechaDescanso1 = descansos[0] ? _keyAFechaLbl(descansos[0]) : 'pendiente de seleccionar';
+  var fechaDescanso2 = descansos[1] ? _keyAFechaLbl(descansos[1]) : 'pendiente de seleccionar';
+
+  // Plantilla EXACTA solicitada. Los parentesis del tren se dejan tal
+  // cual en el texto; sanitizarTexto() (ya existente, se aplica al
+  // generar y al enviar) los retira automáticamente igual que hace
+  // con cualquier otro símbolo, dejando el resultado en texto plano.
+  return 'Hola, buenos dias.\n\n'
+    +'Informo que para la pernocta de los dias '+lblIda+' y '+lblVuelta+', '
+    +'he seleccionado el tramo del dia '+lblDinero+' (tren '+trenDinero+') '
+    +'para la compensacion economica.\n\n'
+    +'Asimismo, solicito que el tramo del dia '+lblDias+' (tren '+trenDias+') '
+    +'sea compensado con los dias '+fechaDescanso1+' y '+fechaDescanso2+' del mes '
+    +'siguiente como mis dias de descanso compensatorio.\n\n'
+    +'Atentamente,\n'
+    +nombre+'\n'
+    +'Matricula: '+matricula+'\n\n'
+    +'Solicitud generada automaticamente por TrenTurnos V5.';
+}
+
+function _abrirCorreoMixUnificado(kIda, kVuelta, mixInfo, origenTipo){
+  var body = document.getElementById('correo-mix-body');
+  if(!body) return;
+  // Guardamos el origen (HTDL o Art.51/52) para poder generar el
+  // asunto correcto al pulsar "Enviar", sin tener que volver a pasarlo.
+  _correoMixOrigenActual = origenTipo || 'trabajado';
+  body.innerHTML =
+    '<div class="aj-nombre-wrap" style="margin-bottom:10px"><span class="aj-nombre-ico">📧</span>'
+      +'<input id="mix-correo-destinatario" class="aj-nombre-inp" placeholder="Destinatario (opcional)" value=""></div>'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">MENSAJE (editable)</div>'
+    +'<textarea id="mix-correo-textarea" class="correo-modal-textarea" style="min-height:230px"></textarea>'
+    +'<button onclick="enviarCorreoMixUnificado()" style="width:100%;margin-top:12px;padding:13px;'
+      +'background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;'
+      +'color:#fff;font-size:14px;font-weight:800;cursor:pointer">✉️ Abrir en Correo</button>'
+    +'<div style="font-size:9px;color:var(--tx3);text-align:center;margin-top:7px">Abre tu app de correo con el mensaje completo</div>';
+  // FIX: el texto que se muestra en el textarea (editable por el
+  // usuario) ya sale limpio con sanitizarTexto() — así lo que ve en
+  // pantalla es exactamente lo que se enviará, sin sorpresas.
+  document.getElementById('mix-correo-textarea').value = sanitizarTexto(_generarMensajeMixUnificado(kIda, kVuelta, mixInfo));
+  openOv('ov-correo-mix');
+}
+
+var _correoMixOrigenActual = 'trabajado'; // 'trabajado' (HTDL) | 'art5152'
+
+function enviarCorreoMixUnificado(){
+  var dest = (document.getElementById('mix-correo-destinatario')||{}).value.trim() || '';
+  var cuerpo = sanitizarTexto((document.getElementById('mix-correo-textarea')||{}).value || '');
+  // NUEVO: asunto dinámico según el origen del registro. Pasa por
+  // sanitizarTexto() también, para que quede igual de limpio.
+  var asunto = sanitizarTexto((_correoMixOrigenActual==='art5152')
+    ? 'Compensacion por forzoso'
+    : 'Compensacion por dia de trabajo HTDL');
+  // FIX: el destinatario NUNCA se codifica con encodeURIComponent —
+  // igual que hace enviarCambio() (mailto:?subject=...), que deja el
+  // destinatario tal cual o vacío. Codificar el email metía símbolos
+  // como %40 en lugar de la @, que es justo el problema reportado.
+  // Solo subject y body (los únicos parámetros de la query) se
+  // codifican, y solo una vez.
+  var url = 'mailto:'+dest+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+  window.location.href = url;
+  closeOv('ov-correo-mix');
+}
+
+// ── Compatibilidad: mismo punto de entrada que ya llama guardarTurno() ──
+function _abrirCorreoMixArt5152(kIda, kVuelta, d, origenTipo){
+  var mixInfo = {
+    diaDinero: d.mixDinero.dia,
+    diaDias: d.mixDias.dia,
+    trenDinero: (d.mixDinero.dia===kIda) ? (d.numTren||'') : (d.numTrenVuelta||d.numTren||''),
+    // NUEVO: número de tren del tramo asignado a días (antes no se
+    // calculaba; el correo solo mencionaba el tren del tramo a dinero).
+    trenDias: (d.mixDias.dia===kIda) ? (d.numTren||'') : (d.numTrenVuelta||d.numTren||''),
+    // Fechas realmente elegidas en el mini calendario para los días
+    // de descanso (antes no se recuperaban ni se incluían).
+    diasDescanso: (d.mixDias && d.mixDias.diasComp) ? d.mixDias.diasComp : []
+  };
+  _abrirCorreoMixUnificado(kIda, kVuelta, mixInfo, origenTipo);
+}
+
+// ── Ajustes: guardado de los campos propios (no toca saveAj()) ──
+function guardarAjustesArt5152(){
+  var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
+  AJ.art5152Monto = iM ? (parseFloat(iM.value)||0) : (parseFloat(AJ.art5152Monto)||0);
+  AJ.art5152ValorBase = iB ? (parseFloat(iB.value)||0) : (parseFloat(AJ.art5152ValorBase)||0);
+  localStorage.setItem('aj5', JSON.stringify(AJ));
+  toast('✅ Ajustes de Art. 51/52 guardados');
+}
+
+// ── Enganche a loadAjUI() (rellenar campos) — wrapper, sin tocar el original ──
+if(typeof loadAjUI === 'function'){
+  var _loadAjUI_base_art5152 = loadAjUI;
+  loadAjUI = function(){
+    _loadAjUI_base_art5152.apply(this, arguments);
+    var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
+    if(iM) iM.value = AJ.art5152Monto || 0;
+    if(iB) iB.value = AJ.art5152ValorBase || 0;
+  };
+}
+
+// ── Enganche a renderStats() (bloque en el panel STATS) — wrapper, sin tocar el original ──
+if(typeof renderStats === 'function'){
+  var _renderStats_base_art5152 = renderStats;
+  renderStats = function(){
+    _renderStats_base_art5152.apply(this, arguments);
+    _renderArt5152Stats();
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Integración de Art. 51/52 en la categoría HTDL de STATS.
+   Dos wrappers, ninguno toca el código fuente de la función original:
+
+   1) calcularJornadaDiaria(): un día con un registro 'art5152' debe
+      clasificarse como jornada HTDL (esHTDL=true), igual que 'trabajado'.
+      Esto hace que sus minutos vayan a efectivasHTDLMin/presenciaHTDLMin
+      y NUNCA a efectivasCalMin/presenciaCalMin (Hora Efectiva/Presencia
+      normal), tal y como se pidió.
+
+   2) calculateEarnings(): suma el importe en dinero de Art. 51/52
+      (compensación 'dinero', y la porción 'dinero' de un Mix) al MISMO
+      total que ya usa HTDL (totalHTDL / totalBruto / diasHTDL), en vez
+      de mostrarse en un bloque aparte — así aparece en la auditoría de
+      horas como una fila más de HTDL, indistinguible en el resumen.
+═══════════════════════════════════════════════════════════ */
+if(typeof calcularJornadaDiaria === 'function'){
+  var _calcularJornadaDiaria_base_art5152 = calcularJornadaDiaria;
+  calcularJornadaDiaria = function(turnos, fecha){
+    var r = _calcularJornadaDiaria_base_art5152.apply(this, arguments);
+    if(!r.esHTDL && turnos && turnos.some(function(t){ return t && t.tipo==='art5152'; })){
+      r.esHTDL = true;
+    }
+    return r;
+  };
+}
+
+if(typeof calculateEarnings === 'function'){
+  var _calculateEarnings_base_art5152 = calculateEarnings;
+  calculateEarnings = function(ks){
+    var e = _calculateEarnings_base_art5152.apply(this, arguments);
+    var extraHTDL = 0, extraDetalle = [], extraLbl = [];
+    ks.forEach(function(k){
+      var t = TV[k];
+      if(!t || t.tipo!=='art5152') return;
+      if(t.compensacion==='dinero' && t.importe){
+        extraHTDL += t.importe;
+        var lbl1 = _keyAFechaLbl(k);
+        extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:(t.modo==='pernocta'||t.modo==='pernocta3'),
+          hIda:0, hEscala:t.hEscala||0, hVuelta:0, hRetT2:0, minRetT2:0,
+          hTotal:t.horasEfectivas||0, importe:t.importe, art5152:true});
+        extraLbl.push(t.numTren?lbl1+' #'+t.numTren+' (Art.51/52)':lbl1+' (Art.51/52)');
+      } else if(t.compensacion==='mix' && t.mixDinero){
+        extraHTDL += t.mixDinero.importe;
+        var lbl2 = _keyAFechaLbl(t.mixDinero.dia);
+        extraDetalle.push({lbl:lbl2, tren:t.numTren||'', esPernocta:true,
+          hIda:0, hEscala:0, hVuelta:0, hRetT2:0, minRetT2:0,
+          hTotal:t.mixDinero.horas||0, importe:t.mixDinero.importe, art5152:true, mix:true});
+        extraLbl.push(t.numTren?lbl2+' #'+t.numTren+' (Mix Art.51/52)':lbl2+' (Mix Art.51/52)');
+      }
+    });
+    if(extraHTDL>0){
+      extraHTDL = Math.round(extraHTDL*100)/100;
+      e.totalHTDL  = Math.round((e.totalHTDL + extraHTDL)*100)/100;
+      e.totalBruto = Math.round((e.totalBruto + extraHTDL)*100)/100;
+      e.diasHTDL = (e.diasHTDL||[]).concat(extraLbl);
+      e.diasHTDLdetail = (e.diasHTDLdetail||[]).concat(extraDetalle);
+    }
+    return e;
+  };
+}
+
+function _renderArt5152Stats(){
+  var csBox = document.getElementById('cs-box');
+  if(!csBox) return;
+  var box = document.getElementById('a5152-stats-box');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'a5152-stats-box';
+    csBox.insertAdjacentElement('afterend', box);
+  }
+
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  var pref = y+'-'+pad(m);
+  var diasRecibidos = ART5152_DIAS[pref] || 0;
+  var usosMes = ART5152_USO[pref] || 0;
+
+  // NOTA: el importe en dinero (Dinero puro y la porción Dinero de Mix)
+  // YA se suma dentro del total "HTDL" de arriba (ver wrapper de
+  // calculateEarnings) — no se repite aquí para no duplicar la cifra.
+  var registros = [];
+  Object.keys(TV).filter(function(k){return k.startsWith(pref);}).forEach(function(k){
+    var t = TV[k];
+    if(t && t.tipo==='art5152') registros.push({k:k, t:t});
+  });
+
+  if(!diasRecibidos && !usosMes && !registros.length){
+    box.innerHTML = '';
+    return;
+  }
+
+  var html = '<div class="cs-box"><div class="cs-t">⚖️ Artículo 51 y 52</div>';
+  if(usosMes>0){
+    html += '<div class="cs-r"><span class="cl">Usos este mes (Dinero/Días)</span>'
+      +'<span class="cv" style="color:'+(usosMes>1?'var(--amber2)':'var(--tx2)')+'">'+usosMes+' / 1</span></div>';
+  }
+  registros.forEach(function(r){
+    var lbl = _keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
+    var val;
+    if(r.t.compensacion==='mix'){
+      val = '🔀 Dinero + '+r.t.mixDias.diasGenerados+' día(s)';
+    } else if(r.t.compensacion==='dias'){
+      val = '+'+r.t.diasGenerados+' día(s) → '+r.t.mesDestino;
+    } else {
+      val = 'Dinero';
+    }
+    // FIX: antes esto era el texto suelto "ver detalle en HTDL" sin
+    // ningún onclick — parecía un botón pero no respondía al tocarlo.
+    // Ahora es un botón real, conectado a verDetallesEnHistorial(k),
+    // la misma función que ya usa el resto de la app para ver el
+    // detalle completo de un día (acordeón "Turnos del mes").
+    html += '<div class="cs-r" style="padding-left:12px;align-items:center">'
+      +'<span class="cl" style="font-size:10px">'+lbl+'</span>'
+      +'<span style="display:flex;align-items:center;gap:6px">'
+      +'<span class="cv" style="font-size:10px;color:'+(r.t.compensacion==='dias'?'var(--cyan2)':'var(--acc3)')+'">'+val+'</span>'
+      +'<button onclick="verDetallesEnHistorial(\''+r.k+'\')" '
+      +'style="background:var(--s2);border:1px solid var(--div);border-radius:6px;color:var(--acc2);'
+      +'font-size:9px;font-weight:700;padding:2px 7px;cursor:pointer">Ver detalle</button>'
+      +'</span></div>';
+  });
+  if(diasRecibidos>0){
+    html += '<div class="cr-div" style="margin:4px 0"></div>'
+      +'<div class="cs-r"><span class="cl" style="font-weight:800">📅 Días recibidos este mes</span>'
+      +'<span class="cv" style="color:var(--cyan2);font-weight:900">+'+diasRecibidos+' día(s)</span></div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+
 // ── Gestión de Retrasos ───────────────────────────────────────
 // Cada retraso vive en la celda/día donde ocurre realmente:
 //  · Ida y vuelta el mismo día → los dos tramos siguen en la misma celda.
@@ -4206,7 +4919,7 @@ function abrirRetraso(){
   var wrap=document.getElementById('retraso-panel');
   if(wrap){wrap.remove();return;}
 
-  var esOrigenPernocta = (t.tipo==='ordinario'||t.tipo==='trabajado') && (t.modo==='pernocta'||t.modo==='pernocta3');
+  var esOrigenPernocta = (t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152') && (t.modo==='pernocta'||t.modo==='pernocta3');
   var esVueltaPernocta = (t.tipo==='vuelta-pernocta');
   var esIntermedioPernocta = (t.tipo==='pernocta3-intermedio');
   var soloUnTramo = esOrigenPernocta || esVueltaPernocta || esIntermedioPernocta;
@@ -4930,6 +5643,9 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       + dhIdaTag
       + (t.sal&&t.lle?'<div class="tv-route">'+t.sal+' → '+t.lle+'</div>':'')
       + (t.hF&&t.hL?'<div class="tv-hours">'+t.hF+' – '+t.hL+'</div>':'')
+      // FIX: desglose del total de este tramo (antes el pop-up solo
+      // mostraba el total del primer tramo, arriba en la cabecera).
+      + (t.hF&&t.hL?'<div class="tv-hours" style="opacity:.65;font-size:10px">⏱ Duración: '+calcDur(t.hF,t.hL)+'</div>':'')
       + '</div>';
 
     // Tramos de continuidad (T2, T3...): un bloque independiente por
@@ -5010,6 +5726,8 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       + dhVtaTag
       + (t.sal2&&t.lle2?'<div class="tv-route">'+t.sal2+' → '+t.lle2+'</div>':'')
       + (t.hF2&&t.hL2?'<div class="tv-hours">'+t.hF2+' – '+t.hL2+'</div>':'')
+      // FIX: desglose del total de este tramo, igual que en IDA.
+      + (t.hF2&&t.hL2?'<div class="tv-hours" style="opacity:.65;font-size:10px">⏱ Duración: '+calcDur(t.hF2,t.hL2)+'</div>':'')
       + '</div>';
 
     // Tramos de continuidad de la vuelta (T2, T3...): se muestran
@@ -5454,16 +6172,33 @@ function renderDiaArea(){
   var alerta = ALERTAS_DESCANSO[k];
   var alertaBanner = '';
   if(alerta){
+    // ── NUEVO: motivo específico si hay causa identificada (tren de ida),
+    //    o motivo general si no la hay. El botón de correo SIEMPRE aparece
+    //    mientras exista `alerta` (cualquier enlace de jornada incumplido).
+    var causaIda = detectarCausaRetrasoIda(alerta);
+    var motivoEspecificoHtml = causaIda
+      ? ('<div style="font-size:10px;color:var(--tx2);margin-top:3px;line-height:1.4">'
+         +'Motivo: Retraso en el tren <b style="color:var(--acc3)">'+causaIda.trenIda+'</b> de ida. '
+         +'Se incumple el descanso fuera de base.</div>')
+      : ('<div style="font-size:10px;color:var(--tx2);margin-top:3px;line-height:1.4">'
+         +'Motivo: Enlace de jornada incumplido con el turno anterior.</div>');
+    var mailtoBtnHtml = '<button class="alerta-mail-btn" '
+      +'title="Notificar a Programación por correo" '
+      +'onclick="event.stopPropagation();abrirModalCorreoJornada(\''+k+'\')">✉️</button>';
+
     alertaBanner = '<div class="alerta-descanso">'
       +'<span class="alerta-ico">🔴</span>'
-      +'<div><div style="font-weight:800">Incumplimiento de descanso mínimo</div>'
+      +'<div style="flex:1"><div style="font-weight:800">Incumplimiento de descanso mínimo</div>'
       +'<div style="font-size:10px;opacity:.8">'+alerta.msg+'</div>'
+      +motivoEspecificoHtml
       +'<div style="font-size:9px;color:var(--tx3);margin-top:2px">'
       +'Turno anterior: '+_keyAFechaLbl(alerta.kAnterior||'')+'</div>'
       +(alerta.avisoNoComputa
         ? '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-top:4px">⚠️ '+alerta.avisoNoComputa+'</div>'
         : '')
-      +'</div></div>';
+      +'</div>'
+      +mailtoBtnHtml
+      +'</div>';
   }
 
   // Retraso registrado
@@ -5475,10 +6210,12 @@ function renderDiaArea(){
     : '';
 
   var body='';
-  // Si es ordinario/trabajado, mostrar alerta arriba del cuerpo
-  var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado')) ? alertaBanner : '';
+  // Si es ordinario/trabajado/art5152, mostrar alerta arriba del cuerpo
+  // FIX: 'art5152' añadido — antes quedaba fuera y nunca mostraba el
+  // resumen de tren/ruta/horas guardado (bug reportado).
+  var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152')) ? alertaBanner : '';
 
-  if(t.tipo==='ordinario'||t.tipo==='trabajado'){
+  if(t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'){
     // ── RESALTADO DE TRAMO PERNOCTA ──
     // Si selDay.k difiere de k (clave origen), el usuario tocó un día de
     // vuelta o intermedio → resaltar visualmente el tramo de vuelta.
@@ -5491,6 +6228,24 @@ function renderDiaArea(){
     // Los importes, nocturnidad exacta, retrasos con impacto económico y
     // pluses siguen intactos y visibles en el acordeón "Turnos del mes".
     body += renderizarPopUpSimplificado(t, esDiaVuelta);
+
+    // NUEVO — FIX: resumen de la compensación Art. 51/52 (Dinero/Días/Mix).
+    // No existía ningún bloque para esto; por eso el resumen no aparecía.
+    // No toca nada de HTDL (usa t.compensacion, campo exclusivo de art5152).
+    if(t.tipo==='art5152'){
+      if(t.compensacion==='dinero' && t.importe){
+        body += '<div class="ac-imp" style="margin-top:6px"><span class="al">💶 Art. 51/52 — Dinero</span>'
+          +'<span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+      } else if(t.compensacion==='dias' && t.diasGenerados){
+        body += '<div class="ac-row" style="margin-top:6px"><span class="ak">📅 Art. 51/52 — Días</span>'
+          +'<span class="av" style="color:var(--cyan2);font-weight:800">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
+      } else if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
+        body += '<div class="ac-imp" style="margin-top:6px"><span class="al">🔀 Mix — Dinero ('+_keyAFechaLbl(t.mixDinero.dia)+')</span>'
+          +'<span class="ar">'+t.mixDinero.importe.toFixed(2)+' €</span></div>'
+          +'<div class="ac-row"><span class="ak">🔀 Mix — Días ('+_keyAFechaLbl(t.mixDias.dia)+')</span>'
+          +'<span class="av" style="color:var(--cyan2);font-weight:800">+'+t.mixDias.diasGenerados+' → '+t.mixDias.mesDestino+'</span></div>';
+      }
+    }
   } else if(t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio'){
     // ── Días derivados de pernocta — cada uno tiene sus propios datos ──
     // t.sal/t.lle/t.hF/t.hL/t.numTren son los datos PROPIOS de este día,
@@ -5576,7 +6331,7 @@ function renderDiaArea(){
     +'<button class="dct-btn-del2" onclick="pedirEliminar()">🗑 Eliminar</button>'
     +'</div>'
     +'<div class="dct-row-sec">'
-    +((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
+    +((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
       ? '<button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
       : '')
     +'<button class="dct-btn-sec" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Ver más detalles</button>'
@@ -5651,6 +6406,16 @@ function renderAcordeon(){
     if(t.modo)det+='<div class="ac-row"><span class="ak">Modo</span><span class="av">'+(t.modo==='pernocta'?'Pernocta':'Ida y vuelta')+'</span></div>';
     if(t.comp==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">Compensacion economica</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
     if(t.comp==='dias'&&t.diasComp&&t.diasComp.length)det+='<div class="ac-row"><span class="ak">Dias comp.</span><span class="av" style="color:var(--cyan2)">'+t.diasComp.length+' dias</span></div>';
+    // NUEVO — FIX: resumen de compensación Art. 51/52 (campo propio
+    // t.compensacion, distinto de t.comp de HTDL — por eso no aparecía).
+    if(t.tipo==='art5152'){
+      if(t.compensacion==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">⚖️ Art.51/52 — Dinero</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+      if(t.compensacion==='dias'&&t.diasGenerados)det+='<div class="ac-row"><span class="ak">⚖️ Art.51/52 — Días</span><span class="av" style="color:var(--cyan2)">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
+      if(t.compensacion==='mix'&&t.mixDinero&&t.mixDias){
+        det+='<div class="ac-imp"><span class="al">🔀 Mix — Dinero</span><span class="ar">'+t.mixDinero.importe.toFixed(2)+' €</span></div>';
+        det+='<div class="ac-row"><span class="ak">🔀 Mix — Días</span><span class="av" style="color:var(--cyan2)">+'+t.mixDias.diasGenerados+' → '+t.mixDias.mesDestino+'</span></div>';
+      }
+    }
     if(t.tipo==='comp'&&t.origen)det+='<div class="ac-row"><span class="ak">HTDL Comp.</span><span class="av" style="color:var(--cyan2)">Descanso trabajado</span></div>';
     if(t.notas&&t.notas.trim().length>0)det+='<div class="ac-row" style="flex-direction:column;align-items:flex-start;gap:2px"><span class="ak">Nota</span><span style="font-size:10px;color:var(--tx2);padding-left:4px;line-height:1.4">'+t.notas.trim()+'</span></div>';
     return '<div class="ac-item" id="ac-'+k+'"><div class="ac-hdr" onclick="toggleAc(\'ac-'+k+'\')">'+dot
@@ -6613,7 +7378,7 @@ function renderFormBody(){
   var b=document.getElementById('form-body');
   var t=F.tipo;var h='';
 
-  if(t==='ordinario'||t==='trabajado'){
+  if(t==='ordinario'||t==='trabajado'||t==='art5152'){
     h+=secLinea();
     h+=secPreguntaPernocta();
     h+=secTramo('ida');
@@ -6626,6 +7391,7 @@ function renderFormBody(){
       h+='</div>';
     }
     if(t==='trabajado') h+=secDescFlow();
+    if(t==='art5152') h+=secArt5152Flow();
   } else if(t==='reserva'){
     h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
   } else if(t==='descanso'){
@@ -6636,7 +7402,7 @@ function renderFormBody(){
   h+=secPlusesViaje();
   h+='<div class="notas-wrap"><textarea class="notas-inp" rows="2" placeholder="Notas opcionales…" oninput="F.notas=this.value">'+( F.notas||'')+'</textarea></div>';
   b.innerHTML=h;
-  if(F.comp==='dias') renderMiniCal();
+  if(F.comp==='dias' || F.comp==='mix' || (F.tipo==='art5152' && (F.compArt5152==='dias'||F.compArt5152==='mix'))) renderMiniCal();
 }
 
 function secLinea(){
@@ -7010,11 +7776,15 @@ function secDescFlow(){
 
   var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
     +'<div class="fsec-lbl">Compensación — '+nDias+' días en mes siguiente</div>'
-    +'<div style="display:flex;gap:6px;margin-bottom:10px">'
+    +'<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">'
     +'<div class="cc-btn '+(F.comp==='dinero'?'on':'')+'" onclick="setComp(\'dinero\')">'
     +'<div class="cci">💶</div><div class="ccl">En dinero</div><div class="ccs">Pago €</div></div>'
     +'<div class="cc-btn '+(F.comp==='dias'?'on':'')+'" onclick="setComp(\'dias\')">'
     +'<div class="cci">📅</div><div class="ccl">'+nDias+' días</div><div class="ccs">Mes siguiente</div></div>'
+    +((F.modo==='pernocta'||F.modo==='pernocta3')
+      ? ('<div class="cc-btn '+(F.comp==='mix'?'on':'')+'" onclick="setComp(\'mix\')">'
+        +'<div class="cci">🔀</div><div class="ccl">Mix</div><div class="ccs">Dinero + días</div></div>')
+      : '')
     +'</div>';
 
   // ── Solo muestra cálculo si eligió DINERO ────────────────────
@@ -7077,6 +7847,34 @@ function secDescFlow(){
     h+='</div>';
   }
 
+  // ── NUEVO — Mix (solo pernocta): compara ida vs vuelta con calcularMix()
+  //    (función ya existente y compartida con Art.51/52, sin duplicar
+  //    lógica). El tramo de más horas va a Dinero con la MISMA tarifa
+  //    y pluses que ya calcula HTDL arriba; el de menos horas, a 2 días
+  //    con selector de calendario (mismo mini-cal reutilizado). ──
+  if(F.comp==='mix' && (F.modo==='pernocta'||F.modo==='pernocta3') && hIda>0 && hVuelta>0){
+    var kIdaMix = selDay ? selDay.k : null;
+    var kVueltaMix = kIdaMix ? _diaSiguienteKey(kIdaMix) : null;
+    var mixHTDL = calcularMix(hIda, hVuelta, kIdaMix, kVueltaMix);
+    var esIdaDinero = mixHTDL.diaDinero===kIdaMix;
+    var horasDineroMix = mixHTDL.horasDinero;
+    var impMix = Math.round((horasDineroMix*tasa + pAct + pJT + pIntl)*100)/100;
+    h+='<div id="calc-result-cont" class="calc-result">'
+      +'<div class="cr-row"><span class="cr-l">Tramo a Dinero</span><span class="cr-v">'+(esIdaDinero?'Ida':'Vuelta')+' · '+horasDineroMix+' h</span></div>'
+      +'<div class="cr-row"><span class="cr-l">Tarifa'+(hayNoc?' + nocturnidad':'')+'</span><span class="cr-v">'+tasa.toFixed(2)+' €/h</span></div>'
+      +(pAct>0?'<div class="cr-row"><span class="cr-l">Plus Activación</span><span class="cr-v">+'+pAct.toFixed(2)+' €</span></div>':'')
+      +(pJT>0?'<div class="cr-row"><span class="cr-l">Plus JT</span><span class="cr-v">+'+pJT.toFixed(2)+' €</span></div>':'')
+      +(pIntl>0?'<div class="cr-row"><span class="cr-l">Plus Internacional</span><span class="cr-v">+'+pIntl.toFixed(2)+' €</span></div>':'')
+      +'<div class="cr-div"></div>'
+      +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span><span class="cr-tv">'+impMix.toFixed(2)+' €</span></div>'
+      +'</div>'
+      +'<div style="font-size:10px;color:var(--tx2);background:rgba(6,182,212,.06);'
+      +'border:1px solid rgba(6,182,212,.18);border-radius:8px;padding:8px 10px;margin:8px 0">'
+      +'📅 Tramo a <strong style="color:var(--cyan2)">Días</strong>: '+(esIdaDinero?'Vuelta':'Ida')+'. '
+      +'Selecciona <strong style="color:var(--cyan2)">2 días</strong> en el mes siguiente.</div>'
+      +'<div id="mini-cal-cont"></div>';
+  }
+
   // ── Días de compensación (NO muestra cálculo económico) ──────
   if(F.comp==='dias'){
     h+='<div style="font-size:10px;color:var(--tx2);background:rgba(6,182,212,.06);'
@@ -7129,7 +7927,12 @@ function renderMiniCal(){
   }
   var y=miniM.getFullYear(),m=miniM.getMonth();
   var ultimo=new Date(y,m+1,0).getDate();
-  var nDias=F.modo==='pernocta3'?6:(F.modo==='pernocta'?4:2);
+  var esMixActivo = (F.comp==='mix') || (F.tipo==='art5152' && F.compArt5152==='mix');
+  var nDias = esMixActivo
+    ? 2                                                          // Mix: siempre 2 días (HTDL y Art.51/52)
+    : F.tipo==='art5152'
+      ? ((F.modo==='pernocta'||F.modo==='pernocta3') ? 4 : 2)     // Art.51/52: 2 o 4, nunca 6
+      : (F.modo==='pernocta3'?6:(F.modo==='pernocta'?4:2));       // HTDL: sin cambios
   var sd=new Date(y,m,1).getDay();sd=sd===0?6:sd-1;
   var cells='';
   for(var i=0;i<sd;i++)cells+='<div class="mc-d mc-dis">·</div>';
@@ -7206,9 +8009,28 @@ function guardarTurno(){
   if(_tv2_guardando){ guardarTurnoEnTV2(); return; }
   if(!selDay)return;
   var k=selDay.k, t=F.tipo;
+
+  // ── NUEVO: validaciones y aviso normativo específicos de Art. 51/52 ──
+  // (no afectan en absoluto a ordinario/trabajado/otros tipos)
+  if(t==='art5152'){
+    if(!F.numTren || !F.sal || !F.lle){
+      toast('⚠️ Art. 51/52 requiere número de tren, estación de salida y de llegada');
+      return;
+    }
+    var compEl = F.compArt5152||'dinero';
+    if((compEl==='dinero'||compEl==='dias') && !_a5152SaltarAvisoMensual){
+      var mesOrigenChk = k.slice(0,7);
+      if((ART5152_USO[mesOrigenChk]||0) >= 1){
+        _abrirAvisoLimiteArt5152();
+        return;
+      }
+    }
+    _a5152SaltarAvisoMensual = false;
+  }
+
   var d={tipo:t};
 
-  if(t==='ordinario'||t==='trabajado'){
+  if(t==='ordinario'||t==='trabajado'||t==='art5152'){
     d.linea=F.linea;d.sal=F.sal;d.lle=F.lle;d.hF=F.hF;d.hL=F.hL;
     d.modo=F.modo||'ida';
     d.numTren=F.numTren||'';
@@ -7292,6 +8114,10 @@ function guardarTurno(){
     }
   }
 
+  // Variable compartida HTDL/Art.51-52 — se usa después de guardar para
+  // saber si hay que abrir el correo automático de Mix (ver más abajo).
+  var _art5152MixInfo = null;
+
   if(t==='trabajado'){
     d.comp=F.comp;
     if(F.comp==='dinero'){
@@ -7319,6 +8145,97 @@ function guardarTurno(){
       });
       dv.forEach(function(iso){ TV[iso]={tipo:'comp',origen:k}; });
     }
+    // ── NUEVO — Mix en HTDL (solo pernocta): reutiliza calcularMix()
+    //    (ya existente, compartida con Art.51/52) y calcImp() (ya
+    //    existente, la misma que usa la rama Dinero de arriba) — no
+    //    se duplica ninguna fórmula, solo se combinan las dos. ──
+    if(F.comp==='mix' && (F.modo==='pernocta'||F.modo==='pernocta3') && hIda>0 && hVuelta>0){
+      var kVueltaHTDL = _diaSiguienteKey(k);
+      var mixHTDLsave = calcularMix(hIda, hVuelta, k, kVueltaHTDL);
+      var esIdaDineroHTDL = mixHTDLsave.diaDinero===k;
+      var hFmix = esIdaDineroHTDL ? F.hF : F.hF2;
+      var hLmix = esIdaDineroHTDL ? F.hL : F.hL2;
+      var impMixHTDL = calcImp(mixHTDLsave.horasDinero, hFmix, hLmix, F.linea, F.plusAct, F.plusJT, F.plusIntlAuto);
+      var mesDestinoHTDL = _art5152MesSiguiente(k);
+      d.mixDinero = {dia:mixHTDLsave.diaDinero, horas:mixHTDLsave.horasDinero, importe:impMixHTDL};
+      d.mixDias   = {dia:mixHTDLsave.diaDias, horas:mixHTDLsave.horasDias, diasGenerados:mixHTDLsave.diasGenerados, mesDestino:mesDestinoHTDL};
+      var _pHm=mesDestinoHTDL.split('-').map(Number); var yHm=_pHm[0], mHm=_pHm[1];
+      var dvHm = diasComp.filter(function(iso){
+        var _diHm=iso.split('-').map(Number);
+        return _diHm[0]===yHm && _diHm[1]===mHm;
+      }).slice(0, mixHTDLsave.diasGenerados);
+      d.mixDias.diasComp = dvHm;
+      dvHm.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
+      _art5152MixInfo = {kIda:k, kVuelta:kVueltaHTDL, origen:'trabajado'};
+    }
+  }
+  if(t==='art5152'){
+    var compArt = F.compArt5152 || 'dinero';
+    d.compensacion = compArt;
+    var esPernoctaArt = (F.modo==='pernocta'||F.modo==='pernocta3');
+    var montoArt = parseFloat(AJ.art5152Monto)||0;
+    var baseArt  = parseFloat(AJ.art5152ValorBase)||0;
+    var mesOrigenArt = k.slice(0,7);
+
+    if(compArt==='mix' && esPernoctaArt){
+      var kVueltaArt = d.diaSiguiente || _diaSiguienteKey(k);
+      var mixR = calcularMix(hIda, hVuelta, k, kVueltaArt);
+      d.mixDinero = {dia:mixR.diaDinero, horas:mixR.horasDinero, importe:Math.round((mixR.horasDinero*montoArt+baseArt)*100)/100};
+      d.mixDias   = {dia:mixR.diaDias,  horas:mixR.horasDias,  diasGenerados:mixR.diasGenerados, mesDestino:_art5152MesSiguiente(k)};
+      // FIX: usar los días concretos elegidos en el mini-calendario
+      // (mismo patrón que la rama 'dias' de arriba) en vez de solo
+      // sumar un contador invisible.
+      var _pM5=d.mixDias.mesDestino.split('-').map(Number); var yM5=_pM5[0], mM5=_pM5[1];
+      var dvM5 = diasComp.filter(function(iso){
+        var _diM5=iso.split('-').map(Number);
+        return _diM5[0]===yM5 && _diM5[1]===mM5;
+      }).slice(0, mixR.diasGenerados);
+      d.mixDias.diasComp = dvM5;
+      dvM5.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
+      ART5152_DIAS[d.mixDias.mesDestino] = (ART5152_DIAS[d.mixDias.mesDestino]||0) + mixR.diasGenerados;
+      _saveArt5152Dias();
+      _art5152MixInfo = {kIda:k, kVuelta:kVueltaArt, origen:'art5152'};
+    } else if(compArt==='dias'){
+      var diasArt = esPernoctaArt ? 4 : 2;
+      var mesDestinoArt = _art5152MesSiguiente(k);
+      d.diasGenerados = diasArt;
+      d.mesDestino = mesDestinoArt;
+      // FIX: usar los días concretos elegidos en el mini-calendario
+      // (diasComp — mismo componente que ya usa HTDL) en vez de solo
+      // sumar un contador invisible. Se limita al mes destino correcto
+      // y al máximo de días permitido (2 o 4), igual que hace HTDL.
+      var _p5=mesDestinoArt.split('-').map(Number); var yC5=_p5[0], mC5=_p5[1];
+      var dv5 = diasComp.filter(function(iso){
+        var _di5=iso.split('-').map(Number);
+        return _di5[0]===yC5 && _di5[1]===mC5;
+      }).slice(0, diasArt);
+      d.diasComp = dv5;
+      if(selDay.t && selDay.t.diasComp) selDay.t.diasComp.forEach(function(iso){
+        if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+      });
+      dv5.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
+      // El contador mensual (bolsa por si no se eligieron días concretos)
+      // se mantiene como respaldo para no perder la compensación generada.
+      ART5152_DIAS[mesDestinoArt] = (ART5152_DIAS[mesDestinoArt]||0) + diasArt;
+      _saveArt5152Dias();
+    } else {
+      // NUEVO: mismo criterio que HTDL (ver bloque t==='trabajado' arriba) —
+      // Ida y vuelta el mismo día → Ida + Escala + Vuelta.
+      // Pernocta → SOLO tiempo efectivo en los trenes (ida + vuelta),
+      // la escala/descanso fuera de base queda excluida a propósito.
+      var hEscalaArt = (!esPernoctaArt && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
+      var horasCompArt = esPernoctaArt ? d.horas : Math.round((hIda+hEscalaArt+hVuelta)*100)/100;
+      d.horasEfectivas = horasCompArt;
+      d.hEscala = hEscalaArt;
+      d.importe = Math.round((horasCompArt*montoArt + baseArt)*100)/100;
+    }
+
+    // El contador de "una vez al mes" SOLO se incrementa para Dinero/Días
+    // — Mix y HTDL quedan explícitamente fuera de esta restricción.
+    if(compArt==='dinero' || compArt==='dias'){
+      ART5152_USO[mesOrigenArt] = (ART5152_USO[mesOrigenArt]||0) + 1;
+      _saveArt5152Uso();
+    }
   }
 
   if(t==='descanso'||t==='vacaciones') d.simple=true;
@@ -7339,6 +8256,11 @@ function guardarTurno(){
   // disparar el popup de correo de solicitud de compensación.
   if(d.comp==='dias' && d.diasComp && d.diasComp.length > 0){
     setTimeout(function(){ enviarSolicitudCompensacion(k); }, 350);
+  }
+
+  // NUEVO: si el registro de Art. 51/52 fue Mix, abrir el correo automático
+  if(_art5152MixInfo){
+    setTimeout(function(){ _abrirCorreoMixArt5152(_art5152MixInfo.kIda, _art5152MixInfo.kVuelta, d, _art5152MixInfo.origen); }, 350);
   }
 
   if(d.numTren&&(t==='ordinario'||t==='trabajado')){
@@ -9184,7 +10106,7 @@ function renderDiaAreaMulti(){
     + '<button class="dct-btn-cambio" onclick="abrirCambio()">🔄 Cambio</button>'
     + '<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir turno</button>'
     + '</div>'
-    + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
+    + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
       ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
       : '')
     + '</div>';
