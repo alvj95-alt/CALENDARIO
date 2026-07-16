@@ -2601,6 +2601,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
               <span class="aj-num-unit">€/h</span>
             </div>
           </div>
+          <!-- NUEVO — Precio por hora de Rebase (módulo aditivo, independiente
+               de AJ/saveAj(): persiste directamente en localStorage bajo su
+               propia clave 'precioHoraRebase'). -->
+          <div class="aj-num-row">
+            <div class="aj-num-ico">⏫</div>
+            <div class="aj-num-info">
+              <div class="aj-num-lbl">Precio hora de Rebase</div>
+              <div class="aj-num-sub">A partir de la 9ª hora efectiva</div>
+            </div>
+            <div class="aj-num-right">
+              <input class="aj-num-inp" id="precioHoraRebase" type="number" step="0.10" min="0"
+                oninput="actualizarPrecioRebase(this.value)">
+              <span class="aj-num-unit">€/h</span>
+            </div>
+          </div>
           <div class="aj-plus-hdr">PLUSES POR VIAJE — importes configurables</div>
           <div style="font-size:9px;color:var(--tx3);margin-bottom:8px;line-height:1.4">
             🔘 <strong style="color:var(--tx2)">Activación y JT</strong> — se activan manualmente en cada viaje<br>
@@ -4780,6 +4795,10 @@ if(typeof loadAjUI === 'function'){
     var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
     if(iM) iM.value = AJ.art5152Monto || 0;
     if(iB) iB.value = AJ.art5152ValorBase || 0;
+    // NUEVO: precio por hora de Rebase, leído directamente de su
+    // propia clave de localStorage (independiente de AJ/aj5).
+    var iReb = document.getElementById('precioHoraRebase');
+    if(iReb) iReb.value = obtenerPrecioHoraRebase();
   };
 }
 
@@ -4789,7 +4808,39 @@ if(typeof renderStats === 'function'){
   renderStats = function(){
     _renderStats_base_art5152.apply(this, arguments);
     _renderArt5152Stats();
+    _renderRebaseEnStats();
   };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Inyección de la fila "Rebase" en el Desglose económico.
+   Se ejecuta DESPUÉS de que renderStats() ya haya escrito su propio
+   HTML en #cs-box (cs.innerHTML=des) — esta función solo AÑADE
+   contenido al final (insertAdjacentHTML), nunca reemplaza ni borra
+   lo que renderStats() ya puso. Por eso no hace falta tocar ni una
+   línea de la función original: es pura inyección posterior.
+═══════════════════════════════════════════════════════════ */
+function _renderRebaseEnStats(){
+  var cs = document.getElementById('cs-box');
+  if(!cs || !cs.innerHTML) return; // si no hay desglose este mes, no se añade nada
+
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  var pref = y+'-'+pad(m);
+  var ks = Object.keys(TV).filter(function(k){ return k.startsWith(pref); });
+  var reb = calcularRebaseMes(ks);
+
+  if(reb.totalHoras<=0) return; // sin rebase este mes → fila oculta (no se añade)
+
+  var html = '<div class="cr-div" style="margin:6px 0"></div>'
+    +'<div class="cs-r"><span class="cl" style="font-weight:800;color:var(--amber2)">⏫ Rebase ('+reb.totalHoras.toFixed(2)+'h × 1.00€)</span>'
+    +'<span class="cv" style="color:var(--amber2);font-weight:900">'+reb.totalImporte.toFixed(2)+' €</span></div>';
+  reb.detalle.forEach(function(d){
+    html += '<div class="cs-r" style="padding-left:12px;opacity:.85">'
+      +'<span class="cl" style="font-size:10px">'+d.fecha+(d.tren!=='—'?' · Tren #'+d.tren:'')
+      +' · '+d.horasEfectivasDia.toFixed(2)+'h efectivas</span>'
+      +'<span class="cv" style="font-size:10px;color:var(--amber2)">+'+d.horasRebase.toFixed(2)+'h · '+d.importe.toFixed(2)+' €</span></div>';
+  });
+  cs.insertAdjacentHTML('beforeend', html);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -4912,6 +4963,16 @@ function mostrarDetalleArt5152(k){
     if(t.sal&&t.lle) html += fila('Ruta ida', t.sal+' → '+t.lle);
     if(t.numTrenVuelta) html += fila('Tren vuelta', '#'+t.numTrenVuelta);
     if(t.sal2&&t.lle2) html += fila('Ruta vuelta', t.sal2+' → '+t.lle2);
+  }
+
+  // NUEVO — Rebase aplicado a este día concreto (módulo observador,
+  // solo lectura). Se recalcula al vuelo para este único día k.
+  var jornadaDia = calcularJornadaDiaria(getTurnosDia(k), k);
+  var horasEfDia = Math.round((jornadaDia.efectivasMin/60)*100)/100;
+  var rebDia = calcularRebaseDiario(horasEfDia);
+  if(rebDia.horas > 0){
+    html += '<div class="cr-div" style="margin:6px 0"></div>';
+    html += fila('⏫ Rebase aplicado', rebDia.importe.toFixed(2)+' euros', 'var(--amber2)');
   }
 
   html += '</div>';
@@ -5741,10 +5802,13 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       t.continuidad.forEach(function(c, idx){
         if(!c || !c.tren) return;
         h += '<div class="tv-block ida">'
-          + '<div class="tv-block-tag">🚂 TRAMO '+(idx+2)+'</div>'
+          + '<div class="tv-block-tag">🚂 TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
+          + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
           + (c.horaInicio&&c.horaFin?'<div class="tv-hours">'+c.horaInicio+' – '+c.horaFin+'</div>':'')
           + (c.escalaMin!=null?'<div class="tv-route">⏳ Escala: '+c.escalaMin+' min</div>':'')
+          + '<div class="tv-hours" style="opacity:.65;font-size:9px">'
+          + (c.tipoTramo==='dh'?'Suma a Presencia':'Suma a Efectiva')+'</div>'
           + '</div>';
       });
     }
@@ -5821,10 +5885,13 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
       t.continuidadVuelta.forEach(function(c, idx){
         if(!c || !c.tren) return;
         h += '<div class="tv-block vuelta">'
-          + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+'</div>'
+          + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
+          + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
           + (c.horaInicio&&c.horaFin?'<div class="tv-hours">'+c.horaInicio+' – '+c.horaFin+'</div>':'')
           + (c.escalaMin!=null?'<div class="tv-route">⏳ Escala: '+c.escalaMin+' min</div>':'')
+          + '<div class="tv-hours" style="opacity:.65;font-size:9px">'
+          + (c.tipoTramo==='dh'?'Suma a Presencia':'Suma a Efectiva')+'</div>'
           + '</div>';
       });
     }
@@ -7643,6 +7710,37 @@ function secTramo(tramo){
       +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'escalaMin\',this.value)"'
       +' style="width:100%;background:var(--s1);border:1.5px solid var(--amber2);border-radius:9px;'
       +'color:var(--tx);font-size:14px;padding:7px 10px;outline:none;font-variant-numeric:tabular-nums">'
+      // NUEVO — Estación origen/destino de este tramo de continuidad
+      // (antes solo se guardaba el nº de tren, sin ruta).
+      +'<div style="display:flex;gap:6px;margin-top:8px">'
+      +'<input type="text" placeholder="Estación origen" value="'+(c.salida||'')+'"'
+      +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'salida\',this.value)"'
+      +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
+      +'color:var(--tx);font-size:12px;padding:7px 9px;outline:none">'
+      +'<input type="text" placeholder="Estación destino" value="'+(c.llegada||'')+'"'
+      +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'llegada\',this.value)"'
+      +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
+      +'color:var(--tx);font-size:12px;padding:7px 9px;outline:none">'
+      +'</div>'
+      // NUEVO — Tipo de tramo: Trabajado (suma a Efectiva) o DH (suma a
+      // Presencia). Por defecto 'trabajado', igual que el comportamiento
+      // que ya tenía este tramo antes de añadir esta opción — así los
+      // tramos ya guardados no cambian de comportamiento.
+      +'<div class="fsec-lbl" style="margin-top:8px">Tipo de tramo</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<div onclick="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'tipoTramo\',\'trabajado\')" '
+      +'style="flex:1;text-align:center;padding:7px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;'
+      +'border:1.5px solid '+((c.tipoTramo||'trabajado')==='trabajado'?'var(--acc)':'var(--div)')+';'
+      +'background:'+((c.tipoTramo||'trabajado')==='trabajado'?'rgba(59,127,255,.12)':'var(--s1)')+';'
+      +'color:'+((c.tipoTramo||'trabajado')==='trabajado'?'var(--acc)':'var(--tx2)')+'">Trabajado · Efectiva</div>'
+      +'<div onclick="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'tipoTramo\',\'dh\')" '
+      +'style="flex:1;text-align:center;padding:7px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;'
+      +'border:1.5px solid '+(c.tipoTramo==='dh'?'var(--amber2)':'var(--div)')+';'
+      +'background:'+(c.tipoTramo==='dh'?'rgba(245,158,11,.12)':'var(--s1)')+';'
+      +'color:'+(c.tipoTramo==='dh'?'var(--amber2)':'var(--tx2)')+'">DH · Presencia</div>'
+      +'</div>'
+      +'<div style="font-size:9px;color:var(--tx3);margin-top:4px">'
+      +'Este tramo se sumará a: <strong style="color:var(--acc3)">'+(calcularContinuidad(F.tipo)==='HTDL'?'desglose HTDL':'STATS general')+'</strong></div>'
       +(c.horaInicio&&c.horaFin
         ? '<div style="font-size:10px;color:var(--tx3);margin-top:6px">⏱ '+c.horaInicio+' – '+c.horaFin+' (calculado automáticamente)</div>'
         : '<div style="font-size:10px;color:var(--tx3);margin-top:6px">El horario se calcula solo a partir de la llegada del tramo anterior + la escala.</div>')
@@ -7729,7 +7827,7 @@ function recalcularContinuidad(horaLlegadaTramoAnterior, arr){
 function agregarTramoContinuidad(tramo){
   var key = tramo==='vuelta' ? 'continuidadVuelta' : 'continuidad';
   if(!F[key]) F[key] = [];
-  F[key].push({tren:'', horaInicio:'', horaFin:'', escalaMin:null});
+  F[key].push({tren:'', horaInicio:'', horaFin:'', escalaMin:null, salida:'', llegada:'', tipoTramo:'trabajado'});
   renderFormBody();
 }
 function quitarTramoContinuidad(tramo, idx){
@@ -7741,10 +7839,17 @@ function quitarTramoContinuidad(tramo, idx){
 function actualizarTramoContinuidad(tramo, idx, campo, valor){
   var key = tramo==='vuelta' ? 'continuidadVuelta' : 'continuidad';
   if(!F[key]) F[key] = [];
-  if(!F[key][idx]) F[key][idx] = {tren:'', horaInicio:'', horaFin:'', escalaMin:null};
+  if(!F[key][idx]) F[key][idx] = {tren:'', horaInicio:'', horaFin:'', escalaMin:null, salida:'', llegada:'', tipoTramo:'trabajado'};
   if(campo==='escalaMin'){
     var n = parseInt(valor);
     F[key][idx][campo] = isNaN(n) ? null : n;
+  } else if(campo==='tipoTramo'){
+    // NUEVO: 'trabajado' (Efectiva) o 'dh' (Presencia). No requiere
+    // re-render completo del formulario (solo cambia un estilo), pero
+    // se llama a renderFormBody() para reflejar el botón activo.
+    F[key][idx][campo] = valor;
+    renderFormBody();
+    return;
   } else {
     F[key][idx][campo] = valor.trim();
   }
@@ -9226,6 +9331,127 @@ function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.c
    resultado, sin que este cálculo interno sepa nada de esa
    segregación (responsabilidad de calculateEarnings).
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — calcularContinuidad(tipoJornada)
+   Resuelve a qué "bucket" de STATS pertenece un tramo de continuidad
+   según el tipo de jornada al que está asociado: 'general' (jornada
+   ordinaria) o 'HTDL' (trabajado / art5152).
+
+   IMPORTANTE — por qué NO suma nada aquí:
+   La suma real de los tramos de continuidad YA ocurre dentro de
+   calcularJornadaDiaria() (más abajo), que agrega sus minutos a
+   efectivas/presencia del día, y calculateEarnings() ya enruta esos
+   minutos a minEfectivasCal/minPresenciaCal (general) o
+   minEfectivasHTDL/minPresenciaHTDL (HTDL) según el flag esHTDL de
+   esa jornada. Si esta función volviera a sumar los mismos minutos
+   en un objeto aparte (statsGeneral/statsHTDL), el resultado final
+   se DUPLICARÍA. Por eso calcularContinuidad() es una función pura
+   de solo lectura: únicamente informa el destino correcto, para
+   usarlo en etiquetas del formulario y del pop-up (por ejemplo,
+   "Este tramo aparecerá en HTDL"), nunca para sumar minutos.
+═══════════════════════════════════════════════════════════ */
+function calcularContinuidad(tipoJornada){
+  return (tipoJornada==='trabajado' || tipoJornada==='HTDL' || tipoJornada==='art5152')
+    ? 'HTDL'
+    : 'general';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — MÓDULO "HORAS DE REBASE" (100% observador)
+   No modifica calcularJornadaDiaria() ni calculateEarnings(): los
+   LEE (ya wrappeados desde el módulo Art.51/52, sin tocarlos otra
+   vez) para obtener los minutos Efectivos ya calculados por día, y
+   a partir de ahí deriva el rebase. Cero escritura sobre TV, sobre
+   los objetos de jornada, ni sobre los contadores existentes.
+
+   Regla de negocio: a partir de la 9ª hora efectiva (inclusive),
+   cada hora extra = 1 €. Aplica a Ordinaria, Reserva, Art.51/52 y
+   HTDL por igual, porque todas pasan por calcularJornadaDiaria().
+
+   Persistencia: NINGUNA. datosRebase se recalcula en cada render de
+   STATS a partir de TV (fuente única de verdad) — vive en memoria,
+   separado por completo de TV/datosJornada, y nunca se guarda en
+   localStorage ni se mezcla con ningún otro objeto.
+═══════════════════════════════════════════════════════════ */
+
+// Objeto separado, solo en memoria — nunca se persiste ni se
+// fusiona con TV/datosJornada. Se recalcula por completo en cada
+// llamada a calcularRebaseMes().
+var datosRebase = {totalHoras:0, totalImporte:0, detalle:[]};
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Precio configurable por hora de Rebase.
+   obtenerPrecioHoraRebase() lee 'precioHoraRebase' de localStorage
+   (clave propia, independiente de AJ/aj5) con valor por defecto
+   1.00 € si no existe o no es un número válido — evita NaN.
+   actualizarPrecioRebase(valor) la persiste y, si el panel STATS
+   está visible en ese momento, dispara un recálculo inmediato del
+   Desglose económico (vía renderStats(), ya wrappeada más arriba).
+═══════════════════════════════════════════════════════════ */
+function obtenerPrecioHoraRebase(){
+  var v = parseFloat(localStorage.getItem('precioHoraRebase'));
+  return (!isNaN(v) && v>=0) ? v : 1.00;
+}
+
+function actualizarPrecioRebase(valor){
+  var v = parseFloat(valor);
+  if(isNaN(v) || v<0) v = 1.00;
+  localStorage.setItem('precioHoraRebase', v);
+  // Recalculo instantáneo: si STATS está visible ahora mismo, se
+  // vuelve a renderizar para reflejar el nuevo precio sin esperar
+  // a cambiar de pestaña.
+  var pStats = document.getElementById('p-stats');
+  if(pStats && pStats.classList.contains('on') && typeof renderStats==='function'){
+    renderStats();
+  }
+}
+
+function calcularRebaseDiario(horasEfectivas){
+  // Horas excedentes a 8 (a partir de la 9ª hora inclusive).
+  var h = parseFloat(horasEfectivas)||0;
+  var exceso = Math.round((h - 8)*100)/100;
+  var horas = exceso > 0 ? exceso : 0;
+  // NUEVO: multiplica por el precio configurado en Ajustes en vez
+  // de un valor fijo de 1 €. Si no hay precio guardado, usa 1.00 €
+  // por defecto (obtenerPrecioHoraRebase ya lo garantiza).
+  var precio = obtenerPrecioHoraRebase();
+  var importe = Math.round(horas*precio*100)/100;
+  return {horas:horas, importe:importe};
+}
+
+function calcularRebaseMes(ks){
+  var totalHoras = 0, totalImporte = 0, detalle = [];
+  (ks||[]).forEach(function(k){
+    var turnosDia = getTurnosDia(k);
+    if(!turnosDia.length) return;
+    // Reutiliza calcularJornadaDiaria() (ya wrappeada, sin tocarla):
+    // es la MISMA fuente que ya usa calculateEarnings() para
+    // Efectivas — así el rebase nunca puede desincronizarse de lo
+    // que ya se contabiliza en Efectivas/Presencia.
+    var jornada = calcularJornadaDiaria(turnosDia, k);
+    var horasEfectivasDia = Math.round((jornada.efectivasMin/60)*100)/100;
+    var reb = calcularRebaseDiario(horasEfectivasDia);
+    if(reb.horas > 0){
+      var t = TV[k] || turnosDia[0];
+      totalHoras += reb.horas;
+      totalImporte += reb.importe;
+      detalle.push({
+        k:k, fecha:_keyAFechaLbl(k),
+        tren: (t && (t.numTren||t.numTrenVuelta)) || '—',
+        horasEfectivasDia:horasEfectivasDia,
+        horasRebase:reb.horas,
+        importe:reb.importe
+      });
+    }
+  });
+  datosRebase = {
+    totalHoras: Math.round(totalHoras*100)/100,
+    totalImporte: Math.round(totalImporte*100)/100,
+    detalle: detalle
+  };
+  return datosRebase;
+}
+
 function calcularJornadaDiaria(turnos, fecha){
   var efectivas = 0, presencia = 0, esHTDL = false;
   var intervalos = []; // {inicio, fin} en minutos — para los huecos entre turnos
@@ -9243,7 +9469,14 @@ function calcularJornadaDiaria(turnos, fecha){
     if(t.turno_referencia_externa || t.esTurnoIntercambiado) return;
     if(t.tipo==='trabajado') esHTDL = true;
 
-    if(t.tipo==='ordinario' || t.tipo==='trabajado'){
+    // NUEVO: art5152 se procesa con el mismo bloque de cálculo que
+    // ordinario/trabajado (comparte exactamente los mismos campos:
+    // hF/hL/hF2/hL2/continuidad/continuidadVuelta), para que sus
+    // tramos de continuidad también se contabilicen. esHTDL ya se
+    // marca true para art5152 mediante el wrapper de calcularJornadaDiaria
+    // (ver más abajo en el archivo), así que esta rama enruta
+    // automáticamente al bucket HTDL, nunca al general.
+    if(t.tipo==='ordinario' || t.tipo==='trabajado' || t.tipo==='art5152'){
       var minI = (t.hF&&t.hL) ? calcMins(t.hF,t.hL) : 0;
       var minV = (t.hF2&&t.hL2) ? calcMins(t.hF2,t.hL2) : 0;
       var efEste = minI + minV;
@@ -9269,7 +9502,15 @@ function calcularJornadaDiaria(turnos, fecha){
       [t.continuidad, t.continuidadVuelta].forEach(function(arr){
         if(!arr || !arr.length) return;
         arr.forEach(function(c){
-          if(c.horaInicio && c.horaFin) efEste += calcMins(c.horaInicio, c.horaFin);
+          if(c.horaInicio && c.horaFin){
+            var durC = calcMins(c.horaInicio, c.horaFin);
+            // NUEVO: si el tramo de continuidad está marcado como 'dh',
+            // su duración va a Presencia en vez de Efectiva. Los tramos
+            // ya guardados (sin c.tipoTramo) mantienen el comportamiento
+            // ORIGINAL exacto: siempre a Efectiva.
+            if(c.tipoTramo==='dh') prEste += durC;
+            else efEste += durC;
+          }
           if(c.escalaMin!=null && c.escalaMin>0) prEste += c.escalaMin;
         });
       });
@@ -11071,6 +11312,13 @@ async function renderAuditoriaHoras(){
   var htdlEfectivas = _minToHoras(eCal.efectivasHTDLMin) || '00:00';
   var htdlPresencia = _minToHoras(eCal.presenciaHTDLMin) || '00:00';
 
+  // NUEVO — Columna C: Registro Rebase. Calculado por el módulo
+  // observador calcularRebaseMes() (100% de solo lectura, no altera
+  // ni pdfEfectivas ni appEfectivas ni ningún otro dato de esta vista).
+  var rebAud = calcularRebaseMes(ksCal);
+  var rebHorasTxt = rebAud.totalHoras>0 ? rebAud.totalHoras.toFixed(2)+'h' : '—';
+  var rebImporteTxt = rebAud.totalImporte>0 ? rebAud.totalImporte.toFixed(2)+' €' : '—';
+
   panel.innerHTML =
     '<div class="cs-box">'
     +'<div class="cs-t">Auditoría de Horas · '+mesVisibleLbl+'</div>'
@@ -11079,16 +11327,25 @@ async function renderAuditoriaHoras(){
       +'<td style="padding:6px 4px;color:var(--tx3)"></td>'
       +'<td style="padding:6px 4px;color:var(--acc2);font-weight:800;text-align:center">PDF Oficial<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+pdfMesLbl+'</span></td>'
       +'<td style="padding:6px 4px;color:var(--green2);font-weight:800;text-align:center">Registro App<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+mesVisibleLbl+'</span></td>'
+      +'<td style="padding:6px 4px;color:var(--amber2);font-weight:800;text-align:center">Registro Rebase<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">≥ 9ª hora</span></td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Efectivas</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfEfectivas+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appEfectivas+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+rebHorasTxt+'</td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Presencia</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfPresencia+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appPresencia+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
+    +'</tr>'
+    +'<tr style="border-top:1px solid var(--div)">'
+      +'<td style="padding:8px 4px;color:var(--tx2)">Importe Rebase</td>'
+      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
+      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+rebImporteTxt+'</td>'
     +'</tr>'
     +'</table>'
     +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
