@@ -3424,6 +3424,25 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- OV: DETALLE ART. 51/52 — mismo patrón .ov/.sh que ov-cambio y
+     ov-correo-mix. Autocontenido: no depende del acordeón "Turnos del
+     mes" del calendario (que puede no existir si STATS está viendo un
+     mes distinto), así el botón "Ver detalle" funciona siempre. -->
+<div class="ov" id="ov-art5152-detalle" onclick="closeOv('ov-art5152-detalle')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">⚖️</div>
+      <div>
+        <div class="sh-tit">Detalle Artículo 51/52</div>
+        <div class="sh-sub" id="art5152-detalle-sub"></div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-art5152-detalle')">✕</button>
+    </div>
+    <div id="art5152-detalle-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
+  </div>
+</div>
+
 <!-- OV: REGISTRAR TURNO DEL COMPAÑERO (Pop-up 2 — se apila sobre ov-cambio,
      que queda "en standby" detrás, sin perder sus datos) -->
 <div class="ov" id="ov-registrar-intercambio" onclick="if(event.target===this)cerrarRegistrarIntercambio()">
@@ -4835,6 +4854,71 @@ if(typeof calculateEarnings === 'function'){
   };
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — mostrarDetalleArt5152(k)
+   Modal de detalle AUTOCONTENIDO para un registro de Art.51/52.
+   No depende de renderAcordeon() ni del mes visible en el
+   calendario (curM) — por eso funciona siempre, aunque STATS esté
+   mostrando un mes distinto al del calendario, que era la causa
+   real de que "Ver detalle" no reaccionara.
+   Reutiliza el mismo patrón .ov/.sh ya usado por ov-cambio y
+   ov-correo-mix — ningún componente visual nuevo.
+═══════════════════════════════════════════════════════════ */
+function mostrarDetalleArt5152(k){
+  var t = TV[k];
+  if(!t || t.tipo!=='art5152'){
+    toast('No se encontró el registro de este día');
+    return;
+  }
+  var sub = document.getElementById('art5152-detalle-sub');
+  var body = document.getElementById('art5152-detalle-body');
+  if(!body) return;
+
+  if(sub) sub.textContent = _keyAFechaLbl(k)+' · '+(t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
+
+  var fila = function(lbl, val, col){
+    return '<div class="cs-r"><span class="cl">'+lbl+'</span>'
+      +'<span class="cv" style="color:'+(col||'var(--tx2)')+'">'+val+'</span></div>';
+  };
+
+  var html = '<div class="cs-box">';
+
+  if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
+    html += '<div class="cs-t">🔀 Compensación Mix</div>';
+    html += fila('Tramo mayor horas', _keyAFechaLbl(t.mixDinero.dia)+' · '+t.mixDinero.horas+' h', 'var(--acc3)');
+    html += fila('Compensación económica', t.mixDinero.importe.toFixed(2)+' €', 'var(--green2)');
+    html += fila('Tramo menor horas', _keyAFechaLbl(t.mixDias.dia)+' · '+t.mixDias.horas+' h', 'var(--acc3)');
+    html += fila('Días de descanso', '+'+t.mixDias.diasGenerados+' día(s) → '+t.mixDias.mesDestino, 'var(--cyan2)');
+    if(t.mixDias.diasComp && t.mixDias.diasComp.length){
+      html += fila('Fechas elegidas', t.mixDias.diasComp.map(_keyAFechaLbl).join(' y '), 'var(--cyan2)');
+    }
+  } else if(t.compensacion==='dinero'){
+    html += '<div class="cs-t">💶 Compensación económica</div>';
+    html += fila('Horas efectivas', (t.horasEfectivas||0)+' h', 'var(--acc3)');
+    html += fila('Importe', (t.importe||0).toFixed(2)+' €', 'var(--green2)');
+  } else if(t.compensacion==='dias'){
+    html += '<div class="cs-t">📅 Días de descanso</div>';
+    html += fila('Días generados', '+'+(t.diasGenerados||0)+' día(s)', 'var(--cyan2)');
+    html += fila('Mes destino', t.mesDestino||'—', 'var(--cyan2)');
+    if(t.diasComp && t.diasComp.length){
+      html += fila('Fechas elegidas', t.diasComp.map(_keyAFechaLbl).join(' y '), 'var(--cyan2)');
+    }
+  }
+
+  // Datos de tren/ruta comunes, si existen
+  if(t.numTren || t.sal){
+    html += '<div class="cr-div" style="margin:6px 0"></div>';
+    if(t.numTren) html += fila('Tren ida', '#'+t.numTren);
+    if(t.sal&&t.lle) html += fila('Ruta ida', t.sal+' → '+t.lle);
+    if(t.numTrenVuelta) html += fila('Tren vuelta', '#'+t.numTrenVuelta);
+    if(t.sal2&&t.lle2) html += fila('Ruta vuelta', t.sal2+' → '+t.lle2);
+  }
+
+  html += '</div>';
+  body.innerHTML = html;
+  openOv('ov-art5152-detalle');
+}
+
 function _renderArt5152Stats(){
   var csBox = document.getElementById('cs-box');
   if(!csBox) return;
@@ -4879,16 +4963,17 @@ function _renderArt5152Stats(){
     } else {
       val = 'Dinero';
     }
-    // FIX: antes esto era el texto suelto "ver detalle en HTDL" sin
-    // ningún onclick — parecía un botón pero no respondía al tocarlo.
-    // Ahora es un botón real, conectado a verDetallesEnHistorial(k),
-    // la misma función que ya usa el resto de la app para ver el
-    // detalle completo de un día (acordeón "Turnos del mes").
+    // FIX: antes llamaba a verDetallesEnHistorial(k), que depende del
+    // acordeón "Turnos del mes" del calendario — si STATS estaba
+    // mostrando un mes distinto al del calendario (curM ≠ statsM), ese
+    // elemento no existía y el botón no hacía nada perceptible. Ahora
+    // usa mostrarDetalleArt5152(k), un modal propio y autocontenido
+    // que siempre funciona, sin depender de ningún otro panel.
     html += '<div class="cs-r" style="padding-left:12px;align-items:center">'
       +'<span class="cl" style="font-size:10px">'+lbl+'</span>'
       +'<span style="display:flex;align-items:center;gap:6px">'
       +'<span class="cv" style="font-size:10px;color:'+(r.t.compensacion==='dias'?'var(--cyan2)':'var(--acc3)')+'">'+val+'</span>'
-      +'<button onclick="verDetallesEnHistorial(\''+r.k+'\')" '
+      +'<button onclick="mostrarDetalleArt5152(\''+r.k+'\')" '
       +'style="background:var(--s2);border:1px solid var(--div);border-radius:6px;color:var(--acc2);'
       +'font-size:9px;font-weight:700;padding:2px 7px;cursor:pointer">Ver detalle</button>'
       +'</span></div>';
