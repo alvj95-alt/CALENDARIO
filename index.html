@@ -347,6 +347,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .mc-d:hover:not(.mc-dis){border-color:var(--cyan);background:rgba(6,182,212,.1)}
 .mc-d.mc-sel{background:rgba(6,182,212,.22);border-color:var(--cyan);color:#67E8F9;font-weight:800}
 .mc-d.mc-dis{opacity:.2;pointer-events:none}
+/* NUEVO — clase pedida explícitamente para los días ya ocupados en
+   los selectores de Art.51, Art.52 y HTDL. Va siempre junto a
+   .mc-dis (ver renderMiniCal), así que estas propiedades son
+   redundantes a propósito: garantizan el bloqueo aunque en el futuro
+   solo se aplicara esta clase. */
+.mc-d.bloqueado{opacity:.2;pointer-events:none;cursor:not-allowed}
 .mc-count{font-size:9px;color:var(--tx2);text-align:center;margin-top:6px}
 .mc-count span{color:var(--cyan2);font-weight:700}
 /* ibox */
@@ -2183,6 +2189,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .train-meta b{color:var(--acc3)}
 .train-track{position:relative;overflow-x:auto;overflow-y:hidden;padding:10px 4px 18px;
              scrollbar-width:thin}
+/* NUEVO — clase exclusiva para el contenedor de resultados del
+   comparador de compañeros. Antes reutilizaba ".train-track", el
+   mismo nombre que ya usa el mini-tren animado de la barra de estado
+   (arriba, línea ~82: width:56px;height:15px;pointer-events:none).
+   Como esas propiedades nunca se redeclaraban aquí, se "colaban" por
+   cascada CSS y comprimían los vagones con nombres a una franja de
+   15px sin interacción — por eso solo se veía el contador de arriba
+   y nunca los nombres. Esta clase nueva define TODAS las propiedades
+   necesarias, sin depender de ninguna otra regla. */
+.train-track-resultados{position:relative;overflow-x:auto;overflow-y:hidden;
+             padding:10px 4px 18px;scrollbar-width:thin;
+             width:auto;height:auto;flex-shrink:initial;pointer-events:auto}
 .train-rail{display:flex;align-items:flex-end;gap:0;min-width:min-content}
 
 .loco{flex-shrink:0;width:58px;height:74px;background:linear-gradient(160deg,var(--acc) 0%,#1d4ed8 100%);
@@ -2336,9 +2354,145 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 .at-footer{text-align:center;padding:14px 16px 6px;font-size:9px;color:var(--tx3);line-height:1.5;flex-shrink:0}
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — SPLASH SCREEN: tren cayendo + efecto de "rotura" que
+   revela la app. Solo @keyframes CSS, sin librerías externas.
+   Bloque 100% aditivo — no modifica ninguna regla existente.
+═══════════════════════════════════════════════════════════ */
+#splash-screen{position:fixed;inset:0;z-index:9999;overflow:hidden;pointer-events:none}
+.splash-half{position:fixed;top:0;bottom:0;width:50%;background:var(--bg);
+  display:flex;align-items:center;justify-content:center}
+.splash-left{left:0;border-right:1px solid rgba(147,197,253,.15);
+  animation:splashTearLeft .55s cubic-bezier(.6,0,1,1) 1.05s forwards}
+.splash-right{right:0;border-left:1px solid rgba(147,197,253,.15);
+  animation:splashTearRight .55s cubic-bezier(.6,0,1,1) 1.05s forwards}
+.splash-crack{position:fixed;top:0;left:50%;width:3px;height:0;
+  background:linear-gradient(180deg,#93C5FD,#2563EB,#93C5FD);
+  transform:translateX(-50%);opacity:0;
+  box-shadow:0 0 18px 3px rgba(59,130,246,.7);
+  animation:splashCrackIn .35s ease .78s forwards,
+            splashCrackOut .3s ease 1.05s forwards}
+#splash-train{position:fixed;left:50%;top:-90px;width:72px;height:auto;
+  transform:translateX(-50%);filter:drop-shadow(0 6px 14px rgba(37,99,235,.55));
+  animation:splashTrainFall .95s cubic-bezier(.56,0,1,.44) forwards}
+.splash-brand{position:fixed;left:50%;bottom:18%;transform:translateX(-50%);
+  color:var(--acc3);font-weight:800;font-size:15px;letter-spacing:2px;
+  text-transform:uppercase;opacity:0;
+  animation:splashBrandIn .5s ease .25s forwards,
+            splashBrandOut .3s ease 1.15s forwards}
+
+@keyframes splashTrainFall{
+  0%{top:-90px;transform:translateX(-50%) rotate(0deg)}
+  75%{top:44%;transform:translateX(-50%) rotate(0deg)}
+  88%{top:47%;transform:translateX(-50%) rotate(-2deg)}
+  100%{top:46%;transform:translateX(-50%) rotate(0deg)}
+}
+@keyframes splashCrackIn{
+  0%{height:0;opacity:0}
+  100%{height:100%;opacity:1}
+}
+@keyframes splashCrackOut{
+  0%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes splashTearLeft{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-100%)}
+}
+@keyframes splashTearRight{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(100%)}
+}
+@keyframes splashBrandIn{
+  0%{opacity:0;transform:translateX(-50%) translateY(6px)}
+  100%{opacity:1;transform:translateX(-50%) translateY(0)}
+}
+@keyframes splashBrandOut{
+  0%{opacity:1}
+  100%{opacity:0}
+}
+@media (prefers-reduced-motion: reduce){
+  #splash-train,.splash-half,.splash-crack,.splash-brand{animation-duration:.01ms!important}
+}
 </style>
 </head>
 <body>
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — SPLASH SCREEN (pantalla de carga animada)
+     Elemento flotante autocontenido, z-index:9999. No toca ni
+     depende de ningún otro elemento de la app. Se autoelimina del
+     DOM tras la animación (ver script al final del bloque) y no
+     vuelve a mostrarse en la misma sesión (sessionStorage).
+═══════════════════════════════════════════════════════════ -->
+<div id="splash-screen" aria-hidden="true">
+  <div class="splash-half splash-left"></div>
+  <div class="splash-half splash-right"></div>
+  <div class="splash-crack"></div>
+  <svg id="splash-train" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <path d="M4 30 h6 a4 4 0 0 0 4-3 L17 15 a5 5 0 0 1 4.5-3 H50 a8 8 0 0 1 8 8 v7 a3 3 0 0 1-3 3 H4 Z"
+          fill="url(#splashTrainGrad)"/>
+    <circle cx="14" cy="33" r="4" fill="#0b1320"/>
+    <circle cx="14" cy="33" r="1.6" fill="#93C5FD"/>
+    <circle cx="46" cy="33" r="4" fill="#0b1320"/>
+    <circle cx="46" cy="33" r="1.6" fill="#93C5FD"/>
+    <rect x="24" y="16" width="10" height="9" rx="1.5" fill="#0b1320" opacity=".55"/>
+    <rect x="37" y="16" width="10" height="9" rx="1.5" fill="#0b1320" opacity=".55"/>
+    <defs>
+      <linearGradient id="splashTrainGrad" x1="4" y1="12" x2="58" y2="33" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#3B82F6"/>
+        <stop offset="1" stop-color="#2563EB"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="splash-brand">TrenTurnos</div>
+</div>
+<script>
+// ACTUALIZADO — Gestión del splash screen: persistencia DIARIA (antes
+// era por sesión/pestaña con sessionStorage). Se compara la fecha de
+// hoy contra la última fecha guardada en localStorage; solo cambia el
+// control de tiempo, ni la animación CSS ni la estructura HTML se
+// tocan. Se ejecuta en cuanto el parser llega aquí (el div ya existe
+// justo encima), antes de que cargue el resto de la app, para que la
+// decisión de mostrar/ocultar se tome sin parpadeos visuales.
+(function(){
+  var FECHA_KEY = 'fechaUltimaAnimacion';
+  var splash = document.getElementById('splash-screen');
+  if(!splash) return;
+
+  var fechaActual = new Date().toLocaleDateString();
+  var fechaGuardada = localStorage.getItem(FECHA_KEY);
+
+  // Misma fecha que la última vez → ya se vio hoy. Se oculta al
+  // instante con display:none (tal como se pidió) y además se retira
+  // del DOM para no dejar ningún nodo que pueda ralentizar la app
+  // (mismo criterio de rendimiento que ya se aplicaba antes).
+  if(fechaGuardada === fechaActual){
+    splash.style.display = 'none';
+    splash.remove();
+    return;
+  }
+
+  // Fecha distinta (o primera visita nunca registrada): se muestra la
+  // animación y se guarda la fecha de hoy para las próximas cargas.
+  localStorage.setItem(FECHA_KEY, fechaActual);
+
+  // Duración total del efecto: 2.5s máximo, luego fundido de salida
+  // y eliminación completa del DOM (no queda ningún nodo ni listener
+  // que pueda ralentizar el uso posterior de la app).
+  setTimeout(function(){
+    splash.style.transition = 'opacity .4s ease';
+    splash.style.opacity = '0';
+    setTimeout(function(){ splash.remove(); }, 420);
+  }, 2500);
+})();
+</script>
+
+<!-- NUEVO — sugerencias "tren · estación" mientras se escribe el
+     número de tren. Datalist nativo del navegador: no crea ningún
+     componente visual nuevo ni interfiere con el input; el propio
+     navegador dibuja el desplegable. Se rellena desde
+     actualizarDatalistTrenes(), leyendo SF (solo lectura). -->
+<datalist id="trenes-datalist"></datalist>
 <div class="ph" id="ph">
 
 <!-- BOTÓN FLOTANTE AYUDA — WhatsApp. Puramente visual/navegación
@@ -2598,21 +2752,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             </div>
             <div class="aj-num-right">
               <input class="aj-num-inp" id="aj-noc" type="number" step="0.10" min="0">
-              <span class="aj-num-unit">€/h</span>
-            </div>
-          </div>
-          <!-- NUEVO — Precio por hora de Rebase (módulo aditivo, independiente
-               de AJ/saveAj(): persiste directamente en localStorage bajo su
-               propia clave 'precioHoraRebase'). -->
-          <div class="aj-num-row">
-            <div class="aj-num-ico">⏫</div>
-            <div class="aj-num-info">
-              <div class="aj-num-lbl">Precio hora de Rebase</div>
-              <div class="aj-num-sub">A partir de la 9ª hora efectiva</div>
-            </div>
-            <div class="aj-num-right">
-              <input class="aj-num-inp" id="precioHoraRebase" type="number" step="0.10" min="0"
-                oninput="actualizarPrecioRebase(this.value)">
               <span class="aj-num-unit">€/h</span>
             </div>
           </div>
@@ -3436,6 +3575,26 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-correo-mix')">✕</button>
     </div>
     <div id="correo-mix-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
+  </div>
+</div>
+
+<!-- OV: CORREO ENLACE DE JORNADA — mismo patrón exacto que ov-cambio y
+     ov-correo-mix (misma estructura .ov/.sh/.sh-hdr), sin inventar
+     ningún componente nuevo. Sustituye al antiguo div flotante
+     .correo-modal-overlay para mantener la consistencia visual con
+     el resto de correos de la app. -->
+<div class="ov" id="ov-correo-jornada" onclick="closeOv('ov-correo-jornada')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">✉️</div>
+      <div>
+        <div class="sh-tit">Notificar a Programación</div>
+        <div class="sh-sub">Revisa y edita el mensaje antes de enviarlo</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-correo-jornada')">✕</button>
+    </div>
+    <div id="correo-jornada-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
   </div>
 </div>
 
@@ -4450,44 +4609,34 @@ function _generarMensajeCorreoJornada(k){
 }
 
 function cerrarModalCorreoJornada(){
-  var ov = document.getElementById('correo-modal-overlay');
-  if(ov) ov.remove();
+  closeOv('ov-correo-jornada');
 }
 
 function abrirModalCorreoJornada(k){
-  cerrarModalCorreoJornada(); // por si ya hubiera uno abierto
   var mensaje = _generarMensajeCorreoJornada(k);
   if(!mensaje) return;
 
-  var overlay = document.createElement('div');
-  overlay.id = 'correo-modal-overlay';
-  overlay.className = 'correo-modal-overlay';
-  overlay.addEventListener('click', function(e){
-    if(e.target === overlay) cerrarModalCorreoJornada();
-  });
+  var body = document.getElementById('correo-jornada-body');
+  if(!body) return;
 
-  overlay.innerHTML =
-    '<div class="correo-modal-box" onclick="event.stopPropagation()">'
-      +'<div class="correo-modal-hdr">'
-        +'<span class="correo-modal-ico">✉️</span>'
-        +'<div><div class="correo-modal-title">Notificar a Programación</div>'
-        +'<div class="correo-modal-sub">Revisa y edita el mensaje antes de enviarlo</div></div>'
-      +'</div>'
-      +'<textarea id="correo-modal-textarea" class="correo-modal-textarea"></textarea>'
-      +'<div class="correo-modal-btns">'
-        +'<button class="correo-modal-btn correo-modal-btn-cancel" onclick="cerrarModalCorreoJornada()">Cancelar</button>'
-        +'<button class="correo-modal-btn correo-modal-btn-send" onclick="enviarCorreoJornadaModal(\''+k+'\')">Enviar Correo</button>'
-      +'</div>'
-    +'</div>';
+  // Misma estructura y clases que ya usa el correo Mix (ov-correo-mix):
+  // textarea .correo-modal-textarea + botón .correo-modal-btn-send.
+  // Cero clases nuevas — reutiliza exactamente las que ya existen.
+  body.innerHTML =
+    '<textarea id="correo-jornada-textarea" class="correo-modal-textarea" style="min-height:230px"></textarea>'
+    +'<button onclick="enviarCorreoJornadaModal(\''+k+'\')" style="width:100%;margin-top:12px;padding:13px;'
+    +'background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;'
+    +'color:#fff;font-size:14px;font-weight:800;cursor:pointer">✉️ Abrir en Correo</button>';
 
-  document.body.appendChild(overlay);
   // Se asigna por .value (no por HTML) para evitar cualquier problema de escapado
-  var ta = document.getElementById('correo-modal-textarea');
+  var ta = document.getElementById('correo-jornada-textarea');
   if(ta) ta.value = mensaje;
+
+  openOv('ov-correo-jornada');
 }
 
 function enviarCorreoJornadaModal(k){
-  var ta = document.getElementById('correo-modal-textarea');
+  var ta = document.getElementById('correo-jornada-textarea');
   var cuerpoFinal = ta ? ta.value : '';
   var alerta = ALERTAS_DESCANSO[k];
   var causaIda = alerta ? detectarCausaRetrasoIda(alerta) : null;
@@ -4706,7 +4855,13 @@ function _generarMensajeMixUnificado(kIda, kVuelta, mixInfo){
   // cual en el texto; sanitizarTexto() (ya existente, se aplica al
   // generar y al enviar) los retira automáticamente igual que hace
   // con cualquier otro símbolo, dejando el resultado en texto plano.
-  return 'Hola, buenos dias.\n\n'
+  // FIX: saludo dinámico según la hora de envío, reutilizando
+  // _saludoPorHora() (la misma función que ya usa el correo de
+  // Enlace de Jornada) — antes estaba fijo en "buenos dias" sin
+  // importar la hora real.
+  var saludo = _saludoPorHora().toLowerCase();
+
+  return 'Hola, '+saludo+'.\n\n'
     +'Informo que para la pernocta de los dias '+lblIda+' y '+lblVuelta+', '
     +'he seleccionado el tramo del dia '+lblDinero+' (tren '+trenDinero+') '
     +'para la compensacion economica.\n\n'
@@ -4795,10 +4950,6 @@ if(typeof loadAjUI === 'function'){
     var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
     if(iM) iM.value = AJ.art5152Monto || 0;
     if(iB) iB.value = AJ.art5152ValorBase || 0;
-    // NUEVO: precio por hora de Rebase, leído directamente de su
-    // propia clave de localStorage (independiente de AJ/aj5).
-    var iReb = document.getElementById('precioHoraRebase');
-    if(iReb) iReb.value = obtenerPrecioHoraRebase();
   };
 }
 
@@ -4808,39 +4959,7 @@ if(typeof renderStats === 'function'){
   renderStats = function(){
     _renderStats_base_art5152.apply(this, arguments);
     _renderArt5152Stats();
-    _renderRebaseEnStats();
   };
-}
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — Inyección de la fila "Rebase" en el Desglose económico.
-   Se ejecuta DESPUÉS de que renderStats() ya haya escrito su propio
-   HTML en #cs-box (cs.innerHTML=des) — esta función solo AÑADE
-   contenido al final (insertAdjacentHTML), nunca reemplaza ni borra
-   lo que renderStats() ya puso. Por eso no hace falta tocar ni una
-   línea de la función original: es pura inyección posterior.
-═══════════════════════════════════════════════════════════ */
-function _renderRebaseEnStats(){
-  var cs = document.getElementById('cs-box');
-  if(!cs || !cs.innerHTML) return; // si no hay desglose este mes, no se añade nada
-
-  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
-  var pref = y+'-'+pad(m);
-  var ks = Object.keys(TV).filter(function(k){ return k.startsWith(pref); });
-  var reb = calcularRebaseMes(ks);
-
-  if(reb.totalHoras<=0) return; // sin rebase este mes → fila oculta (no se añade)
-
-  var html = '<div class="cr-div" style="margin:6px 0"></div>'
-    +'<div class="cs-r"><span class="cl" style="font-weight:800;color:var(--amber2)">⏫ Rebase ('+reb.totalHoras.toFixed(2)+'h × 1.00€)</span>'
-    +'<span class="cv" style="color:var(--amber2);font-weight:900">'+reb.totalImporte.toFixed(2)+' €</span></div>';
-  reb.detalle.forEach(function(d){
-    html += '<div class="cs-r" style="padding-left:12px;opacity:.85">'
-      +'<span class="cl" style="font-size:10px">'+d.fecha+(d.tren!=='—'?' · Tren #'+d.tren:'')
-      +' · '+d.horasEfectivasDia.toFixed(2)+'h efectivas</span>'
-      +'<span class="cv" style="font-size:10px;color:var(--amber2)">+'+d.horasRebase.toFixed(2)+'h · '+d.importe.toFixed(2)+' €</span></div>';
-  });
-  cs.insertAdjacentHTML('beforeend', html);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -4963,16 +5082,6 @@ function mostrarDetalleArt5152(k){
     if(t.sal&&t.lle) html += fila('Ruta ida', t.sal+' → '+t.lle);
     if(t.numTrenVuelta) html += fila('Tren vuelta', '#'+t.numTrenVuelta);
     if(t.sal2&&t.lle2) html += fila('Ruta vuelta', t.sal2+' → '+t.lle2);
-  }
-
-  // NUEVO — Rebase aplicado a este día concreto (módulo observador,
-  // solo lectura). Se recalcula al vuelo para este único día k.
-  var jornadaDia = calcularJornadaDiaria(getTurnosDia(k), k);
-  var horasEfDia = Math.round((jornadaDia.efectivasMin/60)*100)/100;
-  var rebDia = calcularRebaseDiario(horasEfDia);
-  if(rebDia.horas > 0){
-    html += '<div class="cr-div" style="margin:6px 0"></div>';
-    html += fila('⏫ Rebase aplicado', rebDia.importe.toFixed(2)+' euros', 'var(--amber2)');
   }
 
   html += '</div>';
@@ -5289,6 +5398,24 @@ function guardarServicioFrecuente(datos){
    desde cada input de tren (ida, vuelta, intermedio o cualquier
    tramo de continuidad) — la misma función, sin distinción.
 ═══════════════════════════════════════════════════════════ */
+// NUEVO — Genera las opciones del <datalist> de sugerencias de tren
+// (número + estación) a partir de SF, la MISMA fuente de datos que ya
+// usa autocompletarTramo() para el autocompletado exacto. No crea
+// ningún dato nuevo, solo lee SF (de solo lectura) y pinta opciones.
+function actualizarDatalistTrenes(){
+  var dl = document.getElementById('trenes-datalist');
+  if(!dl || typeof SF==='undefined') return;
+  var vistos = {};
+  var html = '';
+  SF.forEach(function(s){
+    if(!s || !s.numTren || vistos[s.numTren]) return;
+    vistos[s.numTren] = true;
+    var ruta = (s.sal && s.lle) ? (' · '+s.sal+' → '+s.lle) : '';
+    html += '<option value="'+s.numTren+'">'+s.numTren+ruta+'</option>';
+  });
+  dl.innerHTML = html;
+}
+
 function autocompletarTramo(inputElement){
   var valor = inputElement.value.trim();
 
@@ -5297,6 +5424,32 @@ function autocompletarTramo(inputElement){
   // es simplemente registrar lo que el usuario ha escrito.
   var cont = inputElement.closest('.tramo-container');
   if(!cont) return;
+
+  // NUEVO — FIX: si el número de tren cambia (o se borra) respecto al
+  // que se usó la última vez para autocompletar este mismo tramo, se
+  // liberan los campos que ESTE mecanismo rellenó automáticamente
+  // (marcados con la clase .auto-filled), para que se puedan volver a
+  // rellenar con el tren nuevo. Nunca toca campos que el usuario haya
+  // escrito o seleccionado a mano (esos nunca llevan .auto-filled).
+  if(inputElement.dataset.lastAutoTren && inputElement.dataset.lastAutoTren !== valor){
+    var camposAuto = cont.querySelectorAll('.auto-filled');
+    camposAuto.forEach(function(el){
+      el.classList.remove('auto-filled');
+      el.classList.add('ph');
+      if(el.hasAttribute('data-f')){
+        el.textContent = 'Seleccionar';
+        F[el.dataset.f] = null;
+      }
+      if(el.hasAttribute('data-hora')){
+        el.textContent = '--:--';
+        el.classList.remove('hv');
+        F[el.dataset.hora] = null;
+      }
+      var wrap = el.closest('.sf'); if(wrap) wrap.classList.remove('fil');
+    });
+    inputElement.dataset.lastAutoTren = '';
+  }
+
   if(cont.dataset.tramo === 'continuidad'){
     actualizarTramoContinuidad(cont.dataset.subtramo, parseInt(cont.dataset.idx), 'tren', valor);
   } else if(inputElement.dataset.campoTren){
@@ -5307,6 +5460,10 @@ function autocompletarTramo(inputElement){
   var registro = SF.filter(function(s){ return s.numTren === valor; })[0];
   if(!registro) return; // no existe: no se hace nada más
 
+  // NUEVO: recuerda con qué tren se autocompletó este tramo por
+  // última vez, para poder detectar el cambio la próxima vez.
+  inputElement.dataset.lastAutoTren = valor;
+
   // Estaciones: primer [data-f] del contenedor = salida, segundo = llegada.
   var camposEstacion = cont.querySelectorAll('[data-f]');
   camposEstacion.forEach(function(el, i){
@@ -5316,6 +5473,7 @@ function autocompletarTramo(inputElement){
     F[el.dataset.f] = valorCampo;
     el.textContent = valorCampo;
     el.classList.remove('ph');
+    el.classList.add('auto-filled'); // NUEVO: marca de campo autocompletado
     var wrap = el.closest('.sf'); if(wrap) wrap.classList.add('fil');
   });
 
@@ -5329,6 +5487,7 @@ function autocompletarTramo(inputElement){
     el.textContent = valorCampo;
     el.classList.remove('ph');
     el.classList.add('hv');
+    el.classList.add('auto-filled'); // NUEVO: marca de campo autocompletado
     var wrap = el.closest('.sf'); if(wrap) wrap.classList.add('fil');
   });
 
@@ -6324,23 +6483,25 @@ function renderDiaArea(){
   var alerta = ALERTAS_DESCANSO[k];
   var alertaBanner = '';
   if(alerta){
-    // ── NUEVO: motivo específico si hay causa identificada (tren de ida),
-    //    o motivo general si no la hay. El botón de correo SIEMPRE aparece
-    //    mientras exista `alerta` (cualquier enlace de jornada incumplido).
+    // FIX — antes el motivo "Enlace de jornada" y las horas de
+    // descanso (alerta.descStr, ya calculadas por checkRestTime()) se
+    // repartían en líneas separadas, y cuando no había causa específica
+    // el aviso quedaba genérico. Ahora se consolida en una frase
+    // explícita y siempre visible, sin ocultar ningún dato existente.
     var causaIda = detectarCausaRetrasoIda(alerta);
     var motivoEspecificoHtml = causaIda
       ? ('<div style="font-size:10px;color:var(--tx2);margin-top:3px;line-height:1.4">'
          +'Motivo: Retraso en el tren <b style="color:var(--acc3)">'+causaIda.trenIda+'</b> de ida. '
          +'Se incumple el descanso fuera de base.</div>')
-      : ('<div style="font-size:10px;color:var(--tx2);margin-top:3px;line-height:1.4">'
-         +'Motivo: Enlace de jornada incumplido con el turno anterior.</div>');
+      : '';
+    var avisoExplicito = 'AVISO: Enlace de Jornada detectado. Descanso insuficiente ('+alerta.descStr+', mínimo '+alerta.limStr+').';
     var mailtoBtnHtml = '<button class="alerta-mail-btn" '
       +'title="Notificar a Programación por correo" '
       +'onclick="event.stopPropagation();abrirModalCorreoJornada(\''+k+'\')">✉️</button>';
 
     alertaBanner = '<div class="alerta-descanso">'
       +'<span class="alerta-ico">🔴</span>'
-      +'<div style="flex:1"><div style="font-weight:800">Incumplimiento de descanso mínimo</div>'
+      +'<div style="flex:1"><div style="font-weight:800">'+avisoExplicito+'</div>'
       +'<div style="font-size:10px;opacity:.8">'+alerta.msg+'</div>'
       +motivoEspecificoHtml
       +'<div style="font-size:9px;color:var(--tx3);margin-top:2px">'
@@ -6362,10 +6523,13 @@ function renderDiaArea(){
     : '';
 
   var body='';
-  // Si es ordinario/trabajado/art5152, mostrar alerta arriba del cuerpo
-  // FIX: 'art5152' añadido — antes quedaba fuera y nunca mostraba el
-  // resumen de tren/ruta/horas guardado (bug reportado).
-  var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152')) ? alertaBanner : '';
+  // Si es ordinario/trabajado/art5152/vuelta-pernocta/pernocta3-intermedio,
+  // mostrar alerta arriba del cuerpo.
+  // FIX: 'vuelta-pernocta' y 'pernocta3-intermedio' añadidos — antes
+  // quedaban fuera y el último día de una pernocta solo mostraba el
+  // triángulo ⚠️ en el título, sin el aviso completo (AVISO: Enlace de
+  // Jornada...) ni el botón de correo, aunque `alerta` sí existiera.
+  var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')) ? alertaBanner : '';
 
   if(t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'){
     // ── RESALTADO DE TRAMO PERNOCTA ──
@@ -7484,6 +7648,10 @@ function _ejecutarEnvioCambio(){
 function abrirForm(edicion,verificando){
   if(verificando===undefined) verificando=false;
   if(!selDay)return;
+  // NUEVO — refresca las sugerencias de "tren · estación" del datalist
+  // cada vez que se abre el formulario, por si se guardó algún tren
+  // nuevo desde la última vez.
+  if(typeof actualizarDatalistTrenes==='function') actualizarDatalistTrenes();
   var d=selDay.d;
   var k=selDay.k;
   var _km4=k.split('-').map(Number);
@@ -7699,7 +7867,7 @@ function secTramo(tramo){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
       +'<div style="font-size:16px">🚆</div>'
-      +'<input type="text" inputmode="numeric" placeholder="Nº tren, ej: 2081" value="'+(c.tren||'')+'"'
+      +'<input type="text" inputmode="numeric" placeholder="Nº tren, ej: 2081" value="'+(c.tren||'')+'" list="trenes-datalist"'
       +' oninput="autocompletarTramo(this)"'
       +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
       +'color:var(--tx);font-size:16px;font-weight:800;padding:7px 11px;outline:none;'
@@ -7759,7 +7927,7 @@ function secTramo(tramo){
     +'<div class="fsec-lbl">Nº Tren</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:20px">🚆</div>'
-    +'<input id="'+trenId+'" data-campo-tren="'+trenKey+'" type="text" inputmode="numeric" placeholder="Ej: 2080"'
+    +'<input id="'+trenId+'" data-campo-tren="'+trenKey+'" type="text" inputmode="numeric" placeholder="Ej: 2080" list="trenes-datalist"'
     +' value="'+trenVal+'"'
     +' oninput="autocompletarTramo(this)"'
     +' style="flex:1;background:var(--s2);border:1.5px solid '+trenBCol+';border-radius:10px;'
@@ -7912,7 +8080,7 @@ function secTramoIntermedio(){
     +'<div class="fsec-lbl">Nº Tren (tramo intermedio)</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:18px">🚆</div>'
-    +'<input id="inp-numtren3" data-campo-tren="numTrenIntermedio" type="text" inputmode="numeric" placeholder="Ej: 2095"'
+    +'<input id="inp-numtren3" data-campo-tren="numTrenIntermedio" type="text" inputmode="numeric" placeholder="Ej: 2095" list="trenes-datalist"'
     +' oninput="autocompletarTramo(this)"'
     +' value="'+numTrenIntVal+'"'
     +' style="flex:1;background:var(--s2);border:1.5px solid '+(numTrenIntVal?'var(--amber2)':'var(--div)')+';border-radius:10px;'
@@ -8105,6 +8273,38 @@ function togglePlus(campo){
 }
 
 /* ── Mini-cal compensación ── */
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Capa de validación de disponibilidad para días
+   compensatorios (Art.51, Art.52 y HTDL). 100% aditiva: no toca
+   ninguna fórmula de cálculo de horas ni de compensación — solo
+   comprueba, justo antes de guardar, que los días elegidos siguen
+   libres. Usa el MISMO criterio de ocupación que ya aplica el
+   selector visual (renderMiniCal, más abajo), para que ambas capas
+   nunca se contradigan entre sí.
+
+   estaDiaDisponible(fecha, origenExcluido):
+     · fecha: 'YYYY-MM-DD' a comprobar.
+     · origenExcluido (opcional): key del turno que se está guardando
+       — si el día ya es un 'comp' que pertenece a ESE MISMO turno
+       (se va a regenerar de todas formas), no cuenta como ocupado.
+   Devuelve true si el día está libre, false si está ocupado.
+═══════════════════════════════════════════════════════════ */
+function estaDiaDisponible(fecha, origenExcluido){
+  var t = TV[fecha];
+  // FIX — antes se exceptuaba 'descanso', tratándolo como disponible.
+  // Ahora CUALQUIER día con un turno ya asignado (descanso, jornada
+  // ordinaria/trabajada, baja, vacaciones, reserva, art5152, etc.)
+  // cuenta como ocupado. La única excepción sigue siendo un día
+  // 'comp' que pertenece al propio turno que se está editando (se va
+  // a regenerar de todas formas, no es una ocupación real ajena).
+  if(t){
+    var esCompDeEsteTurno = t.tipo==='comp' && origenExcluido && t.origen===origenExcluido;
+    if(!esCompDeEsteTurno) return false;
+  }
+  if(TV2[fecha] && TV2[fecha].length>0) return false;
+  return true;
+}
+
 function renderMiniCal(){
   var cont=document.getElementById('mini-cal-cont');
   if(!cont||!miniM)return;
@@ -8129,8 +8329,21 @@ function renderMiniCal(){
   for(var d=1;d<=ultimo;d++){
     var iso=key(y,m+1,d);
     var sel=diasComp.includes(iso);
-    var bloq=TV[iso]&&TV[iso].tipo!=='descanso'&&!sel;
-    cells+='<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis':'')+'" onclick="toggleComp(\''+iso+'\','+nDias+')">'+d+'</div>';
+    // FIX — un día marcado como 'comp' que pertenece a ESTE MISMO
+    // turno (TV[iso].origen === el día que se está editando) nunca
+    // debe bloquearse, aunque el usuario lo haya deseleccionado
+    // momentáneamente para elegir otro. Antes, al quitar la marca de
+    // un día ya guardado, ese día quedaba "atrapado" como si lo
+    // ocupara otro turno y no se podía volver a seleccionar en la
+    // misma edición.
+    // NUEVO — se unifica el criterio visual con la MISMA función
+    // maestra que ahora valida en el guardado (estaDiaDisponible),
+    // para que el selector y el guardado nunca se contradigan entre
+    // sí. Se mantiene la excepción de "esDeEsteTurno" integrada
+    // dentro de la propia función (origenExcluido).
+    var disponible = estaDiaDisponible(iso, selDay?selDay.k:null);
+    var bloq = !disponible && !sel;
+    cells+='<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis bloqueado':'')+'" onclick="toggleComp(\''+iso+'\','+nDias+')">'+d+'</div>';
   }
   var _ss3=selDay?selDay.k.split('-').map(Number):[y,m+1];var sy=_ss3[0],sm=_ss3[1];
   var mMin=sm===12?1:sm+1,yMin=sm===12?sy+1:sy;
@@ -8329,9 +8542,24 @@ function guardarTurno(){
         var _di=iso.split('-').map(Number);var dy=_di[0],dm=_di[1];
         return dy===yC&&dm===mC;
       }).slice(0,nE);
+      // NUEVO — Capa de validación: si algún día elegido ya está
+      // ocupado (por otro turno, no por este mismo en modo edición),
+      // se aborta el guardado ANTES de tocar TV. No se pierde nada.
+      var diaOcupadoHTDL = dv.filter(function(iso){ return !estaDiaDisponible(iso, k); })[0];
+      if(diaOcupadoHTDL){
+        toast('Error: El día '+_keyAFechaLbl(diaOcupadoHTDL)+' ya tiene un turno asignado. Elige una fecha libre.');
+        return;
+      }
       d.diasComp=dv;
-      if(selDay.t&&selDay.t.diasComp) selDay.t.diasComp.forEach(function(iso){
-        if(TV[iso]&&TV[iso].origen===k) delete TV[iso];
+      // FIX — limpieza robusta: recorre TV directamente buscando
+      // cualquier día 'comp' que pertenezca a ESTE turno (origen===k)
+      // y que ya NO esté en la nueva selección (dv), en vez de fiarse
+      // de selDay.t.diasComp (que podía no reflejar la lista real).
+      // Así, si al editar quitas un día, desaparece de verdad.
+      Object.keys(TV).forEach(function(isoOld){
+        if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && dv.indexOf(isoOld)===-1){
+          delete TV[isoOld];
+        }
       });
       dv.forEach(function(iso){ TV[iso]={tipo:'comp',origen:k}; });
     }
@@ -8354,7 +8582,22 @@ function guardarTurno(){
         var _diHm=iso.split('-').map(Number);
         return _diHm[0]===yHm && _diHm[1]===mHm;
       }).slice(0, mixHTDLsave.diasGenerados);
+      // NUEVO — Capa de validación (igual que en HTDL días).
+      var diaOcupadoMixHTDL = dvHm.filter(function(iso){ return !estaDiaDisponible(iso, k); })[0];
+      if(diaOcupadoMixHTDL){
+        toast('Error: El día '+_keyAFechaLbl(diaOcupadoMixHTDL)+' ya tiene un turno asignado. Elige una fecha libre.');
+        return;
+      }
       d.mixDias.diasComp = dvHm;
+      // FIX — antes esta rama (Mix en HTDL) no limpiaba NINGÚN día
+      // antiguo al editar; los días previamente elegidos se quedaban
+      // para siempre en el calendario. Mismo barrido robusto que en
+      // 'días' puro.
+      Object.keys(TV).forEach(function(isoOld){
+        if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && dvHm.indexOf(isoOld)===-1){
+          delete TV[isoOld];
+        }
+      });
       dvHm.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
       _art5152MixInfo = {kIda:k, kVuelta:kVueltaHTDL, origen:'trabajado'};
     }
@@ -8380,7 +8623,20 @@ function guardarTurno(){
         var _diM5=iso.split('-').map(Number);
         return _diM5[0]===yM5 && _diM5[1]===mM5;
       }).slice(0, mixR.diasGenerados);
+      // NUEVO — Capa de validación (igual que en los demás flujos).
+      var diaOcupadoMixArt = dvM5.filter(function(iso){ return !estaDiaDisponible(iso, k); })[0];
+      if(diaOcupadoMixArt){
+        toast('Error: El día '+_keyAFechaLbl(diaOcupadoMixArt)+' ya tiene un turno asignado. Elige una fecha libre.');
+        return;
+      }
       d.mixDias.diasComp = dvM5;
+      // FIX — antes esta rama (Mix en Art.51/52) no limpiaba NINGÚN
+      // día antiguo al editar. Mismo barrido robusto.
+      Object.keys(TV).forEach(function(isoOld){
+        if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && dvM5.indexOf(isoOld)===-1){
+          delete TV[isoOld];
+        }
+      });
       dvM5.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
       ART5152_DIAS[d.mixDias.mesDestino] = (ART5152_DIAS[d.mixDias.mesDestino]||0) + mixR.diasGenerados;
       _saveArt5152Dias();
@@ -8399,9 +8655,19 @@ function guardarTurno(){
         var _di5=iso.split('-').map(Number);
         return _di5[0]===yC5 && _di5[1]===mC5;
       }).slice(0, diasArt);
+      // NUEVO — Capa de validación (igual que en los demás flujos).
+      var diaOcupadoArt5152 = dv5.filter(function(iso){ return !estaDiaDisponible(iso, k); })[0];
+      if(diaOcupadoArt5152){
+        toast('Error: El día '+_keyAFechaLbl(diaOcupadoArt5152)+' ya tiene un turno asignado. Elige una fecha libre.');
+        return;
+      }
       d.diasComp = dv5;
-      if(selDay.t && selDay.t.diasComp) selDay.t.diasComp.forEach(function(iso){
-        if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+      // FIX — mismo barrido robusto que en HTDL: ya no depende de
+      // selDay.t.diasComp.
+      Object.keys(TV).forEach(function(isoOld){
+        if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && dv5.indexOf(isoOld)===-1){
+          delete TV[isoOld];
+        }
       });
       dv5.forEach(function(iso){ TV[iso] = {tipo:'comp', origen:k}; });
       // El contador mensual (bolsa por si no se eligieron días concretos)
@@ -8495,10 +8761,30 @@ function confirmarEliminar(){
       if(TV[iso] && TV[iso].origen===k) delete TV[iso];
     });
   }
+  // NUEVO — FIX: limpiar también los días de compensación del Mix de
+  // Art.51/52 (t.mixDias.diasComp), que antes no se liberaban al
+  // eliminar y quedaban "huérfanos" en el calendario.
+  if(t && t.mixDias && t.mixDias.diasComp && t.mixDias.diasComp.length){
+    t.mixDias.diasComp.forEach(function(iso){
+      if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+    });
+  }
   if(t && t.diaSiguiente && TV[t.diaSiguiente] && TV[t.diaSiguiente].origenPernocta===k){
     delete TV[t.diaSiguiente];
   }
-  delete TV[k]; selDay.t=null; saveTV();
+  // NUEVO — FIX: limpiar el día intermedio de una pernocta de 3 días
+  // (mismo campo y patrón que ya usa guardarTurno() al re-guardar,
+  // ver línea ~8250 — aquí faltaba en el flujo de eliminar).
+  if(t && t.diaIntermedio && TV[t.diaIntermedio] && TV[t.diaIntermedio].origenPernocta===k){
+    delete TV[t.diaIntermedio];
+  }
+  delete TV[k]; selDay.t=null;
+  // NUEVO — FIX: si el día tenía turnos extra (TV2[k]), se eliminan
+  // también al pulsar "Eliminar" — antes sobrevivían al borrado del
+  // turno principal y la celda seguía mostrando el badge "+N" o
+  // contenido, dando la sensación de que no se pudo eliminar.
+  if(TV2[k]){ delete TV2[k]; if(typeof saveTV2==='function') saveTV2(); }
+  saveTV();
   // Cerrar TODOS los overlays relevantes y limpiar UI de golpe
   closeOv('ov-del'); closeOv('ov-form'); closeOv('ov-dia-card');
   clearSelDay();
@@ -8513,6 +8799,19 @@ function confirmarEliminar(){
 function pedirBorrarTodo(){openOv('ov-borrar');}
 function confirmarBorrarTodo(){
   TV={};localStorage.removeItem('tv5');selDay=null;
+  // NUEVO — FIX: TV2 (turnos extra del mismo día) vive en su propia
+  // clave de localStorage ('tv2_extra') y antes sobrevivía al borrado
+  // general — dejando turnos "fantasma" (badge +N y contenido) en el
+  // calendario aunque TV ya estuviera vacío.
+  if(typeof TV2!=='undefined'){ TV2={}; }
+  localStorage.removeItem('tv2_extra');
+  // NUEVO — FIX: los contadores propios de Art.51/52 (bolsa de días
+  // de compensación pendientes y uso mensual) también viven en claves
+  // propias y quedaban desincronizados tras un borrado total.
+  if(typeof ART5152_DIAS!=='undefined'){ ART5152_DIAS={}; }
+  if(typeof ART5152_USO!=='undefined'){ ART5152_USO={}; }
+  localStorage.removeItem('art5152_dias');
+  localStorage.removeItem('art5152_uso');
   closeOv('ov-borrar');renderCal();renderStats();
   document.getElementById('dia-area').innerHTML='';
   toast('🗑 Todos los turnos eliminados');
@@ -9354,102 +9653,6 @@ function calcularContinuidad(tipoJornada){
   return (tipoJornada==='trabajado' || tipoJornada==='HTDL' || tipoJornada==='art5152')
     ? 'HTDL'
     : 'general';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — MÓDULO "HORAS DE REBASE" (100% observador)
-   No modifica calcularJornadaDiaria() ni calculateEarnings(): los
-   LEE (ya wrappeados desde el módulo Art.51/52, sin tocarlos otra
-   vez) para obtener los minutos Efectivos ya calculados por día, y
-   a partir de ahí deriva el rebase. Cero escritura sobre TV, sobre
-   los objetos de jornada, ni sobre los contadores existentes.
-
-   Regla de negocio: a partir de la 9ª hora efectiva (inclusive),
-   cada hora extra = 1 €. Aplica a Ordinaria, Reserva, Art.51/52 y
-   HTDL por igual, porque todas pasan por calcularJornadaDiaria().
-
-   Persistencia: NINGUNA. datosRebase se recalcula en cada render de
-   STATS a partir de TV (fuente única de verdad) — vive en memoria,
-   separado por completo de TV/datosJornada, y nunca se guarda en
-   localStorage ni se mezcla con ningún otro objeto.
-═══════════════════════════════════════════════════════════ */
-
-// Objeto separado, solo en memoria — nunca se persiste ni se
-// fusiona con TV/datosJornada. Se recalcula por completo en cada
-// llamada a calcularRebaseMes().
-var datosRebase = {totalHoras:0, totalImporte:0, detalle:[]};
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — Precio configurable por hora de Rebase.
-   obtenerPrecioHoraRebase() lee 'precioHoraRebase' de localStorage
-   (clave propia, independiente de AJ/aj5) con valor por defecto
-   1.00 € si no existe o no es un número válido — evita NaN.
-   actualizarPrecioRebase(valor) la persiste y, si el panel STATS
-   está visible en ese momento, dispara un recálculo inmediato del
-   Desglose económico (vía renderStats(), ya wrappeada más arriba).
-═══════════════════════════════════════════════════════════ */
-function obtenerPrecioHoraRebase(){
-  var v = parseFloat(localStorage.getItem('precioHoraRebase'));
-  return (!isNaN(v) && v>=0) ? v : 1.00;
-}
-
-function actualizarPrecioRebase(valor){
-  var v = parseFloat(valor);
-  if(isNaN(v) || v<0) v = 1.00;
-  localStorage.setItem('precioHoraRebase', v);
-  // Recalculo instantáneo: si STATS está visible ahora mismo, se
-  // vuelve a renderizar para reflejar el nuevo precio sin esperar
-  // a cambiar de pestaña.
-  var pStats = document.getElementById('p-stats');
-  if(pStats && pStats.classList.contains('on') && typeof renderStats==='function'){
-    renderStats();
-  }
-}
-
-function calcularRebaseDiario(horasEfectivas){
-  // Horas excedentes a 8 (a partir de la 9ª hora inclusive).
-  var h = parseFloat(horasEfectivas)||0;
-  var exceso = Math.round((h - 8)*100)/100;
-  var horas = exceso > 0 ? exceso : 0;
-  // NUEVO: multiplica por el precio configurado en Ajustes en vez
-  // de un valor fijo de 1 €. Si no hay precio guardado, usa 1.00 €
-  // por defecto (obtenerPrecioHoraRebase ya lo garantiza).
-  var precio = obtenerPrecioHoraRebase();
-  var importe = Math.round(horas*precio*100)/100;
-  return {horas:horas, importe:importe};
-}
-
-function calcularRebaseMes(ks){
-  var totalHoras = 0, totalImporte = 0, detalle = [];
-  (ks||[]).forEach(function(k){
-    var turnosDia = getTurnosDia(k);
-    if(!turnosDia.length) return;
-    // Reutiliza calcularJornadaDiaria() (ya wrappeada, sin tocarla):
-    // es la MISMA fuente que ya usa calculateEarnings() para
-    // Efectivas — así el rebase nunca puede desincronizarse de lo
-    // que ya se contabiliza en Efectivas/Presencia.
-    var jornada = calcularJornadaDiaria(turnosDia, k);
-    var horasEfectivasDia = Math.round((jornada.efectivasMin/60)*100)/100;
-    var reb = calcularRebaseDiario(horasEfectivasDia);
-    if(reb.horas > 0){
-      var t = TV[k] || turnosDia[0];
-      totalHoras += reb.horas;
-      totalImporte += reb.importe;
-      detalle.push({
-        k:k, fecha:_keyAFechaLbl(k),
-        tren: (t && (t.numTren||t.numTrenVuelta)) || '—',
-        horasEfectivasDia:horasEfectivasDia,
-        horasRebase:reb.horas,
-        importe:reb.importe
-      });
-    }
-  });
-  datosRebase = {
-    totalHoras: Math.round(totalHoras*100)/100,
-    totalImporte: Math.round(totalImporte*100)/100,
-    detalle: detalle
-  };
-  return datosRebase;
 }
 
 function calcularJornadaDiaria(turnos, fecha){
@@ -11312,13 +11515,6 @@ async function renderAuditoriaHoras(){
   var htdlEfectivas = _minToHoras(eCal.efectivasHTDLMin) || '00:00';
   var htdlPresencia = _minToHoras(eCal.presenciaHTDLMin) || '00:00';
 
-  // NUEVO — Columna C: Registro Rebase. Calculado por el módulo
-  // observador calcularRebaseMes() (100% de solo lectura, no altera
-  // ni pdfEfectivas ni appEfectivas ni ningún otro dato de esta vista).
-  var rebAud = calcularRebaseMes(ksCal);
-  var rebHorasTxt = rebAud.totalHoras>0 ? rebAud.totalHoras.toFixed(2)+'h' : '—';
-  var rebImporteTxt = rebAud.totalImporte>0 ? rebAud.totalImporte.toFixed(2)+' €' : '—';
-
   panel.innerHTML =
     '<div class="cs-box">'
     +'<div class="cs-t">Auditoría de Horas · '+mesVisibleLbl+'</div>'
@@ -11327,25 +11523,16 @@ async function renderAuditoriaHoras(){
       +'<td style="padding:6px 4px;color:var(--tx3)"></td>'
       +'<td style="padding:6px 4px;color:var(--acc2);font-weight:800;text-align:center">PDF Oficial<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+pdfMesLbl+'</span></td>'
       +'<td style="padding:6px 4px;color:var(--green2);font-weight:800;text-align:center">Registro App<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+mesVisibleLbl+'</span></td>'
-      +'<td style="padding:6px 4px;color:var(--amber2);font-weight:800;text-align:center">Registro Rebase<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">≥ 9ª hora</span></td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Efectivas</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfEfectivas+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appEfectivas+'</td>'
-      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+rebHorasTxt+'</td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Presencia</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfPresencia+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appPresencia+'</td>'
-      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
-    +'</tr>'
-    +'<tr style="border-top:1px solid var(--div)">'
-      +'<td style="padding:8px 4px;color:var(--tx2)">Importe Rebase</td>'
-      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
-      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3)">—</td>'
-      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+rebImporteTxt+'</td>'
     +'</tr>'
     +'</table>'
     +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
@@ -13139,9 +13326,20 @@ generarCalendarioUI('calTrenPanel', (fecha)=>{
 
 function cellContainsTrain(cell, trainNum){
   const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
+  // Normaliza el número buscado: a string, sin espacios y sin ceros a
+  // la izquierda (String()+trim() por sí solos NO bastan: "00123".trim()
+  // sigue siendo "00123", nunca igual a "123" — por eso el .replace()).
+  const norm = String(trainNum==null ? '' : trainNum).trim().replace(/^0+(?=\d)/, '');
   for(const tok of tokens){
     const m = tok.match(/^([0-9]+)/);
-    if(m && m[1] === trainNum) return true;
+    if(m){
+      const tokNorm = m[1].replace(/^0+(?=\d)/, '');
+      // DEBUG TEMPORAL DE AUDITORÍA — quítalo en cuanto confirmes que
+      // ya encuentra bien a los compañeros; imprime una línea por cada
+      // token de tren que aparece en la celda de cada compañero ese día.
+      console.log('Tren en PDF:', m[1], '| Tren buscado:', trainNum, '| ¿Son iguales? (normalizado):', tokNorm === norm);
+      if(tokNorm === norm) return true;
+    }
   }
   return false;
 }
@@ -13226,7 +13424,7 @@ function renderTrain(trainNum, day, matches){
   });
   trainView.innerHTML = `<div class="train-scene">
     <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${matches.length} compañero(s) en <b>${activeBase.label}</b></div>
-    <div class="train-track"><div class="train-rail">${rail}</div></div>
+    <div class="train-track-resultados"><div class="train-rail">${rail}</div></div>
   </div>`;
   };
   mostrarConAnimacionTren(trainView, _render);
