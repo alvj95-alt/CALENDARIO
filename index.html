@@ -2461,38 +2461,17 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <div class="splash-brand">TrenTurnos</div>
 </div>
 <script>
-// ACTUALIZADO — Gestión del splash screen: persistencia DIARIA (antes
-// era por sesión/pestaña con sessionStorage). Se compara la fecha de
-// hoy contra la última fecha guardada en localStorage; solo cambia el
-// control de tiempo, ni la animación CSS ni la estructura HTML se
-// tocan. Se ejecuta en cuanto el parser llega aquí (el div ya existe
-// justo encima), antes de que cargue el resto de la app, para que la
-// decisión de mostrar/ocultar se tome sin parpadeos visuales.
+// ACTUALIZADO — se elimina la persistencia diaria (localStorage +
+// comparación de fechas). El splash se ejecuta SIEMPRE que la página
+// se cargue o se refresque. No se toca la animación CSS (@keyframes)
+// ni la estructura HTML del contenedor — solo cambia este disparador.
 (function(){
-  var FECHA_KEY = 'fechaUltimaAnimacion';
   var splash = document.getElementById('splash-screen');
   if(!splash) return;
 
-  var fechaActual = new Date().toLocaleDateString();
-  var fechaGuardada = localStorage.getItem(FECHA_KEY);
-
-  // Misma fecha que la última vez → ya se vio hoy. Se oculta al
-  // instante con display:none (tal como se pidió) y además se retira
-  // del DOM para no dejar ningún nodo que pueda ralentizar la app
-  // (mismo criterio de rendimiento que ya se aplicaba antes).
-  if(fechaGuardada === fechaActual){
-    splash.style.display = 'none';
-    splash.remove();
-    return;
-  }
-
-  // Fecha distinta (o primera visita nunca registrada): se muestra la
-  // animación y se guarda la fecha de hoy para las próximas cargas.
-  localStorage.setItem(FECHA_KEY, fechaActual);
-
   // Duración total del efecto: 2.5s máximo, luego fundido de salida
-  // y eliminación completa del DOM (no queda ningún nodo ni listener
-  // que pueda ralentizar el uso posterior de la app).
+  // y eliminación completa del DOM, para que el usuario pueda
+  // interactuar con la interfaz sin ningún bloqueo posterior.
   setTimeout(function(){
     splash.style.transition = 'opacity .4s ease';
     splash.style.opacity = '0';
