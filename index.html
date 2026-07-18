@@ -713,7 +713,37 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .sc-l{font-size:9px;color:var(--tx2)}
 .cs-box{background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18);border-radius:12px;padding:14px;margin-bottom:10px}
 .cs-t{font-size:8px;font-weight:800;letter-spacing:1.2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px}
-.cs-r{display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px}
+/* ═══════════════════════════════════════════════════════════
+   RENOVADO — Sistema de diseño único para el Desglose Económico.
+   Jerarquía tipográfica: 12px para etiquetas y valores normales
+   (antes variaba entre 9px/10px/11px/15px sin criterio). Código de
+   colores semántico (antes eran colores sueltos por línea):
+     · .cv-pos   → verde  (ingresos: pluses, HTDL, importes a favor)
+     · .cv-warn  → ámbar  (avisos: nocturnidad, retrasos, parking)
+     · .cv-info  → azul   (informativo: HTDL, compensación en días)
+     · .cv-muted → gris   (texto secundario/informativo neutro)
+   Separadores: borde sutil entre filas en vez de saltos de color.
+   Zebra: fondo alterno muy sutil en las filas principales.
+═══════════════════════════════════════════════════════════ */
+.cs-r{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 2px;font-size:12px;border-bottom:1px solid var(--div)}
+.cs-r:last-child{border-bottom:none}
+.cs-r.cs-r-alt{background:rgba(255,255,255,.025)}
+.cs-r.cs-r-sub{padding:6px 2px 6px 16px;font-size:11px;
+  border-bottom:1px dashed rgba(255,255,255,.06)}
+.cl{color:var(--tx2);font-size:12px;font-weight:600;line-height:1.4}
+.cv{font-size:12px;font-weight:800;color:var(--tx);text-align:right;line-height:1.4}
+.cv-pos{color:var(--green2)}
+.cv-warn{color:var(--amber2)}
+.cv-info{color:var(--acc2)}
+.cv-muted{color:var(--tx3);font-weight:600}
+.cv-accent{color:var(--acc)}
+.cv-cyan{color:var(--cyan2)}
+.cs-row-total{background:var(--s2);border-radius:9px;padding:11px 12px;
+  margin-top:8px;border-bottom:none}
+.cs-row-total .cl{font-size:13px;font-weight:800;color:var(--tx)}
+.cs-row-total .cv{font-size:17px;font-weight:900;color:var(--green2)}
+.cs-sub-detail{font-size:10px;color:var(--tx3);padding-left:16px;line-height:1.5}
 .cs-r .cl{color:var(--tx2)}
 .cs-r .cv{font-weight:800;font-size:14px}
 /* TOAST */
@@ -2798,7 +2828,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
                   <span class="aj-num-unit">€</span>
                 </div>
               </div>
-              <button class="m-save" style="width:100%;margin-top:8px" onclick="guardarAjustesArt5152()">Guardar</button>
+              <!-- ELIMINADO — botón "Guardar" propio de esta subsección.
+                   Ahora se guarda junto con todo lo demás desde el botón
+                   maestro "💾 Guardar ajustes" al final de la pantalla. -->
             </div>
           </div>
         </div>
@@ -2982,11 +3014,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
-      <!-- ── ACORDEÓN: Apoyo al Desarrollo ── -->
+      <!-- ── ACORDEÓN: Apoyo al Desarrollador ── -->
       <div class="aj-acc-item" id="aj-acc-apoyo">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-apoyo')">
           <span class="aj-acc-hdr-ico">☕</span>
-          <span class="aj-acc-hdr-tit">Apoyo al Desarrollo</span>
+          <span class="aj-acc-hdr-tit">Apoyo al Desarrollador</span>
           <span class="aj-acc-hdr-arr">›</span>
         </div>
         <div class="aj-acc-body">
@@ -2994,7 +3026,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="aj-card-hdr" style="background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(37,99,235,.04))">
           <div class="aj-card-hdr-ico">☕</div>
           <div class="aj-card-hdr-txt">
-            <div class="aj-card-hdr-tit" style="color:var(--acc2)">Apoyo al Desarrollo</div>
+            <div class="aj-card-hdr-tit" style="color:var(--acc2)">Apoyo al Desarrollador</div>
             <div class="aj-card-hdr-sub" style="color:var(--acc2)">Si esta app te ahorra tiempo, considera invitarme un café</div>
           </div>
         </div>
@@ -3002,6 +3034,32 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <a href="https://buymeacoffee.com/calendario" target="_blank" rel="noopener noreferrer" class="bmc-btn">☕ Invítame a un café</a>
         </div>
       </div>
+        </div>
+      </div>
+
+      <!-- NUEVO — ACORDEÓN: Compartir. Mismo patrón exacto que
+           "Estaciones y Horarios" y "Artículo 51 y 52" (aj-acc-item /
+           aj-acc-hdr / aj-acc-body / aj-card), colocado entre "Apoyo
+           al Desarrollador" y los botones maestros, tal como se pidió. -->
+      <div class="aj-acc-item" id="aj-acc-compartir">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-compartir')">
+          <span class="aj-acc-hdr-ico">📤</span>
+          <span class="aj-acc-hdr-tit">Compartir</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+          <div class="aj-card">
+            <div class="aj-card-hdr">
+              <div class="aj-card-hdr-ico">📤</div>
+              <div class="aj-card-hdr-txt">
+                <div class="aj-card-hdr-tit">Compartir TrenTurnos v5</div>
+                <div class="aj-card-hdr-sub">Recomienda la app a un compañero</div>
+              </div>
+            </div>
+            <div class="aj-card-body">
+              <button type="button" class="m-save" style="width:100%" onclick="compartirApp()">📤 Compartir</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4273,10 +4331,16 @@ function saveComp(){ localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
 //   mes DESTINO ('YYYY-MM') al que se suman (el mes siguiente al del registro).
 // ART5152_USO: nº de veces que se ha usado el artículo, indexado por el
 //   mes de ORIGEN ('YYYY-MM') del turno — para la validación de una vez al mes.
+// ART5152_USO_ANUAL: NUEVO — nº de veces en el AÑO de origen ('YYYY'),
+//   para la validación de un máximo de 3 veces al año. Universal para
+//   pernocta e ida-vuelta desde el primer momento (mismo criterio que
+//   el mensual: solo cuenta Dinero/Días, nunca Mix ni HTDL).
 var ART5152_DIAS = JSON.parse(localStorage.getItem('art5152_dias') || '{}');
 var ART5152_USO  = JSON.parse(localStorage.getItem('art5152_uso')  || '{}');
+var ART5152_USO_ANUAL = JSON.parse(localStorage.getItem('art5152_uso_anual') || '{}');
 function _saveArt5152Dias(){ localStorage.setItem('art5152_dias', JSON.stringify(ART5152_DIAS)); }
 function _saveArt5152Uso(){ localStorage.setItem('art5152_uso', JSON.stringify(ART5152_USO)); }
+function _saveArt5152UsoAnual(){ localStorage.setItem('art5152_uso_anual', JSON.stringify(ART5152_USO_ANUAL)); }
 
 /* ═══════════════════════════════════════
    INIT
@@ -4801,7 +4865,7 @@ function secArt5152Flow(){
   if(comp==='dinero'||comp==='dias'){
     h += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);'
       +'border-radius:8px;padding:7px 10px;margin-bottom:10px;font-size:9px;color:var(--amber2)">'
-      +'⚠️ Este artículo (Dinero o Días) solo puede registrarse una vez al mes.</div>';
+      +'⚠️ Este artículo (Dinero o Días) solo puede registrarse una vez al mes y un máximo de 3 veces al año.</div>';
   }
 
   h += '<div id="calc-result-cont" class="calc-result">';
@@ -4857,13 +4921,17 @@ function secArt5152Flow(){
 
 // ── Aviso normativo (Dinero/Días — una vez al mes). Mix y HTDL no lo disparan ──
 var _a5152SaltarAvisoMensual = false;
-function _abrirAvisoLimiteArt5152(){
-  // ACTUALIZADO — antes construía un elemento flotante con clases
-  // propias (correo-modal-*), visualmente distinto al resto de la
-  // app. Ahora reutiliza el overlay estático #ov-aviso-art5152 (mismo
-  // patrón .ov/.confirm-sh que ya usan "Eliminar turno" y "Borrar
-  // todo"). El botón "Continuar" sigue llamando a guardarTurno()
-  // exactamente igual que antes — el guardado no se ha tocado.
+function _abrirAvisoLimiteArt5152(motivo){
+  // Mismo overlay estático de siempre (.ov/.confirm-sh, igual que
+  // "Eliminar turno" y "Borrar todo") — solo cambia el TEXTO según
+  // qué límite se ha superado, para que el aviso sea preciso sin
+  // dejar de ser visualmente idéntico en ambos casos.
+  var txt = document.getElementById('aviso-art5152-txt');
+  if(txt){
+    txt.textContent = (motivo==='anual')
+      ? 'Por reglamento, el uso de este artículo está permitido un máximo de 3 veces al año. ¿Desea continuar con el registro?'
+      : 'Por reglamento, el uso de este artículo está permitido solo una vez al mes. ¿Desea continuar con el registro?';
+  }
   openOv('ov-aviso-art5152');
 }
 
@@ -4997,6 +5065,47 @@ if(typeof loadAjUI === 'function'){
     // que se abre Ajustes, por si se guardó algún tren nuevo.
     if(typeof renderTablaEstacionesHorarios==='function') renderTablaEstacionesHorarios();
   };
+}
+
+// ── NUEVO — Enganche a saveAj() (wrapper, sin tocar el original) ──
+// 1) Recoge los campos de Art.51/52 ANTES de que la función original
+//    escriba en localStorage, ya que se eliminó su botón "Guardar"
+//    propio — ahora viajan en el mismo guardado maestro.
+// 2) Tras guardar, navega al calendario. window.location.hash se fija
+//    tal cual se pidió; además se llama a goP('cal') porque esta app
+//    navega entre pantallas con esa función (no hay listener de
+//    hashchange), así que solo el hash no movería la vista por sí solo.
+if(typeof saveAj === 'function'){
+  var _saveAj_base_art5152 = saveAj;
+  saveAj = function(){
+    var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
+    if(iM) AJ.art5152Monto = parseFloat(iM.value)||0;
+    if(iB) AJ.art5152ValorBase = parseFloat(iB.value)||0;
+
+    _saveAj_base_art5152.apply(this, arguments);
+
+    window.location.hash = '#calendario';
+    if(typeof goP==='function') goP('cal');
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Botón "Compartir" (Ajustes → Apoyo al Desarrollador)
+═══════════════════════════════════════════════════════════ */
+async function compartirApp() {
+  const urlCompartir = 'https://alvj95-alt.github.io/CALENDARIO/';
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'TrenTurnos v5',
+        text: 'Gestiona tus turnos de manera profesional con TrenTurnos v5.',
+        url: urlCompartir
+      });
+    } catch (err) { console.log('Error al compartir:', err); }
+  } else {
+    navigator.clipboard.writeText(urlCompartir);
+    alert('URL copiada al portapapeles');
+  }
 }
 
 // ── Enganche a renderStats() (bloque en el panel STATS) — wrapper, sin tocar el original ──
@@ -8595,8 +8704,16 @@ function guardarTurno(){
     var compEl = F.compArt5152||'dinero';
     if((compEl==='dinero'||compEl==='dias') && !_a5152SaltarAvisoMensual){
       var mesOrigenChk = k.slice(0,7);
+      var anioOrigenChk = k.slice(0,4);
       if((ART5152_USO[mesOrigenChk]||0) >= 1){
-        _abrirAvisoLimiteArt5152();
+        _abrirAvisoLimiteArt5152('mensual');
+        return;
+      }
+      // NUEVO — límite anual (máx. 3 veces/año), universal para
+      // pernocta e ida-vuelta desde el primer momento, igual que el
+      // mensual. Mismo pop-up, mensaje adaptado.
+      if((ART5152_USO_ANUAL[anioOrigenChk]||0) >= 3){
+        _abrirAvisoLimiteArt5152('anual');
         return;
       }
     }
@@ -8858,11 +8975,15 @@ function guardarTurno(){
       d.importe = Math.round((horasCompArt*montoArt + baseArt)*100)/100;
     }
 
-    // El contador de "una vez al mes" SOLO se incrementa para Dinero/Días
-    // — Mix y HTDL quedan explícitamente fuera de esta restricción.
+    // El contador de "una vez al mes" y el de "3 veces al año" SOLO se
+    // incrementan para Dinero/Días — Mix y HTDL quedan explícitamente
+    // fuera de esta restricción.
     if(compArt==='dinero' || compArt==='dias'){
       ART5152_USO[mesOrigenArt] = (ART5152_USO[mesOrigenArt]||0) + 1;
       _saveArt5152Uso();
+      var anioOrigenArt = k.slice(0,4);
+      ART5152_USO_ANUAL[anioOrigenArt] = (ART5152_USO_ANUAL[anioOrigenArt]||0) + 1;
+      _saveArt5152UsoAnual();
     }
   }
 
@@ -8982,8 +9103,10 @@ function confirmarBorrarTodo(){
   // propias y quedaban desincronizados tras un borrado total.
   if(typeof ART5152_DIAS!=='undefined'){ ART5152_DIAS={}; }
   if(typeof ART5152_USO!=='undefined'){ ART5152_USO={}; }
+  if(typeof ART5152_USO_ANUAL!=='undefined'){ ART5152_USO_ANUAL={}; }
   localStorage.removeItem('art5152_dias');
   localStorage.removeItem('art5152_uso');
+  localStorage.removeItem('art5152_uso_anual');
   closeOv('ov-borrar');renderCal();renderStats();
   document.getElementById('dia-area').innerHTML='';
   toast('🗑 Todos los turnos eliminados');
@@ -9426,11 +9549,16 @@ function renderStats(){
     +'</div></div></div>';
 
   var cs=document.getElementById('cs-box');
-  var dT=function(d){return d.length?'<div style="font-size:9px;color:var(--tx3)">📅 '+d.join(', ')+'</div>':'';};
-  var row=function(lbl,val,col,dias){
-    return '<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px">'
+  var dT=function(d){return d.length?'<div class="cs-sub-detail">📅 '+d.join(', ')+'</div>':'';};
+  // NUEVO — contador de zebra striping: alterna un fondo muy sutil en
+  // las filas principales del desglose (no en las de detalle).
+  var _rowIdx = 0;
+  var row=function(lbl,val,colClass,dias){
+    _rowIdx++;
+    var alt = (_rowIdx%2===0) ? ' cs-r-alt' : '';
+    return '<div class="cs-r'+alt+'" style="flex-direction:column;align-items:flex-start;gap:2px">'
       +'<div style="display:flex;width:100%"><span class="cl">'+lbl+'</span>'
-      +'<span class="cv" style="color:'+col+'">'+val+'</span></div>'
+      +'<span class="cv '+(colClass||'')+'">'+val+'</span></div>'
       +dT(dias||[])+'</div>';
   };
   var des='';
@@ -9438,7 +9566,7 @@ function renderStats(){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
     if(e.totalHTDL>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
-        e.totalHTDL.toFixed(2)+' €','var(--acc2)',e.diasHTDL);
+        e.totalHTDL.toFixed(2)+' €','cv-info',e.diasHTDL);
       // Desglose por día HTDL: mismo día → ida + escala + vuelta; pernocta → ida+vuelta
       if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
         e.diasHTDLdetail.forEach(function(d){
@@ -9448,57 +9576,57 @@ function renderStats(){
           if(d.hVuelta>0) partes.push(d.hVuelta.toFixed(2)+'h vuelta');
           if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
           var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
-          des+='<div class="cs-r" style="padding-left:12px;opacity:.8">'
-            +'<span class="cl" style="font-size:10px">'
+          des+='<div class="cs-r cs-r-sub">'
+            +'<span class="cl">'
             +d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
-            +'<span class="cv" style="font-size:10px;color:var(--acc2)">'
+            +'<span class="cv cv-info">'
             +detalleTxt+'</span></div>';
         });
       }
     }
     else if(e.totalHoras>0)
-      des+='<div class="cs-r"><span class="cl" style="color:var(--tx3)">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv" style="color:var(--tx3)">En nómina</span></div>';
+      des+='<div class="cs-r"><span class="cl cv-muted">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv cv-muted">En nómina</span></div>';
     if(e.totalNoc>0){
-      des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','var(--amber2)',[]);
+      des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','cv-warn',[]);
       // Desglose detallado por día — acordeón
       if(e.diasNocDetail&&e.diasNocDetail.length){
         e.diasNocDetail.forEach(function(d){
           if(typeof d!=='object') return;
-          des+='<div class="cs-r" style="padding-left:12px;flex-direction:column;gap:1px">';
+          des+='<div class="cs-r cs-r-sub" style="flex-direction:column;gap:1px">';
           des+='<div style="display:flex;width:100%">';
-          des+='<span class="cl" style="font-size:10px">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
-          des+='<span class="cv" style="font-size:10px;color:var(--tx3)">'+d.hNoc.toFixed(2)+'h · <span style="color:var(--amber2);font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
+          des+='<span class="cl">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
+          des+='<span class="cv cv-muted">'+d.hNoc.toFixed(2)+'h · <span class="cv-warn" style="font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
           des+='</div>';
           // Detalle horario de los tramos nocturnos
           var tramosTxt=[];
           if(d.hF1&&d.hL1) tramosTxt.push(d.hF1+' → '+d.hL1);
           if(d.hF2&&d.hL2) tramosTxt.push(d.hF2+' → '+d.hL2);
           if(tramosTxt.length){
-            des+='<div style="font-size:9px;color:var(--tx3);padding-left:4px">'+tramosTxt.join(' · ')+'</div>';
+            des+='<div class="cs-sub-detail">'+tramosTxt.join(' · ')+'</div>';
           }
           des+='</div>';
         });
       }
     }
-    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','var(--green2)',e.diasAct);
-    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','var(--green2)',e.diasJT);
-    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','var(--cyan2)',e.diasIntl);
-    if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv" style="color:var(--cyan2)">'+ct.comp+' días</span></div>';
+    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','cv-pos',e.diasAct);
+    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','cv-pos',e.diasJT);
+    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','cv-cyan',e.diasIntl);
+    if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv cv-info">'+ct.comp+' días</span></div>';
     // Retrasos del mes
     if(e.retrasos&&e.retrasos.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>'
-        +'<div class="cs-r"><span class="cl" style="color:var(--amber2);font-weight:800">⚠️ Retrasos del mes</span>'
-        +'<span class="cv" style="color:var(--amber2)">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
+        +'<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">⚠️ Retrasos del mes</span>'
+        +'<span class="cv cv-warn">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
       e.retrasos.forEach(function(r){
         // MÓDULO C: Impacto económico SI/NO según tramo y tipo compensación
         var impacta=r.esHTDL&&r.tramo===2;
         var impEco=impacta?Math.round((r.minutos/60)*e.HTDL*100)/100:0;
-        des+='<div class="cs-r" style="padding-left:12px;flex-wrap:wrap;gap:2px">';
-        des+='<span class="cl" style="font-size:10px">';
+        des+='<div class="cs-r cs-r-sub" style="flex-wrap:wrap">';
+        des+='<span class="cl">';
         des+=r.fecha+(r.tren||r.numTren?' · #'+(r.tren||r.numTren):'')+(r.tramo>0?' · T'+r.tramo:'')+'</span>';
-        des+='<span class="cv" style="font-size:10px;color:var(--amber2)">+'+r.minutos+'min';
-        if(impacta) des+=' · <strong style="color:var(--green2)">+'+impEco.toFixed(2)+'€ HTDL</strong>';
-        else        des+=' · <span style="color:var(--tx3)">informativo</span>';
+        des+='<span class="cv cv-warn">+'+r.minutos+'min';
+        if(impacta) des+=' · <strong class="cv-pos">+'+impEco.toFixed(2)+'€ HTDL</strong>';
+        else        des+=' · <span class="cv-muted">informativo</span>';
         des+='</span></div>';
       });
     }
@@ -9513,12 +9641,12 @@ function renderStats(){
     });
     if(notasMes.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>';
-      des+='<div class="cs-r"><span class="cl" style="color:var(--acc);font-weight:800">📝 Notas del mes</span>'
-        +'<span class="cv" style="color:var(--acc)">'+notasMes.length+' turno'+(notasMes.length>1?'s':'')+'</span></div>';
+      des+='<div class="cs-r"><span class="cl cv-accent" style="font-weight:800">📝 Notas del mes</span>'
+        +'<span class="cv cv-accent">'+notasMes.length+' turno'+(notasMes.length>1?'s':'')+'</span></div>';
       notasMes.forEach(function(n){
-        des+='<div class="cs-r" style="flex-direction:column;align-items:flex-start;gap:2px;padding-left:12px">'
-          +'<span class="cl" style="font-size:10px">'+n.tipo+' '+n.lbl+'</span>'
-          +'<span style="font-size:10px;color:var(--tx2);line-height:1.4">'+n.nota+'</span>'
+        des+='<div class="cs-r cs-r-sub" style="flex-direction:column;align-items:flex-start;gap:2px">'
+          +'<span class="cl">'+n.tipo+' '+n.lbl+'</span>'
+          +'<span class="cs-sub-detail" style="padding-left:0;color:var(--tx2)">'+n.nota+'</span>'
           +'</div>';
       });
     }
@@ -9539,19 +9667,19 @@ function renderStats(){
     });
     if(parkingMes.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>';
-      des+='<div class="cs-r"><span class="cl" style="color:var(--amber2);font-weight:800">🚗 Turnos Parking del mes</span>'
-        +'<span class="cv" style="color:var(--amber2)">'+parkingMes.length+' turno'+(parkingMes.length>1?'s':'')+'</span></div>';
+      des+='<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🚗 Turnos Parking del mes</span>'
+        +'<span class="cv cv-warn">'+parkingMes.length+' turno'+(parkingMes.length>1?'s':'')+'</span></div>';
       parkingMes.forEach(function(p){
-        des+='<div class="cs-r" style="padding-left:12px;flex-wrap:wrap;gap:2px">'
-          +'<span class="cl" style="font-size:10px">🚗 '+p.lbl+(p.tren?' · Tren #'+p.tren:'')+'</span>'
-          +'<span class="cv" style="font-size:10px;color:var(--amber2)">'+p.motivo+'</span>'
+        des+='<div class="cs-r cs-r-sub">'
+          +'<span class="cl">🚗 '+p.lbl+(p.tren?' · Tren #'+p.tren:'')+'</span>'
+          +'<span class="cv cv-warn">'+p.motivo+'</span>'
           +'</div>';
       });
     }
     if(e.totalBruto>0)
-      des+='<div class="cr-div" style="margin:6px 0"></div>'
-        +'<div class="cs-r"><span class="cl" style="font-weight:800">💰 Total estimado mes</span>'
-        +'<span class="cv" style="color:var(--green2);font-size:15px;font-weight:900">'+e.totalBruto.toFixed(2)+' €</span></div>';
+      des+='<div class="cs-r cs-row-total">'
+        +'<span class="cl">💰 Total estimado mes</span>'
+        +'<span class="cv">'+e.totalBruto.toFixed(2)+' €</span></div>';
     des+='</div>';
     cs.innerHTML=des;
   } else cs.innerHTML='';
