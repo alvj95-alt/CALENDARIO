@@ -2414,6 +2414,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 @media (prefers-reduced-motion: reduce){
   #splash-train,.splash-half,.splash-crack,.splash-brand{animation-duration:.01ms!important}
 }
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Desplegable de sugerencias de tren (sustituye al
+   <datalist> nativo, que no se puede estilizar). Reutiliza la misma
+   paleta y sombra que el resto de "TrenTurnos v5".
+═══════════════════════════════════════════════════════════ */
+.tren-suggest-list{position:fixed;margin-top:0;
+  background:var(--s2);border:1.5px solid var(--div);border-radius:12px;
+  box-shadow:var(--sh-card);max-height:220px;overflow-y:auto;z-index:9500}
+.tren-suggest-item{padding:9px 12px;cursor:pointer;
+  border-bottom:1px solid var(--div);display:flex;flex-direction:column;gap:1px}
+.tren-suggest-item:last-child{border-bottom:none}
+.tren-suggest-item:hover,.tren-suggest-item.activo{background:rgba(59,127,255,.14)}
+.tren-suggest-num{font-weight:800;color:var(--acc3);font-size:12px}
+.tren-suggest-ruta{font-size:10px;color:var(--tx3)}
 </style>
 </head>
 <body>
@@ -2811,8 +2825,33 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
 
+      <!-- NUEVO — ACORDEÓN: Estaciones y Horarios -->
+      <div class="aj-acc-item" id="aj-acc-estaciones">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-estaciones')">
+          <span class="aj-acc-hdr-ico">🚉</span>
+          <span class="aj-acc-hdr-tit">Estaciones y Horarios</span>
+          <span class="aj-acc-hdr-arr">›</span>
+        </div>
+        <div class="aj-acc-body">
+          <div class="aj-card">
+            <div class="aj-card-hdr">
+              <div class="aj-card-hdr-ico">🚉</div>
+              <div class="aj-card-hdr-txt">
+                <div class="aj-card-hdr-tit">Trenes guardados</div>
+                <div class="aj-card-hdr-sub">Corrige estación u horario si hubo un error al guardar</div>
+              </div>
+            </div>
+            <div class="aj-card-body">
+              <div id="tabla-estaciones-horarios"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── ACORDEÓN: Almacenamiento ── -->
-      <div class="aj-acc-item" id="aj-acc-almacen">
+      <!-- OCULTO A PETICIÓN — display:none, sin borrar código ni funciones,
+           por si se desea revertir en el futuro. -->
+      <div class="aj-acc-item" id="aj-acc-almacen" style="display:none">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-almacen')">
           <span class="aj-acc-hdr-ico">🔒</span>
           <span class="aj-acc-hdr-tit">Almacenamiento</span>
@@ -2850,7 +2889,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
 
       <!-- ── ACORDEÓN: Lista Negra ── -->
-      <div class="aj-acc-item" id="aj-acc-listanegra">
+      <!-- OCULTO A PETICIÓN — display:none, sin borrar código ni funciones. -->
+      <div class="aj-acc-item" id="aj-acc-listanegra" style="display:none">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-listanegra')">
           <span class="aj-acc-hdr-ico">🚫</span>
           <span class="aj-acc-hdr-tit">Lista Negra</span>
@@ -2874,7 +2914,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
 
       <!-- ── ACORDEÓN: Alarmas inteligentes ── -->
-      <div class="aj-acc-item" id="aj-acc-alarma">
+      <!-- OCULTO A PETICIÓN — display:none, sin borrar código ni funciones. -->
+      <div class="aj-acc-item" id="aj-acc-alarma" style="display:none">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-alarma')">
           <span class="aj-acc-hdr-ico">🔔</span>
           <span class="aj-acc-hdr-tit">Alarmas inteligentes</span>
@@ -2939,7 +2980,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
 
       <!-- ── ACORDEÓN: Ayuda y Conceptos ── -->
-      <div class="aj-acc-item" id="aj-acc-ayuda">
+      <!-- OCULTO A PETICIÓN — display:none, sin borrar código ni funciones. -->
+      <div class="aj-acc-item" id="aj-acc-ayuda" style="display:none">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-ayuda')">
           <span class="aj-acc-hdr-ico">❓</span>
           <span class="aj-acc-hdr-tit">Ayuda y Conceptos</span>
@@ -3506,6 +3548,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- NUEVO — OV: AVISO NORMATIVO ART.51/52 (límite de uso). Mismo
+     patrón confirm-sh/conf-btns que ov-del y ov-borrar — "estándar de
+     la casa" para confirmaciones. Continuar usa .m-save (el mismo
+     botón primario azul que ya usa el resto de la app), Cancelar usa
+     .conf-cancel (secundario/fantasma), tal como se pidió. -->
+<div class="ov" id="ov-aviso-art5152">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">⚠️</div>
+    <div class="conf-tit">Aviso normativo</div>
+    <div class="conf-txt" id="aviso-art5152-txt">Por reglamento, el uso de este artículo está permitido solo una vez al mes. ¿Desea continuar con el registro?</div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="closeOv('ov-aviso-art5152')">Cancelar</button>
+      <button class="m-save" onclick="closeOv('ov-aviso-art5152');_a5152SaltarAvisoMensual=true;guardarTurno()">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <!-- OV: TÉRMINOS Y CONDICIONES -->
 <div class="ov" id="ov-terminos" onclick="closeOv('ov-terminos')">
   <div class="sh legal-sh" onclick="event.stopPropagation()">
@@ -3614,6 +3674,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-art5152-detalle')">✕</button>
     </div>
     <div id="art5152-detalle-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: EDITAR TREN GUARDADO (Estaciones y Horarios). Mismo
+     patrón .ov/.sh que ov-art5152-detalle y ov-cambio. -->
+<div class="ov" id="ov-editar-tren" onclick="closeOv('ov-editar-tren')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">✏️</div>
+      <div>
+        <div class="sh-tit">Editar tren</div>
+        <div class="sh-sub" id="editar-tren-sub"></div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-editar-tren')">✕</button>
+    </div>
+    <div id="editar-tren-body" style="overflow-y:auto;flex:1;min-height:0;padding:14px 16px"></div>
   </div>
 </div>
 
@@ -4802,26 +4879,13 @@ function secArt5152Flow(){
 // ── Aviso normativo (Dinero/Días — una vez al mes). Mix y HTDL no lo disparan ──
 var _a5152SaltarAvisoMensual = false;
 function _abrirAvisoLimiteArt5152(){
-  var overlay = document.createElement('div');
-  overlay.id = 'art5152-limite-overlay';
-  overlay.className = 'correo-modal-overlay';
-  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
-  overlay.innerHTML =
-    '<div class="correo-modal-box" onclick="event.stopPropagation()">'
-      +'<div class="correo-modal-hdr">'
-        +'<span class="correo-modal-ico">⚠️</span>'
-        +'<div><div class="correo-modal-title">Aviso normativo</div></div>'
-      +'</div>'
-      +'<div style="font-size:12px;color:var(--tx2);line-height:1.5">'
-      +'Por reglamento, el uso de este artículo está permitido solo una vez al mes. '
-      +'¿Desea continuar con el registro?</div>'
-      +'<div class="correo-modal-btns">'
-        +'<button class="correo-modal-btn correo-modal-btn-cancel" onclick="document.getElementById(\'art5152-limite-overlay\').remove()">Cancelar</button>'
-        +'<button class="correo-modal-btn correo-modal-btn-send" '
-        +'onclick="document.getElementById(\'art5152-limite-overlay\').remove();_a5152SaltarAvisoMensual=true;guardarTurno()">Continuar</button>'
-      +'</div>'
-    +'</div>';
-  document.body.appendChild(overlay);
+  // ACTUALIZADO — antes construía un elemento flotante con clases
+  // propias (correo-modal-*), visualmente distinto al resto de la
+  // app. Ahora reutiliza el overlay estático #ov-aviso-art5152 (mismo
+  // patrón .ov/.confirm-sh que ya usan "Eliminar turno" y "Borrar
+  // todo"). El botón "Continuar" sigue llamando a guardarTurno()
+  // exactamente igual que antes — el guardado no se ha tocado.
+  openOv('ov-aviso-art5152');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -4950,6 +5014,9 @@ if(typeof loadAjUI === 'function'){
     var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
     if(iM) iM.value = AJ.art5152Monto || 0;
     if(iB) iB.value = AJ.art5152ValorBase || 0;
+    // NUEVO: refresca la tabla de "Estaciones y Horarios" cada vez
+    // que se abre Ajustes, por si se guardó algún tren nuevo.
+    if(typeof renderTablaEstacionesHorarios==='function') renderTablaEstacionesHorarios();
   };
 }
 
@@ -5321,6 +5388,78 @@ function guardarRetraso(){
 // SF, AGENDA, ALERTAS_DESCANSO → declarados en bloque ESTADO GLOBAL (ver arriba)
 function saveSF(){ localStorage.setItem('sf5', JSON.stringify(SF)); }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — "Estaciones y Horarios" (Ajustes). Gestión de los trenes
+   guardados en SF. 100% aditivo: reutiliza SF/saveSF() ya
+   existentes (misma fuente que usa autocompletarTramo()), sin tocar
+   su lógica de búsqueda ni de guardado automático.
+═══════════════════════════════════════════════════════════ */
+function renderTablaEstacionesHorarios(){
+  var cont = document.getElementById('tabla-estaciones-horarios');
+  if(!cont) return;
+  if(!SF.length){
+    cont.innerHTML = '<div style="font-size:11px;color:var(--tx3);text-align:center;padding:14px 0">Aún no hay trenes guardados</div>';
+    return;
+  }
+  var html = '';
+  SF.forEach(function(s, idx){
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--div)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:800;color:var(--acc3);font-size:13px">Tren #'+(s.numTren||'—')+'</div>'
+      +'<div style="font-size:10px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'
+      +(s.sal||'—')+' → '+(s.lle||'—')+'</div>'
+      +'<div style="font-size:9px;color:var(--tx3)">'+(s.hF||'--:--')+' – '+(s.hL||'--:--')+'</div>'
+      +'</div>'
+      +'<button onclick="abrirEditarTren('+idx+')" style="background:var(--s2);border:1px solid var(--div);'
+      +'border-radius:8px;color:var(--acc2);font-size:10px;font-weight:700;padding:6px 11px;cursor:pointer;flex-shrink:0">✏️ Editar</button>'
+      +'</div>';
+  });
+  cont.innerHTML = html;
+}
+
+function abrirEditarTren(idx){
+  var s = SF[idx];
+  if(!s) return;
+  var sub = document.getElementById('editar-tren-sub');
+  var body = document.getElementById('editar-tren-body');
+  if(sub) sub.textContent = 'Tren #'+s.numTren;
+  if(!body) return;
+  var campo = function(lbl, id, val, tipo){
+    return '<div class="fsec-lbl" style="margin-top:8px">'+lbl+'</div>'
+      +'<input id="'+id+'" type="'+(tipo||'text')+'" value="'+(val||'')+'" '
+      +'style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;'
+      +'color:var(--tx);font-size:13px;padding:8px 11px;outline:none">';
+  };
+  body.innerHTML =
+    campo('Número de tren', 'et-numtren', s.numTren)
+    + campo('Estación origen', 'et-sal', s.sal)
+    + campo('Estación destino', 'et-lle', s.lle)
+    + '<div style="display:flex;gap:8px">'
+      + '<div style="flex:1">'+campo('Hora salida', 'et-hf', s.hF, 'time')+'</div>'
+      + '<div style="flex:1">'+campo('Hora llegada', 'et-hl', s.hL, 'time')+'</div>'
+    + '</div>'
+    + '<button class="m-save" style="width:100%;margin-top:14px" onclick="guardarEdicionTren('+idx+')">Guardar cambios</button>';
+  openOv('ov-editar-tren');
+}
+
+function guardarEdicionTren(idx){
+  var s = SF[idx];
+  if(!s) return;
+  var nuevoNumTren = (document.getElementById('et-numtren')||{}).value.trim();
+  s.numTren = nuevoNumTren || s.numTren;
+  s.sal = (document.getElementById('et-sal')||{}).value.trim();
+  s.lle = (document.getElementById('et-lle')||{}).value.trim();
+  s.hF  = (document.getElementById('et-hf')||{}).value.trim();
+  s.hL  = (document.getElementById('et-hl')||{}).value.trim();
+  saveSF(); // misma función de persistencia que ya usa el resto de la app
+  closeOv('ov-editar-tren');
+  renderTablaEstacionesHorarios();
+  // Refresca también las sugerencias del autocompletado, para que
+  // reflejen el dato corregido de inmediato.
+  if(typeof actualizarDatalistTrenes==='function') actualizarDatalistTrenes();
+  toast('✅ Tren actualizado');
+}
+
 function searchByTrainNumber(n){
   if(!n) return [];
   var q = String(n).trim();
@@ -5414,6 +5553,60 @@ function actualizarDatalistTrenes(){
     html += '<option value="'+s.numTren+'">'+s.numTren+ruta+'</option>';
   });
   dl.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Desplegable de sugerencias PROPIO (sustituye visualmente
+   al <datalist> nativo, que no admite estilos CSS). Lee la MISMA
+   fuente de datos (SF) y, al elegir una sugerencia, llama a
+   autocompletarTramo() sin modificarla ni un carácter — la lógica de
+   búsqueda/relleno sigue siendo exactamente la misma de siempre.
+═══════════════════════════════════════════════════════════ */
+function mostrarSugerenciasTren(inputElement){
+  cerrarSugerenciasTren();
+  var valor = inputElement.value.trim();
+  if(!valor || typeof SF==='undefined') return;
+
+  var vistos = {};
+  var matches = SF.filter(function(s){
+    if(!s || !s.numTren || vistos[s.numTren]) return false;
+    if(s.numTren.indexOf(valor)!==0) return false; // empieza por lo tecleado
+    vistos[s.numTren] = true;
+    return true;
+  }).slice(0,6);
+  if(!matches.length) return;
+
+  var rect = inputElement.getBoundingClientRect();
+  var lista = document.createElement('div');
+  lista.className = 'tren-suggest-list';
+  lista.id = 'tren-suggest-list-activa';
+  lista.style.top = (rect.bottom+4)+'px';
+  lista.style.left = rect.left+'px';
+  lista.style.width = rect.width+'px';
+  lista.innerHTML = matches.map(function(s){
+    var ruta = (s.sal && s.lle) ? (s.sal+' → '+s.lle) : 'Sin ruta guardada';
+    return '<div class="tren-suggest-item" onmousedown="event.preventDefault();seleccionarSugerenciaTren(\''+s.numTren+'\')">'
+      +'<span class="tren-suggest-num">'+s.numTren+'</span>'
+      +'<span class="tren-suggest-ruta">'+ruta+'</span></div>';
+  }).join('');
+  document.body.appendChild(lista);
+  window._tren_suggest_input = inputElement;
+}
+
+function seleccionarSugerenciaTren(numTren){
+  var input = window._tren_suggest_input;
+  cerrarSugerenciasTren();
+  if(!input) return;
+  input.value = numTren;
+  input.focus();
+  // Reutiliza EXACTAMENTE la misma función/lógica de autocompletado
+  // ya existente — no se duplica ni se altera.
+  autocompletarTramo(input);
+}
+
+function cerrarSugerenciasTren(){
+  var el = document.getElementById('tren-suggest-list-activa');
+  if(el) el.remove();
 }
 
 function autocompletarTramo(inputElement){
@@ -7867,8 +8060,8 @@ function secTramo(tramo){
       +'</div>'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
       +'<div style="font-size:16px">🚆</div>'
-      +'<input type="text" inputmode="numeric" placeholder="Nº tren, ej: 2081" value="'+(c.tren||'')+'" list="trenes-datalist"'
-      +' oninput="autocompletarTramo(this)"'
+      +'<input type="text" inputmode="numeric" placeholder="Nº tren, ej: 2081" value="'+(c.tren||'')+'" autocomplete="off"'
+      +' oninput="autocompletarTramo(this);mostrarSugerenciasTren(this)" onblur="setTimeout(cerrarSugerenciasTren,180)"'
       +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
       +'color:var(--tx);font-size:16px;font-weight:800;padding:7px 11px;outline:none;'
       +'font-variant-numeric:tabular-nums">'
@@ -7927,9 +8120,9 @@ function secTramo(tramo){
     +'<div class="fsec-lbl">Nº Tren</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:20px">🚆</div>'
-    +'<input id="'+trenId+'" data-campo-tren="'+trenKey+'" type="text" inputmode="numeric" placeholder="Ej: 2080" list="trenes-datalist"'
+    +'<input id="'+trenId+'" data-campo-tren="'+trenKey+'" type="text" inputmode="numeric" placeholder="Ej: 2080" autocomplete="off"'
     +' value="'+trenVal+'"'
-    +' oninput="autocompletarTramo(this)"'
+    +' oninput="autocompletarTramo(this);mostrarSugerenciasTren(this)" onblur="setTimeout(cerrarSugerenciasTren,180)"'
     +' style="flex:1;background:var(--s2);border:1.5px solid '+trenBCol+';border-radius:10px;'
     +'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
     +'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">'
@@ -8080,8 +8273,8 @@ function secTramoIntermedio(){
     +'<div class="fsec-lbl">Nº Tren (tramo intermedio)</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
     +'<div style="font-size:18px">🚆</div>'
-    +'<input id="inp-numtren3" data-campo-tren="numTrenIntermedio" type="text" inputmode="numeric" placeholder="Ej: 2095" list="trenes-datalist"'
-    +' oninput="autocompletarTramo(this)"'
+    +'<input id="inp-numtren3" data-campo-tren="numTrenIntermedio" type="text" inputmode="numeric" placeholder="Ej: 2095" autocomplete="off"'
+    +' oninput="autocompletarTramo(this);mostrarSugerenciasTren(this)" onblur="setTimeout(cerrarSugerenciasTren,180)"'
     +' value="'+numTrenIntVal+'"'
     +' style="flex:1;background:var(--s2);border:1.5px solid '+(numTrenIntVal?'var(--amber2)':'var(--div)')+';border-radius:10px;'
     +'color:var(--tx);font-size:18px;font-weight:800;padding:7px 12px;outline:none;'
