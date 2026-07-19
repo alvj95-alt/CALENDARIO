@@ -4319,6 +4319,16 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
 var _emailCB = null; // callback email — declarado globalmente para evitar implicit global
 var AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
+  // FIX — art5152Monto/art5152ValorBase no tenían valor por defecto
+  // (a diferencia de 'vh', que sí lo tiene: 12.5). Sin este valor
+  // inicial, si el usuario nunca entraba a Ajustes → Art.51/52 y
+  // guardaba explícitamente, AJ.art5152Monto quedaba 'undefined' y
+  // TODOS los cálculos de Art.51/52 daban 0.00 € silenciosamente
+  // (el parseFloat(...)||0 evitaba el error, pero el resultado
+  // visible era dinero incorrecto). Mismo valor por defecto que 'vh'
+  // para mantener coherencia; se sobreescribe en cuanto el usuario
+  // guarda su propio monto en Ajustes.
+  art5152Monto:12.5, art5152ValorBase:0,
   pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)},
   alarmas:{activas:false,fichar:true,salida:true}
 },JSON.parse(localStorage.getItem('aj5')||'{}'));
@@ -9090,6 +9100,10 @@ function guardarTurno(){
     var esPernoctaArt = (F.modo==='pernocta'||F.modo==='pernocta3');
     var montoArt = parseFloat(AJ.art5152Monto)||0;
     var baseArt  = parseFloat(AJ.art5152ValorBase)||0;
+    // DEBUG TEMPORAL — quítalo en cuanto confirmes el diagnóstico.
+    console.log('[Art51/52] AJ.art5152Monto (crudo):', AJ.art5152Monto,
+      '| montoArt (usado en el cálculo):', montoArt,
+      '| baseArt:', baseArt, '| compensación elegida:', compArt);
     var mesOrigenArt = k.slice(0,7);
 
     if(compArt==='mix' && esPernoctaArt){
@@ -9166,6 +9180,18 @@ function guardarTurno(){
       d.horasEfectivas = horasCompArt;
       d.hEscala = hEscalaArt;
       d.importe = Math.round((horasCompArt*montoArt + baseArt)*100)/100;
+      // DEBUG TEMPORAL — quítalo en cuanto confirmes el diagnóstico.
+      console.log('[Art51/52] Resultado final → horas efectivas:', horasCompArt,
+        '× montoArt:', montoArt, '+ baseArt:', baseArt,
+        '= d.importe guardado:', d.importe, '€');
+      // DEBUG TEMPORAL VISIBLE EN PANTALLA (para móvil, sin consola):
+      // aparece 1.6s después del toast normal de guardado, para que
+      // te dé tiempo a leerlo. Quítalo también cuando ya no lo necesites.
+      (function(hDebug, mDebug, bDebug, impDebug){
+        setTimeout(function(){
+          toast('💶 Art.51/52: '+hDebug.toFixed(2)+'h × '+mDebug.toFixed(2)+'€/h + '+bDebug.toFixed(2)+'€ = '+impDebug.toFixed(2)+'€');
+        }, 1700);
+      })(horasCompArt, montoArt, baseArt, d.importe);
     }
 
     // El contador de "una vez al mes" y el de "3 veces al año" SOLO se
