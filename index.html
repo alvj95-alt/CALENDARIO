@@ -1154,6 +1154,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .aj-acc-item.aj-acc-open{
   border-color:rgba(99,102,241,.35);
 }
+/* NUEVO — Acordeón plegable "Turnos del mes" (calendario). Bloque
+   autocontenido, no depende de .aj-acc-* (Ajustes) para evitar
+   cualquier interferencia entre pantallas. */
+.turnos-mes-hdr{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;
+  cursor:pointer;user-select:none}
+.turnos-mes-tit{flex:1;font-size:9px;font-weight:800;letter-spacing:1px;
+  color:var(--tx3);text-transform:uppercase}
+.turnos-mes-arr{font-size:14px;color:var(--tx3);
+  transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.turnos-mes-arr.abierto{transform:rotate(90deg)}
 .aj-acc-hdr{
   display:flex;
   align-items:center;
@@ -2638,9 +2648,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
     <!-- DÍA SELECCIONADO -->
     <div id="dia-area" class="dia-area"></div>
-        <!-- TURNOS DEL MES — lista simple, siempre visible -->
-    <div style="padding:0 10px 4px;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);text-transform:uppercase;margin-top:4px">Turnos del mes</div>
-    <div class="acordeon" id="acordeon"></div>
+    <!-- MODIFICADO — "Turnos del mes" ahora es un acordeón plegable
+         (antes lista simple, siempre visible). Empieza CERRADO por
+         defecto. renderAcordeon() sigue construyendo el contenido de
+         #acordeon exactamente igual que antes, sin ningún cambio —
+         aquí solo se controla si ese contenido se ve o no. -->
+    <div class="turnos-mes-hdr" onclick="toggleTurnosMesAcordeon()">
+      <span class="turnos-mes-tit">Turnos del mes</span>
+      <span class="turnos-mes-arr" id="turnos-mes-arr">›</span>
+    </div>
+    <div class="acordeon" id="acordeon" style="display:none"></div>
   </div>
 
   <!-- ESTADÍSTICAS -->
@@ -4542,10 +4559,15 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
     return resultado;
   }
 
-  // Flag interno de tipo de jornada — Ordinaria o HTDL (trabajado) —
-  // se resuelve ANTES de decidir si el tiempo computa o no.
-  var esHTDL_A = (turnoA.tipo === 'trabajado');
-  var esHTDL_B = (turnoB.tipo === 'trabajado');
+  // Flag interno de tipo de jornada — Ordinaria o HTDL-equivalente
+  // (trabajado O Art.51/52) — se resuelve ANTES de decidir si el
+  // tiempo computa o no.
+  // FIX: 'art5152' añadido — antes solo reconocía 'trabajado', así
+  // que un enlace con un turno Art.51/52 se clasificaba como
+  // ORDINARIA_ORDINARIA (Presencia) en vez de computar como Impacto
+  // Económico, igual que ya hace HTDL.
+  var esHTDL_A = (turnoA.tipo === 'trabajado' || turnoA.tipo === 'art5152');
+  var esHTDL_B = (turnoB.tipo === 'trabajado' || turnoB.tipo === 'art5152');
 
   var tipoEnlace = 'ORDINARIA_ORDINARIA';
   if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';
@@ -4563,6 +4585,29 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
     }
   }
   return resultado;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — procesarIncumplimientoDescanso(turnoAnterior, turnoNuevo,
+   keyAnterior, keyNuevo): alias con el nombre solicitado. Delega por
+   completo en calcularEnlaceJornada() — el motor real, ya probado y
+   sin tocar — para no duplicar la matemática ni la matriz de
+   decisión en dos sitios distintos que podrían desincronizarse.
+   Devuelve el mismo resultado, con los mismos campos:
+     .incumple            → true si hay incumplimiento de descanso
+     .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'ORDINARIA_HTDL' | 'TURNO_INTERCAMBIADO'
+     .computaPresencia     → true si el tipo de jornada es Ordinaria (ver nota abajo)
+     .computaFinanciero    → true si el tipo de jornada es HTDL o Art.51/52
+     .descMin/.limiteMin   → minutos de descanso real / mínimo exigido
+     .esEnBase             → true=12h exigidas, false=8h exigidas
+   NOTA: el campo se sigue llamando "computaPresencia" por
+   compatibilidad interna con calculateEarnings() (que ya lo lee con
+   ese nombre), pero desde este cambio esas horas se contabilizan
+   como Horas Efectivas, no como Presencia — ver el punto de
+   integración en calculateEarnings().
+═══════════════════════════════════════════════════════════ */
+function procesarIncumplimientoDescanso(turnoAnterior, turnoNuevo, keyAnterior, keyNuevo){
+  return calcularEnlaceJornada(turnoAnterior, turnoNuevo, keyAnterior, keyNuevo);
 }
 
 // ── Verificar todos los turnos del mes visible ────────────────
@@ -4601,9 +4646,60 @@ function verificarDescansosMes(){
     if(r.incumple)alertas[kB]=Object.assign({},r,{kAnterior:kA2});
   }
 
+  // NUEVO — Descanso INTERNO de una pernocta: tramo1 (llegada, hL) →
+  // tramo2 (firma, hF2), AMBOS dentro del MISMO registro guardado.
+  // checkRestTime()/calcularEnlaceJornada() solo comparan días
+  // distintos ya guardados por separado — nunca evaluaban este
+  // descanso interno. Se añade aquí como comprobación aparte, sin
+  // tocar ninguna de esas dos funciones. Si el día ya tiene un aviso
+  // de enlace EXTERNO, ese tiene prioridad y no se sobrescribe.
+  ks.forEach(function(k){
+    if(alertas[k]) return;
+    var t=TV[k];
+    if(!t) return;
+    // FIX — 'ordinario' estaba excluido de esta comprobación por
+    // error; el aviso de descanso interno de pernocta debe aparecer
+    // también en jornada Ordinaria, no solo en HTDL/Art.51-52.
+    if(['ordinario','trabajado','art5152'].indexOf(t.tipo)<0) return;
+    var esPernocta=(t.modo==='pernocta'||t.modo==='pernocta3');
+    if(!esPernocta) return;
+    var rInterno=checkDescansoInternoPernocta(t);
+    if(rInterno && rInterno.incumple){
+      alertas[k]=Object.assign({},rInterno,{kAnterior:k,esInternoPernocta:true});
+    }
+  });
+
   _descansosCacheKey = firma;
   _descansosCacheVal = alertas;
   return alertas;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — checkDescansoInternoPernocta(turno): evalúa el descanso
+   ENTRE el tramo 1 (llegada, turno.hL) y el tramo 2 (firma,
+   turno.hF2) de una MISMA pernocta ya guardada — algo que
+   checkRestTime() nunca hacía, porque esa función solo compara dos
+   registros de días DISTINTOS. Misma matemática y mismos campos de
+   salida que checkRestTime() (descMin/limiteMin/descStr/limStr/
+   esEnBase/msg), para que el resto del sistema (banner, correo) lo
+   trate exactamente igual. No toca TV ni ningún dato guardado.
+═══════════════════════════════════════════════════════════ */
+function checkDescansoInternoPernocta(turno){
+  if(!turno || !turno.hL || !turno.hF2) return null;
+  var toM=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
+  var retA=parseInt(turno.retrasoMin)||0;
+  // Tramo 2 empieza siempre al día siguiente del fin del tramo 1
+  // (misma lógica de "un día de diferencia" que ya usa checkRestTime
+  // para los cruces de medianoche).
+  var dM=(1440-toM(turno.hL)-retA)+toM(turno.hF2);
+  if(dM<0)dM+=1440;
+  var estacionDescanso=turno.sal2||turno.lle||'';
+  var enB=AJ.base&&estacionDescanso===AJ.base,lim=enB?720:480;
+  var inc=dM<lim,dH=Math.floor(dM/60),dMin=dM%60,lH=lim/60;
+  return{ok:!inc,incumple:inc,descMin:dM,limiteMin:lim,
+    descStr:dH+'h '+('0'+dMin).slice(-2)+'m',limStr:lH+'h',esEnBase:enB,
+    msg:inc?'⚠️ Solo '+dH+'h '+(dMin>0?dMin+'m ':'')+'de descanso en '+(estacionDescanso||'destino')+' (min. '+lH+'h '+(enB?'en base':'fuera de base')+')'
+           :'✅ '+dH+'h '+(dMin>0?dMin+'m ':'')+' de descanso'};
 }
 
 // ALERTAS_DESCANSO declarada en bloque ESTADO GLOBAL (ver inicio del script)
@@ -5144,6 +5240,58 @@ if(typeof calcularJornadaDiaria === 'function'){
   };
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — calcularImpactoEnlacesEconomico(ks): observador puro de
+   solo lectura. Repite la MISMA iteración de pares de días
+   consecutivos que ya hace calculateEarnings(), pero en un cálculo
+   aparte, únicamente para poder mostrar el total de "Impacto
+   Económico por Enlaces" como línea separada en el TAS — sin tocar
+   ni checkRestTime(), ni calcularEnlaceJornada(), ni los contadores
+   ya existentes (hHTDL/tH dentro de calculateEarnings siguen
+   exactamente igual). Misma tarifa (AJ.vh) que ya usa el cálculo
+   original, no una fórmula nueva.
+═══════════════════════════════════════════════════════════ */
+function calcularImpactoEnlacesEconomico(ks){
+  var tarifaHTDL = parseFloat(AJ.vh||12.5);
+  var tarifaArt5152 = parseFloat(AJ.art5152Monto)||0;
+  var horas = 0, importe = 0, detalle = [];
+  var ksOrdenados = ks.slice().sort();
+  for(var i=1; i<ksOrdenados.length; i++){
+    var kA=ksOrdenados[i-1], kB=ksOrdenados[i];
+    var tA=TV[kA], tB=TV[kB];
+    if(!tA || !tB) continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tA.tipo)>=0) continue;
+    if(['descanso','baja','comp','reserva'].indexOf(tB.tipo)>=0) continue;
+    var enlace = procesarIncumplimientoDescanso(tA, tB, kA, kB);
+    if(!enlace.incumple || !enlace.computaFinanciero) continue;
+    var h = Math.round((enlace.descMin/60)*100)/100;
+    // FIX — tarifa según el tipo del turno que recibe el enlace.
+    var tarifaAplic = (tB.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
+    var imp = Math.round(h*tarifaAplic*100)/100;
+    horas += h; importe += imp;
+    detalle.push({fecha:_keyAFechaLbl(kB), tren:tB.numTren||tB.numTrenVuelta||'', horas:h, importe:imp});
+  }
+  // Descanso INTERNO de pernocta (HTDL o Art.51/52), para que esta
+  // línea del TAS coincida con lo que realmente se suma en
+  // calculateEarnings().
+  ksOrdenados.forEach(function(kInt){
+    var tInt = TV[kInt];
+    if(!tInt) return;
+    if(tInt.tipo!=='trabajado' && tInt.tipo!=='art5152') return;
+    var esPernoctaInt=(tInt.modo==='pernocta'||tInt.modo==='pernocta3');
+    if(!esPernoctaInt) return;
+    var rInterno = checkDescansoInternoPernocta(tInt);
+    if(!rInterno || !rInterno.incumple) return;
+    var hInt = Math.round((rInterno.descMin/60)*100)/100;
+    // FIX — misma tarifa correcta según tipo.
+    var tarifaAplicInt = (tInt.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
+    var impInt = Math.round(hInt*tarifaAplicInt*100)/100;
+    horas += hInt; importe += impInt;
+    detalle.push({fecha:_keyAFechaLbl(kInt)+' (interno)', tren:tInt.numTren||'', horas:hInt, importe:impInt});
+  });
+  return {horas:Math.round(horas*100)/100, importe:Math.round(importe*100)/100, detalle:detalle};
+}
+
 if(typeof calculateEarnings === 'function'){
   var _calculateEarnings_base_art5152 = calculateEarnings;
   calculateEarnings = function(ks){
@@ -5175,6 +5323,15 @@ if(typeof calculateEarnings === 'function'){
       e.diasHTDL = (e.diasHTDL||[]).concat(extraLbl);
       e.diasHTDLdetail = (e.diasHTDLdetail||[]).concat(extraDetalle);
     }
+    // NUEVO — expone el impacto económico de los Enlaces de Jornada
+    // POR SEPARADO (e.impactoEnlaces*), sin alterar e.totalHTDL ni
+    // e.totalBruto (esos ya incluyen este importe desde dentro del
+    // núcleo — esto es solo para poder mostrarlo como línea propia
+    // en el desglose, sin tocar los totales existentes).
+    var impEnlaces = calcularImpactoEnlacesEconomico(ks);
+    e.impactoEnlacesHoras = impEnlaces.horas;
+    e.impactoEnlacesImporte = impEnlaces.importe;
+    e.impactoEnlacesDetalle = impEnlaces.detalle;
     return e;
   };
 }
@@ -6347,6 +6504,13 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
 // navega y expande la entrada correspondiente si existe.
 function verDetallesEnHistorial(k){
   closeOv('ov-dia-card');
+  // NUEVO: si el acordeón general "Turnos del mes" está plegado,
+  // se despliega primero — si no, el salto al día concreto quedaría
+  // oculto dentro de un contenedor invisible.
+  var contAcordeon = document.getElementById('acordeon');
+  if(contAcordeon && contAcordeon.style.display === 'none'){
+    toggleTurnosMesAcordeon();
+  }
   setTimeout(function(){
     var id = 'ac-'+k;
     var el = document.getElementById(id);
@@ -6776,6 +6940,12 @@ function renderDiaArea(){
          +'Se incumple el descanso fuera de base.</div>')
       : '';
     var avisoExplicito = 'AVISO: Enlace de Jornada detectado. Descanso insuficiente ('+alerta.descStr+', mínimo '+alerta.limStr+').';
+    // NUEVO — si es un descanso interno de pernocta (tramo1 llegada →
+    // tramo2 firma, dentro del MISMO registro), el texto "Turno
+    // anterior" no tiene sentido — se cambia por una etiqueta propia.
+    var etiquetaOrigen = alerta.esInternoPernocta
+      ? 'Descanso interno entre tramos de esta pernocta'
+      : 'Turno anterior: '+_keyAFechaLbl(alerta.kAnterior||'');
     var mailtoBtnHtml = '<button class="alerta-mail-btn" '
       +'title="Notificar a Programación por correo" '
       +'onclick="event.stopPropagation();abrirModalCorreoJornada(\''+k+'\')">✉️</button>';
@@ -6786,7 +6956,7 @@ function renderDiaArea(){
       +'<div style="font-size:10px;opacity:.8">'+alerta.msg+'</div>'
       +motivoEspecificoHtml
       +'<div style="font-size:9px;color:var(--tx3);margin-top:2px">'
-      +'Turno anterior: '+_keyAFechaLbl(alerta.kAnterior||'')+'</div>'
+      +etiquetaOrigen+'</div>'
       +(alerta.avisoNoComputa
         ? '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-top:4px">⚠️ '+alerta.avisoNoComputa+'</div>'
         : '')
@@ -6943,6 +7113,19 @@ function renderDiaArea(){
 // Evita reconstruir TODO el HTML del acordeón si el mes visible
 // y los datos de ese mes no han cambiado desde el último render.
 var _acordeonCacheKey = null;
+
+// NUEVO — Controla el plegado/despliegue de "Turnos del mes". No
+// toca renderAcordeon() ni su contenido: solo muestra/oculta el
+// contenedor #acordeon que esa función ya rellena exactamente igual
+// que antes.
+function toggleTurnosMesAcordeon(){
+  var cont = document.getElementById('acordeon');
+  var arr = document.getElementById('turnos-mes-arr');
+  if(!cont) return;
+  var abierto = cont.style.display !== 'none';
+  cont.style.display = abierto ? 'none' : 'block';
+  if(arr) arr.classList.toggle('abierto', !abierto);
+}
 
 function renderAcordeon(){
   var y=curM.getFullYear(),m=curM.getMonth()+1;
@@ -9001,6 +9184,16 @@ function guardarTurno(){
   // GUARDAR — primero datos, luego cerrar
   TV[k]=d; selDay.t=d; saveTV();
 
+  // FIX — se había perdido esta llamada: sin ella, ALERTAS_DESCANSO
+  // quedaba desactualizado tras guardar/editar Ordinario, HTDL o
+  // Art.51/52, y el aviso de descanso mínimo (8h fuera de base / 12h
+  // en base) dejaba de reflejar el turno recién guardado. Se ejecuta
+  // justo después de guardar y antes de cualquier otra cosa, para que
+  // el resto del flujo (re-render, correo, etc.) ya vea el estado
+  // correcto. No toca ninguna fórmula: solo reactiva la llamada a la
+  // función de cálculo que ya existía intacta.
+  ALERTAS_DESCANSO = verificarDescansosMes();
+
   // Escenario B: si el turno tiene días compensatorios asignados,
   // disparar el popup de correo de solicitud de compensación.
   if(d.comp==='dias' && d.diasComp && d.diasComp.length > 0){
@@ -9586,6 +9779,19 @@ function renderStats(){
     }
     else if(e.totalHoras>0)
       des+='<div class="cs-r"><span class="cl cv-muted">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv cv-muted">En nómina</span></div>';
+    // NUEVO — "Impacto Económico por Enlaces" como línea propia e
+    // INDEPENDIENTE (no forma parte del if/else-if de arriba).
+    // e.totalHTDL ya incluye este importe (no se duplica el dinero);
+    // esto es solo para que se vea desglosado, tal como se pidió.
+    if(e.impactoEnlacesImporte>0){
+      des+=row('🔗 Impacto Económico por Enlaces ('+e.impactoEnlacesHoras.toFixed(2)+'h)',
+        e.impactoEnlacesImporte.toFixed(2)+' €','cv-warn',[]);
+      e.impactoEnlacesDetalle.forEach(function(d){
+        des+='<div class="cs-r cs-r-sub">'
+          +'<span class="cl">'+d.fecha+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+          +'<span class="cv cv-warn">'+d.horas.toFixed(2)+'h · '+d.importe.toFixed(2)+' €</span></div>';
+      });
+    }
     if(e.totalNoc>0){
       des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','cv-warn',[]);
       // Desglose detallado por día — acordeón
@@ -10198,11 +10404,11 @@ function calculateEarnings(ks){
   // su vez reutiliza checkRestTime() sin duplicar su matemática. No
   // toca ningún dato de TV, solo decide en qué contador entra el
   // tiempo de descanso incumplido, según la matriz de decisión:
-  //   Ordinaria + Ordinaria → se suma a Presencia (minPresenciaCal).
-  //   HTDL + HTDL           → computa financieramente (hHTDL / tH).
-  //   Ordinaria + HTDL      → no se suma a ningún contador; el aviso
-  //                           ya se muestra en el banner del día
-  //                           (ALERTAS_DESCANSO / avisoNoComputa).
+  //   Ordinaria + Ordinaria           → Horas Efectivas (minEfectivasCal).
+  //   (HTDL o Art.51/52) + (HTDL/52)  → Impacto Económico (hHTDL / tH).
+  //   Ordinaria + (HTDL o Art.51/52)  → no se suma a ningún contador; el
+  //                                     aviso ya se muestra en el banner
+  //                                     del día (ALERTAS_DESCANSO / avisoNoComputa).
   var ksOrdenados = ks.slice().sort();
   for(var iEnl=1; iEnl<ksOrdenados.length; iEnl++){
     var kAEnl=ksOrdenados[iEnl-1], kBEnl=ksOrdenados[iEnl];
@@ -10213,13 +10419,63 @@ function calculateEarnings(ks){
     var enlace = calcularEnlaceJornada(tAEnl, tBEnl, kAEnl, kBEnl);
     if(!enlace.incumple) continue;
     if(enlace.computaPresencia){
-      minPresenciaCal += enlace.descMin;
+      // FIX — Ordinaria+Ordinaria: el tiempo de descanso incumplido
+      // se suma a Horas Efectivas (antes iba a Presencia). Mismo
+      // valor ya calculado por checkRestTime() (enlace.descMin),
+      // solo cambia a qué contador se suma. NUNCA se paga en dinero.
+      minEfectivasCal += enlace.descMin;
     } else if(enlace.computaFinanciero){
+      // FIX — HTDL y Art.51/52 tienen tarifas DISTINTAS. Se usa la
+      // del turno que recibe el enlace (tBEnl): si es Art.51/52, su
+      // propia tarifa configurada (AJ.art5152Monto); si es HTDL
+      // ('trabajado'), la tarifa HTDL (AJ.vh, variable HTDL ya
+      // existente). Solo las horas de HTDL puro se suman a hHTDL
+      // (esa cifra alimenta la fila "⏱ HTDL Xh × Y€" del desglose,
+      // que usa la tarifa HTDL — mezclar horas de Art.51/52 ahí
+      // descuadraría esa fila).
       var horasEnlaceHTDL = Math.round((enlace.descMin/60)*100)/100;
-      hHTDL += horasEnlaceHTDL;
-      tH += horasEnlaceHTDL*HTDL;
+      if(tBEnl.tipo==='art5152'){
+        var tarifaArtEnl = parseFloat(AJ.art5152Monto)||0;
+        tH += horasEnlaceHTDL*tarifaArtEnl;
+      } else {
+        hHTDL += horasEnlaceHTDL;
+        tH += horasEnlaceHTDL*HTDL;
+      }
     }
   }
+
+  // ── NUEVO — Descanso INTERNO de una pernocta (tramo1 llegada → tramo2
+  // firma, dentro del MISMO registro guardado). Mismo criterio de
+  // reparto que los enlaces entre días de arriba:
+  //   Ordinaria (pernocta)          → Horas Efectivas (minEfectivasCal).
+  //   HTDL o Art.51/52 (pernocta)   → Impacto Económico (hHTDL / tH).
+  // Reutiliza checkDescansoInternoPernocta() (solo lectura, ya
+  // existente) — no duplica su matemática ni toca TV.
+  ks.forEach(function(kInt){
+    var tInt = TV[kInt];
+    if(!tInt) return;
+    if(['ordinario','trabajado','art5152'].indexOf(tInt.tipo)<0) return;
+    var esPernoctaInt = (tInt.modo==='pernocta'||tInt.modo==='pernocta3');
+    if(!esPernoctaInt) return;
+    var rInterno = checkDescansoInternoPernocta(tInt);
+    if(!rInterno || !rInterno.incumple) return;
+    // FIX — misma corrección de tarifa: Art.51/52 usa su propia
+    // tarifa (AJ.art5152Monto), HTDL usa la suya (AJ.vh / HTDL). Solo
+    // las horas de HTDL puro alimentan hHTDL (para no descuadrar la
+    // fila "⏱ HTDL Xh × Y€" del desglose).
+    if(tInt.tipo==='trabajado'){
+      var horasInternoHTDL = Math.round((rInterno.descMin/60)*100)/100;
+      hHTDL += horasInternoHTDL;
+      tH += horasInternoHTDL*HTDL;
+    } else if(tInt.tipo==='art5152'){
+      var horasInternoArt = Math.round((rInterno.descMin/60)*100)/100;
+      var tarifaArtInt = parseFloat(AJ.art5152Monto)||0;
+      tH += horasInternoArt*tarifaArtInt;
+    } else {
+      // Ordinaria: nunca se paga en dinero, solo Horas Efectivas.
+      minEfectivasCal += rInterno.descMin;
+    }
+  });
 
   // diasHTDL is now array of objects with detail
   var diasHTDLlbl=dHTDL.map(function(d){return d.tren?d.lbl+' #'+d.tren:d.lbl;});
