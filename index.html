@@ -404,6 +404,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 /* Icono rojo sutil en celda del calendario */
 .dc-alerta::after{content:'⚠';position:absolute;top:1px;right:1px;font-size:7px;
                   color:var(--red2);line-height:1}
+/* NUEVO — Badge de "turno pisado por baja" en la celda del calendario */
+.dc-baja-pisada::after{content:'🏥';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
 /* Input de retraso inline */
 .retraso-wrap{display:flex;align-items:center;gap:7px;padding:8px 11px;
               background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);
@@ -4626,19 +4628,34 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
   var esHTDL_A = (turnoA.tipo === 'trabajado' || turnoA.tipo === 'art5152');
   var esHTDL_B = (turnoB.tipo === 'trabajado' || turnoB.tipo === 'art5152');
 
-  var tipoEnlace = 'ORDINARIA_ORDINARIA';
-  if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';
-  else if(esHTDL_A || esHTDL_B) tipoEnlace = 'ORDINARIA_HTDL';
+  // FIX — Matriz A1/A2/B: antes CUALQUIER combinación mixta (una
+  // Ordinaria + un HTDL/Art.51-52, en cualquier orden) caía en el
+  // mismo "no computa". Ahora se distingue la DIRECCIÓN del enlace:
+  //   A2) Ordinaria(A) → HTDL/Art.51-52(B): NO computa (regulación propia).
+  //   B)  HTDL/Art.51-52(A) → Ordinaria(B): SÍ computa económicamente.
+  var tipoEnlace = 'ORDINARIA_ORDINARIA';                              // A1
+  if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';                   // ambos HTDL/Art.51-52
+  else if(esHTDL_A && !esHTDL_B) tipoEnlace = 'HTDL_A_ORDINARIA_B';    // B
+  else if(!esHTDL_A && esHTDL_B) tipoEnlace = 'ORDINARIA_A_HTDL_B';    // A2
 
   resultado.tipoEnlace = tipoEnlace;
 
   if(resultado.incumple){
     if(tipoEnlace==='ORDINARIA_ORDINARIA'){
+      // A1 — jornada ordinaria (pernocta o ida/vuelta): las horas no
+      // descansadas computan como Horas Efectivas.
       resultado.computaPresencia = true;
     } else if(tipoEnlace==='HTDL_HTDL'){
+      // Ambos lados HTDL/Art.51-52: computa como Impacto Económico.
+      resultado.computaFinanciero = true;
+    } else if(tipoEnlace==='HTDL_A_ORDINARIA_B'){
+      // B — HTDL o Art.51-52 enlazando con una Ordinaria POSTERIOR:
+      // sí se paga, con la tarifa del lado HTDL/Art.51-52 (turnoA).
       resultado.computaFinanciero = true;
     } else {
-      resultado.avisoNoComputa = 'Ojo: Este enlace no computa para el pago/cómputo.';
+      // A2 — Ordinaria enlazando con HTDL/Art.51-52 posterior: enlace
+      // consentido/regulado aparte, no computa ni en horas ni en dinero.
+      resultado.avisoNoComputa = 'Ojo: Enlace con HTDL/Art.51-52 (consentido) — no computa en horas ni en dinero.';
     }
   }
   return resultado;
@@ -4652,7 +4669,7 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
    decisión en dos sitios distintos que podrían desincronizarse.
    Devuelve el mismo resultado, con los mismos campos:
      .incumple            → true si hay incumplimiento de descanso
-     .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'ORDINARIA_HTDL' | 'TURNO_INTERCAMBIADO'
+     .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'HTDL_A_ORDINARIA_B' | 'ORDINARIA_A_HTDL_B' | 'TURNO_INTERCAMBIADO'
      .computaPresencia     → true si el tipo de jornada es Ordinaria (ver nota abajo)
      .computaFinanciero    → true si el tipo de jornada es HTDL o Art.51/52
      .descMin/.limiteMin   → minutos de descanso real / mínimo exigido
@@ -5267,7 +5284,90 @@ if(typeof renderStats === 'function'){
   renderStats = function(){
     _renderStats_base_art5152.apply(this, arguments);
     _renderArt5152Stats();
+    _renderImpactoBajaEnStats();
   };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Impacto de Baja Médica en el TAS (Desglose Económico).
+   100% observador: lee TV (turnoPisado guardado al marcar la baja)
+   y reutiliza calcularJornadaDiaria() YA EXISTENTE, sin modificarla,
+   para saber cuántas horas de presencia/efectivas tenía el turno
+   que la baja sustituyó. Como esos días ya están marcados con
+   tipo:'baja' (que calcularJornadaDiaria() no computa, por diseño
+   ya existente de la función), esas horas YA quedan excluidas de
+   los totales generales automáticamente — esta función solo AÑADE
+   una fila informativa mostrando el detalle, sin tocar ningún total.
+═══════════════════════════════════════════════════════════ */
+function _renderImpactoBajaEnStats(){
+  var cs = document.getElementById('cs-box');
+  if(!cs || !cs.innerHTML) return;
+
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  var pref = y+'-'+pad(m);
+  var diasBajaConDescuento = [];
+  var diasBajaContados = [];
+  var horasEfectivasPerdidas = 0, horasPresenciaPerdidas = 0;
+  var horasEfectivasContadas = 0, horasPresenciaContadas = 0;
+
+  Object.keys(TV).filter(function(k){ return k.startsWith(pref); }).forEach(function(k){
+    var t = TV[k];
+    if(!t || t.tipo!=='baja' || !t.turnoPisado) return;
+    var tipoPisado = t.turnoPisado.tipo;
+    var esOrdinariaOReserva = (tipoPisado==='ordinario' || tipoPisado==='reserva');
+    // checkRestTime()/calcularJornadaDiaria() se reutilizan tal cual,
+    // solo para leer cuántas horas tenía el turno pisado — de solo
+    // lectura, no se guarda nada ni se recalculan alertas.
+    var jornadaPisada = calcularJornadaDiaria([t.turnoPisado], k);
+    var hEf = Math.round((jornadaPisada.efectivasMin/60)*100)/100;
+    var hPr = Math.round((jornadaPisada.presenciaMin/60)*100)/100;
+
+    if(t.primeraBajaAnio===true && esOrdinariaOReserva){
+      // Primera baja del año + Ordinaria/Reserva → SÍ cuenta en
+      // Registro App (empresa se hace cargo económicamente, pero el
+      // cómputo de horas no cambia).
+      horasEfectivasContadas += hEf;
+      horasPresenciaContadas += hPr;
+      diasBajaContados.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:hEf, hPr:hPr});
+    } else if(t.primeraBajaAnio===false && esOrdinariaOReserva){
+      // No es la primera baja + Ordinaria/Reserva → se descuenta.
+      horasEfectivasPerdidas += hEf;
+      horasPresenciaPerdidas += hPr;
+      diasBajaConDescuento.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:hEf, hPr:hPr});
+    }
+    // Si el turno pisado era HTDL o Art.51/52, nunca se muestra aquí
+    // ni cuenta en Registro App — esos tienen su propio contador
+    // económico (💶 HTDL / Art.51-52), independiente de la baja.
+  });
+
+  if(!diasBajaConDescuento.length && !diasBajaContados.length) return;
+
+  var html = '<div class="cr-div" style="margin:6px 0"></div>';
+
+  if(diasBajaContados.length){
+    html += '<div class="cs-r"><span class="cl cv-pos" style="font-weight:800">🏥 Baja (primera del año) — horas contadas en Registro App</span>'
+      +'<span class="cv cv-pos">'+diasBajaContados.length+' día'+(diasBajaContados.length>1?'s':'')+'</span></div>';
+    diasBajaContados.forEach(function(d){
+      html += '<div class="cs-r cs-r-sub">'
+        +'<span class="cl">'+d.fecha+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+        +'<span class="cv cv-pos">+'+d.hEf.toFixed(2)+'h efectivas · +'+d.hPr.toFixed(2)+'h presencia</span></div>';
+    });
+  }
+
+  if(diasBajaConDescuento.length){
+    html += '<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🏥 Baja — turnos afectados (descuento aplicado)</span>'
+      +'<span class="cv cv-warn">'+diasBajaConDescuento.length+' día'+(diasBajaConDescuento.length>1?'s':'')+'</span></div>';
+    diasBajaConDescuento.forEach(function(d){
+      html += '<div class="cs-r cs-r-sub">'
+        +'<span class="cl">'+d.fecha+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+        +'<span class="cv cv-warn">-'+d.hEf.toFixed(2)+'h efectivas · -'+d.hPr.toFixed(2)+'h presencia</span></div>';
+    });
+    html += '<div class="cs-r" style="padding-left:12px;opacity:.8">'
+      +'<span class="cl" style="font-size:10px">Total descontado</span>'
+      +'<span class="cv cv-warn" style="font-size:10px">-'+horasEfectivasPerdidas.toFixed(2)+'h efectivas · -'+horasPresenciaPerdidas.toFixed(2)+'h presencia</span></div>';
+  }
+
+  cs.insertAdjacentHTML('beforeend', html);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -5322,8 +5422,12 @@ function calcularImpactoEnlacesEconomico(ks){
     var enlace = procesarIncumplimientoDescanso(tA, tB, kA, kB);
     if(!enlace.incumple || !enlace.computaFinanciero) continue;
     var h = Math.round((enlace.descMin/60)*100)/100;
-    // FIX — tarifa según el tipo del turno que recibe el enlace.
-    var tarifaAplic = (tB.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
+    // FIX — mismo criterio que en calculateEarnings(): en el caso B
+    // (HTDL_A_ORDINARIA_B) la tarifa la aporta tA (el lado HTDL/
+    // Art.51-52), no tB (que aquí es la Ordinaria).
+    var turnoTarifaObs = (enlace.tipoEnlace==='HTDL_A_ORDINARIA_B') ? tA
+      : (tB.tipo==='art5152' ? tB : tA.tipo==='art5152' ? tA : tB);
+    var tarifaAplic = (turnoTarifaObs.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
     var imp = Math.round(h*tarifaAplic*100)/100;
     horas += h; importe += imp;
     detalle.push({fecha:_keyAFechaLbl(kB), tren:tB.numTren||tB.numTrenVuelta||'', horas:h, importe:imp});
@@ -6124,6 +6228,10 @@ function renderSlide(gridId, fecha){
     // Metadatos adicionales en la celda
     if(t&&t.nocturno)   cls+=' dc-noc';
     if(t&&t.plusIntlAuto) cls+=' dc-intl';
+    // NUEVO — indicador visual: esta baja pisó/sustituyó un turno ya
+    // existente (el turno original se conserva en t.turnoPisado, solo
+    // para referencia/desglose — no participa en ningún cálculo).
+    if(t&&t.tipo==='baja'&&t.turnoPisado) cls+=' dc-baja-pisada';
     var c=document.createElement('div');
     c.className=cls;
     c.style.position='relative';
@@ -7119,6 +7227,20 @@ function renderDiaArea(){
       +'<button onclick="convertirDescanso()" style="width:100%;padding:9px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);border-radius:9px;color:#C4B5FD;font-size:12px;font-weight:700;cursor:pointer">💼 He trabajado este descanso</button>';
   } else if(t.tipo==='baja'){
     body='<div class="ibox red"><span class="ibox-i">🏥</span><span>Baja médica o laboral registrada.</span></div>';
+    // NUEVO — si esta baja pisó un turno ya existente, se muestra de
+    // forma clara (nunca se pierde el dato: sigue en t.turnoPisado).
+    if(t.turnoPisado){
+      var tp = t.turnoPisado;
+      body += '<div class="ibox" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);margin-top:8px">'
+        +'<span class="ibox-i">📋</span><span>Turno pisado por esta baja: '
+        +(tp.numTren?'Tren #'+tp.numTren+' · ':'')
+        +(tp.sal&&tp.lle?tp.sal+' → '+tp.lle:tp.tipo)+'</span></div>';
+      if(t.primeraBajaAnio===true){
+        body += '<div style="font-size:10px;color:var(--green2);margin-top:6px">✅ Primera baja del año — a cargo de la empresa, sin descuento de horas.</div>';
+      } else if(t.primeraBajaAnio===false){
+        body += '<div style="font-size:10px;color:var(--amber2);margin-top:6px">⚠️ No es la primera baja del año — descuento de horas aplicado (ver Desglose Económico).</div>';
+      }
+    }
   } else if(t.tipo==='comp'){
     body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>Día de compensación marcado automáticamente.</span></div>';
   }
@@ -9397,9 +9519,20 @@ function confirmarDiasBaja(){
   var dt = new Date(p[0], p[1]-1, p[2]);
   for(var i=0; i<dias; i++){
     var kDia = key(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
-    // Misma estructura simple que ya usaba 'baja' — no se inventa
-    // ningún campo nuevo, no se toca TV2 ni ningún otro dato del día.
-    TV[kDia] = {tipo:'baja', simple:true};
+    // NUEVO — Superposición inteligente: si el día ya tenía un turno
+    // asignado (ordinario, trabajado, art5152, etc.), se GUARDA una
+    // copia en turnoPisado antes de marcar el día como baja, en vez
+    // de destruirlo. El día pasa a computar como 'baja' (igual que
+    // antes: 'baja' no participa en calcularJornadaDiaria(), así que
+    // sus horas dejan de contar automáticamente, sin tocar esa
+    // función), pero el turno original queda recuperable para mostrar
+    // "turno pisado por baja" y para el desglose del TAS.
+    var turnoPrevio = TV[kDia] || null;
+    TV[kDia] = {
+      tipo:'baja',
+      simple:true,
+      turnoPisado: (turnoPrevio && turnoPrevio.tipo!=='baja') ? turnoPrevio : null
+    };
     fechas.push(kDia);
     dt.setDate(dt.getDate()+1);
   }
@@ -9410,6 +9543,59 @@ function confirmarDiasBaja(){
   clearSelDay();
   renderCal();
   renderStats();
+
+  // NUEVO — antes de abrir el correo, se pregunta si es la primera
+  // baja del año (impacto económico distinto según la respuesta).
+  abrirModalPrimeraBajaAnio(fechas);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Pregunta "¿Es la primera baja del año?" y aplicación de
+   la regla de descuento. 100% aditivo: solo añade el campo
+   primeraBajaAnio a los días ya guardados como 'baja' — no toca
+   calcularJornadaDiaria(), calculateEarnings() ni ningún cálculo.
+═══════════════════════════════════════════════════════════ */
+function abrirModalPrimeraBajaAnio(fechas){
+  window._bajaFechasActuales = fechas;
+  var overlay = document.createElement('div');
+  overlay.id = 'primera-baja-overlay';
+  overlay.className = 'correo-modal-overlay';
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+  overlay.innerHTML =
+    '<div class="correo-modal-box" onclick="event.stopPropagation()">'
+      +'<div class="correo-modal-hdr">'
+        +'<span class="correo-modal-ico">🏥</span>'
+        +'<div><div class="correo-modal-title">¿Es la primera baja del año?</div></div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--tx2);line-height:1.5">'
+      +'Según normativa, los primeros días de baja suelen ir a cargo de la empresa. '
+      +'Si NO es la primera baja del año, se aplicará el descuento de horas correspondiente '
+      +'sobre los turnos que esta baja sustituye, y se reflejará en el Desglose Económico.</div>'
+      +'<div class="correo-modal-btns">'
+        +'<button class="correo-modal-btn correo-modal-btn-cancel" onclick="responderPrimeraBajaAnio(false)">No</button>'
+        +'<button class="correo-modal-btn correo-modal-btn-send" onclick="responderPrimeraBajaAnio(true)">Sí</button>'
+      +'</div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+}
+
+function responderPrimeraBajaAnio(esPrimera){
+  var overlay = document.getElementById('primera-baja-overlay');
+  if(overlay) overlay.remove();
+
+  var fechas = window._bajaFechasActuales || [];
+  fechas.forEach(function(k){
+    if(TV[k] && TV[k].tipo==='baja'){
+      TV[k].primeraBajaAnio = esPrimera;
+    }
+  });
+  saveTV();
+  renderCal();
+  renderStats();
+
+  toast(esPrimera
+    ? '🏥 Primera baja del año — a cargo de la empresa, sin descuento de horas'
+    : '🏥 Se aplicará el descuento de horas correspondiente en el Desglose Económico');
 
   abrirModalCorreoBaja(fechas);
 }
@@ -10643,7 +10829,14 @@ function calculateEarnings(ks){
       // que usa la tarifa HTDL — mezclar horas de Art.51/52 ahí
       // descuadraría esa fila).
       var horasEnlaceHTDL = Math.round((enlace.descMin/60)*100)/100;
-      if(tBEnl.tipo==='art5152'){
+      // FIX — el turno de referencia para la tarifa depende del tipo
+      // de enlace: en el caso B (HTDL_A_ORDINARIA_B) el lado HTDL/
+      // Art.51-52 es SIEMPRE tAEnl (antes se miraba tBEnl, que en
+      // este caso es la Ordinaria — tarifa equivocada). En HTDL_HTDL
+      // se prioriza el lado que sea Art.51/52 si lo hay, igual que antes.
+      var turnoTarifaEnl = (enlace.tipoEnlace==='HTDL_A_ORDINARIA_B') ? tAEnl
+        : (tBEnl.tipo==='art5152' ? tBEnl : tAEnl.tipo==='art5152' ? tAEnl : tBEnl);
+      if(turnoTarifaEnl.tipo==='art5152'){
         var tarifaArtEnl = parseFloat(AJ.art5152Monto)||0;
         tH += horasEnlaceHTDL*tarifaArtEnl;
       } else {
@@ -10684,6 +10877,28 @@ function calculateEarnings(ks){
       // Ordinaria: nunca se paga en dinero, solo Horas Efectivas.
       minEfectivasCal += rInterno.descMin;
     }
+  });
+
+  // ── NUEVO — Baja Médica: si es la PRIMERA baja del año y el turno
+  // que sustituyó era Ordinaria o Reserva, esas horas SÍ deben seguir
+  // contando en Registro App (Efectivas/Presencia) — la empresa se
+  // hace cargo económicamente, pero el cómputo de horas de esa
+  // jornada no cambia. Si el turno pisado era HTDL o Art.51/52, NUNCA
+  // cuenta aquí (tienen su propio contador económico aparte, con o
+  // sin baja). Si NO es la primera baja del año, no se suma nada —
+  // el descuento ya ocurre de forma natural porque 'baja' no
+  // participa en calcularJornadaDiaria() (sin tocar esa función).
+  // Reutiliza calcularJornadaDiaria() ya existente sobre el turno
+  // pisado guardado en TV — solo lectura, no se modifica TV.
+  ks.forEach(function(kBaja){
+    var tBaja = TV[kBaja];
+    if(!tBaja || tBaja.tipo!=='baja' || !tBaja.turnoPisado) return;
+    if(tBaja.primeraBajaAnio !== true) return; // solo cuenta si es la primera
+    var tipoPisado = tBaja.turnoPisado.tipo;
+    if(tipoPisado!=='ordinario' && tipoPisado!=='reserva') return; // HTDL/Art.51-52 nunca cuentan aquí
+    var jornadaPisada = calcularJornadaDiaria([tBaja.turnoPisado], kBaja);
+    minEfectivasCal += jornadaPisada.efectivasMin;
+    minPresenciaCal += jornadaPisada.presenciaMin;
   });
 
   // diasHTDL is now array of objects with detail
