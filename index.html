@@ -4356,6 +4356,18 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
    ESTADO GLOBAL
 ═══════════════════════════════════════ */
 var _emailCB = null; // callback email — declarado globalmente para evitar implicit global
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Tarifas por defecto según rol (Tripulante/Auxiliar).
+   Declarada ANTES de inicializar AJ para poder aplicarla también en
+   la primera carga (ver más abajo), no solo al pulsar el botón de
+   rol. El usuario puede seguir modificando estos valores a mano
+   después sin ninguna restricción.
+═══════════════════════════════════════════════════════════ */
+var TARIFAS_ROL = {
+  tripulante: { vh:19.77, nocturnidad:2.62, art5152Monto:29.65 },
+  auxiliar:   { vh:14.82, nocturnidad:1.97, art5152Monto:22.23 }
+};
+
 var AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
   // FIX — art5152Monto/art5152ValorBase no tenían valor por defecto
@@ -4371,6 +4383,23 @@ var AJ=Object.assign({
   pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)},
   alarmas:{activas:false,fichar:true,salida:true}
 },JSON.parse(localStorage.getItem('aj5')||'{}'));
+
+// NUEVO — Autoaplica la tarifa del rol SOLO en un perfil que nunca
+// se ha guardado (el JSON crudo de localStorage no tenía el campo
+// 'rol' en absoluto). Así un usuario nuevo ve la tarifa correcta
+// desde el primer momento, sin tocar nada — pero si ya habías
+// guardado Ajustes antes (aunque solo fuera una vez), tus valores
+// personalizados NUNCA se tocan ni se sobreescriben aquí.
+(function(){
+  var crudo = JSON.parse(localStorage.getItem('aj5')||'{}');
+  if(crudo && typeof crudo.rol !== 'undefined') return; // ya configurado antes: no tocar nada
+  var t = TARIFAS_ROL[AJ.rol];
+  if(t){
+    AJ.vh = t.vh;
+    AJ.nocturnidad = t.nocturnidad;
+    AJ.art5152Monto = t.art5152Monto;
+  }
+})();
 
 var TV=JSON.parse(localStorage.getItem('tv5')||'{}');
 var curM=new Date(), selDay=null, statsM=new Date();
@@ -10031,7 +10060,34 @@ function loadAjUI(){
   renderPlusGrid();
   updHeader();
 }
-function setRol(r){AJ.rol=r;setRolUI(r);renderPlusGrid();}
+/* ═══════════════════════════════════════════════════════════
+   setRol() — aplica el rol elegido y, con él, la tarifa asociada
+   (TARIFAS_ROL, declarada al principio del script, antes de AJ).
+   El usuario puede seguir modificando estos valores a mano después
+   sin ninguna restricción.
+═══════════════════════════════════════════════════════════ */
+function setRol(r){
+  AJ.rol=r;
+  // NUEVO — autocompleta valor hora (HTDL), nocturnidad y monto de
+  // Art.51/52 según el rol. Si los campos de Ajustes están visibles
+  // en este momento, se actualizan al instante; si no, loadAjUI()
+  // ya los rellenará correctamente la próxima vez que se abra
+  // Ajustes, leyendo el AJ ya actualizado.
+  var t = TARIFAS_ROL[r];
+  if(t){
+    AJ.vh = t.vh;
+    AJ.nocturnidad = t.nocturnidad;
+    AJ.art5152Monto = t.art5152Monto;
+    var iVh  = document.getElementById('aj-vh');
+    var iNoc = document.getElementById('aj-noc');
+    var iArt = document.getElementById('aj-art5152-monto');
+    if(iVh)  iVh.value  = t.vh;
+    if(iNoc) iNoc.value = t.nocturnidad;
+    if(iArt) iArt.value = t.art5152Monto;
+  }
+  setRolUI(r);
+  renderPlusGrid();
+}
 function setRolUI(r){
   document.getElementById('rs-t').className='aj-rol-btn'+(r==='tripulante'?' activo-t':'');
   document.getElementById('rs-a').className='aj-rol-btn'+(r==='auxiliar'?' activo-a':'');
