@@ -4908,23 +4908,30 @@ function _generarMensajeCorreoJornada(k){
   if(!alerta || !t) return '';
   var causaIda = detectarCausaRetrasoIda(alerta);
   var fechaTurno = _keyAFechaLbl(k);
-  var nombre = AJ.nombre || '[Nombre no configurado en Ajustes]';
-  var matricula = AJ.matricula || '[Matrícula no configurada en Ajustes]';
-  var saludo = _saludoPorHora();
+  var nombre = AJ.nombre || 'Nombre no configurado en Ajustes';
+  var matricula = AJ.matricula || 'Matrícula no configurada en Ajustes';
+  var saludo = _saludoPorHora().toLowerCase();
   var ambito = (alerta.esEnBase===false) ? 'fuera de base' : 'dentro de base';
 
+  // ACTUALIZADO — tono cordial e informativo (antes sonaba a queja:
+  // "no cumplo con las horas de descanso..."). Ahora es una
+  // notificación formal y neutra, informando del hecho registrado
+  // según horario grafiado o retraso, sin reclamar nada.
   var cuerpo = causaIda
-    ? ('Envío este correo porque el día '+fechaTurno+' se produjo un retraso de '+causaIda.minIda
-       +' min en el tren '+causaIda.trenIda+' de ida. Por este motivo, no cumplo con las horas de descanso '
-       +ambito+' correspondiente, resultando en un enlace de jornada. Envío este aviso para su conocimiento.')
-    : ('Envío este correo porque el día '+fechaTurno+' se ha producido un incumplimiento de las horas de descanso '
-       +ambito+' correspondiente ('+(alerta.msg||'')+'), resultando en un enlace de jornada. '
-       +'Envío este aviso para su conocimiento.');
+    ? ('Os informo de que el día '+fechaTurno+' se registró un retraso de '+causaIda.minIda
+       +' minutos en el tren '+causaIda.trenIda+' (tramo de ida). Como consecuencia, el descanso '
+       +ambito+' entre jornadas ha quedado por debajo del mínimo reglamentario, generándose un enlace de jornada. '
+       +'Os traslado esta notificación para su conocimiento y registro.')
+    : ('Os informo de que el día '+fechaTurno+' se ha registrado un descanso '
+       +ambito+' por debajo del mínimo reglamentario ('+(alerta.msg||'')+'), según el horario grafiado, '
+       +'generándose un enlace de jornada. Os traslado esta notificación para su conocimiento y registro.');
 
-  return saludo+',\n\n'
+  return 'Hola, '+saludo+'.\n\n'
     +cuerpo+'\n\n'
-    +'Atentamente, '+nombre+' (Matrícula: '+matricula+')\n\n'
-    +'— Generado automáticamente por TrenTurnos v5';
+    +'Quedo a vuestra disposición para cualquier aclaración.\n\n'
+    +'Un saludo,\n'+nombre+'\n'
+    +'Matrícula: '+matricula+'\n\n'
+    +'Solicitud generada automáticamente por TrenTurno V5';
 }
 
 function cerrarModalCorreoJornada(){
@@ -4938,31 +4945,46 @@ function abrirModalCorreoJornada(k){
   var body = document.getElementById('correo-jornada-body');
   if(!body) return;
 
-  // Misma estructura y clases que ya usa el correo Mix (ov-correo-mix):
-  // textarea .correo-modal-textarea + botón .correo-modal-btn-send.
-  // Cero clases nuevas — reutiliza exactamente las que ya existen.
+  // ACTUALIZADO — destinatario EDITABLE (antes iba fijo por código,
+  // con un acento sin codificar dentro de la URL — un bug real).
+  // Mismo patrón .aj-nombre-* ya usado en el correo de Baja Médica.
   body.innerHTML =
-    '<textarea id="correo-jornada-textarea" class="correo-modal-textarea" style="min-height:230px"></textarea>'
+    '<div class="aj-nombre-wrap" style="margin-bottom:10px"><span class="aj-nombre-ico">📧</span>'
+      +'<input id="correo-jornada-destinatario" class="aj-nombre-inp" placeholder="Destinatario" value="programacion.sab@serveo.com"></div>'
+    +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:6px">MENSAJE (editable)</div>'
+    +'<textarea id="correo-jornada-textarea" class="correo-modal-textarea" style="min-height:230px"></textarea>'
     +'<button onclick="enviarCorreoJornadaModal(\''+k+'\')" style="width:100%;margin-top:12px;padding:13px;'
     +'background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;'
     +'color:#fff;font-size:14px;font-weight:800;cursor:pointer">✉️ Abrir en Correo</button>';
 
-  // Se asigna por .value (no por HTML) para evitar cualquier problema de escapado
+  // FIX — texto limpio: se pasa por sanitizarTexto() (misma función
+  // ya usada en Mix Art.51/52 y Baja Médica) antes de mostrarse, para
+  // eliminar acentos y cualquier carácter que pueda llegar roto al
+  // cliente de correo. Se asigna por .value (no por HTML) para evitar
+  // cualquier problema de escapado.
   var ta = document.getElementById('correo-jornada-textarea');
-  if(ta) ta.value = mensaje;
+  if(ta) ta.value = (typeof sanitizarTexto==='function') ? sanitizarTexto(mensaje) : mensaje;
 
   openOv('ov-correo-jornada');
 }
 
 function enviarCorreoJornadaModal(k){
+  var dest = (document.getElementById('correo-jornada-destinatario')||{}).value.trim() || 'programacion.sab@serveo.com';
   var ta = document.getElementById('correo-jornada-textarea');
-  var cuerpoFinal = ta ? ta.value : '';
+  var cuerpoRaw = ta ? ta.value : '';
+  var cuerpoFinal = (typeof sanitizarTexto==='function') ? sanitizarTexto(cuerpoRaw) : cuerpoRaw;
   var alerta = ALERTAS_DESCANSO[k];
   var causaIda = alerta ? detectarCausaRetrasoIda(alerta) : null;
   var asuntoTxt = causaIda
-    ? ('Incumplimiento de descanso — Tren '+causaIda.trenIda+' (ida)')
-    : ('Incumplimiento de enlace de jornada — '+_keyAFechaLbl(k));
-  var url = 'mailto:programación@empresa.com?subject='+encodeURIComponent(asuntoTxt)+'&body='+encodeURIComponent(cuerpoFinal);
+    ? ('Notificacion de enlace de jornada - Tren '+causaIda.trenIda+' (ida)')
+    : ('Notificacion de enlace de jornada - '+_keyAFechaLbl(k));
+  var asuntoLimpio = (typeof sanitizarTexto==='function') ? sanitizarTexto(asuntoTxt) : asuntoTxt;
+  // FIX — destinatario SIN codificar (igual que el resto de correos
+  // de la app): codificar la dirección de email convierte la @ en
+  // %40. Solo asunto y cuerpo se codifican con encodeURIComponent(),
+  // para que espacios, comas, acentos, puntos y saltos de línea
+  // lleguen limpios y legibles al cliente de correo.
+  var url = 'mailto:'+dest+'?subject='+encodeURIComponent(asuntoLimpio)+'&body='+encodeURIComponent(cuerpoFinal);
   window.location.href = url;
   cerrarModalCorreoJornada();
 }
@@ -5486,23 +5508,37 @@ if(typeof calculateEarnings === 'function'){
   var _calculateEarnings_base_art5152 = calculateEarnings;
   calculateEarnings = function(ks){
     var e = _calculateEarnings_base_art5152.apply(this, arguments);
+    // FIX — antes se sumaba t.importe / t.mixDinero.importe, un valor
+    // CONGELADO en el momento de guardar el turno con la tarifa que
+    // hubiera entonces. Si cambiabas de rol (o editabas la tarifa)
+    // después, ese importe ya guardado nunca se actualizaba, y el TAS
+    // seguía mostrando dinero calculado con la tarifa vieja. Ahora se
+    // recalcula EN VIVO: mismas horas ya guardadas (t.horasEfectivas /
+    // t.mixDinero.horas — esas SÍ son un hecho fijo, las horas
+    // trabajadas no cambian), multiplicadas por la tarifa ACTUAL de
+    // Ajustes (AJ.art5152Monto/AJ.art5152ValorBase). La fórmula en sí
+    // (horas × monto + base) es exactamente la misma de siempre.
+    var montoArtActual = parseFloat(AJ.art5152Monto)||0;
+    var baseArtActual = parseFloat(AJ.art5152ValorBase)||0;
     var extraHTDL = 0, extraDetalle = [], extraLbl = [];
     ks.forEach(function(k){
       var t = TV[k];
       if(!t || t.tipo!=='art5152') return;
-      if(t.compensacion==='dinero' && t.importe){
-        extraHTDL += t.importe;
+      if(t.compensacion==='dinero' && t.horasEfectivas){
+        var importeVivo = Math.round((t.horasEfectivas*montoArtActual + baseArtActual)*100)/100;
+        extraHTDL += importeVivo;
         var lbl1 = _keyAFechaLbl(k);
         extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:(t.modo==='pernocta'||t.modo==='pernocta3'),
           hIda:0, hEscala:t.hEscala||0, hVuelta:0, hRetT2:0, minRetT2:0,
-          hTotal:t.horasEfectivas||0, importe:t.importe, art5152:true});
+          hTotal:t.horasEfectivas||0, importe:importeVivo, art5152:true});
         extraLbl.push(t.numTren?lbl1+' #'+t.numTren+' (Art.51/52)':lbl1+' (Art.51/52)');
-      } else if(t.compensacion==='mix' && t.mixDinero){
-        extraHTDL += t.mixDinero.importe;
+      } else if(t.compensacion==='mix' && t.mixDinero && t.mixDinero.horas){
+        var importeMixVivo = Math.round((t.mixDinero.horas*montoArtActual + baseArtActual)*100)/100;
+        extraHTDL += importeMixVivo;
         var lbl2 = _keyAFechaLbl(t.mixDinero.dia);
         extraDetalle.push({lbl:lbl2, tren:t.numTren||'', esPernocta:true,
           hIda:0, hEscala:0, hVuelta:0, hRetT2:0, minRetT2:0,
-          hTotal:t.mixDinero.horas||0, importe:t.mixDinero.importe, art5152:true, mix:true});
+          hTotal:t.mixDinero.horas||0, importe:importeMixVivo, art5152:true, mix:true});
         extraLbl.push(t.numTren?lbl2+' #'+t.numTren+' (Mix Art.51/52)':lbl2+' (Mix Art.51/52)');
       }
     });
@@ -5555,19 +5591,27 @@ function mostrarDetalleArt5152(k){
 
   var html = '<div class="cs-box">';
 
+  // FIX — mismo recálculo en vivo que en el TAS: las horas ya
+  // guardadas son un hecho fijo, pero el importe se recalcula con la
+  // tarifa ACTUAL de Ajustes, no con la que hubiera cuando se guardó.
+  var montoArtDetalle = parseFloat(AJ.art5152Monto)||0;
+  var baseArtDetalle = parseFloat(AJ.art5152ValorBase)||0;
+
   if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
+    var importeMixDetalle = Math.round(((t.mixDinero.horas||0)*montoArtDetalle + baseArtDetalle)*100)/100;
     html += '<div class="cs-t">🔀 Compensación Mix</div>';
     html += fila('Tramo mayor horas', _keyAFechaLbl(t.mixDinero.dia)+' · '+t.mixDinero.horas+' h', 'var(--acc3)');
-    html += fila('Compensación económica', t.mixDinero.importe.toFixed(2)+' €', 'var(--green2)');
+    html += fila('Compensación económica', importeMixDetalle.toFixed(2)+' €', 'var(--green2)');
     html += fila('Tramo menor horas', _keyAFechaLbl(t.mixDias.dia)+' · '+t.mixDias.horas+' h', 'var(--acc3)');
     html += fila('Días de descanso', '+'+t.mixDias.diasGenerados+' día(s) → '+t.mixDias.mesDestino, 'var(--cyan2)');
     if(t.mixDias.diasComp && t.mixDias.diasComp.length){
       html += fila('Fechas elegidas', t.mixDias.diasComp.map(_keyAFechaLbl).join(' y '), 'var(--cyan2)');
     }
   } else if(t.compensacion==='dinero'){
+    var importeDineroDetalle = Math.round(((t.horasEfectivas||0)*montoArtDetalle + baseArtDetalle)*100)/100;
     html += '<div class="cs-t">💶 Compensación económica</div>';
     html += fila('Horas efectivas', (t.horasEfectivas||0)+' h', 'var(--acc3)');
-    html += fila('Importe', (t.importe||0).toFixed(2)+' €', 'var(--green2)');
+    html += fila('Importe', importeDineroDetalle.toFixed(2)+' €', 'var(--green2)');
   } else if(t.compensacion==='dias'){
     html += '<div class="cs-t">📅 Días de descanso</div>';
     html += fila('Días generados', '+'+(t.diasGenerados||0)+' día(s)', 'var(--cyan2)');
@@ -7214,12 +7258,47 @@ function renderDiaArea(){
     var esIntermedio = t.tipo==='pernocta3-intermedio';
     var diaLbl = esIntermedio ? 'Día 2 de 3 · En tránsito' : 'Último día · Vuelta';
     body = '<div class="tv-pernocta-dia"><span class="tv-pernocta-badge">🌙 '+diaLbl+'</span></div>';
+    // FIX — DH de vuelta: el propio registro de este día (vuelta-pernocta)
+    // no guarda estadoServicioVuelta ni numTrenVuelta — esos campos
+    // viven en el registro ORIGEN de la pernocta. Se reutiliza
+    // obtenerInfoDHTramo() (la MISMA función que ya usa el Día 1,
+    // sin tocarla) pasándole el origen, para generar exactamente el
+    // mismo formato grande "Tren DH: X (DH) | Tren Servicio: Y".
+    var origenParaDH = (t.origenPernocta && TV[t.origenPernocta]) ? TV[t.origenPernocta] : null;
+    var infoDHVtaDia2 = (!esIntermedio && origenParaDH) ? obtenerInfoDHTramo(origenParaDH, 'vuelta') : null;
+    var dhVueltaActivo = !!infoDHVtaDia2;
+    var numDia2HTML = '';
+    if(infoDHVtaDia2 && infoDHVtaDia2.mismoTren){
+      var vA2 = infoDHVtaDia2.origenEsBase ? infoDHVtaDia2.trenServicio+'-DH' : infoDHVtaDia2.trenServicio;
+      var vB2 = infoDHVtaDia2.origenEsBase ? infoDHVtaDia2.trenServicio       : infoDHVtaDia2.trenServicio+'-DH';
+      numDia2HTML = '<div class="tv-num-row">'
+        + '<span class="tv-num-part'+(infoDHVtaDia2.origenEsBase?' tv-num-dh':'')+'">'+vA2+'</span>'
+        + '<span class="tv-num-sep">/</span>'
+        + '<span class="tv-num-part'+(!infoDHVtaDia2.origenEsBase?' tv-num-dh':'')+'">'+vB2+'</span>'
+        + '</div>';
+    } else if(infoDHVtaDia2){
+      numDia2HTML = '<div class="tv-num-row">'
+        + '<span class="tv-num-part tv-num-dh">Tren DH: '+infoDHVtaDia2.trenDH+' (DH)</span>'
+        + '<span class="tv-num-sep">|</span>'
+        + '<span class="tv-num-part">Tren Servicio: '+infoDHVtaDia2.trenServicio+'</span>'
+        + '</div>';
+    } else if(t.numTren){
+      numDia2HTML = '<div class="tv-num">'+t.numTren+'</div>';
+    }
+    var dhVueltaTagDia2 = '';
+    if(dhVueltaActivo){
+      dhVueltaTagDia2 = '<div class="tv-dh-tag" style="margin-bottom:8px">'
+        + '<span class="tv-dh-badge">🔀 DH</span>'
+        + '<span class="tv-dh-detail">'+(origenParaDH.estadoServicioVueltaDetalle||'servicio parcial')+'</span>'
+        + '</div>';
+    }
     if(t.numTren || (t.sal&&t.lle)){
-      body += '<div class="tv-block '+(esIntermedio?'':'vuelta')+'" style="'
+      body += '<div class="tv-block '+(esIntermedio?'':'vuelta')+(dhVueltaActivo?' tv-block-dh':'')+'" style="'
         +(esIntermedio?'border-left:3px solid var(--violet2)':'')
         +'">'
-        + '<div class="tv-block-tag">'+(esIntermedio?'🏨 TRAMO INTERMEDIO':'↩ VUELTA')+'</div>'
-        + (t.numTren?'<div class="tv-num">'+t.numTren+'</div>':'')
+        + '<div class="tv-block-tag">'+(esIntermedio?'🏨 TRAMO INTERMEDIO':'↩ VUELTA')+(dhVueltaActivo?' · DH':'')+'</div>'
+        + numDia2HTML
+        + dhVueltaTagDia2
         + (t.sal&&t.lle?'<div class="tv-route">'+t.sal+' → '+t.lle+'</div>':'')
         + (t.hF&&t.hL?'<div class="tv-hours">'+t.hF+' – '+t.hL+'</div>':'')
         + '</div>';
@@ -10087,6 +10166,14 @@ function setRol(r){
   }
   setRolUI(r);
   renderPlusGrid();
+  // NUEVO — FIX: se persiste el cambio de rol y su tarifa AL INSTANTE
+  // en localStorage. Antes, si cambiabas de rol y no pulsabas también
+  // "Guardar ajustes" por separado, el cambio se perdía al recargar
+  // la app (seguía leyendo la tarifa anterior desde localStorage).
+  // Ahora cada rol siempre trae su propia tarifa aplicada de verdad,
+  // sin pasos intermedios.
+  localStorage.setItem('aj5', JSON.stringify(AJ));
+  if(typeof renderStats==='function') renderStats();
 }
 function setRolUI(r){
   document.getElementById('rs-t').className='aj-rol-btn'+(r==='tripulante'?' activo-t':'');
