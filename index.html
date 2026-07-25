@@ -6,6 +6,10 @@
 <title>TrenTurnos v5</title>
 <!-- Requerido por el panel Horario (parseo de PDF) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- NUEVO — Requerido para leer imágenes/capturas del horario individual
+     (OCR en el navegador, sin servidor). Solo se usa cuando el archivo
+     subido es una imagen; el flujo de PDF (pdfjsLib) sigue exactamente igual. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.4/tesseract.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -406,6 +410,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
                   color:var(--red2);line-height:1}
 /* NUEVO — Badge de "turno pisado por baja" en la celda del calendario */
 .dc-baja-pisada::after{content:'🏥';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
+/* NUEVO — Badge de Reserva Art.51/52 pendiente de pinchar/verificar */
+.dc-art5152-reserva-pendiente::after{content:'⏳';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
 /* Input de retraso inline */
 .retraso-wrap{display:flex;align-items:center;gap:7px;padding:8px 11px;
               background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);
@@ -3140,8 +3146,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="stat"><div class="stat-label">Reservas</div><div class="stat-value" id="cReserva">–</div></div>
   </div>
   <div class="upload-row">
-    <label for="fileInput" class="upload-btn">📄 Subir horario de este mes (PDF)</label>
-    <input type="file" id="fileInput" accept="application/pdf" hidden>
+    <label for="fileInput" class="upload-btn">📄🖼️ Subir horario de este mes (PDF o imagen)</label>
+    <input type="file" id="fileInput" accept="application/pdf,image/*" hidden>
     <span id="uploadStatus" class="upload-status"></span>
   </div>
   <div class="month-row" id="monthRow" style="display:none;">
@@ -3497,6 +3503,74 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="topt t-dop" onclick="elegirDOP()"><div class="to-ico">⭐</div><div class="to-lbl">DOP</div><div class="to-sub">Día de descanso opcional</div></div>
         <div class="topt t-art" onclick="elegirArt5152()"><div class="to-ico">⚖️</div><div class="to-lbl">Artículo 51 y 52</div><div class="to-sub">Dinero, días o mix</div></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: MODO ARTÍCULO 51/52 (Reserva vs Jornada Normal).
+     Mismo patrón .ov/.sh/.tipo-grid/.topt exacto que ov-tipo, sin
+     inventar ningún componente visual nuevo. -->
+<div class="ov" id="ov-modo-art5152" onclick="closeOv('ov-modo-art5152')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">⚖️</div>
+      <div><div class="sh-tit">Artículo 51 y 52</div><div class="sh-sub">¿Cómo se realizó este servicio?</div></div>
+      <button class="sh-close" onclick="closeOv('ov-modo-art5152');clearSelDay()">✕</button>
+    </div>
+    <div style="overflow-y:auto">
+      <div class="tipo-grid" style="grid-template-columns:1fr">
+        <div class="topt t-res" onclick="elegirModoArt5152('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva (Art. 51/52)</div><div class="to-sub">Se paga el intervalo desde la toma hasta el deje</div></div>
+        <div class="topt t-art" onclick="elegirModoArt5152('normal')"><div class="to-ico">🚂</div><div class="to-lbl">Jornada Normal (Art. 51/52)</div><div class="to-sub">Con tramos, rutas, escalas o pernocta</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: MODO TRABAJADO (HTDL/Descanso trabajado) — Reserva
+     vs Jornada Normal. Mismo patrón exacto que ov-modo-art5152. -->
+<div class="ov" id="ov-modo-trabajado" onclick="closeOv('ov-modo-trabajado')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">💼</div>
+      <div><div class="sh-tit">HTDL / Descanso trabajado</div><div class="sh-sub">¿Cómo se realizó este servicio?</div></div>
+      <button class="sh-close" onclick="closeOv('ov-modo-trabajado');clearSelDay()">✕</button>
+    </div>
+    <div style="overflow-y:auto">
+      <div class="tipo-grid" style="grid-template-columns:1fr">
+        <div class="topt t-res" onclick="elegirModoTrabajado('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva (HTDL)</div><div class="to-sub">Se paga el intervalo desde la toma hasta el deje</div></div>
+        <div class="topt t-tra" onclick="elegirModoTrabajado('normal')"><div class="to-ico">🚂</div><div class="to-lbl">Jornada Normal (HTDL)</div><div class="to-sub">Con tramos, rutas, escalas o pernocta</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: TOMA/DEJE DE RESERVA NORMAL. Mismo patrón confirm-sh
+     que ov-dias-baja. -->
+<div class="ov" id="ov-toma-deje-reserva">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">⏳</div>
+    <div class="conf-tit">Hora de toma y de deje</div>
+    <div class="conf-txt">Indica el intervalo de tu reserva. Si no la pinchas, computará como Presencia.</div>
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <div style="flex:1">
+        <div class="fsec-lbl" style="margin-top:0">Toma</div>
+        <input type="time" id="reserva-toma-input"
+          style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+          color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">
+      </div>
+      <div style="flex:1">
+        <div class="fsec-lbl" style="margin-top:0">Deje</div>
+        <input type="time" id="reserva-deje-input"
+          style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+          color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">
+      </div>
+    </div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="closeOv('ov-toma-deje-reserva');clearSelDay()">Cancelar</button>
+      <button class="m-save" onclick="confirmarTomaDejeReserva()">Guardar</button>
     </div>
   </div>
 </div>
@@ -5026,6 +5100,78 @@ function elegirArt5152(){
   elegirTipo('art5152');
 }
 
+// NUEVO — Selector previo Reserva/Jornada Normal para Art.51/52.
+function abrirModalModoArt5152(){
+  if(!selDay) return;
+  openOv('ov-modo-art5152');
+}
+
+function elegirModoArt5152(modo){
+  closeOv('ov-modo-art5152');
+  resetF('art5152');
+  // F.modoArt5152: 'reserva' | 'normal'. resetF() ya se ejecutó, así
+  // que este campo se añade DESPUÉS para que no se pierda.
+  F.modoArt5152 = modo;
+  abrirForm(false);
+}
+
+// NUEVO — Reserva Normal (no Art.51/52): pop-up obligatorio de
+// toma/deje. Si no se pincha después, computa como Presencia
+// (ver calcularJornadaDiaria, rama t.tipo==='reserva'); si se pincha
+// (verificarReserva(), ya existente y sin tocar), pasa a Efectivas.
+function abrirModalTomaDejeReserva(){
+  if(!selDay) return;
+  var tomaInput = document.getElementById('reserva-toma-input');
+  var dejeInput = document.getElementById('reserva-deje-input');
+  var existente = TV[selDay.k];
+  if(tomaInput) tomaInput.value = (existente&&existente.reservaHoraToma)||'';
+  if(dejeInput) dejeInput.value = (existente&&existente.reservaHoraLlegada)||'';
+  openOv('ov-toma-deje-reserva');
+}
+
+function confirmarTomaDejeReserva(){
+  if(!selDay) return;
+  var toma = (document.getElementById('reserva-toma-input')||{}).value;
+  var deje = (document.getElementById('reserva-deje-input')||{}).value;
+  if(!toma || !deje){
+    toast('⚠️ Indica la hora de toma y de deje');
+    return;
+  }
+  var k = selDay.k;
+  if(TV[k] && TV[k].tipo!=='reserva'){
+    if(!confirm('Este día ya tiene un turno asignado. ¿Cambiar a reserva?')){
+      closeOv('ov-toma-deje-reserva'); clearSelDay(); return;
+    }
+  }
+  // reservaActiva se deja SIN establecer (false) — la reserva cuenta
+  // como Presencia hasta que se pinche/verifique con "Pinchar/Verificar"
+  // (verificarReserva(), ya existente, la convierte en 'ordinario').
+  TV[k] = {tipo:'reserva', simple:true, reservaHoraToma:toma, reservaHoraLlegada:deje};
+  saveTV();
+  if(typeof verificarDescansosMes==='function') ALERTAS_DESCANSO = verificarDescansosMes();
+  closeOv('ov-toma-deje-reserva');
+  clearSelDay();
+  renderCal();
+  renderStats();
+  toast('✅ Reserva guardada ('+toma+' – '+deje+')');
+}
+
+// NUEVO — Selector Reserva/Jornada Normal para HTDL (mismo patrón
+// visual que Art.51/52, con su propia tarifa: AJ.vh, no art5152Monto).
+function abrirModalModoTrabajado(){
+  if(!selDay) return;
+  openOv('ov-modo-trabajado');
+}
+
+function elegirModoTrabajado(modo){
+  closeOv('ov-modo-trabajado');
+  resetF('trabajado');
+  // F.modoTrabajado: 'reserva' | 'normal'. Se añade DESPUÉS de
+  // resetF() para que no se pierda.
+  F.modoTrabajado = modo;
+  abrirForm(false);
+}
+
 /* ═══════════════════════════════════════════════════════════
    NUEVO — calcularMix()
    Compara los dos tramos de una pernocta (ida vs vuelta) y decide
@@ -5058,6 +5204,98 @@ function setCompArt5152(c){ F.compArt5152=c; renderFormBody(); }
    .cr-total — no se inventa ningún componente nuevo.
    secDescFlow() (HTDL) permanece intacta y sin usar este campo.
 ═══════════════════════════════════════════════════════════ */
+// NUEVO — Reserva (Art.51/52): formulario simple de toma/deje, sin
+// tramos ni trenes. Se paga en dinero, con la tarifa de Art.51/52
+// configurada según el rol (AJ.art5152Monto/AJ.art5152ValorBase) —
+// mismos campos que ya lee guardarTurno() para el modo normal.
+// NUEVO — Reserva (HTDL): mismo formulario simple de toma/deje que
+// Art.51/52, pero informando con la tarifa de HTDL (AJ.vh). El
+// cálculo REAL de horas/dinero no lo hace esta función — al guardar,
+// F.hF/F.hL se rellenan con toma/deje y el turno se guarda como
+// 'trabajado' normal, así que pasa por calcularJornadaDiaria() y
+// calculateEarnings() YA EXISTENTES, sin tocarlas ni un carácter.
+function secReservaHTDL(){
+  var tarifaHTDL = parseFloat(AJ.vh)||12.5;
+  var toma = F.horaTomaHTDL||'';
+  var deje = F.horaDejeHTDL||'';
+  var horas = (toma&&deje) ? Math.round(calcMins(toma,deje)/60*100)/100 : 0;
+  var importeAprox = Math.round(horas*tarifaHTDL*100)/100;
+
+  var h = '<div class="fsec">'
+    +'<div class="fsec-lbl">Reserva — HTDL / Descanso trabajado</div>'
+    +'<div style="font-size:10px;color:var(--tx2);margin-bottom:10px;line-height:1.5">'
+    +'Indica la hora de toma y de deje. Se pagará el intervalo completo a la tarifa de HTDL configurada en Ajustes.</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+    +'<div style="flex:1">'
+      +'<div class="fsec-lbl" style="margin-top:0">Hora de toma</div>'
+      +'<input type="time" value="'+toma+'" oninput="F.horaTomaHTDL=this.value;F.hF=this.value;renderFormBody()" '
+      +'style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;'
+      +'color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">'
+    +'</div>'
+    +'<div style="flex:1">'
+      +'<div class="fsec-lbl" style="margin-top:0">Hora de deje</div>'
+      +'<input type="time" value="'+deje+'" oninput="F.horaDejeHTDL=this.value;F.hL=this.value;renderFormBody()" '
+      +'style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;'
+      +'color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">'
+    +'</div>'
+    +'</div>';
+
+  if(toma && deje){
+    h += '<div class="calc-result">'
+      +'<div class="cr-row"><span class="cr-l">Horas HTDL</span><span class="cr-v">'+horas+' h</span></div>'
+      +'<div class="cr-div"></div>'
+      +'<div class="cr-row"><span class="cr-l">💶 Importe aprox. ('+horas+'h × '+tarifaHTDL.toFixed(2)+'€/h)</span>'
+      +'<span class="cr-v" style="color:var(--green2)">'+importeAprox.toFixed(2)+' €</span></div>'
+      +'<div style="font-size:9px;color:var(--tx3);margin-top:6px">El TAS recalculará el importe exacto con nocturnidad/pluses si aplican.</div>'
+      +'</div>';
+  } else {
+    h += '<div style="font-size:10px;color:var(--tx3);text-align:center;padding:8px 0">Introduce ambas horas para ver el cálculo</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function secReservaArt5152(){
+  var monto = parseFloat(AJ.art5152Monto)||0;
+  var base  = parseFloat(AJ.art5152ValorBase)||0;
+  var toma  = F.horaTomaArt||'';
+  var deje  = F.horaDejeArt||'';
+  var horas = (toma&&deje) ? Math.round(calcMins(toma,deje)/60*100)/100 : 0;
+  var importe = Math.round((horas*monto+base)*100)/100;
+
+  var h = '<div class="fsec">'
+    +'<div class="fsec-lbl">Reserva — Artículo 51 y 52</div>'
+    +'<div style="font-size:10px;color:var(--tx2);margin-bottom:10px;line-height:1.5">'
+    +'Indica la hora de toma y de deje. Se pagará el intervalo completo a la tarifa de Art.51/52 configurada en Ajustes.</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+    +'<div style="flex:1">'
+      +'<div class="fsec-lbl" style="margin-top:0">Hora de toma</div>'
+      +'<input type="time" value="'+toma+'" oninput="F.horaTomaArt=this.value;renderFormBody()" '
+      +'style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;'
+      +'color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">'
+    +'</div>'
+    +'<div style="flex:1">'
+      +'<div class="fsec-lbl" style="margin-top:0">Hora de deje</div>'
+      +'<input type="time" value="'+deje+'" oninput="F.horaDejeArt=this.value;renderFormBody()" '
+      +'style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;'
+      +'color:var(--tx);font-size:18px;font-weight:800;padding:9px 11px;outline:none">'
+    +'</div>'
+    +'</div>';
+
+  if(toma && deje){
+    h += '<div class="calc-result">'
+      +'<div class="cr-row"><span class="cr-l">Horas de reserva</span><span class="cr-v">'+horas+' h</span></div>'
+      +'<div class="cr-div"></div>'
+      +'<div class="cr-row"><span class="cr-l">💶 Importe ('+horas+'h × '+monto.toFixed(2)+'€/h'+(base>0?' + '+base.toFixed(2)+'€':'')+')</span>'
+      +'<span class="cr-v" style="color:var(--green2)">'+importe.toFixed(2)+' €</span></div>'
+      +'</div>';
+  } else {
+    h += '<div style="font-size:10px;color:var(--tx3);text-align:center;padding:8px 0">Introduce ambas horas para ver el cálculo</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
 function secArt5152Flow(){
   if(!F.modo) return '';
   var esPernocta = (F.modo==='pernocta'||F.modo==='pernocta3');
@@ -6305,6 +6543,10 @@ function renderSlide(gridId, fecha){
     // existente (el turno original se conserva en t.turnoPisado, solo
     // para referencia/desglose — no participa en ningún cálculo).
     if(t&&t.tipo==='baja'&&t.turnoPisado) cls+=' dc-baja-pisada';
+    // NUEVO — distingue visualmente una Reserva de Art.51/52 SIN
+    // pinchar/verificar todavía, ya que comparte el mismo icono ⚖️
+    // que el turno ya desglosado con tramos.
+    if(t&&t.tipo==='art5152'&&t.modoArt5152==='reserva') cls+=' dc-art5152-reserva-pendiente';
     var c=document.createElement('div');
     c.className=cls;
     c.style.position='relative';
@@ -7220,7 +7462,22 @@ function renderDiaArea(){
   // Jornada...) ni el botón de correo, aunque `alerta` sí existiera.
   var bodyPrefix = (alerta && (t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')) ? alertaBanner : '';
 
-  if(t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'){
+  // NUEVO — Reserva de Art.51/52 SIN pinchar/verificar todavía: se
+  // muestra su propio resumen (toma/deje + importe) y el botón
+  // "Pinchar / Verificar", mismo patrón visual que la reserva normal.
+  // No entra en la rama combinada de tramos (esta reserva no tiene
+  // sal/lle/hF/hL — mostrarla ahí saldría vacía).
+  if(t.tipo==='art5152' && t.modoArt5152==='reserva'){
+    body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva de Artículo 51/52 guardada. Usa <strong>"Pinchar / Verificar"</strong> si has realizado un servicio.</span></div>'
+      +'<div class="calc-result" style="margin-top:8px">'
+      +'<div class="cr-row"><span class="cr-l">Hora de toma</span><span class="cr-v">'+(t.horaTomaArt||'—')+'</span></div>'
+      +'<div class="cr-row"><span class="cr-l">Hora de deje</span><span class="cr-v">'+(t.horaDejeArt||'—')+'</span></div>'
+      +'<div class="cr-div"></div>'
+      +'<div class="cr-row"><span class="cr-l">Horas de reserva</span><span class="cr-v">'+(t.horasEfectivas||0)+' h</span></div>'
+      +'<div class="cr-row"><span class="cr-l">💶 Importe</span><span class="cr-v" style="color:var(--green2)">'+(t.importe||0).toFixed(2)+' €</span></div>'
+      +'</div>'
+      +'<button onclick="verificarReservaArt5152()" style="width:100%;margin-top:10px;padding:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#FCD34D;font-size:12px;font-weight:700;cursor:pointer">📌 Pinchar / Verificar</button>';
+  } else if(t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'){
     // ── RESALTADO DE TRAMO PERNOCTA ──
     // Si selDay.k difiere de k (clave origen), el usuario tocó un día de
     // vuelta o intermedio → resaltar visualmente el tramo de vuelta.
@@ -7311,24 +7568,27 @@ function renderDiaArea(){
     }
   } else if(t.tipo==='reserva'){
     var resActiva = !!t.reservaActiva;
-    body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva guardada. Usa <strong>"Verificar"</strong> si trabajas.</span></div>'
-      +'<button onclick="verificarReserva()" style="width:100%;padding:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#FCD34D;font-size:12px;font-weight:700;cursor:pointer">✅ Verificar reserva</button>'
+    // ACTUALIZADO — se quita el aviso estático "8h de Presencia por
+    // defecto" (ya no aplica: desde que la reserva pide toma/deje
+    // obligatoriamente al guardarla, sin pinchar computa el intervalo
+    // REAL, no una cifra fija). Ahora el horario real se muestra
+    // siempre, de forma clara, arriba del todo.
+    body='<div class="ibox blue"><span class="ibox-i">⏳</span><span>Reserva guardada.</span></div>'
+      +'<div class="calc-result" style="margin-top:8px">'
+      +'<div class="cr-row"><span class="cr-l">Hora de toma</span><span class="cr-v">'+(t.reservaHoraToma||'—')+'</span></div>'
+      +'<div class="cr-row"><span class="cr-l">Hora de deje</span><span class="cr-v">'+(t.reservaHoraLlegada||'—')+'</span></div>'
+      +'</div>'
+      +'<button onclick="abrirModalTomaDejeReserva()" style="width:100%;margin-top:6px;padding:6px;background:none;border:none;color:var(--tx3);font-size:10px;font-weight:700;cursor:pointer;text-decoration:underline">✏️ Corregir horario</button>'
+      // UNIFICADO — mismo texto e icono exactos que usan Art.51/52 y HTDL.
+      +'<button onclick="verificarReserva()" style="width:100%;margin-top:4px;padding:9px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;color:#FCD34D;font-size:12px;font-weight:700;cursor:pointer">📌 Pinchar / Verificar</button>'
       +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--div)">'
       +'<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--tx2);font-weight:600">'
       +'<input type="checkbox" '+(resActiva?'checked':'')+' onchange="toggleReservaActiva(this.checked)" style="width:16px;height:16px;accent-color:var(--acc)">'
-      +'Reserva activada (parcialmente trabajada)'
+      +'Parte de la reserva fue trabajo real'
       +'</label>'
       +(resActiva
-        ? '<div style="display:flex;gap:8px;margin-top:8px">'
-          +'<input type="text" placeholder="Hora toma" value="'+(t.reservaHoraToma||'')+'"'
-          +' oninput="actualizarReservaHora(\'reservaHoraToma\',this.value)"'
-          +' style="flex:1;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:13px;padding:7px 10px;outline:none;text-align:center;font-variant-numeric:tabular-nums">'
-          +'<input type="text" placeholder="Llegada tren" value="'+(t.reservaHoraLlegada||'')+'"'
-          +' oninput="actualizarReservaHora(\'reservaHoraLlegada\',this.value)"'
-          +' style="flex:1;background:var(--s2);border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:13px;padding:7px 10px;outline:none;text-align:center;font-variant-numeric:tabular-nums">'
-          +'</div>'
-          +'<div style="font-size:10px;color:var(--tx3);margin-top:6px">De toma a llegada = Horas Efectivas. El resto hasta 8h = Presencia.</div>'
-        : '<div style="font-size:10px;color:var(--tx3);margin-top:6px">Sin activar = 8h de Presencia por defecto.</div>')
+        ? '<div style="font-size:10px;color:var(--tx3);margin-top:6px">De toma a deje = Horas Efectivas. El resto hasta 8h = Presencia.</div>'
+        : '<div style="font-size:10px;color:var(--tx3);margin-top:6px">Todo el intervalo (toma → deje) computa como Presencia.</div>')
       +'</div>';
   } else if(t.tipo==='descanso'){
     body='<div class="ibox green"><span class="ibox-i">🧘</span><span>Día de descanso.</span></div>'
@@ -7682,8 +7942,35 @@ function elegirTipo(tipo){
     return;
   }
 
+  // NUEVO — 'art5152' ahora pregunta primero si es Reserva o Jornada
+  // Normal, antes de abrir el formulario de tramos. Se intercepta
+  // aquí, sin tocar el resto de tipos con formulario (ordinario,
+  // trabajado, comp).
+  if(tipo==='art5152'){
+    if(!selDay){ return; }
+    abrirModalModoArt5152();
+    return;
+  }
+
+  // NUEVO — 'reserva' ahora pregunta obligatoriamente la hora de toma
+  // y de deje mediante un pop-up, en vez de guardarse directa y vacía.
+  if(tipo==='reserva'){
+    if(!selDay){ return; }
+    abrirModalTomaDejeReserva();
+    return;
+  }
+
+  // NUEVO — 'trabajado' (HTDL / Descanso trabajado) ahora pregunta
+  // primero si es Reserva o Jornada Normal, mismo patrón que Art.51/52
+  // pero con su propia tarifa (HTDL, AJ.vh).
+  if(tipo==='trabajado'){
+    if(!selDay){ return; }
+    abrirModalModoTrabajado();
+    return;
+  }
+
   // Tipos simples: guardar directo sin abrir formulario
-  if(tipo==='vacaciones'||tipo==='descanso'||tipo==='reserva'){
+  if(tipo==='vacaciones'||tipo==='descanso'){
     if(selDay){
       var k=selDay.k;
       if(TV[k]&&TV[k].tipo!==tipo){
@@ -7782,6 +8069,18 @@ function editarTurno(){
      continuidad:(t.continuidad||[]).map(function(c){return Object.assign({},c);}),
      continuidadVuelta:(t.continuidadVuelta||[]).map(function(c){return Object.assign({},c);}),
      plusAct:t.plusAct||false,plusJT:t.plusJT||false,
+     // NUEVO — modoArt5152: 'reserva' | 'normal'. Los turnos guardados
+     // ANTES de esta función no tienen este campo — se asume 'normal'
+     // por defecto, para que sigan editándose exactamente igual que
+     // siempre (con tramos), sin romper nada.
+     modoArt5152:t.modoArt5152||'normal',
+     horaTomaArt:t.horaTomaArt||'', horaDejeArt:t.horaDejeArt||'',
+     // NUEVO — modoTrabajado: al EDITAR un HTDL ya guardado, siempre
+     // se abre en modo 'normal' (con tramos), independientemente de
+     // si se creó originalmente como Reserva — porque el registro ya
+     // guardado tiene hF/hL/numTren editables directamente ahí. Esto
+     // es justo el mecanismo de "pinchar/verificar": abrir y editar.
+     modoTrabajado:'normal',
      plusIntlAuto:(t.linea||'').includes('Internacional')};
   abrirForm(true);
 }
@@ -7790,6 +8089,25 @@ function verificarReserva(){
   if(!selDay)return;
   resetF('ordinario');
   abrirForm(false,true);
+}
+
+// NUEVO — Pinchar/Verificar una Reserva de Art.51/52: convierte el
+// registro de reserva simple (toma/deje) en un turno de Art.51/52
+// con tramos reales, cargando automáticamente la hora de toma como
+// hora de firma del Tramo 1 — mismo patrón que verificarReserva()
+// para la reserva normal, sin tocarla.
+function verificarReservaArt5152(){
+  if(!selDay || !selDay.t || selDay.t.tipo!=='art5152' || selDay.t.modoArt5152!=='reserva') return;
+  var tRes = selDay.t;
+  resetF('art5152');
+  // Modo Normal: activa el flujo de tramos ya existente (ida/vuelta/
+  // pernocta/pernocta3), exactamente igual que si se hubiera elegido
+  // "Jornada Normal" desde el principio.
+  F.modoArt5152 = 'normal';
+  // Carga automática de la hora de firma ya registrada al guardar la
+  // reserva — el usuario no tiene que volver a escribirla.
+  F.hF = tRes.horaTomaArt || null;
+  abrirForm(false, true);
 }
 
 // Activación ligera de una reserva: NO la convierte en 'ordinario' (eso
@@ -8422,7 +8740,7 @@ function abrirForm(edicion,verificando){
   var ti=TIPO_INFO[F.tipo] || {ico:'📋',lbl:F.tipo||'Turno',col:'var(--acc)',cls:''};
   document.getElementById('form-ico').textContent=verificando?'✅':ti.ico;
   document.getElementById('form-tit').textContent=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
-  document.getElementById('form-sub').textContent=verificando?'Verificar reserva':(edicion?'Editando '+ti.lbl.toLowerCase():'Nuevo '+ti.lbl.toLowerCase());
+  document.getElementById('form-sub').textContent=verificando?'Pinchar / Verificar':(edicion?'Editando '+ti.lbl.toLowerCase():'Nuevo '+ti.lbl.toLowerCase());
   document.getElementById('m-del').style.display=edicion?'flex':'none';
   var mc=mo===12?new Date(y+1,0,1):new Date(y,mo,1);
   miniM=mc;
@@ -8459,7 +8777,7 @@ function renderFormBody(){
   var b=document.getElementById('form-body');
   var t=F.tipo;var h='';
 
-  if(t==='ordinario'||t==='trabajado'||t==='art5152'){
+  if((t==='trabajado'&&F.modoTrabajado!=='reserva')||t==='ordinario'||(t==='art5152'&&F.modoArt5152!=='reserva')){
     h+=secLinea();
     h+=secPreguntaPernocta();
     h+=secTramo('ida');
@@ -8473,8 +8791,19 @@ function renderFormBody(){
     }
     if(t==='trabajado') h+=secDescFlow();
     if(t==='art5152') h+=secArt5152Flow();
+  } else if(t==='trabajado'&&F.modoTrabajado==='reserva'){
+    // NUEVO — Reserva (HTDL): formulario simple de toma/deje. Al
+    // guardar, F.hF/F.hL ya están rellenos (ver secReservaHTDL) y el
+    // turno se guarda como 'trabajado' normal — pasa íntegro por el
+    // motor de cálculo ya existente, sin ninguna rama especial.
+    h+=secReservaHTDL();
+  } else if(t==='art5152'&&F.modoArt5152==='reserva'){
+    // NUEVO — Reserva (Art.51/52): formulario simple de toma/deje, sin
+    // tramos, rutas ni trenes. Se paga directamente en dinero con la
+    // tarifa de Art.51/52 configurada según el rol en Ajustes.
+    h+=secReservaArt5152();
   } else if(t==='reserva'){
-    h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
+    h+='<div class="fsec"><div class="ibox blue"><span class="ibox-i">⏳</span><span>La reserva se guardará. Usa "Pinchar / Verificar" desde la tarjeta del día si trabajas.</span></div></div>';
   } else if(t==='descanso'){
     h+=secDescansoOpciones();
   } else if(t==='baja'){
@@ -9173,6 +9502,58 @@ function guardarTurno(){
   if(_tv2_guardando){ guardarTurnoEnTV2(); return; }
   if(!selDay)return;
   var k=selDay.k, t=F.tipo;
+
+  // NUEVO — Reserva (HTDL): validación ligera obligatoria. El
+  // guardado en sí NO se separa del flujo normal — F.hF/F.hL ya
+  // están rellenos desde secReservaHTDL(), así que sigue el mismo
+  // camino compartido de 'trabajado' de siempre (sin tocarlo).
+  if(t==='trabajado' && F.modoTrabajado==='reserva'){
+    if(!F.hF || !F.hL){
+      toast('⚠️ HTDL (Reserva) requiere hora de toma y de deje');
+      return;
+    }
+  }
+
+  // NUEVO — Reserva (Art.51/52): rama de guardado AUTOCONTENIDA y
+  // separada del flujo normal de tramos. Se resuelve aquí por
+  // completo y se sale con `return` — el resto de guardarTurno()
+  // (tramos, rutas, pernoctas, DH) queda exactamente igual que antes
+  // para el modo Normal.
+  if(t==='art5152' && F.modoArt5152==='reserva'){
+    if(!F.horaTomaArt || !F.horaDejeArt){
+      toast('⚠️ Art. 51/52 (Reserva) requiere hora de toma y de deje');
+      return;
+    }
+    var mesOrigenRes = k.slice(0,7), anioOrigenRes = k.slice(0,4);
+    if(!_a5152SaltarAvisoMensual){
+      if((ART5152_USO[mesOrigenRes]||0) >= 1){ _abrirAvisoLimiteArt5152('mensual'); return; }
+      if((ART5152_USO_ANUAL[anioOrigenRes]||0) >= 3){ _abrirAvisoLimiteArt5152('anual'); return; }
+    }
+    _a5152SaltarAvisoMensual = false;
+
+    var montoRes = parseFloat(AJ.art5152Monto)||0;
+    var baseRes  = parseFloat(AJ.art5152ValorBase)||0;
+    var horasRes = Math.round(calcMins(F.horaTomaArt,F.horaDejeArt)/60*100)/100;
+    var importeRes = Math.round((horasRes*montoRes+baseRes)*100)/100;
+
+    var dRes = {
+      tipo:'art5152', modoArt5152:'reserva',
+      horaTomaArt:F.horaTomaArt, horaDejeArt:F.horaDejeArt,
+      horasEfectivas:horasRes, compensacion:'dinero', importe:importeRes,
+      notas:F.notas||''
+    };
+    TV[k]=dRes; selDay.t=dRes; saveTV();
+    if(typeof verificarDescansosMes==='function') ALERTAS_DESCANSO = verificarDescansosMes();
+
+    ART5152_USO[mesOrigenRes] = (ART5152_USO[mesOrigenRes]||0)+1; _saveArt5152Uso();
+    ART5152_USO_ANUAL[anioOrigenRes] = (ART5152_USO_ANUAL[anioOrigenRes]||0)+1; _saveArt5152UsoAnual();
+
+    closeOv('ov-form');
+    renderCal();
+    renderStats();
+    toast('✅ Reserva Art.51/52 guardada: '+horasRes+'h → '+importeRes.toFixed(2)+'€');
+    return;
+  }
 
   // ── NUEVO: validaciones y aviso normativo específicos de Art. 51/52 ──
   // (no afectan en absoluto a ordinario/trabajado/otros tipos)
@@ -10776,8 +11157,17 @@ function calcularJornadaDiaria(turnos, fecha){
         var trabajado = calcMins(t.reservaHoraToma, t.reservaHoraLlegada);
         efectivas += trabajado;
         presencia += Math.max(0, 480 - trabajado); // resto hasta 8h de jornada
+      } else if(t.reservaHoraToma && t.reservaHoraLlegada){
+        // NUEVO — reserva con toma/deje registrados pero SIN pinchar
+        // todavía: el intervalo completo computa como Presencia (no
+        // como Efectivas). En cuanto se pincha/verifica (que convierte
+        // la reserva en un turno 'ordinario' con tramos reales vía
+        // verificarReserva(), sin tocar), las horas pasan a computarse
+        // como Efectivas de forma natural, por la rama de arriba.
+        var duracionReserva = calcMins(t.reservaHoraToma, t.reservaHoraLlegada);
+        presencia += duracionReserva;
       } else {
-        presencia += 480; // reserva no activada = 8h de Presencia por defecto
+        presencia += 480; // reserva sin ningún dato = 8h de Presencia por defecto
       }
     }
   });
@@ -12453,6 +12843,37 @@ function parseSchedulePdfText(text){
   return {dias: diasOut, meta: {empleado, mes, totalHE, totalHP}};
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Carga segura del worker de PDF.js para móviles.
+   Motivo: esta app se abre habitualmente como archivo local
+   (content://... en Android, file:// en iOS). Cuando el origen de
+   la página es un archivo local, muchos navegadores móviles
+   BLOQUEAN por seguridad que un Worker se cargue directamente desde
+   un dominio externo (cdnjs.cloudflare.com) — de ahí el error
+   intermitente al leer PDF en iPhone/Android.
+   Solución: se descarga el código del worker con fetch() y se
+   convierte en un Blob local (blob:) — los navegadores SÍ permiten
+   Workers desde blob: aunque la página esté en un origen local.
+   Si el fetch falla (sin conexión), se cae al enlace directo como
+   último recurso, igual que se hacía antes.
+   No toca parseSchedulePdfText() ni ninguna lógica de lectura.
+═══════════════════════════════════════════════════════════ */
+var _pdfWorkerBlobUrl = null;
+async function asegurarPdfWorkerSeguro(){
+  if(_pdfWorkerBlobUrl) return _pdfWorkerBlobUrl;
+  var urlWorkerOriginal = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  try{
+    var resp = await fetch(urlWorkerOriginal);
+    var codigo = await resp.text();
+    var blob = new Blob([codigo], {type:'application/javascript'});
+    _pdfWorkerBlobUrl = URL.createObjectURL(blob);
+  }catch(errWorker){
+    console.log('No se pudo crear el worker de PDF.js como Blob (sin conexión o CDN bloqueado); se usa el enlace directo como último recurso:', errWorker);
+    _pdfWorkerBlobUrl = urlWorkerOriginal;
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = _pdfWorkerBlobUrl;
+  return _pdfWorkerBlobUrl;
+}
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 // === ALMACENAMIENTO PERSISTENTE POR MES ===
@@ -12877,28 +13298,50 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
   const statusEl = document.getElementById('uploadStatus');
-  statusEl.textContent = 'Leyendo PDF...';
+  const esImagen = file.type && file.type.indexOf('image/') === 0;
   try{
-    const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-    let fullText = '';
-    for(let p=1; p<=pdf.numPages; p++){
-      const page = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      const items = content.items.map(it=>({str:it.str, x:it.transform[4], y:it.transform[5]}));
-      items.sort((a,b)=> b.y - a.y || a.x - b.x);
-      let lastY = null;
-      items.forEach(it=>{
-        if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
-        else if(lastY !== null){ fullText += ' '; }
-        fullText += it.str;
-        lastY = it.y;
+    var fullText = '';
+    if(esImagen){
+      // NUEVO — Lectura de imágenes/capturas (JPG, PNG, HEIC convertido,
+      // etc.) vía OCR en el propio navegador (Tesseract.js). No se toca
+      // el flujo de PDF: se llega al MISMO parseSchedulePdfText() de
+      // siempre, con el texto que Tesseract logre reconocer.
+      statusEl.textContent = 'Leyendo imagen (OCR)... esto puede tardar unos segundos';
+      const resultadoOcr = await Tesseract.recognize(file, 'spa', {
+        logger: function(m){
+          if(m.status==='recognizing text'){
+            statusEl.textContent = 'Leyendo imagen (OCR)... ' + Math.round((m.progress||0)*100) + '%';
+          }
+        }
       });
-      fullText += '\n';
+      fullText = resultadoOcr.data.text;
+    } else {
+      statusEl.textContent = 'Leyendo PDF...';
+      await asegurarPdfWorkerSeguro();
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      for(let p=1; p<=pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        const items = content.items.map(it=>({str:it.str, x:it.transform[4], y:it.transform[5]}));
+        items.sort((a,b)=> b.y - a.y || a.x - b.x);
+        let lastY = null;
+        items.forEach(it=>{
+          if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
+          else if(lastY !== null){ fullText += ' '; }
+          fullText += it.str;
+          lastY = it.y;
+        });
+        fullText += '\n';
+      }
     }
+    // MISMO analizador de texto para PDF e imagen — ni una línea distinta
+    // a partir de aquí entre ambos casos.
     const {dias: diasNuevo, meta} = parseSchedulePdfText(fullText);
     if(!diasNuevo.length){
-      statusEl.textContent = 'No se pudo interpretar el PDF (formato no reconocido).';
+      statusEl.textContent = esImagen
+        ? 'No se pudo interpretar la imagen (formato no reconocido, o la foto no se ve con claridad).'
+        : 'No se pudo interpretar el PDF (formato no reconocido).';
       return;
     }
     const mesKey = meta.mes || ('SIN-MES-' + Date.now());
@@ -12909,7 +13352,7 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
     statusEl.textContent = '✓ Horario de ' + mesKey + ' guardado (no afecta a otros meses).';
   }catch(err){
     console.error(err);
-    statusEl.textContent = 'Error al leer el PDF: ' + err.message;
+    statusEl.textContent = 'Error al leer el archivo: ' + err.message;
   }
 });
 
@@ -14201,6 +14644,7 @@ async function procesarPdfParaBase(key, label, file){
   progressTxt.textContent = 'Abriendo PDF de ' + label + '…';
   progressBar.style.width = '4%';
   try{
+    await asegurarPdfWorkerSeguro();
     const buf = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({data: buf}).promise;
     const numPages = pdf.numPages;
