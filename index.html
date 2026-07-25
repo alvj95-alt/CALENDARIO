@@ -720,6 +720,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .sc-v{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
 .sc-l{font-size:9px;color:var(--tx2)}
 .cs-box{background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18);border-radius:12px;padding:14px;margin-bottom:10px}
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Reorganización visual del Desglose Económico (TAS).
+   Agrupa los conceptos en tarjetas diferenciadas, sin tocar ningún
+   cálculo: solo envuelve el HTML ya generado por las mismas líneas
+   de siempre (row()/des+=...) dentro de contenedores con su propio
+   título y separación.
+═══════════════════════════════════════════════════════════ */
+.tas-section{background:var(--s1);border:1px solid var(--div);border-radius:12px;
+  padding:10px 12px;margin-bottom:10px}
+.tas-section:last-of-type{margin-bottom:0}
+.tas-section-tit{font-size:9px;font-weight:800;letter-spacing:1.1px;
+  color:var(--tx3);text-transform:uppercase;margin-bottom:6px;
+  display:flex;align-items:center;gap:6px}
+.tas-section .cs-r:first-of-type{border-top:none}
+/* Bloque final — Total a Pagar (Mes Vencido) */
+.tas-total-final{background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(34,197,94,.05));
+  border:1.5px solid rgba(74,222,128,.4);border-radius:14px;
+  padding:16px 18px;margin-top:4px;box-shadow:0 4px 20px rgba(34,197,94,.12)}
+.tas-total-final-lbl{font-size:10px;font-weight:800;letter-spacing:1px;
+  color:var(--green2);text-transform:uppercase;margin-bottom:4px;
+  display:flex;align-items:center;gap:6px}
+.tas-total-final-val{font-size:28px;font-weight:900;color:var(--tx);
+  line-height:1.1;font-variant-numeric:tabular-nums}
+.tas-total-final-sub{font-size:10px;color:var(--tx2);margin-top:4px}
 .cs-t{font-size:8px;font-weight:800;letter-spacing:1.2px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px}
 /* ═══════════════════════════════════════════════════════════
    RENOVADO — Sistema de diseño único para el Desglose Económico.
@@ -850,18 +874,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   transition:transform .1s, background .15s;
 }
 .dct-btn-del2:active{transform:scale(.96);}
-.dct-btn-sec{
-  padding:6px 14px;
-  background:var(--s2);
-  border:1px solid var(--div);
-  border-radius:8px;
-  color:var(--tx2);
-  font-size:11px;
-  font-weight:700;
-  cursor:pointer;
-  transition:transform .1s;
-}
-.dct-btn-sec:active{transform:scale(.95);}
 /* ─────────────────────────────────────────────── */
 
 /* ── BOTONES TARJETA DÍA v3 ── */
@@ -890,20 +902,31 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dct-row-sec{
   display:flex;
   gap:8px;
-  justify-content:center;
-  margin-top:-2px;
+  margin-top:6px;
 }
+/* ACTUALIZADO — los botones secundarios (Retraso, Ver más detalles,
+   Compartir, Baja Laboral) ahora comparten exactamente el mismo peso
+   visual (padding, tamaño, grosor de fuente, radio de borde) que los
+   botones principales de arriba (.dct-btn-cambio/.dct-btn-add) — solo
+   cambia el color de acento según la función, para distinguirlos sin
+   perder coherencia. */
 .dct-btn-sec{
-  padding:5px 16px;
-  background:var(--s2);
-  border:1px solid var(--div);
-  border-radius:8px;
-  color:var(--tx3);
-  font-size:10px;font-weight:700;
+  flex:1;
+  padding:10px 6px;
+  border-radius:10px;
+  font-size:11px;font-weight:800;
   cursor:pointer;
-  transition:transform .1s;
+  transition:transform .1s,background .15s;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-.dct-btn-sec:active{transform:scale(.95);}
+.dct-btn-sec:active{transform:scale(.96);}
+.dct-btn-sec.sec-amber{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#FCD34D}
+.dct-btn-sec.sec-cyan{background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.3);color:#67E8F9}
+.dct-btn-sec.sec-green{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ADE80}
+.dct-btn-sec.sec-red{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#FCA5A5}
 /* ─────────────────────────── */
 
 /* ══ ACORDEÓN — mejoras visuales ═══════════════════════════ */
@@ -5596,6 +5619,7 @@ function _renderImpactoBajaEnStats(){
   var pref = y+'-'+pad(m);
   var diasBajaConDescuento = [];
   var diasBajaContados = [];
+  var diasBaja75 = [];
   var horasEfectivasPerdidas = 0, horasPresenciaPerdidas = 0;
   var horasEfectivasContadas = 0, horasPresenciaContadas = 0;
 
@@ -5604,37 +5628,37 @@ function _renderImpactoBajaEnStats(){
     if(!t || t.tipo!=='baja' || !t.turnoPisado) return;
     var tipoPisado = t.turnoPisado.tipo;
     var esOrdinariaOReserva = (tipoPisado==='ordinario' || tipoPisado==='reserva');
+    if(!esOrdinariaOReserva) return; // HTDL/Art.51-52 nunca se muestran aquí, tienen su propio contador
     // checkRestTime()/calcularJornadaDiaria() se reutilizan tal cual,
     // solo para leer cuántas horas tenía el turno pisado — de solo
     // lectura, no se guarda nada ni se recalculan alertas.
     var jornadaPisada = calcularJornadaDiaria([t.turnoPisado], k);
     var hEf = Math.round((jornadaPisada.efectivasMin/60)*100)/100;
     var hPr = Math.round((jornadaPisada.presenciaMin/60)*100)/100;
+    var indiceDia = t.diaIndiceBaja || 1;
 
-    if(t.primeraBajaAnio===true && esOrdinariaOReserva){
-      // Primera baja del año + Ordinaria/Reserva → SÍ cuenta en
-      // Registro App (empresa se hace cargo económicamente, pero el
-      // cómputo de horas no cambia).
+    if(t.primeraBajaAnio===true){
+      // Primera baja del año → 100% (empresa se hace cargo).
       horasEfectivasContadas += hEf;
       horasPresenciaContadas += hPr;
       diasBajaContados.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:hEf, hPr:hPr});
-    } else if(t.primeraBajaAnio===false && esOrdinariaOReserva){
-      // No es la primera baja + Ordinaria/Reserva → se descuenta.
+    } else if(t.primeraBajaAnio===false && indiceDia<=3){
+      // NO es la primera + días 1-3 → 0% (descuento total).
       horasEfectivasPerdidas += hEf;
       horasPresenciaPerdidas += hPr;
-      diasBajaConDescuento.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:hEf, hPr:hPr});
+      diasBajaConDescuento.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:hEf, hPr:hPr, dia:indiceDia});
+    } else if(t.primeraBajaAnio===false && indiceDia>=4){
+      // NO es la primera + día 4 en adelante → 75%.
+      diasBaja75.push({fecha:_keyAFechaLbl(k), tren:t.turnoPisado.numTren||t.turnoPisado.numTrenVuelta||'', hEf:Math.round(hEf*0.75*100)/100, hPr:Math.round(hPr*0.75*100)/100, dia:indiceDia});
     }
-    // Si el turno pisado era HTDL o Art.51/52, nunca se muestra aquí
-    // ni cuenta en Registro App — esos tienen su propio contador
-    // económico (💶 HTDL / Art.51-52), independiente de la baja.
   });
 
-  if(!diasBajaConDescuento.length && !diasBajaContados.length) return;
+  if(!diasBajaConDescuento.length && !diasBajaContados.length && !diasBaja75.length) return;
 
   var html = '<div class="cr-div" style="margin:6px 0"></div>';
 
   if(diasBajaContados.length){
-    html += '<div class="cs-r"><span class="cl cv-pos" style="font-weight:800">🏥 Baja (primera del año) — horas contadas en Registro App</span>'
+    html += '<div class="cs-r"><span class="cl cv-pos" style="font-weight:800">🏥 Baja (primera del año) — 100% en Registro App</span>'
       +'<span class="cv cv-pos">'+diasBajaContados.length+' día'+(diasBajaContados.length>1?'s':'')+'</span></div>';
     diasBajaContados.forEach(function(d){
       html += '<div class="cs-r cs-r-sub">'
@@ -5643,12 +5667,22 @@ function _renderImpactoBajaEnStats(){
     });
   }
 
+  if(diasBaja75.length){
+    html += '<div class="cs-r"><span class="cl" style="font-weight:800;color:var(--acc3)">🏥 Baja (día 4 y siguientes) — 75% en Registro App</span>'
+      +'<span class="cv" style="color:var(--acc3)">'+diasBaja75.length+' día'+(diasBaja75.length>1?'s':'')+'</span></div>';
+    diasBaja75.forEach(function(d){
+      html += '<div class="cs-r cs-r-sub">'
+        +'<span class="cl">'+d.fecha+' · día '+d.dia+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+        +'<span class="cv" style="color:var(--acc3)">+'+d.hEf.toFixed(2)+'h efectivas · +'+d.hPr.toFixed(2)+'h presencia (75%)</span></div>';
+    });
+  }
+
   if(diasBajaConDescuento.length){
-    html += '<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🏥 Baja — turnos afectados (descuento aplicado)</span>'
+    html += '<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🏥 Baja (días 1-3, no primera) — 0% descuento total</span>'
       +'<span class="cv cv-warn">'+diasBajaConDescuento.length+' día'+(diasBajaConDescuento.length>1?'s':'')+'</span></div>';
     diasBajaConDescuento.forEach(function(d){
       html += '<div class="cs-r cs-r-sub">'
-        +'<span class="cl">'+d.fecha+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+        +'<span class="cl">'+d.fecha+' · día '+d.dia+(d.tren?' · Tren #'+d.tren:'')+'</span>'
         +'<span class="cv cv-warn">-'+d.hEf.toFixed(2)+'h efectivas · -'+d.hPr.toFixed(2)+'h presencia</span></div>';
     });
     html += '<div class="cs-r" style="padding-left:12px;opacity:.8">'
@@ -7646,11 +7680,20 @@ function renderDiaArea(){
     +'</div>'
     +'<div class="dct-row-sec">'
     +((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
-      ? '<button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
+      ? '<button class="dct-btn-sec sec-amber" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Retraso')+'</button>'
       : '')
-    +'<button class="dct-btn-sec" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Ver más detalles</button>'
-    +'<button class="dct-btn-sec" onclick="compartirTurnoSeleccionado()">📤 Compartir</button>'
+    +'<button class="dct-btn-sec sec-cyan" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Detalles</button>'
+    +'<button class="dct-btn-sec sec-green" onclick="compartirTurnoSeleccionado()">📤 Compartir</button>'
     +'</div>'
+    // NUEVO — Convertir turno existente en Baja Laboral, directamente
+    // desde el historial, sin borrar el día a mano. Solo aplica a
+    // días con un turno real que tenga sentido "pisar" (no se ofrece
+    // sobre baja/vacaciones, que ya son estados especiales).
+    +((t.tipo!=='baja'&&t.tipo!=='vacaciones')
+      ? '<div class="dct-row-sec" style="margin-top:8px">'
+        +'<button class="dct-btn-sec sec-red" style="flex:1" onclick="convertirTurnoEnBaja(\''+k+'\')">🏥 Convertir en Baja Laboral</button>'
+        +'</div>'
+      : '')
     +'</div></div>';
   if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
 }
@@ -9987,6 +10030,16 @@ function pedirBorrarTodo(){openOv('ov-borrar');}
    consecutivos, en vez de uno solo.
 ═══════════════════════════════════════════════════════════ */
 
+// NUEVO — Convertir un turno ya existente (visto desde el historial)
+// en Baja Laboral. Reutiliza EXACTAMENTE la misma secuencia que la
+// baja registrada desde cero (abrirModalDiasBaja → confirmarDiasBaja,
+// que ya preserva el turno pisado en turnoPisado → pregunta primera
+// baja del año → correo) — cero lógica nueva de guardado.
+function convertirTurnoEnBaja(k){
+  if(!selDay || selDay.k!==k) return;
+  abrirModalDiasBaja();
+}
+
 function abrirModalDiasBaja(){
   if(!selDay) return;
   var txt = document.getElementById('dias-baja-txt');
@@ -10020,7 +10073,12 @@ function confirmarDiasBaja(){
     TV[kDia] = {
       tipo:'baja',
       simple:true,
-      turnoPisado: (turnoPrevio && turnoPrevio.tipo!=='baja') ? turnoPrevio : null
+      turnoPisado: (turnoPrevio && turnoPrevio.tipo!=='baja') ? turnoPrevio : null,
+      // NUEVO — posición (1-based) de este día dentro de la baja
+      // consecutiva, necesaria para aplicar la regla: primeros 3 días
+      // sin retribución si no es la primera baja del año, y 75% a
+      // partir del 4º día.
+      diaIndiceBaja: i+1
     };
     fechas.push(kDia);
     dt.setDate(dt.getDate()+1);
@@ -10676,6 +10734,7 @@ function renderStats(){
   var des='';
   if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
+    des+='<div class="tas-section"><div class="tas-section-tit">💼 Compensación económica</div>';
     if(e.totalHTDL>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
         e.totalHTDL.toFixed(2)+' €','cv-info',e.diasHTDL);
@@ -10733,10 +10792,14 @@ function renderStats(){
         });
       }
     }
+    des+='</div>'; // cierre .tas-section Compensación económica
+    des+='<div class="tas-section"><div class="tas-section-tit">✅ Pluses y compensación en días</div>';
     if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','cv-pos',e.diasAct);
     if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','cv-pos',e.diasJT);
     if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','cv-cyan',e.diasIntl);
     if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv cv-info">'+ct.comp+' días</span></div>';
+    des+='</div>'; // cierre .tas-section Pluses
+    des+='<div class="tas-section"><div class="tas-section-tit">📋 Información adicional del mes</div>';
     // Retrasos del mes
     if(e.retrasos&&e.retrasos.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>'
@@ -10801,10 +10864,18 @@ function renderStats(){
           +'</div>';
       });
     }
-    if(e.totalBruto>0)
-      des+='<div class="cs-r cs-row-total">'
-        +'<span class="cl">💰 Total estimado mes</span>'
-        +'<span class="cv">'+e.totalBruto.toFixed(2)+' €</span></div>';
+    des+='</div>'; // cierre .tas-section Información adicional
+    // ACTUALIZADO — bloque final destacado "Total a Pagar (Mes
+    // Vencido)". Sigue usando exactamente el mismo e.totalBruto de
+    // siempre (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin
+    // tocar) — solo cambia la presentación visual, no la suma.
+    if(e.totalBruto>0){
+      des+='<div class="tas-total-final">'
+        +'<div class="tas-total-final-lbl">💰 Total a Pagar (Mes Vencido)</div>'
+        +'<div class="tas-total-final-val">'+e.totalBruto.toFixed(2)+' €</div>'
+        +'<div class="tas-total-final-sub">Suma de HTDL, Art.51/52, enlaces, nocturnidad y pluses del mes</div>'
+        +'</div>';
+    }
     des+='</div>';
     cs.innerHTML=des;
   } else cs.innerHTML='';
@@ -11418,20 +11489,31 @@ function calculateEarnings(ks){
   // hace cargo económicamente, pero el cómputo de horas de esa
   // jornada no cambia. Si el turno pisado era HTDL o Art.51/52, NUNCA
   // cuenta aquí (tienen su propio contador económico aparte, con o
-  // sin baja). Si NO es la primera baja del año, no se suma nada —
-  // el descuento ya ocurre de forma natural porque 'baja' no
-  // participa en calcularJornadaDiaria() (sin tocar esa función).
+  // sin baja).
+  // ACTUALIZADO — regla de retribución de bajas:
+  //   Primera baja del año            → 100% de las horas (presencia y efectivas).
+  //   NO es la primera (días 1-3)     → 0% (descuento total, sin retribución).
+  //   NO es la primera (día 4 y sig.) → 75% de las horas acumuladas.
   // Reutiliza calcularJornadaDiaria() ya existente sobre el turno
   // pisado guardado en TV — solo lectura, no se modifica TV.
   ks.forEach(function(kBaja){
     var tBaja = TV[kBaja];
     if(!tBaja || tBaja.tipo!=='baja' || !tBaja.turnoPisado) return;
-    if(tBaja.primeraBajaAnio !== true) return; // solo cuenta si es la primera
     var tipoPisado = tBaja.turnoPisado.tipo;
     if(tipoPisado!=='ordinario' && tipoPisado!=='reserva') return; // HTDL/Art.51-52 nunca cuentan aquí
+
+    var factorRetribucion = 0;
+    if(tBaja.primeraBajaAnio === true){
+      factorRetribucion = 1; // 100%
+    } else if(tBaja.primeraBajaAnio === false){
+      var indiceDia = tBaja.diaIndiceBaja || 1;
+      factorRetribucion = (indiceDia >= 4) ? 0.75 : 0; // 75% desde el 4º día; 0% en los 3 primeros
+    }
+    if(factorRetribucion <= 0) return;
+
     var jornadaPisada = calcularJornadaDiaria([tBaja.turnoPisado], kBaja);
-    minEfectivasCal += jornadaPisada.efectivasMin;
-    minPresenciaCal += jornadaPisada.presenciaMin;
+    minEfectivasCal += Math.round(jornadaPisada.efectivasMin * factorRetribucion);
+    minPresenciaCal += Math.round(jornadaPisada.presenciaMin * factorRetribucion);
   });
 
   // diasHTDL is now array of objects with detail
@@ -12149,7 +12231,7 @@ function renderDiaAreaMulti(){
     + '<button class="dct-btn-add" onclick="guardarTurnoExtra()">➕ Añadir turno</button>'
     + '</div>'
     + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
-      ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
+      ? '<div class="dct-row-sec"><button class="dct-btn-sec sec-amber" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
       : '')
     + '</div>';
 
