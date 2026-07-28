@@ -4398,6 +4398,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
       <input type="file" id="fileHorarioGeneral" accept="application/pdf,.csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
       <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
+      <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarHorarioGeneralAdmin()">🗑 Eliminar Horario General</button>
     </div>
 
     <div class="admin-card">
@@ -4424,6 +4425,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <input type="file" id="fileIntervencionInforme" accept="application/pdf" style="display:none" onchange="document.getElementById('txtIntervencionInforme').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Informe / Servicio Previsto'">
       <button class="m-save" style="width:100%;margin-top:6px" onclick="subirIntervencionGlobalAdmin()">Publicar Intervención</button>
       <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
+      <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarIntervencionAdmin()">🗑 Eliminar Intervención</button>
     </div>
   </div>
 </div>
@@ -14865,6 +14867,59 @@ async function subirIntervencionGlobalAdmin(){
   elEstado.classList.remove('sin-archivo');
   elEstado.innerHTML = 'Intervención activa: <b>'+nombre+'</b><br>Desde: '+fecha;
   toast('✅ Intervención publicada para todos');
+}
+
+// NUEVO — Borra el Horario General publicado: fila en config_global +
+// el archivo en Storage. Requiere confirmación (acción irreversible
+// para todos los usuarios, no solo para este dispositivo).
+async function eliminarHorarioGeneralAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  if(!confirm('¿Seguro que quieres borrar el Horario General publicado? Todos los compañeros dejarán de verlo hasta que subas uno nuevo.')) return;
+  var elEstado = document.getElementById('estadoHorarioGeneral');
+  elEstado.textContent = 'Borrando...';
+
+  var fila = await sbAdmin.from('config_global').select('url_archivo').eq('tipo','horario_general').single();
+  if(fila.data && fila.data.url_archivo){
+    var partes = fila.data.url_archivo.split('/admin-archivos/');
+    if(partes[1]) await sbAdmin.storage.from('admin-archivos').remove([decodeURIComponent(partes[1])]);
+  }
+  var borrado = await sbAdmin.from('config_global').delete().eq('tipo','horario_general');
+  if(borrado.error){
+    elEstado.textContent = 'Error al borrar: ' + borrado.error.message;
+    return;
+  }
+  elEstado.classList.add('sin-archivo');
+  elEstado.textContent = 'Aún no hay ningún archivo activo.';
+  toast('🗑 Horario General eliminado');
+}
+
+// NUEVO — Borra la Intervención publicada (Gráfico + Informe): fila
+// en config_global + los 2 archivos en Storage.
+async function eliminarIntervencionAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  if(!confirm('¿Seguro que quieres borrar la Intervención publicada (Gráfico + Informe)? Todos los compañeros dejarán de ver el cruce hasta que subas una nueva.')) return;
+  var elEstado = document.getElementById('estadoGraficoIntervencion');
+  elEstado.textContent = 'Borrando...';
+
+  var fila = await sbAdmin.from('config_global').select('url_archivo, url_archivo_informe').eq('tipo','grafico_intervencion').single();
+  var rutas = [];
+  if(fila.data){
+    [fila.data.url_archivo, fila.data.url_archivo_informe].forEach(function(url){
+      if(!url) return;
+      var partes = url.split('/admin-archivos/');
+      if(partes[1]) rutas.push(decodeURIComponent(partes[1]));
+    });
+  }
+  if(rutas.length) await sbAdmin.storage.from('admin-archivos').remove(rutas);
+
+  var borrado = await sbAdmin.from('config_global').delete().eq('tipo','grafico_intervencion');
+  if(borrado.error){
+    elEstado.textContent = 'Error al borrar: ' + borrado.error.message;
+    return;
+  }
+  elEstado.classList.add('sin-archivo');
+  elEstado.textContent = 'Aún no hay ninguna Intervención activa.';
+  toast('🗑 Intervención eliminada');
 }
 
 async function refrescarEstadoArchivosAdmin(){
