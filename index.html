@@ -15043,7 +15043,20 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // igual que el formulario manual, pero sin que el usuario tenga
   // que hacer nada. Si ya existe un servicio con el mismo nombre
   // (por ejemplo, tras una recarga), no se duplica.
-  cargarIntervencionGlobalDesdeAdmin();
+  // FIX — red de seguridad adicional: si la propia LLAMADA a
+  // cargarIntervencionGlobalDesdeAdmin() fallara por algún motivo
+  // que ni su propio try/catch interno capturase (por ejemplo, un
+  // error de referencia), este bloque lo atrapa y lo muestra de
+  // todas formas — nunca debe fallar en silencio.
+  try{
+    await cargarIntervencionGlobalDesdeAdmin();
+  }catch(errIntervencionFatal){
+    try{
+      toast('🛑 Fallo crítico Intervención: '+(errIntervencionFatal&&errIntervencionFatal.message?errIntervencionFatal.message:errIntervencionFatal));
+    }catch(errToastRoto){
+      alert('Fallo crítico Intervención: '+errIntervencionFatal);
+    }
+  }
 };
 
 // NUEVO — Descarga el Gráfico + el Informe publicados por el admin
@@ -15052,21 +15065,28 @@ window.abrirBuscadorConHorarioGlobal = async function(){
 // → construirDiasDesdeCruce), sin tocar ninguna de esas funciones.
 async function cargarIntervencionGlobalDesdeAdmin(){
   try{
-    if(typeof sbAdmin === 'undefined') return false;
+    if(typeof sbAdmin === 'undefined'){
+      toast('⚠️ Intervención: Supabase no está disponible en este navegador');
+      return false;
+    }
     var resp = await sbAdmin.from('config_global').select('*').eq('tipo','grafico_intervencion').single();
     if(resp.error){
-      console.log('[Intervención] No se pudo leer config_global:', resp.error.message);
+      toast('⚠️ Intervención: '+resp.error.message);
       return false;
     }
     if(!resp.data || !resp.data.url_archivo || !resp.data.url_archivo_informe){
-      console.log('[Intervención] Todavía no hay Gráfico+Informe publicados por el admin.');
+      toast('⚠️ Intervención: el admin aún no ha publicado el Gráfico+Informe');
       return false;
     }
     var d = resp.data;
 
     // Evita volver a procesar si ya está cargado este mismo servicio.
-    if(INTERVENTOR_SERVICES.some(function(s){ return s.name === d.nombre_servicio; })) return true;
+    if(INTERVENTOR_SERVICES.some(function(s){ return s.name === d.nombre_servicio; })){
+      toast('ℹ️ Intervención «'+d.nombre_servicio+'» ya estaba cargada');
+      return true;
+    }
 
+    toast('🔀 Sincronizando intervención («'+d.nombre_servicio+'»)...');
     var elEstado = document.getElementById('estadoIntervencionBuscador');
     if(elEstado) elEstado.textContent = 'Sincronizando intervención («'+d.nombre_servicio+'»)...';
 
@@ -15080,8 +15100,7 @@ async function cargarIntervencionGlobalDesdeAdmin(){
     var respGrafico = await fetch(d.url_archivo);
     var respInforme = await fetch(d.url_archivo_informe);
     if(!respGrafico.ok || !respInforme.ok){
-      console.log('[Intervención] No se pudo descargar uno de los 2 PDF (Gráfico o Informe).');
-      toast('⚠️ Intervención: no se pudo descargar el Gráfico o el Informe');
+      toast('⚠️ Intervención: no se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+')');
       return false;
     }
 
@@ -15094,12 +15113,10 @@ async function cargarIntervencionGlobalDesdeAdmin(){
     var agentsData = parseAgentsTable(informeLines, d.fecha_inicio);
 
     if(!agentsData){
-      console.log('[Intervención] No se encontró la tabla de fechas en el Informe. ¿Es el PDF correcto, o la fecha de inicio no coincide con el día de la semana de la primera columna?');
       toast('⚠️ Intervención: no se reconoció la tabla de fechas del Informe');
       return false;
     }
     if(Object.keys(turnosData).length === 0){
-      console.log('[Intervención] No se encontraron trenes en el Gráfico de Intervención.');
       toast('⚠️ Intervención: no se encontraron trenes en el Gráfico');
       return false;
     }
@@ -15111,8 +15128,7 @@ async function cargarIntervencionGlobalDesdeAdmin(){
     toast('✅ Intervención sincronizada: '+diasPorAgente.length+' agentes cruzados');
     return true;
   }catch(e){
-    console.log('[Intervención] Error inesperado:', e);
-    toast('⚠️ Error al sincronizar la Intervención (ver consola)');
+    toast('⚠️ Error Intervención: '+(e&&e.message?e.message:e));
     return false;
   }
 }
