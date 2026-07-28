@@ -4354,23 +4354,19 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="sh-ico">🧑‍💼</div>
       <div>
         <div class="sh-tit">Acceso de Administrador</div>
-        <div class="sh-sub">Te enviamos un código de un solo uso por correo</div>
+        <div class="sh-sub">Inicia sesión con tu cuenta de administrador</div>
       </div>
       <button class="sh-close" onclick="closeOv('ov-admin-login')">✕</button>
     </div>
     <div style="padding:16px">
       <label class="field-lbl">Correo del administrador</label>
       <input type="email" id="adminEmailInput" class="field-inp" placeholder="tu-email@ejemplo.com" autocomplete="off">
-      <button class="m-save" style="width:100%" id="btnEnviarCodigoAdmin" onclick="enviarCodigoAdmin()">Enviar código de acceso</button>
+      <label class="field-lbl">Contraseña</label>
+      <input type="password" id="adminPasswordInput" class="field-inp" placeholder="••••••••" autocomplete="off">
+      <button class="m-save" style="width:100%" id="btnLoginAdmin" onclick="iniciarSesionAdmin()">Iniciar sesión</button>
       <div id="adminLoginMsg"></div>
 
-      <div id="bloqueCodigoOtp" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--div)">
-        <label class="field-lbl">Código de 6 dígitos recibido por correo</label>
-        <input type="text" id="adminCodigoInput" class="field-inp" placeholder="123456" inputmode="numeric" maxlength="6" style="text-align:center;font-size:22px;font-weight:800;letter-spacing:4px">
-        <button class="m-save" style="width:100%" onclick="verificarCodigoAdmin()">Verificar código</button>
-      </div>
-
-      <div class="msg-info">No hay contraseñas guardadas en la app — el acceso se verifica siempre contra tu cuenta real, protegida por Supabase.</div>
+      <div class="msg-info">El acceso se verifica siempre contra tu cuenta real en Supabase — no hay ninguna contraseña guardada en el código de la app.</div>
     </div>
   </div>
 </div>
@@ -14740,34 +14736,20 @@ function abrirAccesoAdmin(){
   openOv('ov-admin-login');
 }
 
-async function enviarCodigoAdmin(){
+async function iniciarSesionAdmin(){
   var email = document.getElementById('adminEmailInput').value.trim();
+  var password = document.getElementById('adminPasswordInput').value;
   var msg = document.getElementById('adminLoginMsg');
-  var btn = document.getElementById('btnEnviarCodigoAdmin');
-  if(!email){ msg.innerHTML = '<div class="msg-error">Escribe tu correo.</div>'; return; }
-  btn.disabled = true; btn.textContent = 'Enviando...';
-  var resp = await sbAdmin.auth.signInWithOtp({ email: email });
-  btn.disabled = false; btn.textContent = 'Enviar código de acceso';
+  var btn = document.getElementById('btnLoginAdmin');
+  if(!email || !password){ msg.innerHTML = '<div class="msg-error">Escribe el correo y la contraseña.</div>'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  var resp = await sbAdmin.auth.signInWithPassword({ email: email, password: password });
+  btn.disabled = false; btn.textContent = 'Iniciar sesión';
   if(resp.error){
-    msg.innerHTML = '<div class="msg-error">No se pudo enviar: '+resp.error.message+'</div>';
-  } else {
-    msg.innerHTML = '<div class="msg-ok">✅ Revisa tu correo. Busca el código de 6 dígitos y escríbelo abajo.</div>';
-    document.getElementById('bloqueCodigoOtp').style.display = 'block';
-    _emailAdminPendiente = email;
-  }
-}
-
-async function verificarCodigoAdmin(){
-  var email = _emailAdminPendiente;
-  var codigo = document.getElementById('adminCodigoInput').value.trim();
-  var msg = document.getElementById('adminLoginMsg');
-  if(!email || !codigo){ msg.innerHTML = '<div class="msg-error">Falta el correo o el código.</div>'; return; }
-  var resp = await sbAdmin.auth.verifyOtp({ email: email, token: codigo, type: 'email' });
-  if(resp.error){
-    msg.innerHTML = '<div class="msg-error">Código incorrecto o caducado: '+resp.error.message+'</div>';
+    msg.innerHTML = '<div class="msg-error">No se pudo iniciar sesión: '+resp.error.message+'</div>';
     return;
   }
-  msg.innerHTML = '<div class="msg-ok">✅ Verificado correctamente.</div>';
+  msg.innerHTML = '<div class="msg-ok">✅ Sesión iniciada.</div>';
   if(resp.data && resp.data.user){
     await cargarPerfilYVerificarAdmin(resp.data.user);
   }
