@@ -10,6 +10,15 @@
      (OCR en el navegador, sin servidor). Solo se usa cuando el archivo
      subido es una imagen; el flujo de PDF (pdfjsLib) sigue exactamente igual. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.4/tesseract.min.js"></script>
+<!-- NUEVO — Requerido por el Panel de Administrador (horario y gráfico
+     de intervención globales, gestionados centralmente). Solo se usa
+     en el módulo de admin y en la lectura pública de config_global —
+     no afecta a ningún otro dato de la app, que sigue siendo 100%
+     local (localStorage). -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- NUEVO — Requerido para leer el Horario General si el admin lo
+     sube en formato .xlsx (el CSV no lo necesita). -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -2158,6 +2167,36 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .filepick{background:var(--s1);border:1.5px dashed var(--div);border-radius:10px;padding:16px 12px;
           text-align:center;cursor:pointer;transition:border-color .16s}
 .filepick:hover{border-color:var(--acc2)}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Panel de Administrador (horario y gráfico globales).
+   Reutiliza .sh/.sh-hdr/.sh-ico/.sh-tit/.sh-sub/.sh-close/.filepick/
+   .m-save ya existentes — solo se añaden las clases específicas de
+   este módulo que no existían antes.
+═══════════════════════════════════════════════════════════ */
+#hbtn-admin.es-admin{color:var(--amber2);border-color:var(--amber2)}
+.field-lbl{font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);
+  text-transform:uppercase;margin-bottom:6px;display:block}
+.field-inp{width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:11px;
+  color:var(--tx);font-size:14px;padding:12px 14px;outline:none;margin-bottom:14px}
+.field-inp:focus{border-color:var(--acc2)}
+.msg-info{font-size:11px;color:var(--tx2);line-height:1.5;margin-top:12px;text-align:center}
+.msg-error{font-size:11px;color:var(--red2);line-height:1.5;margin-top:10px;
+  background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.3);border-radius:9px;padding:9px 11px}
+.msg-ok{font-size:11px;color:var(--green2);line-height:1.5;margin-top:10px;
+  background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.3);border-radius:9px;padding:9px 11px}
+.admin-card{background:var(--s1);border:1px solid var(--div);border-radius:16px;
+  padding:16px;margin:12px 16px;box-shadow:var(--sh-card)}
+.admin-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.admin-card-ico{width:38px;height:38px;border-radius:11px;background:rgba(245,158,11,.15);
+  color:var(--amber2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.admin-card-ico.blue{background:rgba(37,99,235,.15);color:var(--acc3)}
+.admin-card-tit{font-size:14px;font-weight:800}
+.admin-card-sub{font-size:10.5px;color:var(--tx2);margin-top:2px;line-height:1.4}
+.estado-archivo{font-size:11px;color:var(--tx2);background:var(--s2);border:1px solid var(--div);
+  border-radius:9px;padding:9px 11px;margin-top:10px;line-height:1.5}
+.estado-archivo b{color:var(--acc3)}
+.estado-archivo.sin-archivo{color:var(--tx3);font-style:italic}
 .filepick .fp-ico{font-size:20px;margin-bottom:4px}
 .filepick .fp-txt{font-size:11px;color:var(--tx2)}
 .filepick .fp-name{font-size:11px;color:var(--acc3);margin-top:5px;font-weight:600}
@@ -2599,6 +2638,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
     <div class="hdr-btns">
       <button class="hbtn hbtn-stop-alarma" id="hbtn-stop-alarma" onclick="detenerAlarma()" style="display:none">🔕</button>
+      <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
+           el uso normal de la app; solo abre un panel si el usuario
+           inicia sesión y su perfil tiene rol='admin' en Supabase). -->
+      <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Acceso de administrador">🧑‍💼</button>
     </div>
   </div>
 </div>
@@ -3189,7 +3232,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div style="padding:0 10px">
   <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
   <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
-  <button id="btnBuscadorCompaneros" class="upload-btn" style="margin-top:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="openOv('ov-buscador')">🚆 Buscador de Compañeros</button>
+  <button id="btnBuscadorCompaneros" class="upload-btn" style="margin-top:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="abrirBuscadorConHorarioGlobal()">🚆 Buscador de Compañeros</button>
 </div>
 
 
@@ -4104,11 +4147,31 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="sel-wrap">
         <div class="sel-intro">
           <div class="sel-ico">🗂️</div>
-          <div class="sel-tit">Seleccione su Base</div>
-          <div class="sel-sub">Cada base es independiente: los datos de una no se mezclan con los de otra. Tú subes tus propios datos — nada viene precargado.</div>
+          <div class="sel-tit">Horario General</div>
+          <div class="sel-sub">El horario lo publica el administrador — se sincroniza solo, no hace falta que subas nada.</div>
         </div>
 
-        <div class="base-card" id="card-barcelona">
+        <!-- NUEVO — Estado de la carga del Horario General publicado
+             por el Panel de Admin. Sustituye a la selección manual de
+             Barcelona/Madrid para el usuario normal. -->
+        <div class="base-card" style="cursor:default">
+          <div class="base-ico b-bcn">📡</div>
+          <div class="base-info">
+            <div class="base-name">Sincronizando</div>
+            <div class="base-meta" id="estadoHorarioGlobalBuscador">Buscando el horario publicado...</div>
+          </div>
+        </div>
+
+        <!-- NUEVO — Estado de la Intervención publicada por el admin. -->
+        <div class="base-card" style="cursor:default">
+          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
+          <div class="base-info">
+            <div class="base-name">Intervención</div>
+            <div class="base-meta" id="estadoIntervencionBuscador">Sincronizando...</div>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-barcelona" style="display:none">
           <div class="base-ico b-bcn">🚆</div>
           <div class="base-info">
             <div class="base-name">Barcelona</div>
@@ -4118,7 +4181,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="base-badge badge-pend" id="badge-barcelona">SUBIR PDF</div>
           <div class="base-arr">›</div>
         </div>
-        <div class="upload-form" id="form-barcelona">
+        <div class="upload-form" id="form-barcelona" style="display:none">
           <label>Sube el PDF de turnos de Barcelona</label>
           <div class="filepick" id="filepick-barcelona">
             <div class="fp-ico">📄</div>
@@ -4132,7 +4195,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
         </div>
 
-        <div class="base-card" id="card-madrid">
+        <div class="base-card" id="card-madrid" style="display:none">
           <div class="base-ico b-mad">🚆</div>
           <div class="base-info">
             <div class="base-name">Madrid</div>
@@ -4142,7 +4205,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="base-badge badge-pend" id="badge-madrid">SUBIR PDF</div>
           <div class="base-arr">›</div>
         </div>
-        <div class="upload-form" id="form-madrid">
+        <div class="upload-form" id="form-madrid" style="display:none">
           <label>Sube el PDF de turnos de Madrid</label>
           <div class="filepick" id="filepick-madrid">
             <div class="fp-ico">📄</div>
@@ -4156,7 +4219,47 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
         </div>
 
-        <div class="base-card" id="card-new">
+        <div class="base-card" id="card-interventor" style="display:none">
+          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
+          <div class="base-info">
+            <div class="base-name">Interventor (Gráfico + Informe)</div>
+            <div class="base-meta" id="meta-interventor">Aún sin PDFs cargados</div>
+          </div>
+          <button class="base-del-btn" id="del-interventor" title="Eliminar todo" style="display:none">🗑</button>
+          <div class="base-badge badge-pend" id="badge-interventor">SUBIR PDFs</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-interventor" style="display:none">
+          <label>Nombre del servicio (p. ej. SC Nordeste, Valencia, Madrid…)</label>
+          <input type="text" id="name-interventor" placeholder="Nombre del servicio">
+          <label>Fecha del primer día de columna del Informe</label>
+          <div class="cal-tren-panel" id="calInterventorInicio"></div>
+          <label style="margin-top:10px">PDF · Gráfico de Intervención (GL)</label>
+          <label id="reuseGraficoLabel" style="display:none;align-items:center;gap:7px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--tx2);margin-bottom:8px">
+            <input type="checkbox" id="reuseGraficoCheck" style="width:auto;accent-color:var(--nar)">
+            Usar el mismo gráfico que la última vez (<span id="reuseGraficoNombre"></span>)
+          </label>
+          <div class="filepick" id="filepick-interventor-grafico">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el PDF del gráfico</div>
+            <div class="fp-name" id="fpname-interventor-grafico"></div>
+          </div>
+          <input type="file" accept="application/pdf" id="file-interventor-grafico" style="display:none">
+          <label>PDF · Servicio Previsto / Informe de agentes</label>
+          <div class="filepick" id="filepick-interventor-informe">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el PDF del informe</div>
+            <div class="fp-name" id="fpname-interventor-informe"></div>
+          </div>
+          <input type="file" accept="application/pdf" id="file-interventor-informe" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-interventor">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-interventor" disabled>Procesar PDFs</button>
+          </div>
+          <div id="interventorServiceList" style="margin-top:12px"></div>
+        </div>
+
+        <div class="base-card" id="card-new" style="display:none">
           <div class="base-ico b-new">＋</div>
           <div class="base-info">
             <div class="base-name">Subir otra base (PDF)</div>
@@ -4164,7 +4267,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           </div>
           <div class="base-arr">›</div>
         </div>
-        <div class="upload-form" id="form-new">
+        <div class="upload-form" id="form-new" style="display:none">
           <label>Nombre de la base</label>
           <input type="text" id="name-new" placeholder="p. ej. Valencia, Sevilla…">
           <label>Archivo PDF de turnos</label>
@@ -4240,6 +4343,93 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+</div>
+
+<!-- NUEVO — OV: ACCESO DE ADMINISTRADOR (código de un solo uso por
+     email, verificado contra Supabase — nunca una contraseña fija
+     en el código). Mismo patrón .ov/.sh que el resto de la app. -->
+<div class="ov" id="ov-admin-login" onclick="if(event.target===this)closeOv('ov-admin-login')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">🧑‍💼</div>
+      <div>
+        <div class="sh-tit">Acceso de Administrador</div>
+        <div class="sh-sub">Te enviamos un código de un solo uso por correo</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-admin-login')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <label class="field-lbl">Correo del administrador</label>
+      <input type="email" id="adminEmailInput" class="field-inp" placeholder="tu-email@ejemplo.com" autocomplete="off">
+      <button class="m-save" style="width:100%" id="btnEnviarCodigoAdmin" onclick="enviarCodigoAdmin()">Enviar código de acceso</button>
+      <div id="adminLoginMsg"></div>
+
+      <div id="bloqueCodigoOtp" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--div)">
+        <label class="field-lbl">Código de 6 dígitos recibido por correo</label>
+        <input type="text" id="adminCodigoInput" class="field-inp" placeholder="123456" inputmode="numeric" maxlength="6" style="text-align:center;font-size:22px;font-weight:800;letter-spacing:4px">
+        <button class="m-save" style="width:100%" onclick="verificarCodigoAdmin()">Verificar código</button>
+      </div>
+
+      <div class="msg-info">No hay contraseñas guardadas en la app — el acceso se verifica siempre contra tu cuenta real, protegida por Supabase.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: PANEL DE CONTROL ADMIN. Solo se abre si el perfil
+     verificado en Supabase tiene rol='admin'. -->
+<div class="ov" id="ov-panel-admin" onclick="if(event.target===this)closeOv('ov-panel-admin')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="sh-hdr">
+      <div class="sh-ico">⚙️</div>
+      <div>
+        <div class="sh-tit">Panel de Control Admin</div>
+        <div class="sh-sub" id="adminSesionLbl">Administrador: —</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-panel-admin')">✕</button>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico blue">📅</div>
+        <div>
+          <div class="admin-card-tit">Carga de Horario General</div>
+          <div class="admin-card-sub">Sube el CSV/XLSX de turnos. Se publica al instante para todos.</div>
+        </div>
+      </div>
+      <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
+        <div class="fp-ico">📄</div>
+        <div class="fp-txt">Toca para elegir el archivo (CSV o XLSX)</div>
+      </div>
+      <input type="file" id="fileHorarioGeneral" accept=".csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
+      <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico">🔀</div>
+        <div>
+          <div class="admin-card-tit">Carga de Intervención</div>
+          <div class="admin-card-sub">Sube el Gráfico + el Informe. Cada compañero los cruza solo, en su móvil, con estos mismos datos.</div>
+        </div>
+      </div>
+      <label class="field-lbl">Nombre del servicio</label>
+      <input type="text" id="nombreServicioIntervencion" class="field-inp" placeholder="p. ej. SC Nordeste, Valencia...">
+      <label class="field-lbl">Primer día de columna del Informe</label>
+      <input type="date" id="fechaInicioIntervencion" class="field-inp">
+      <div class="filepick" onclick="document.getElementById('fileIntervencionGrafico').click()">
+        <div class="fp-ico">📄</div>
+        <div class="fp-txt" id="txtIntervencionGrafico">Toca para elegir el PDF del Gráfico de Intervención (GL)</div>
+      </div>
+      <input type="file" id="fileIntervencionGrafico" accept="application/pdf" style="display:none" onchange="document.getElementById('txtIntervencionGrafico').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Gráfico de Intervención (GL)'">
+      <div class="filepick" onclick="document.getElementById('fileIntervencionInforme').click()">
+        <div class="fp-ico">📄</div>
+        <div class="fp-txt" id="txtIntervencionInforme">Toca para elegir el PDF del Informe / Servicio Previsto</div>
+      </div>
+      <input type="file" id="fileIntervencionInforme" accept="application/pdf" style="display:none" onchange="document.getElementById('txtIntervencionInforme').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Informe / Servicio Previsto'">
+      <button class="m-save" style="width:100%;margin-top:6px" onclick="subirIntervencionGlobalAdmin()">Publicar Intervención</button>
+      <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -4547,43 +4737,38 @@ function _saveArt5152UsoAnual(){ localStorage.setItem('art5152_uso_anual', JSON.
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
-var NOV_VERSION = 'nov_v6';
+var NOV_VERSION = 'nov_v7';
 
 var listaNovedades = [
   {
-    ico: '🚂',
-    titulo: 'Número de tren siempre visible',
-    desc: 'Las celdas del calendario ahora muestran tu número de tren directamente, sin necesidad de hacer clic. De un vistazo sabes qué tren tienes cada día.'
-  },
-  {
     ico: '🔀',
-    titulo: 'DH inteligente y coherente',
-    desc: 'El formato DH ahora es dinámico: «621 DH - 621» si el DH es en ida, «621 - 621 DH» si es en vuelta. Se muestra igual en el calendario, en el detalle del turno y en el panel de hoy. En pernoctas, cada día solo muestra su propio DH.'
+    titulo: 'Módulo Interventor',
+    desc: 'El Buscador de Compañeros ahora también cruza tu tren con el Gráfico de Intervención y el Informe de agentes: te dice qué interventor lleva tu servicio ese día, además de con qué compañeros coincides.'
   },
   {
-    ico: '👆',
-    titulo: 'Clic en cualquier parte de la celda',
-    desc: 'Antes, tocar sobre un icono (DH, parking) no abría el detalle. Ahora puedes tocar en cualquier punto de la celda y siempre se abre el resumen del turno.'
+    ico: '🏥',
+    titulo: 'Baja Médica sobre un turno ya puesto',
+    desc: 'Si te dan la baja y ya tenías el turno registrado, ya no hace falta borrar nada: desde el propio historial pulsas «Convertir en Baja Laboral». Si es tu primera baja del año, se abona el 100% de las horas; si no, se descuentan los 3 primeros días y desde el 4º se abona el 75%.'
   },
   {
-    ico: '💬',
-    titulo: 'Botón de ayuda arrastrable',
-    desc: 'El botón de WhatsApp ahora es más pequeño y puedes moverlo a cualquier posición de la pantalla sin que moleste. Toca para abrir el chat, arrastra para recolocarlo.'
+    ico: '⏳',
+    titulo: 'Reserva de HTDL y Art. 51/52',
+    desc: 'Al registrar una Reserva de HTDL o Artículo 51/52, ahora solo pides la hora de toma y de deje. Si luego «Pinchas / Verificas» el turno, la app te deja meter el tren real (ida, vuelta o pernocta) y recalcula todo con tu tarifa según el rol activo.'
   },
   {
-    ico: '🗑️',
-    titulo: 'Eliminación instantánea',
-    desc: 'Al eliminar un turno, el calendario se actualiza al instante: la celda se limpia, el popup se cierra y todo se refresca en un solo paso.'
+    ico: '💰',
+    titulo: 'Desglose Económico reorganizado',
+    desc: 'El resumen del mes ahora está en tarjetas separadas y más claras (Compensación económica, Pluses, Información adicional), y al final aparece bien grande el Total a Pagar del mes, sumando todo automáticamente.'
   },
   {
-    ico: '⭐',
-    titulo: 'Control de DOP en Stats',
-    desc: 'Nueva barra de progreso en el panel de Estadísticas que muestra cuántos DOP llevas usados en el año (X de 6), con los meses utilizados y los disponibles.'
+    ico: '📄',
+    titulo: 'Sube tu horario con una foto',
+    desc: 'Ya no hace falta que el cuadrante sea un PDF: ahora puedes sacarle una foto (o una captura) y la app lo reconoce igual de bien, gracias al nuevo lector de imágenes integrado.'
   },
   {
-    ico: '📋',
-    titulo: 'Pop-up simplificado',
-    desc: 'El detalle del turno ahora muestra solo lo esencial: tren, ruta y horario. Los datos económicos siguen disponibles en el historial del mes con el botón «Ver más detalles».'
+    ico: '👤',
+    titulo: 'Perfil por rol: Tripulante / Auxiliar',
+    desc: 'Elige tu rol en Ajustes y las tarifas de HTDL, nocturnidad y Artículo 51/52 se autocompletan solas según el rol activo — sin tener que introducirlas a mano si no quieres.'
   }
 ];
 
@@ -14537,7 +14722,182 @@ function mostrarAvisoListaNegra(persona, onContinuar){
 })();
 
 
-/* ══════════ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido, aislado) ══════════ */
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — PANEL DE ADMINISTRADOR (horario y gráfico globales)
+   Conectado a Supabase. La "Publishable key" es pública y segura
+   para el navegador — toda la seguridad real vive en las políticas
+   RLS del servidor (solo un perfil con rol='admin' puede escribir).
+   100% aditivo: no toca TV/AJ ni ningún dato local existente.
+═══════════════════════════════════════════════════════════ */
+const SUPABASE_URL_ADMIN = 'https://xoftsdupynwhzxsiusox.supabase.co';
+const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
+const sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
+
+let perfilAdminActual = null; // {id, email, rol}
+let _emailAdminPendiente = null;
+
+function abrirAccesoAdmin(){
+  openOv('ov-admin-login');
+}
+
+async function enviarCodigoAdmin(){
+  var email = document.getElementById('adminEmailInput').value.trim();
+  var msg = document.getElementById('adminLoginMsg');
+  var btn = document.getElementById('btnEnviarCodigoAdmin');
+  if(!email){ msg.innerHTML = '<div class="msg-error">Escribe tu correo.</div>'; return; }
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  var resp = await sbAdmin.auth.signInWithOtp({ email: email });
+  btn.disabled = false; btn.textContent = 'Enviar código de acceso';
+  if(resp.error){
+    msg.innerHTML = '<div class="msg-error">No se pudo enviar: '+resp.error.message+'</div>';
+  } else {
+    msg.innerHTML = '<div class="msg-ok">✅ Revisa tu correo. Busca el código de 6 dígitos y escríbelo abajo.</div>';
+    document.getElementById('bloqueCodigoOtp').style.display = 'block';
+    _emailAdminPendiente = email;
+  }
+}
+
+async function verificarCodigoAdmin(){
+  var email = _emailAdminPendiente;
+  var codigo = document.getElementById('adminCodigoInput').value.trim();
+  var msg = document.getElementById('adminLoginMsg');
+  if(!email || !codigo){ msg.innerHTML = '<div class="msg-error">Falta el correo o el código.</div>'; return; }
+  var resp = await sbAdmin.auth.verifyOtp({ email: email, token: codigo, type: 'email' });
+  if(resp.error){
+    msg.innerHTML = '<div class="msg-error">Código incorrecto o caducado: '+resp.error.message+'</div>';
+    return;
+  }
+  msg.innerHTML = '<div class="msg-ok">✅ Verificado correctamente.</div>';
+  if(resp.data && resp.data.user){
+    await cargarPerfilYVerificarAdmin(resp.data.user);
+  }
+}
+
+async function cargarPerfilYVerificarAdmin(user){
+  var resp = await sbAdmin.from('perfiles').select('*').eq('id', user.id).single();
+  if(resp.error || !resp.data) return;
+  perfilAdminActual = resp.data;
+  var btnAdmin = document.getElementById('hbtn-admin');
+  if(perfilAdminActual.rol === 'admin'){
+    if(btnAdmin) btnAdmin.classList.add('es-admin');
+    closeOv('ov-admin-login');
+    document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
+    openOv('ov-panel-admin');
+    refrescarEstadoArchivosAdmin();
+  } else {
+    var msg = document.getElementById('adminLoginMsg');
+    if(msg) msg.innerHTML = '<div class="msg-error">Este correo no tiene permisos de administrador.</div>';
+  }
+}
+
+// Detecta automáticamente si ya había una sesión de admin activa
+// (por ejemplo, al recargar la página tras verificar el código).
+sbAdmin.auth.onAuthStateChange(function(event, session){
+  if(session && session.user){
+    cargarPerfilYVerificarAdmin(session.user);
+  }
+});
+
+async function subirArchivoGlobalAdmin(tipo, file){
+  if(!file || !perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elEstado = document.getElementById(tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion');
+  elEstado.textContent = 'Subiendo...';
+  var path = tipo + '/' + Date.now() + '_' + file.name;
+
+  var subida = await sbAdmin.storage.from('admin-archivos').upload(path, file, { upsert: true });
+  if(subida.error){
+    elEstado.textContent = 'Error al subir: ' + subida.error.message;
+    return;
+  }
+  var urlData = sbAdmin.storage.from('admin-archivos').getPublicUrl(path);
+
+  var tabla = await sbAdmin.from('config_global').upsert({
+    tipo: tipo,
+    nombre_archivo: file.name,
+    url_archivo: urlData.data.publicUrl,
+    fecha_subida: new Date().toISOString(),
+    subido_por: perfilAdminActual.id
+  });
+  if(tabla.error){
+    elEstado.textContent = 'Archivo subido, pero no se pudo registrar: ' + tabla.error.message;
+    return;
+  }
+  refrescarEstadoArchivosAdmin();
+  toast('✅ Archivo publicado para todos');
+}
+
+// NUEVO — Sube el Gráfico + el Informe de Intervención, junto con el
+// nombre del servicio y la fecha de inicio. NO procesa los PDF aquí
+// (el admin no necesita esperar el cruce) — cada compañero los
+// descarga y los cruza en su propio móvil, reutilizando las mismas
+// funciones (pdfToLines/parseGraficoTurnos/parseAgentsTable/
+// construirDiasDesdeCruce) que ya usaba el formulario manual.
+async function subirIntervencionGlobalAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elEstado = document.getElementById('estadoGraficoIntervencion');
+  var nombre = document.getElementById('nombreServicioIntervencion').value.trim();
+  var fecha = document.getElementById('fechaInicioIntervencion').value;
+  var fGrafico = document.getElementById('fileIntervencionGrafico').files[0];
+  var fInforme = document.getElementById('fileIntervencionInforme').files[0];
+
+  if(!nombre || !fecha || !fGrafico || !fInforme){
+    elEstado.classList.remove('sin-archivo');
+    elEstado.textContent = 'Faltan datos: nombre del servicio, fecha, y los 2 PDF son obligatorios.';
+    return;
+  }
+
+  elEstado.textContent = 'Subiendo Gráfico...';
+  var pathGrafico = 'grafico_intervencion/' + Date.now() + '_grafico_' + fGrafico.name;
+  var subidaGrafico = await sbAdmin.storage.from('admin-archivos').upload(pathGrafico, fGrafico, { upsert: true });
+  if(subidaGrafico.error){
+    elEstado.textContent = 'Error al subir el Gráfico: ' + subidaGrafico.error.message;
+    return;
+  }
+
+  elEstado.textContent = 'Subiendo Informe...';
+  var pathInforme = 'grafico_intervencion/' + Date.now() + '_informe_' + fInforme.name;
+  var subidaInforme = await sbAdmin.storage.from('admin-archivos').upload(pathInforme, fInforme, { upsert: true });
+  if(subidaInforme.error){
+    elEstado.textContent = 'Error al subir el Informe: ' + subidaInforme.error.message;
+    return;
+  }
+
+  var urlGrafico = sbAdmin.storage.from('admin-archivos').getPublicUrl(pathGrafico);
+  var urlInforme = sbAdmin.storage.from('admin-archivos').getPublicUrl(pathInforme);
+
+  var tabla = await sbAdmin.from('config_global').upsert({
+    tipo: 'grafico_intervencion',
+    nombre_archivo: fGrafico.name,
+    url_archivo: urlGrafico.data.publicUrl,
+    nombre_archivo_informe: fInforme.name,
+    url_archivo_informe: urlInforme.data.publicUrl,
+    nombre_servicio: nombre,
+    fecha_inicio: fecha,
+    fecha_subida: new Date().toISOString(),
+    subido_por: perfilAdminActual.id
+  });
+  if(tabla.error){
+    elEstado.textContent = 'Archivos subidos, pero no se pudo registrar: ' + tabla.error.message;
+    return;
+  }
+  elEstado.classList.remove('sin-archivo');
+  elEstado.innerHTML = 'Intervención activa: <b>'+nombre+'</b><br>Desde: '+fecha;
+  toast('✅ Intervención publicada para todos');
+}
+
+async function refrescarEstadoArchivosAdmin(){
+  var resp = await sbAdmin.from('config_global').select('*');
+  if(!resp.data) return;
+  resp.data.forEach(function(fila){
+    var id = fila.tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion';
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.classList.remove('sin-archivo');
+    el.innerHTML = 'Archivo activo: <b>'+fila.nombre_archivo+'</b><br>Subido: '+new Date(fila.fecha_subida).toLocaleString('es-ES');
+  });
+}
+
+
 (function(){
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -14545,7 +14905,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 // ── REGISTRO DE BASES (independientes entre sí) ──
 const BASES = {
   barcelona: { label: 'Barcelona', month: '—', data: null },
-  madrid:    { label: 'Madrid',    month: '—', data: null }
+  madrid:    { label: 'Madrid',    month: '—', data: null },
+  // NUEVO — Horario General publicado por el Panel de Administrador
+  // (Supabase). Sustituye a la subida manual de Barcelona/Madrid
+  // para el usuario normal — sigue existiendo por si algún día se
+  // quiere volver al modo manual, pero ya no se muestra en pantalla.
+  global: { label: 'Horario General', month: '—', data: null }
 };
 let activeBaseKey = null;
 let activeBase = null;
@@ -14582,6 +14947,158 @@ function atCargarBases(){
 }
 atCargarBases();
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Horario General (publicado por el Panel de Admin).
+   Formato esperado del CSV/XLSX:
+     id,nombre,1,2,3,...,31
+     1234,Juan Perez,632,DO,9732 632,...
+   Produce exactamente el mismo formato [id, nombre, {dia:texto}]
+   que ya usa parsePageWords() para el PDF — así todo el buscador,
+   perfil y comparador de compañeros funciona igual, sin tocarlos.
+═══════════════════════════════════════════════════════════ */
+function parseHorarioGeneralCSV(texto){
+  var lineas = texto.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  if(lineas.length<2) return [];
+  var cabecera = lineas[0].split(',').map(function(h){ return h.trim(); });
+  var idxId = cabecera.findIndex(function(h){ return h.toLowerCase()==='id'; });
+  var idxNombre = cabecera.findIndex(function(h){ return h.toLowerCase()==='nombre'; });
+  var idxDias = [];
+  cabecera.forEach(function(h,i){ if(/^\d+$/.test(h)) idxDias.push({col:i, dia:h}); });
+  var out = [];
+  for(var li=1; li<lineas.length; li++){
+    var cols = lineas[li].split(',');
+    var id = idxId>=0 ? (cols[idxId]||'').trim() : '';
+    var nombre = idxNombre>=0 ? (cols[idxNombre]||'').trim() : '';
+    if(!nombre) continue;
+    var days = {};
+    idxDias.forEach(function(d){
+      var val = (cols[d.col]||'').trim();
+      if(val) days[d.dia] = val;
+    });
+    out.push([id, nombre, days]);
+  }
+  return out;
+}
+
+function parseHorarioGeneralXLSX(buf){
+  if(typeof XLSX === 'undefined') return [];
+  var wb = XLSX.read(buf, {type:'array'});
+  var hoja = wb.Sheets[wb.SheetNames[0]];
+  var filas = XLSX.utils.sheet_to_json(hoja, {header:1});
+  if(filas.length<2) return [];
+  var cabecera = filas[0].map(function(h){ return String(h||'').trim(); });
+  var idxId = cabecera.findIndex(function(h){ return h.toLowerCase()==='id'; });
+  var idxNombre = cabecera.findIndex(function(h){ return h.toLowerCase()==='nombre'; });
+  var idxDias = [];
+  cabecera.forEach(function(h,i){ if(/^\d+$/.test(h)) idxDias.push({col:i, dia:h}); });
+  var out = [];
+  for(var fi=1; fi<filas.length; fi++){
+    var cols = filas[fi];
+    var id = idxId>=0 ? String(cols[idxId]||'').trim() : '';
+    var nombre = idxNombre>=0 ? String(cols[idxNombre]||'').trim() : '';
+    if(!nombre) continue;
+    var days = {};
+    idxDias.forEach(function(d){
+      var val = String(cols[d.col]||'').trim();
+      if(val) days[d.dia] = val;
+    });
+    out.push([id, nombre, days]);
+  }
+  return out;
+}
+
+// Carga el horario publicado por el admin (Supabase) y, si existe,
+// lo activa automáticamente — el usuario ya no elige base a mano.
+// Reutiliza sbAdmin (ya conectado, declarado antes en este script).
+async function cargarHorarioGlobalDesdeAdmin(){
+  try{
+    if(typeof sbAdmin === 'undefined') return false;
+    var resp = await sbAdmin.from('config_global').select('*').eq('tipo','horario_general').single();
+    if(resp.error || !resp.data || !resp.data.url_archivo) return false;
+    var archivoResp = await fetch(resp.data.url_archivo);
+    if(!archivoResp.ok) return false;
+    var esXlsx = /\.xlsx$/i.test(resp.data.nombre_archivo||'');
+    var datos;
+    if(esXlsx){
+      var buf = await archivoResp.arrayBuffer();
+      datos = parseHorarioGeneralXLSX(buf);
+    } else {
+      var texto = await archivoResp.text();
+      datos = parseHorarioGeneralCSV(texto);
+    }
+    if(!datos || !datos.length) return false;
+    BASES.global.data = datos;
+    BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
+    return true;
+  }catch(e){
+    console.log('No se pudo cargar el horario general publicado:', e);
+    return false;
+  }
+}
+
+// Se expone a window porque el botón que abre el buscador vive
+// fuera de este módulo aislado (en el HTML principal de la app).
+window.abrirBuscadorConHorarioGlobal = async function(){
+  openOv('ov-buscador');
+  var statusEl = document.getElementById('estadoHorarioGlobalBuscador');
+  if(statusEl) statusEl.textContent = 'Buscando el horario publicado...';
+
+  var ok = await cargarHorarioGlobalDesdeAdmin();
+  if(ok){
+    activateBase('global');
+  } else if(statusEl){
+    statusEl.textContent = 'Todavía no hay ningún horario publicado por el administrador. Vuelve a intentarlo más tarde.';
+  }
+
+  // NUEVO — Intervención: se descarga y se cruza en segundo plano,
+  // igual que el formulario manual, pero sin que el usuario tenga
+  // que hacer nada. Si ya existe un servicio con el mismo nombre
+  // (por ejemplo, tras una recarga), no se duplica.
+  cargarIntervencionGlobalDesdeAdmin();
+};
+
+// NUEVO — Descarga el Gráfico + el Informe publicados por el admin
+// y reutiliza EXACTAMENTE el mismo pipeline que ya usaba el
+// formulario manual (pdfToLines → parseGraficoTurnos/parseAgentsTable
+// → construirDiasDesdeCruce), sin tocar ninguna de esas funciones.
+async function cargarIntervencionGlobalDesdeAdmin(){
+  try{
+    if(typeof sbAdmin === 'undefined') return false;
+    var resp = await sbAdmin.from('config_global').select('*').eq('tipo','grafico_intervencion').single();
+    if(resp.error || !resp.data || !resp.data.url_archivo || !resp.data.url_archivo_informe) return false;
+    var d = resp.data;
+
+    // Evita volver a procesar si ya está cargado este mismo servicio.
+    if(INTERVENTOR_SERVICES.some(function(s){ return s.name === d.nombre_servicio; })) return true;
+
+    var elEstado = document.getElementById('estadoIntervencionBuscador');
+    if(elEstado) elEstado.textContent = 'Sincronizando intervención («'+d.nombre_servicio+'»)...';
+
+    var respGrafico = await fetch(d.url_archivo);
+    var respInforme = await fetch(d.url_archivo_informe);
+    if(!respGrafico.ok || !respInforme.ok) return false;
+
+    var graficoBuf = await respGrafico.arrayBuffer();
+    var graficoLines = await pdfToLines(pdfjsLib, new Uint8Array(graficoBuf));
+    var turnosData = parseGraficoTurnos(graficoLines);
+
+    var informeBuf = await respInforme.arrayBuffer();
+    var informeLines = await pdfToLines(pdfjsLib, new Uint8Array(informeBuf));
+    var agentsData = parseAgentsTable(informeLines, d.fecha_inicio);
+
+    if(!agentsData || Object.keys(turnosData).length === 0) return false;
+
+    var diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
+    INTERVENTOR_SERVICES.push({ name: d.nombre_servicio, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData });
+    atGuardarInterventor();
+    if(elEstado) elEstado.textContent = 'Intervención sincronizada: «'+d.nombre_servicio+'»';
+    return true;
+  }catch(e){
+    console.log('No se pudo cargar la intervención publicada:', e);
+    return false;
+  }
+}
+
 function refreshBaseCards(){
   const b = BASES.barcelona, m = BASES.madrid;
   document.getElementById('meta-barcelona').textContent = b.data ? `${b.data.length} empleados · ${b.month}` : 'Aún sin plantilla cargada';
@@ -14617,7 +15134,457 @@ document.getElementById('del-madrid').addEventListener('click', (e)=>{
   atEliminarBase('madrid', 'Madrid');
 });
 
+/* ══════════ MÓDULO AÑADIDO: Interventor (Gráfico + Informe) ══════════
+   100% aditivo y aislado: no modifica BASES/activeBase/renderTrain
+   existentes, solo añade una fuente de datos EXTRA que se suma a los
+   resultados de "Buscar por tren" cuando hay coincidencia. Reutiliza
+   showPanel/toggleForm/generarCalendarioUI/pdfjsLib ya definidos arriba. ══════════ */
+
+async function pdfToLines(pdfjsLib, data){
+  const doc = await pdfjsLib.getDocument({data}).promise;
+  const allLines = [];
+  for(let p=1; p<=doc.numPages; p++){
+    const page = await doc.getPage(p);
+    const content = await page.getTextContent();
+    const items = content.items.map(it => ({
+      str: it.str, x: it.transform[4], y: it.transform[5], w: it.width
+    })).filter(it => it.str !== '');
+    const rows = new Map();
+    for(const it of items){
+      const yKey = Math.round(it.y);
+      let foundKey = null;
+      for(const k of rows.keys()){ if(Math.abs(k - yKey) <= 2){ foundKey = k; break; } }
+      if(foundKey === null) foundKey = yKey;
+      if(!rows.has(foundKey)) rows.set(foundKey, []);
+      rows.get(foundKey).push(it);
+    }
+    const sortedYs = [...rows.keys()].sort((a,b)=>b-a);
+    for(const y of sortedYs){
+      const rowItems = rows.get(y).sort((a,b)=>a.x-b.x);
+      let line = '';
+      const CHAR_W = 4.3;
+      for(const it of rowItems){
+        const startCol = Math.round(it.x / CHAR_W);
+        const curCol = line.length;
+        if(startCol > curCol) line += ' '.repeat(startCol - curCol);
+        line += it.str;
+      }
+      allLines.push(line);
+    }
+    allLines.push('');
+  }
+  return allLines;
+}
+
+function parseAgentsTable(lines, startDateISO){
+  const dateTokenRe = /(\d{2})\s+([LMXJVSD])\b/g;
+  let headerIdx = -1, dates = [], dow = [];
+  for(let i=0;i<lines.length;i++){
+    const l = lines[i];
+    const matches = [...l.matchAll(dateTokenRe)];
+    if(matches.length >= 3){
+      headerIdx = i;
+      dow = matches.map(m => m[2]);
+      dates = matches.map(m => m[1]);
+      break;
+    }
+  }
+  if(headerIdx === -1) return null;
+  const nCols = dates.length;
+
+  let isoDates = null, dowMismatch = false;
+  if(startDateISO){
+    const DOW_LETTER_A = ['D','L','M','X','J','V','S'];
+    const start = new Date(startDateISO + 'T00:00:00');
+    isoDates = [];
+    for(let i=0;i<nCols;i++){
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      isoDates.push(iso);
+      if(DOW_LETTER_A[d.getDay()] !== dow[i]) dowMismatch = true;
+    }
+  }
+
+  const agents = [];
+  const rowRe = /^\s*(\d{6,8})\s+(.*)$/;
+  for(let i=headerIdx+1;i<lines.length;i++){
+    const l = lines[i];
+    if(!l.trim()) continue;
+    const m = rowRe.exec(l);
+    if(!m) continue;
+    const matricula = m[1];
+    const rest = m[2].trim();
+    const tokens = rest.split(/\s+/);
+    if(tokens.length < nCols) continue;
+    const values = tokens.slice(tokens.length - nCols);
+    const nombre = tokens.slice(0, tokens.length - nCols).join(' ');
+    agents.push({matricula, nombre, valores: values});
+  }
+  return {dates, dow, agents, isoDates, dowMismatch};
+}
+
+function parseGraficoTurnos(lines){
+  const n = lines.length;
+  const FULL = new Set('LMXJVSD');
+  function norm(l){
+    return l.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,'');
+  }
+  const blockStarts = [];
+  for(let i=0;i<n;i++){
+    const s = lines[i].replace(/\s+$/,'');
+    if(s.length < 40) continue;
+    if(s.includes('Jornada ciclo') || s.includes('Legal')) continue;
+    if(/\d{2}:\d{2}\s*$/.test(s)) blockStarts.push(i);
+  }
+  const specialRe = /^\s*(\d{3,4})\s+([LMXJVSD]{1,8})\b(.*)$/;
+  function isSpecial(l){
+    const nl = norm(l);
+    if(!specialRe.test(l)) return false;
+    return nl.includes('DESCANSO') || nl.includes('INCIDENCIA') || nl.includes('TRANSICION');
+  }
+  function isBareIncidencia(l){
+    const m = /^\s*([LMXJVSD]{1,8})\b/.exec(l);
+    if(!m) return false;
+    if(/^\s*\d/.test(l)) return false;
+    const nl = norm(l);
+    return nl.includes('INCIDENCIA') || nl.includes('DESCANSO') || nl.includes('TRANSICION');
+  }
+  const spans = [];
+  for(let bi=0; bi<blockStarts.length; bi++){
+    const start = blockStarts[bi];
+    const end = (bi+1 < blockStarts.length) ? blockStarts[bi+1] : n;
+    let cut = end;
+    for(let j=start+1;j<end;j++){
+      if(isSpecial(lines[j]) || isBareIncidencia(lines[j])){ cut = j; break; }
+    }
+    if(cut > start) spans.push([start, cut]);
+  }
+  const anchorRe = /^\s*(\d{3,4})\b(?!\/)/;
+  function findTurnoInSpan(lo, hi){
+    for(let i=lo;i<hi;i++){
+      const m = anchorRe.exec(lines[i]);
+      if(m) return m[1];
+    }
+    return null;
+  }
+  function findDaycodeInSpan(lo, hi){
+    for(let i=lo;i<hi;i++){
+      const l = lines[i];
+      const stripped = l.trim();
+      if(!stripped) continue;
+      if(/^[LMXJVSD]{1,8}$/.test(stripped)) return stripped;
+      let m = /^\s*\d{3,4}\s+([LMXJVSD]{1,8})\b/.exec(l);
+      if(m) return m[1];
+      m = /^\s*([LMXJVSD]{1,8})\b/.exec(l);
+      if(m) return m[1];
+    }
+    return null;
+  }
+  function extractTrainsInRange(lo, hi){
+    const out = [];
+    for(let i=lo;i<hi;i++){
+      let l = lines[i];
+      l = l.replace(/^(\s*)(\d{3,4})\b/, (m0,g1,g2)=> g1 + ' '.repeat(g2.length));
+      const used = [];
+      const overlaps = (s,e) => used.some(([us,ue]) => !(e<=us || s>=ue));
+      const times = [...l.matchAll(/\d{2}:\d{2}/g)].map(m=>m[0]);
+      const hora = times.length ? times[0] : null;
+      for(const [re, kind] of [
+        [/\bAUX\s+(\d{3,6})\b/g, 'AUX'],
+        [/\bUND\s*M[UÚ]LT\s+(\d{3,6})\b/g, 'UNDMULT'],
+        [/\bV(\d{5,6})\b/g, 'V'],
+      ]){
+        for(const m of l.matchAll(re)){
+          out.push({line:i, train_raw: m[1], kind, hora});
+          used.push([m.index, m.index+m[0].length]);
+        }
+      }
+      for(const m of l.matchAll(/(?<![A-Za-z0-9])(\d{4,6})(?![A-Za-z0-9])/g)){
+        if(overlaps(m.index, m.index+m[0].length)) continue;
+        if(['2024','2025','2026'].includes(m[1])) continue;
+        out.push({line:i, train_raw: m[1], kind:'NORMAL', hora});
+      }
+    }
+    return out;
+  }
+  const groups = [];
+  let pending = [];
+  let pendingAnchor = null;
+  let covered = new Set();
+  function isFullNow(){
+    return covered.size === FULL.size && [...FULL].every(ch => covered.has(ch));
+  }
+  function flush(){
+    if(pending.length){
+      const recs = [];
+      for(const [slo,shi] of pending){
+        recs.push(...extractTrainsInRange(slo, shi));
+      }
+      groups.push({turno: pendingAnchor, records: recs});
+    }
+    pending = [];
+    pendingAnchor = null;
+    covered = new Set();
+  }
+  for(const [slo, shi] of spans){
+    const spanAnchor = findTurnoInSpan(slo, shi);
+    const spanDaycode = findDaycodeInSpan(slo, shi);
+    if(pendingAnchor !== null && isFullNow()) flush();
+    if(pendingAnchor !== null && spanAnchor !== null && spanAnchor !== pendingAnchor) flush();
+    pending.push([slo, shi]);
+    if(spanDaycode) for(const ch of spanDaycode) covered.add(ch);
+    if(pendingAnchor === null && spanAnchor !== null) pendingAnchor = spanAnchor;
+  }
+  if(pending.length) flush();
+
+  const allRecords = [];
+  for(const g of groups){
+    for(const r of g.records) allRecords.push({...r, turno: g.turno, daycode: null});
+  }
+  const dayMarkerLines = [];
+  for(let i=0;i<n;i++){
+    const stripped = lines[i].trim();
+    if(!stripped) continue;
+    if(/^[LMXJVSD]{1,8}$/.test(stripped)){ dayMarkerLines.push([i, stripped]); continue; }
+    let m = /^\s*\d{3,4}\s+([LMXJVSD]{1,8})\b/.exec(lines[i]);
+    if(m){ dayMarkerLines.push([i, m[1]]); continue; }
+    m = /^\s*([LMXJVSD]{1,8})\b/.exec(lines[i]);
+    if(m) dayMarkerLines.push([i, m[1]]);
+  }
+  function nearestDaycode(lineIdx){
+    let best = null, bestDist = Infinity;
+    for(const [li, dc] of dayMarkerLines){
+      const d = Math.abs(li - lineIdx);
+      if(d < bestDist){ bestDist = d; best = dc; }
+    }
+    return best;
+  }
+  for(const r of allRecords) r.daycode = nearestDaycode(r.line);
+  allRecords.sort((a,b)=>a.line-b.line);
+  const anchorLines = [];
+  for(let i=0;i<n;i++){ if(anchorRe.test(lines[i])) anchorLines.push(i); }
+  const origTurno = allRecords.map(r=>r.turno);
+  const origDay = allRecords.map(r=>r.daycode);
+  for(let i=1;i<allRecords.length;i++){
+    const prev = allRecords[i-1], cur = allRecords[i];
+    const gap = cur.line - prev.line;
+    if(gap <= 2){
+      const anchorsBetween = anchorLines.filter(a => a > prev.line && a <= cur.line);
+      if(anchorsBetween.length === 0){
+        if(cur.turno !== origTurno[i-1]) cur.turno = origTurno[i-1];
+        if(cur.daycode !== origDay[i-1]) cur.daycode = origDay[i-1];
+      }
+    }
+  }
+  const byTurno = {};
+  for(const r of allRecords){
+    if(!r.turno) continue;
+    const trainNorm = r.train_raw.replace(/^0+(?=\d)/,'');
+    if(!byTurno[r.turno]) byTurno[r.turno] = [];
+    const item = {train: trainNorm, train_raw: r.train_raw, kind: r.kind, daycode: r.daycode, hora: r.hora};
+    const dupKey = JSON.stringify(item);
+    if(!byTurno[r.turno].some(x=>JSON.stringify(x)===dupKey)) byTurno[r.turno].push(item);
+  }
+  return byTurno;
+}
+
+// ── datos + persistencia de los servicios de Interventor (independiente de BASES) ──
+let INTERVENTOR_SERVICES = [];
+const INTERVENTOR_STORAGE_KEY = 'appTurnoInterventorServicios';
+function atGuardarInterventor(){
+  try{ localStorage.setItem(INTERVENTOR_STORAGE_KEY, JSON.stringify(INTERVENTOR_SERVICES)); }
+  catch(e){ console.warn('No se pudieron guardar los servicios de interventor.', e); }
+}
+function atCargarInterventor(){
+  try{
+    const raw = localStorage.getItem(INTERVENTOR_STORAGE_KEY);
+    if(!raw) return;
+    const saved = JSON.parse(raw);
+    if(Array.isArray(saved)) INTERVENTOR_SERVICES = saved;
+  }catch(e){ console.warn('No se pudieron leer los servicios de interventor guardados.', e); }
+}
+atCargarInterventor();
+
+function refreshInterventorCard(){
+  const n = INTERVENTOR_SERVICES.length;
+  document.getElementById('meta-interventor').textContent = n
+    ? `${n} servicio(s) cargado(s)`
+    : 'Aún sin PDFs cargados';
+  document.getElementById('badge-interventor').textContent = n ? 'LISTO' : 'SUBIR PDFs';
+  document.getElementById('badge-interventor').className = 'base-badge ' + (n ? 'badge-ok' : 'badge-pend');
+  document.getElementById('del-interventor').style.display = n ? 'flex' : 'none';
+  renderInterventorServiceList();
+}
+function renderInterventorServiceList(){
+  const el = document.getElementById('interventorServiceList');
+  if(!el) return;
+  el.innerHTML = '';
+  INTERVENTOR_SERVICES.forEach((s, idx) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--div);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12px';
+    div.innerHTML = `<span>${s.name} <span style="color:var(--tx3)">(${Object.keys(s.turnos||{}).length} turnos)</span></span>
+      <button class="ubtn ubtn-cancel" style="padding:4px 10px;font-size:11px" data-idx="${idx}">Quitar</button>`;
+    div.querySelector('button').addEventListener('click', () => {
+      INTERVENTOR_SERVICES.splice(idx, 1);
+      atGuardarInterventor();
+      refreshInterventorCard();
+    });
+    el.appendChild(div);
+  });
+}
+refreshInterventorCard();
+
+document.getElementById('del-interventor').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const ok = confirm('¿Eliminar TODOS los servicios de Interventor cargados? Tendrás que volver a subir los PDFs.');
+  if(!ok) return;
+  INTERVENTOR_SERVICES = [];
+  atGuardarInterventor();
+  refreshInterventorCard();
+});
+document.getElementById('card-interventor').addEventListener('click', ()=>{
+  toggleForm('form-interventor');
+});
+document.getElementById('cancel-interventor').addEventListener('click', ()=>{
+  document.getElementById('form-interventor').classList.remove('on');
+});
+document.getElementById('filepick-interventor-grafico').addEventListener('click', ()=> document.getElementById('file-interventor-grafico').click());
+document.getElementById('filepick-interventor-informe').addEventListener('click', ()=> document.getElementById('file-interventor-informe').click());
+
+let interventorStartDateISO = '';
+function iniciarCalendarioInterventor(){
+  generarCalendarioUI('calInterventorInicio', (fecha)=>{
+    interventorStartDateISO = fecha.getFullYear() + '-' + String(fecha.getMonth()+1).padStart(2,'0') + '-' + String(fecha.getDate()).padStart(2,'0');
+    checkInterventorFormReady();
+  });
+}
+
+function checkInterventorFormReady(){
+  const reusar = document.getElementById('reuseGraficoCheck').checked && ultimoGraficoTurnos;
+  const f1 = reusar ? true : document.getElementById('file-interventor-grafico').files[0];
+  const f2 = document.getElementById('file-interventor-informe').files[0];
+  document.getElementById('go-interventor').disabled = !(interventorStartDateISO && f1 && f2);
+}
+document.getElementById('file-interventor-grafico').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  document.getElementById('fpname-interventor-grafico').textContent = f ? f.name : '';
+  checkInterventorFormReady();
+});
+document.getElementById('file-interventor-informe').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  document.getElementById('fpname-interventor-informe').textContent = f ? f.name : '';
+  checkInterventorFormReady();
+});
+document.getElementById('reuseGraficoCheck').addEventListener('change', (e)=>{
+  const on = e.target.checked;
+  document.getElementById('filepick-interventor-grafico').style.display = on ? 'none' : 'flex';
+  checkInterventorFormReady();
+});
+
+function construirDiasDesdeCruce(agentsData, turnosData){
+  const DOW_LETTER_B = ['D','L','M','X','J','V','S'];
+  const out = [];
+  for(const agent of agentsData.agents){
+    const dias = {};
+    agent.valores.forEach((turno, i) => {
+      const iso = (agentsData.isoDates||[])[i];
+      if(!iso) return;
+      const dt = new Date(iso+'T00:00:00');
+      const dow = DOW_LETTER_B[dt.getDay()];
+      const legs = (turnosData[turno]||[]).filter(l => {
+        const dc = l.daycode||'';
+        return dc === '' || dc.includes(dow);
+      });
+      if(legs.length){
+        dias[iso] = legs.map(l=>l.train_raw).join(' ');
+      }
+    });
+    out.push([agent.matricula, agent.nombre, dias]);
+  }
+  return out;
+}
+
+// ── Caché del último Gráfico de Intervención procesado — el gráfico apenas
+//    cambia (dura semanas), pero el Informe/Servicio Previsto se renueva
+//    cada 10 días más o menos. Así no hay que volver a subir el gráfico
+//    cada vez, solo el informe nuevo. ──
+let ultimoGraficoTurnos = null;
+let ultimoGraficoNombrePdf = '';
+function actualizarAvisoReusarGrafico(){
+  const label = document.getElementById('reuseGraficoLabel');
+  if(ultimoGraficoTurnos){
+    label.style.display = 'flex';
+    document.getElementById('reuseGraficoNombre').textContent = ultimoGraficoNombrePdf;
+  } else {
+    label.style.display = 'none';
+  }
+}
+
+document.getElementById('go-interventor').addEventListener('click', async ()=>{
+  const name = document.getElementById('name-interventor').value.trim() || 'Interventor';
+  const reusar = document.getElementById('reuseGraficoCheck').checked && ultimoGraficoTurnos;
+  const graficoFile = document.getElementById('file-interventor-grafico').files[0];
+  const informeFile = document.getElementById('file-interventor-informe').files[0];
+  if(!(reusar || graficoFile) || !informeFile || !interventorStartDateISO) return;
+
+  showPanel('panel-progress');
+  const progressTxt = document.getElementById('progressTxt');
+  const progressBar = document.getElementById('progressBar');
+  const progressErr = document.getElementById('progressErr');
+  progressErr.style.display = 'none';
+  progressBar.style.width = '4%';
+  try{
+    let turnosData;
+    if(reusar){
+      progressTxt.textContent = 'Reutilizando el gráfico de la última vez…';
+      turnosData = ultimoGraficoTurnos;
+      progressBar.style.width = '35%';
+    } else {
+      progressTxt.textContent = 'Leyendo gráfico de intervención…';
+      const graficoBuf = await graficoFile.arrayBuffer();
+      const graficoLines = await pdfToLines(pdfjsLib, new Uint8Array(graficoBuf));
+      progressBar.style.width = '35%';
+      turnosData = parseGraficoTurnos(graficoLines);
+      ultimoGraficoTurnos = turnosData;
+      ultimoGraficoNombrePdf = graficoFile.name;
+    }
+
+    progressTxt.textContent = 'Leyendo informe de agentes…';
+    const informeBuf = await informeFile.arrayBuffer();
+    const informeLines = await pdfToLines(pdfjsLib, new Uint8Array(informeBuf));
+    progressBar.style.width = '70%';
+    const agentsData = parseAgentsTable(informeLines, interventorStartDateISO);
+
+    if(!agentsData) throw new Error('No pude encontrar la tabla de fechas en el informe. ¿Es el PDF correcto?');
+    if(Object.keys(turnosData).length === 0) throw new Error('No encontré turnos con tren en el gráfico. ¿Es el PDF correcto?');
+
+    const diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
+
+    INTERVENTOR_SERVICES.push({ name, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData });
+    atGuardarInterventor();
+    actualizarAvisoReusarGrafico();
+
+    progressTxt.textContent = `¡Listo! ${diasPorAgente.length} agentes cruzados en «${name}».`;
+    progressBar.style.width = '100%';
+    setTimeout(()=>{
+      document.getElementById('form-interventor').classList.remove('on');
+      document.getElementById('reuseGraficoCheck').checked = false;
+      document.getElementById('filepick-interventor-grafico').style.display = 'flex';
+      refreshInterventorCard();
+      showPanel('panel-select');
+    }, 550);
+  }catch(err){
+    console.error(err);
+    progressTxt.textContent = 'No se pudo procesar los PDF.';
+    progressErr.style.display = 'block';
+    progressErr.textContent = (err && err.message) ? err.message : String(err);
+    setTimeout(()=> showPanel('panel-select'), 2600);
+  }
+});
+
 function showPanel(id){
+
   document.querySelectorAll('.at-panel').forEach(p=>p.classList.remove('on'));
   document.getElementById(id).classList.add('on');
 }
@@ -14972,6 +15939,7 @@ generarCalendarioUI('calTrenPanel', (fecha)=>{
   selectedTrainDay = fecha.getDate();
   fecha_seleccionada_busqueda = fecha;
 });
+iniciarCalendarioInterventor();
 
 function cellContainsTrain(cell, trainNum){
   const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
@@ -14991,6 +15959,35 @@ function cellContainsTrain(cell, trainNum){
     }
   }
   return false;
+}
+
+// ── Búsqueda en los servicios de Interventor (Gráfico+Informe) — se suma
+//    a los resultados de "Buscar por tren" sin tocar la lógica de BASES ──
+function normTrainInterventor(s){
+  s = (s||'').replace(/\D/g,'');
+  return s.replace(/^0+(?=\d)/,'');
+}
+function trainMatchesInterventor(inputNorm, storedRaw){
+  const storedNorm = normTrainInterventor(storedRaw);
+  if(storedNorm === inputNorm) return true;
+  if(storedRaw.length > 4 && normTrainInterventor(storedRaw.slice(-4)) === inputNorm) return true;
+  return false;
+}
+function buscarInterventor(rawTrain, fechaDate){
+  const out = [];
+  if(!fechaDate || INTERVENTOR_SERVICES.length===0) return out;
+  const inputNorm = normTrainInterventor(rawTrain);
+  const iso = fechaDate.getFullYear() + '-' + String(fechaDate.getMonth()+1).padStart(2,'0') + '-' + String(fechaDate.getDate()).padStart(2,'0');
+  for(const servicio of INTERVENTOR_SERVICES){
+    for(const [id, name, dias] of servicio.data){
+      const cell = dias[iso];
+      if(!cell) continue;
+      const tokens = cell.split(/\s+/).filter(Boolean);
+      const encontrado = tokens.find(t => trainMatchesInterventor(inputNorm, t));
+      if(encontrado) out.push({id, name, cell, servicio: servicio.name});
+    }
+  }
+  return out;
 }
 
 const trainView = document.getElementById('trainView');
@@ -15015,7 +16012,8 @@ document.getElementById('trGoBtn').addEventListener('click', async ()=>{
       const cell = days[String(selectedTrainDay)];
       if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
     }
-    renderTrain(raw, selectedTrainDay, matches);
+    const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda);
+    renderTrain(raw, selectedTrainDay, matches, interventorMatches);
     // Misma duración que la animación de carga del resultado
     // (mostrarConAnimacionTren, ~380ms), para que "Buscando..." no
     // desaparezca antes de que el resultado esté realmente pintado.
@@ -15051,29 +16049,43 @@ function mostrarConAnimacionTren(contenedor, renderFn){
   }
 }
 
-function renderTrain(trainNum, day, matches){
+function renderTrain(trainNum, day, matches, interventorMatches){
+  interventorMatches = interventorMatches || [];
   const _render = ()=>{
   const wd = weekdayForDay(day);
-  if(matches.length===0){
+  const total = matches.length + interventorMatches.length;
+  if(total===0){
     trainView.innerHTML = `<div class="train-scene">
       <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
-      <div class="train-empty">Nadie de <b>${activeBase.label}</b> hace el tren <b>${trainNum}</b> ese día.</div>
+      <div class="train-empty">Nadie de <b>${activeBase.label}</b> ni ningún interventor cargado hace el tren <b>${trainNum}</b> ese día.</div>
     </div>`;
     return;
   }
-  let rail = `<div class="loco" style="animation-delay:0s">🚆</div>`;
-  matches.forEach((m, idx)=>{
-    const delay = (0.08 + idx*0.09).toFixed(2);
-    rail += `<div class="coupler" style="animation-delay:${delay}s"></div>`;
-    rail += `<div class="wagon" style="animation-delay:${delay}s">
-      <div class="w-av">${initials(m.name)}</div>
-      <div class="w-name">${m.name}</div>
-      ${m.id ? `<div class="w-id">ID ${m.id}</div>` : ''}
+  let filas = '';
+  interventorMatches.forEach((m)=>{
+    filas += `<div class="pcard" style="border-color:var(--nar);background:rgba(249,115,22,.08)">
+      <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${m.name}</div>
+        <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
+      </div>
     </div>`;
   });
+  matches.forEach((m)=>{
+    filas += `<div class="pcard">
+      <div class="pcard-av">${initials(m.name)}</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${m.name}</div>
+        <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+      </div>
+    </div>`;
+  });
+  const partes = [];
+  if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+  if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
   trainView.innerHTML = `<div class="train-scene">
-    <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${matches.length} compañero(s) en <b>${activeBase.label}</b></div>
-    <div class="train-track-resultados"><div class="train-rail">${rail}</div></div>
+    <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
+    <div class="comp-list">${filas}</div>
   </div>`;
   };
   mostrarConAnimacionTren(trainView, _render);
@@ -15197,16 +16209,48 @@ function renderCompanions(day, id, name, cell){
     return;
   }
   const companions = findCompanions(day, id, name, cell);
-  if(companions.length===0){
+
+  // ── NUEVO: buscar también el/los interventor(es) de ese mismo tren ese día ──
+  // Esta vista de "Buscar por nombre" asume siempre julio de 2026 (igual que
+  // weekdayForDay), así que se construye la fecha real con ese mismo supuesto
+  // para poder cruzar contra los servicios de Interventor cargados.
+  const fechaParaInterventor = new Date(2026, 6, day);
+  const trenesDelDia = [...trainTokens(cell)];
+  let interventorMatches = [];
+  for(const t of trenesDelDia){
+    interventorMatches.push(...buscarInterventor(t, fechaParaInterventor));
+  }
+  // dedupe (un mismo interventor puede salir por más de un token de tren)
+  const vistos = new Set();
+  interventorMatches = interventorMatches.filter(m=>{
+    const k = m.id+'|'+m.name+'|'+m.servicio;
+    if(vistos.has(k)) return false;
+    vistos.add(k); return true;
+  });
+
+  if(companions.length===0 && interventorMatches.length===0){
     zone.innerHTML = `<div class="comp-wrap">
       <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${cell}</span></div>
-      <div class="comp-none">Nadie más coincide contigo en ese tren <b>${wd} ${day}</b> según la plantilla.</div>
+      <div class="comp-none">Nadie más coincide contigo en ese tren <b>${wd} ${day}</b> según la plantilla, ni hay ningún interventor cargado para ese tren.</div>
     </div>`;
     return;
   }
+  const partes = [];
+  if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+  if(companions.length) partes.push(`${companions.length} compañero(s)`);
   let html = `<div class="comp-wrap">
-    <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${companions.length} compañero(s) · ${cell}</span></div>
+    <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${partes.join(' · ')} · ${cell}</span></div>
     <div class="comp-list">`;
+  for(const m of interventorMatches){
+    html += `<div class="pcard" style="cursor:default;border-color:var(--nar);background:rgba(249,115,22,.08)">
+      <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${m.name}</div>
+        <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
+        <div class="comp-cell">${m.cell}</div>
+      </div>
+    </div>`;
+  }
   for(const c of companions){
     html += `<div class="pcard" style="cursor:default">
       <div class="pcard-av">${initials(c.name)}</div>
