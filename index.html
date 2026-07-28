@@ -4389,14 +4389,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="admin-card-ico blue">📅</div>
         <div>
           <div class="admin-card-tit">Carga de Horario General</div>
-          <div class="admin-card-sub">Sube el CSV/XLSX de turnos. Se publica al instante para todos.</div>
+          <div class="admin-card-sub">Sube el mismo PDF de turnos que ya usas para Barcelona/Madrid. Se publica al instante para todos.</div>
         </div>
       </div>
       <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
         <div class="fp-ico">📄</div>
-        <div class="fp-txt">Toca para elegir el archivo (CSV o XLSX)</div>
+        <div class="fp-txt">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
       </div>
-      <input type="file" id="fileHorarioGeneral" accept=".csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
+      <input type="file" id="fileHorarioGeneral" accept="application/pdf,.csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
       <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
     </div>
 
@@ -14999,9 +14999,16 @@ async function cargarHorarioGlobalDesdeAdmin(){
     if(resp.error || !resp.data || !resp.data.url_archivo) return false;
     var archivoResp = await fetch(resp.data.url_archivo);
     if(!archivoResp.ok) return false;
-    var esXlsx = /\.xlsx$/i.test(resp.data.nombre_archivo||'');
+    var nombreArchivo = resp.data.nombre_archivo || '';
+    var esXlsx = /\.xlsx$/i.test(nombreArchivo);
+    var esPdf = /\.pdf$/i.test(nombreArchivo);
     var datos;
-    if(esXlsx){
+    if(esPdf){
+      // Mismo PDF que ya usas para Barcelona/Madrid — se lee con el
+      // mismo parser (parsearBufferPdfHorario), sin duplicar lógica.
+      var bufPdf = await archivoResp.arrayBuffer();
+      datos = await parsearBufferPdfHorario(bufPdf);
+    } else if(esXlsx){
       var buf = await archivoResp.arrayBuffer();
       datos = parseHorarioGeneralXLSX(buf);
     } else {
@@ -15666,6 +15673,44 @@ function activateBase(key){
 }
 
 // ═══ PROCESADO DE PDF (cliente, pdf.js) ═══
+// NUEVO — Núcleo de parseo de PDF, extraído de procesarPdfParaBase()
+// para poder reutilizarlo también con el Horario General descargado
+// desde el Panel de Admin. Mismo código exacto, solo separado del
+// manejo de la barra de progreso para que sea reutilizable.
+async function parsearBufferPdfHorario(buf, onProgress){
+  await asegurarPdfWorkerSeguro();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  const numPages = pdf.numPages;
+  const empleados = [];
+  for(let pi=1; pi<=numPages; pi++){
+    if(onProgress) onProgress(pi, numPages);
+    const page = await pdf.getPage(pi);
+    const viewport = page.getViewport({scale:1});
+    const pageHeight = viewport.height;
+    const content = await page.getTextContent();
+    const words = [];
+    for(const item of content.items){
+      const str = (item.str||'').trim();
+      if(!str) continue;
+      const x0 = item.transform[4];
+      const top = pageHeight - item.transform[5];
+      const parts = str.split(/\s+/).filter(Boolean);
+      if(parts.length<=1){
+        words.push({text: str, x0, top});
+      } else {
+        const w = item.width || 0;
+        parts.forEach((p, idx)=>{
+          words.push({text: p, x0: x0 + (w*idx/parts.length), top});
+        });
+      }
+    }
+    const parsed = parsePageWords(words);
+    empleados.push(...parsed);
+    await new Promise(r=>setTimeout(r, 0)); // deja respirar a la UI
+  }
+  return empleados;
+}
+
 async function procesarPdfParaBase(key, label, file){
   showPanel('panel-progress');
   const progressTxt = document.getElementById('progressTxt');
@@ -15675,38 +15720,11 @@ async function procesarPdfParaBase(key, label, file){
   progressTxt.textContent = 'Abriendo PDF de ' + label + '…';
   progressBar.style.width = '4%';
   try{
-    await asegurarPdfWorkerSeguro();
     const buf = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-    const numPages = pdf.numPages;
-    const empleados = [];
-    for(let pi=1; pi<=numPages; pi++){
+    const empleados = await parsearBufferPdfHorario(buf, function(pi, numPages){
       progressTxt.textContent = `Procesando página ${pi} de ${numPages}…`;
       progressBar.style.width = Math.round((pi/numPages)*100) + '%';
-      const page = await pdf.getPage(pi);
-      const viewport = page.getViewport({scale:1});
-      const pageHeight = viewport.height;
-      const content = await page.getTextContent();
-      const words = [];
-      for(const item of content.items){
-        const str = (item.str||'').trim();
-        if(!str) continue;
-        const x0 = item.transform[4];
-        const top = pageHeight - item.transform[5];
-        const parts = str.split(/\s+/).filter(Boolean);
-        if(parts.length<=1){
-          words.push({text: str, x0, top});
-        } else {
-          const w = item.width || 0;
-          parts.forEach((p, idx)=>{
-            words.push({text: p, x0: x0 + (w*idx/parts.length), top});
-          });
-        }
-      }
-      const parsed = parsePageWords(words);
-      empleados.push(...parsed);
-      await new Promise(r=>setTimeout(r, 0)); // deja respirar a la UI
-    }
+    });
     if(empleados.length === 0){
       throw new Error('No se detectó ninguna plantilla de turnos reconocible en este PDF.');
     }
