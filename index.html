@@ -14771,6 +14771,15 @@ let perfilAdminActual = null; // {id, email, rol}
 let _emailAdminPendiente = null;
 
 function abrirAccesoAdmin(){
+  // FIX — si ya se detectó sesión de admin en segundo plano (por
+  // ejemplo, tras recargar la app), pulsar el icono abre el Panel
+  // directamente, sin pedir usuario/contraseña otra vez.
+  if(perfilAdminActual && perfilAdminActual.rol === 'admin'){
+    document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
+    openOv('ov-panel-admin');
+    refrescarEstadoArchivosAdmin();
+    return;
+  }
   openOv('ov-admin-login');
 }
 
@@ -14789,32 +14798,45 @@ async function iniciarSesionAdmin(){
   }
   msg.innerHTML = '<div class="msg-ok">✅ Sesión iniciada.</div>';
   if(resp.data && resp.data.user){
-    await cargarPerfilYVerificarAdmin(resp.data.user);
+    // true = esto SÍ es un login explícito (acabas de pulsar "Iniciar
+    // sesión"), así que aquí sí corresponde abrir el panel.
+    await cargarPerfilYVerificarAdmin(resp.data.user, true);
   }
 }
 
-async function cargarPerfilYVerificarAdmin(user){
+// FIX — se añade el parámetro abrirPanel (por defecto false). Antes
+// esta función SIEMPRE abría el Panel de Admin en cuanto detectaba
+// una sesión válida — y como Supabase guarda la sesión en el
+// navegador, esto hacía que el panel se abriera solo cada vez que
+// recargabas la app, aunque no hubieras tocado el icono. Ahora solo
+// se abre cuando se pide explícitamente (login recién hecho, o al
+// pulsar el icono con sesión ya activa).
+async function cargarPerfilYVerificarAdmin(user, abrirPanel){
   var resp = await sbAdmin.from('perfiles').select('*').eq('id', user.id).single();
   if(resp.error || !resp.data) return;
   perfilAdminActual = resp.data;
   var btnAdmin = document.getElementById('hbtn-admin');
   if(perfilAdminActual.rol === 'admin'){
     if(btnAdmin) btnAdmin.classList.add('es-admin');
-    closeOv('ov-admin-login');
-    document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
-    openOv('ov-panel-admin');
-    refrescarEstadoArchivosAdmin();
-  } else {
+    if(abrirPanel){
+      closeOv('ov-admin-login');
+      document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
+      openOv('ov-panel-admin');
+      refrescarEstadoArchivosAdmin();
+    }
+  } else if(abrirPanel){
     var msg = document.getElementById('adminLoginMsg');
     if(msg) msg.innerHTML = '<div class="msg-error">Este correo no tiene permisos de administrador.</div>';
   }
 }
 
-// Detecta automáticamente si ya había una sesión de admin activa
-// (por ejemplo, al recargar la página tras verificar el código).
+// FIX — al recargar la app, esto ya NO abre el panel solo: se limita
+// a comprobar en silencio si sigues logueado (para que el icono se
+// pinte en ámbar si eres admin), sin interrumpir lo que estés
+// haciendo.
 sbAdmin.auth.onAuthStateChange(function(event, session){
   if(session && session.user){
-    cargarPerfilYVerificarAdmin(session.user);
+    cargarPerfilYVerificarAdmin(session.user, false);
   }
 });
 
