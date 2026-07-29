@@ -2745,6 +2745,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="st-body">
       <button id="btnAuditoriaHoras" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="toggleAuditoriaHoras()">🔍 Auditoría de Horas</button>
       <div id="auditoria-horas-panel" style="display:none;margin-bottom:10px"></div>
+
+      <!-- ── NUEVO — Comparativa con Cómputo Oficial (Excel) ──
+           Módulo aditivo e independiente de "Auditoría de Horas" de
+           arriba (que compara App vs. PDF). Este compara App vs. el
+           Excel "ComputoTurnos_XXXXX_AAAAMM.xlsx" oficial de Serveo,
+           día a día, reutilizando exclusivamente calcularJornadaDiaria()
+           y calculateEarnings() ya existentes — sin duplicar ni un
+           carácter de esa matemática. No escribe en TV ni en ningún
+           dato de la app: es de solo lectura. -->
+      <input type="file" id="fileComputoExcel" accept=".xlsx" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
+      <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
+      <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
       <div id="role-card"></div>
       <div class="sg" id="sg"></div>
       <div id="cs-box"></div>
@@ -11114,6 +11126,13 @@ function renderStats(){
   // (statsM). Si el panel está cerrado, renderAuditoriaHoras() no hace
   // nada (early-return propio) — llamarla aquí es seguro siempre.
   renderAuditoriaHoras();
+
+  // NUEVO — misma idea para la Comparativa con Cómputo Excel: se
+  // re-evalúa cada vez que cambia el mes visible, para que el Excel
+  // subido SOLO se muestre cuando coincide con el mes que estás
+  // mirando (si subiste el de julio y navegas a agosto, desaparece
+  // solo; si vuelves a julio, reaparece — sin volver a subir nada).
+  renderComparativaComputoExcel();
 }
 
 function chSM(d){statsM.setMonth(statsM.getMonth()+d);renderStats();}
@@ -13407,6 +13426,269 @@ async function renderAuditoriaHoras(){
       +'<td style="padding:2px 4px 6px;text-align:right;color:var(--tx3);font-size:11px">'+htdlPresencia+'</td>'
     +'</tr>'
     +'</table>'
+    +'</div>';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   COMPARATIVA CON CÓMPUTO OFICIAL (EXCEL) — módulo aditivo e
+   independiente de "Auditoría de Horas" de arriba (esa compara
+   App vs. PDF de horario). Este compara, día a día, el Excel
+   oficial "ComputoTurnos_XXXXX_AAAAMM.xlsx" que emite Serveo
+   contra lo que calcula la app, para las 4 categorías que la
+   app SÍ modela (H.E., H.P., Noct., HTDL). Reutiliza
+   exclusivamente calcularJornadaDiaria() y calculateEarnings()
+   ya existentes — cero matemática duplicada. Rebase, Trasl.,
+   Plus Trasl., TpTrans y Plus Inter. NO existen como conceptos
+   en la app: se muestran solo como referencia del Excel, nunca
+   como discrepancia.
+   Solo lectura: no escribe en TV, TV2 ni en ningún dato guardado.
+═══════════════════════════════════════════════════════════ */
+var _computoExcelUltimo = null; // {porDia, totalesExcel, y, m, mesLbl, nombre}
+
+function _xlsxSerialAMin(v){
+  // Celdas de duración (formato [h]:mm:ss) llegan como número =
+  // fracción de día, y PUEDEN superar 1 (ej. "1 día, 7:51:00").
+  // Con raw:true nunca se convierten a Date, así que basta multiplicar.
+  if(v==null || v==='') return 0;
+  if(typeof v==='number') return Math.round(v*24*60);
+  return 0;
+}
+function _xlsxSerialAFechaKey(v){
+  // Serial de fecha Excel (raw, sin cellDates) → 'YYYY-MM-DD'.
+  if(typeof v!=='number') return null;
+  var ms = Math.round((v - 25569) * 86400 * 1000);
+  var d = new Date(ms);
+  return key(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate());
+}
+function _minAHHMM(mins){
+  mins = Math.round(mins||0);
+  var neg = mins<0; mins=Math.abs(mins);
+  var h=Math.floor(mins/60), m=mins%60;
+  return (neg?'-':'')+h+'h '+(m<10?'0':'')+m+'m';
+}
+
+function handleComputoExcelUpload(file){
+  if(!file) return;
+  // Permite volver a subir el MISMO archivo más tarde (p.ej. si se quitó
+  // la comparación y se recarga el mismo mes) — sin esto, el navegador
+  // no dispara 'onchange' dos veces seguidas para idéntico archivo.
+  var _inp=document.getElementById('fileComputoExcel'); if(_inp) _inp.value='';
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar el lector de Excel. Comprueba tu conexión e inténtalo de nuevo.'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var buf = e.target.result;
+      var wb = XLSX.read(buf, {type:'array'}); // sin cellDates: raw numérico, control total de la conversión
+      var hoja = wb.Sheets[wb.SheetNames[0]];
+      var filas = XLSX.utils.sheet_to_json(hoja, {header:1, raw:true, defval:null});
+      var parsed = _parseComputoExcelFilas(filas);
+      if(!parsed || !Object.keys(parsed.porDia).length){
+        alert('No se ha reconocido el formato de este Excel. ¿Es el "Cómputo de Turnos" oficial de Serveo?');
+        return;
+      }
+      parsed.nombre = file.name;
+      _computoExcelUltimo = parsed;
+      renderComparativaComputoExcel(); // decide por sí sola si mostrar u ocultar, según el mes visible
+      var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
+      if(parsed.y!==yVisible || parsed.m!==mVisible){
+        alert('Excel de '+parsed.mesLbl+' guardado. Se mostrará automáticamente cuando navegues a '+parsed.mesLbl+' en Estadísticas.');
+      }
+    }catch(err){
+      console.log('Error leyendo Cómputo Excel:', err);
+      alert('No se ha podido leer el archivo. Comprueba que sea el .xlsx original sin modificar.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _parseComputoExcelFilas(filas){
+  // Localiza la fila de cabecera buscando 'Fecha' en cualquier columna,
+  // en vez de asumir una fila fija — más resistente a pequeños cambios
+  // de formato entre exportaciones.
+  var hdrRow=-1, cols={};
+  for(var r=0;r<filas.length;r++){
+    var f=filas[r]; if(!f) continue;
+    var idxFecha=f.findIndex(function(v){return String(v||'').trim()==='Fecha';});
+    if(idxFecha>=0){
+      hdrRow=r;
+      f.forEach(function(v,i){ cols[String(v||'').trim()] = i; });
+      break;
+    }
+  }
+  if(hdrRow<0) return null;
+  var need=['Fecha','H. E.','H. P.','Noct.','Rebase','HTDL','Trasl.','Plus Trasl.','TpTrans','Plus Inter.'];
+  for(var ni=0; ni<need.length; ni++){ if(cols[need[ni]]===undefined) return null; }
+
+  var porDia={}, y=null, m=null;
+  for(var i=hdrRow+1;i<filas.length;i++){
+    var fila=filas[i]; if(!fila) continue;
+    var fechaV=fila[cols['Fecha']];
+    if(typeof fechaV!=='number') continue; // fila TOTALES/A PAGAR o vacía: no tiene fecha numérica
+    var k=_xlsxSerialAFechaKey(fechaV);
+    if(!k) continue;
+    if(y===null){ var kk=k.split('-'); y=parseInt(kk[0]); m=parseInt(kk[1]); }
+    porDia[k]={
+      HE:_xlsxSerialAMin(fila[cols['H. E.']]),
+      HP:_xlsxSerialAMin(fila[cols['H. P.']]),
+      Noct:_xlsxSerialAMin(fila[cols['Noct.']]),
+      Rebase:_xlsxSerialAMin(fila[cols['Rebase']]),
+      HTDL:_xlsxSerialAMin(fila[cols['HTDL']]),
+      Trasl:_xlsxSerialAMin(fila[cols['Trasl.']]),
+      PlusTrasl:_xlsxSerialAMin(fila[cols['Plus Trasl.']]),
+      TpTrans:parseFloat(fila[cols['TpTrans']])||0,
+      PlusInter:parseFloat(fila[cols['Plus Inter.']])||0
+    };
+  }
+  if(y===null) return null;
+  return {porDia:porDia, y:y, m:m, mesLbl:MESES[m-1]+' '+y};
+}
+
+function toggleComputoExcelPanel(){
+  var panel=document.getElementById('computo-excel-panel');
+  if(!panel) return;
+  panel.style.display = (panel.style.display==='none') ? 'block' : 'none';
+}
+
+// NUEVO — Quita la comparación cargada (no borra nada de TV/AJ, solo el
+// dato temporal del Excel en memoria). Necesario porque cada mes trae
+// su propio Cómputo Oficial: al cambiar de mes hay que subir el Excel
+// de ESE mes, y este botón deja el panel limpio para hacerlo sin
+// confusión con el mes anterior.
+function quitarComputoExcel(){
+  _computoExcelUltimo = null;
+  var panel=document.getElementById('computo-excel-panel');
+  if(panel){ panel.style.display='none'; panel.innerHTML=''; }
+  var inp=document.getElementById('fileComputoExcel'); if(inp) inp.value='';
+}
+
+function renderComparativaComputoExcel(){
+  var panel=document.getElementById('computo-excel-panel');
+  var datos=_computoExcelUltimo;
+  if(!panel) return;
+  if(!datos){ panel.style.display='none'; return; }
+
+  // NUEVO — el Excel subido solo se muestra si coincide con el mes
+  // visible de Estadísticas (statsM). Si no coincide (p.ej. subiste el
+  // de julio y ahora estás viendo agosto), se oculta — pero SIN borrar
+  // _computoExcelUltimo, así que en cuanto vuelvas a julio reaparece
+  // automáticamente, sin tener que volver a subir el archivo.
+  var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
+  if(datos.y!==yVisible || datos.m!==mVisible){
+    panel.style.display='none';
+    return;
+  }
+  panel.style.display='block';
+
+  var y=datos.y, m=datos.m;
+  var pref=y+'-'+pad(m);
+  var ksMes=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
+  var eMes=calculateEarnings(ksMes); // reutilizado tal cual, sin tocar
+
+  // La app expone 4 magnitudes de horas comparables: Efectivas,
+  // Presencia, Nocturnidad y HTDL. HTDL es la suma de su Efectiva+
+  // Presencia propias (mismo criterio que usa "Auditoría de Horas" más
+  // arriba: htdlTotalMin = efectivasHTDLMin + presenciaHTDLMin) — un
+  // único total comparable contra la columna "HTDL" del Excel, que
+  // también es una sola cifra. Nocturnidad reutiliza diasNocDetail
+  // (ya calculado por calculateEarnings, mismo cn() de siempre).
+  var totalNocAppMin = Math.round((eMes.diasNocDetail||[]).reduce(function(s,d){return s+(d.hNoc||0);},0)*60);
+  var totalApp={HE:eMes.efectivasCalMin||0, HP:eMes.presenciaCalMin||0, Noct:totalNocAppMin, HTDL:(eMes.efectivasHTDLMin||0)+(eMes.presenciaHTDLMin||0)};
+  var totalExcel={HE:0,HP:0,Noct:0,Rebase:0,HTDL:0,Trasl:0,PlusTrasl:0,TpTrans:0,PlusInter:0};
+  var discrepancias=[];
+  var UMBRAL_MIN=1; // ignora diferencias de redondeo de menos de 1 minuto
+
+  // Nocturnidad por etiqueta de día ("3 jun") — mismo array que ya usa
+  // la app en otros sitios (diasNocDetail), solo se agrega por fecha
+  // para poder comparar día a día más abajo.
+  var nocPorLbl={};
+  (eMes.diasNocDetail||[]).forEach(function(d){ nocPorLbl[d.lbl]=(nocPorLbl[d.lbl]||0)+Math.round((d.hNoc||0)*60); });
+
+  Object.keys(datos.porDia).sort().forEach(function(k){
+    var ex=datos.porDia[k];
+    var kk=k.split('-'); var dd=parseInt(kk[2]);
+    Object.keys(totalExcel).forEach(function(c){ totalExcel[c]+=ex[c]||0; });
+
+    // Desglose día a día — mismo criterio de reparto que calculateEarnings:
+    // un día HTDL suma su Efectiva+Presencia a un único total HTDL; un
+    // día ordinario suma a Efectiva/Presencia normales. Es aproximado a
+    // nivel de día (los ajustes de enlace entre días de calculateEarnings
+    // solo se aplican al total del mes, no aquí), así que se usa solo
+    // para señalar posibles diferencias a revisar, no como cifra oficial.
+    var jornada=calcularJornadaDiaria(getTurnosDia(k), k);
+    var appHE = jornada.esHTDL ? 0 : jornada.efectivasMin;
+    var appHP = jornada.esHTDL ? 0 : jornada.presenciaMin;
+    var appHTDL = jornada.esHTDL ? (jornada.efectivasMin+jornada.presenciaMin) : 0;
+    var dL = dd+' '+MESES_C[m-1];
+    var appNoct = nocPorLbl[dL]||0;
+
+    var diffs=[];
+    if(Math.abs(ex.HE-appHE)>UMBRAL_MIN) diffs.push({c:'H.E.',ex:ex.HE,app:appHE});
+    if(Math.abs(ex.HP-appHP)>UMBRAL_MIN) diffs.push({c:'H.P.',ex:ex.HP,app:appHP});
+    if(Math.abs(ex.Noct-appNoct)>UMBRAL_MIN) diffs.push({c:'Noct.',ex:ex.Noct,app:appNoct});
+    if(Math.abs(ex.HTDL-appHTDL)>UMBRAL_MIN) diffs.push({c:'HTDL',ex:ex.HTDL,app:appHTDL});
+    if(diffs.length) discrepancias.push({fecha:pad(dd)+'/'+pad(m), diffs:diffs});
+  });
+
+  var filaTotal=function(lbl,cKey){
+    var ex=totalExcel[cKey], ap=totalApp[cKey];
+    var ok=Math.abs(ex-ap)<=UMBRAL_MIN;
+    return '<tr style="border-top:1px solid var(--div)">'
+      +'<td style="padding:8px 4px;color:var(--tx2)">'+lbl+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+_minAHHMM(ex)+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+_minAHHMM(ap)+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:'+(ok?'var(--green2)':'var(--red2)')+'">'+(ok?'✅':_minAHHMM(ex-ap))+'</td>'
+      +'</tr>';
+  };
+
+  var filaExcelSolo=function(lbl,cKey,esNumero){
+    var v=totalExcel[cKey];
+    return '<tr style="border-top:1px solid var(--div)">'
+      +'<td style="padding:6px 4px;color:var(--tx3);font-size:11px">'+lbl+'</td>'
+      +'<td style="padding:6px 4px;text-align:center;color:var(--tx3);font-size:11px" colspan="3">'+(esNumero?v:_minAHHMM(v))+' <span style="opacity:.6">(solo Excel — no modelado en la app)</span></td>'
+      +'</tr>';
+  };
+
+  var htmlDiscrepancias = discrepancias.length
+    ? ('<div style="height:1px;background:var(--div);margin:10px 0"></div>'
+      +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--red2);margin-bottom:6px">DÍAS CON DIFERENCIAS ('+discrepancias.length+')</div>'
+      +discrepancias.map(function(d){
+        return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px">'
+          +'<strong>'+d.fecha+'</strong> — '
+          +d.diffs.map(function(x){return x.c+': Excel '+_minAHHMM(x.ex)+' vs App '+_minAHHMM(x.app);}).join(' · ')
+          +'</div>';
+      }).join(''))
+    : ('<div style="height:1px;background:var(--div);margin:10px 0"></div>'
+      +'<div style="font-size:12px;color:var(--green2);font-weight:700;text-align:center;padding:8px">✅ Sin diferencias por encima de 1 minuto en ningún día</div>');
+
+  panel.innerHTML =
+    '<div class="cs-box">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div class="cs-t">Cómputo Oficial vs. App · '+datos.mesLbl+'</div>'
+      +'<button onclick="quitarComputoExcel()" title="Quitar esta comparación" style="background:none;border:none;color:var(--tx3);font-size:16px;cursor:pointer;padding:2px 6px">✕</button>'
+    +'</div>'
+    +'<div style="font-size:9px;color:var(--tx3);margin:-4px 0 8px">Archivo: '+datos.nombre+' · Para otro mes, quita esta comparación y sube el Cómputo Excel de ese mes</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<tr>'
+      +'<td style="padding:6px 4px;color:var(--tx3)"></td>'
+      +'<td style="padding:6px 4px;color:var(--amber2);font-weight:800;text-align:center">Cómputo Excel</td>'
+      +'<td style="padding:6px 4px;color:var(--green2);font-weight:800;text-align:center">Registro App</td>'
+      +'<td style="padding:6px 4px;color:var(--tx3);font-weight:800;text-align:center">Δ</td>'
+    +'</tr>'
+    +filaTotal('Horas Efectivas','HE')
+    +filaTotal('Horas Presencia','HP')
+    +filaTotal('Nocturnidad','Noct')
+    +filaTotal('HTDL','HTDL')
+    +'</table>'
+    +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
+    +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:2px">CATEGORÍAS SOLO EN EL EXCEL OFICIAL (la app no las calcula — ni aquí ni en Auditoría de Horas/PDF)</div>'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +filaExcelSolo('Rebase','Rebase')
+    +filaExcelSolo('Traslados','Trasl')
+    +filaExcelSolo('Plus Traslado','PlusTrasl')
+    +filaExcelSolo('Tiempo Transporte','TpTrans',true)
+    +filaExcelSolo('Plus Interrupción','PlusInter',true)
+    +'</table>'
+    +htmlDiscrepancias
     +'</div>';
 }
 
