@@ -2754,7 +2754,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
            y calculateEarnings() ya existentes — sin duplicar ni un
            carácter de esa matemática. No escribe en TV ni en ningún
            dato de la app: es de solo lectura. -->
-      <input type="file" id="fileComputoExcel" accept=".xlsx" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
+      <input type="file" id="fileComputoExcel" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
       <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
       <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
       <div id="role-card"></div>
@@ -13473,8 +13473,12 @@ function handleComputoExcelUpload(file){
   // la comparación y se recarga el mismo mes) — sin esto, el navegador
   // no dispara 'onchange' dos veces seguidas para idéntico archivo.
   var _inp=document.getElementById('fileComputoExcel'); if(_inp) _inp.value='';
-  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar el lector de Excel. Comprueba tu conexión e inténtalo de nuevo.'); return; }
+  if(typeof XLSX === 'undefined'){ alert('No se pudo cargar el lector de Excel (librería no disponible). Comprueba tu conexión e inténtalo de nuevo.'); return; }
   var reader = new FileReader();
+  reader.onerror = function(){
+    console.log('Cómputo Excel: FileReader falló al leer el archivo.', reader.error);
+    alert('No se ha podido abrir el archivo desde el dispositivo. Vuelve a intentarlo o comprueba que el archivo no esté dañado.');
+  };
   reader.onload = function(e){
     try{
       var buf = e.target.result;
@@ -13482,6 +13486,20 @@ function handleComputoExcelUpload(file){
       var hoja = wb.Sheets[wb.SheetNames[0]];
       var filas = XLSX.utils.sheet_to_json(hoja, {header:1, raw:true, defval:null});
       var parsed = _parseComputoExcelFilas(filas);
+      if(parsed && parsed.error){
+        // Diagnóstico específico según qué falló — mucho más útil que
+        // un "no se ha reconocido" genérico cuando algo no encaja.
+        if(parsed.error==='sin-cabecera'){
+          alert('No se ha encontrado la columna "Fecha" en este archivo. ¿Es el "Cómputo de Turnos" oficial de Serveo, tal cual se descarga (sin editar)?');
+        } else if(parsed.error==='faltan-columnas'){
+          alert('Este Excel no tiene todas las columnas esperadas. Faltan: '+parsed.faltantes.join(', ')+'. Revisa la consola del navegador para ver qué columnas sí se detectaron.');
+        } else if(parsed.error==='sin-filas-fecha'){
+          alert('Se encontró la cabecera pero ninguna fila tiene una fecha válida debajo. ¿El archivo tiene datos de días entre la cabecera y la fila TOTALES?');
+        } else {
+          alert('No se ha reconocido el formato de este Excel.');
+        }
+        return;
+      }
       if(!parsed || !Object.keys(parsed.porDia).length){
         alert('No se ha reconocido el formato de este Excel. ¿Es el "Cómputo de Turnos" oficial de Serveo?');
         return;
@@ -13495,10 +13513,19 @@ function handleComputoExcelUpload(file){
       }
     }catch(err){
       console.log('Error leyendo Cómputo Excel:', err);
-      alert('No se ha podido leer el archivo. Comprueba que sea el .xlsx original sin modificar.');
+      alert('No se ha podido leer el archivo ('+(err&&err.message?err.message:'error desconocido')+'). Comprueba que sea el .xlsx original sin modificar.');
     }
   };
   reader.readAsArrayBuffer(file);
+}
+
+function _normHdr(s){
+  // Normaliza texto de cabecera: espacios no separables (\u00A0, que
+  // Excel a veces inserta) a espacio normal, colapsa espacios
+  // repetidos y recorta extremos. Sin esto, una cabecera con un
+  // espacio "raro" (visualmente idéntica a 'H. E.') no haría match
+  // nunca y el Excel se descartaría entero sin avisar por qué.
+  return String(s||'').replace(/\u00A0/g,' ').replace(/\s+/g,' ').trim();
 }
 
 function _parseComputoExcelFilas(filas){
@@ -13508,16 +13535,23 @@ function _parseComputoExcelFilas(filas){
   var hdrRow=-1, cols={};
   for(var r=0;r<filas.length;r++){
     var f=filas[r]; if(!f) continue;
-    var idxFecha=f.findIndex(function(v){return String(v||'').trim()==='Fecha';});
+    var idxFecha=f.findIndex(function(v){return _normHdr(v)==='Fecha';});
     if(idxFecha>=0){
       hdrRow=r;
-      f.forEach(function(v,i){ cols[String(v||'').trim()] = i; });
+      f.forEach(function(v,i){ cols[_normHdr(v)] = i; });
       break;
     }
   }
-  if(hdrRow<0) return null;
+  if(hdrRow<0){
+    console.log('Cómputo Excel: no se encontró ninguna fila con la columna "Fecha". Primeras filas leídas:', filas.slice(0,10));
+    return {error:'sin-cabecera'};
+  }
   var need=['Fecha','H. E.','H. P.','Noct.','Rebase','HTDL','Trasl.','Plus Trasl.','TpTrans','Plus Inter.'];
-  for(var ni=0; ni<need.length; ni++){ if(cols[need[ni]]===undefined) return null; }
+  var faltan = need.filter(function(n){ return cols[n]===undefined; });
+  if(faltan.length){
+    console.log('Cómputo Excel: faltan columnas', faltan, '· cabeceras detectadas:', Object.keys(cols));
+    return {error:'faltan-columnas', faltantes:faltan, detectadas:Object.keys(cols)};
+  }
 
   var porDia={}, y=null, m=null;
   for(var i=hdrRow+1;i<filas.length;i++){
@@ -13539,7 +13573,10 @@ function _parseComputoExcelFilas(filas){
       PlusInter:parseFloat(fila[cols['Plus Inter.']])||0
     };
   }
-  if(y===null) return null;
+  if(y===null){
+    console.log('Cómputo Excel: cabecera encontrada pero ninguna fila tenía una fecha numérica válida bajo ella.');
+    return {error:'sin-filas-fecha'};
+  }
   return {porDia:porDia, y:y, m:m, mesLbl:MESES[m-1]+' '+y};
 }
 
