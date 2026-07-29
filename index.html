@@ -16259,6 +16259,17 @@ function mostrarConAnimacionTren(contenedor, renderFn){
   }
 }
 
+// NUEVO — Por seguridad, el nombre del interventor se muestra
+// ofuscado: las letras A/E se sustituyen por 4/3. Solo afecta a la
+// tarjeta de Interventor — la tripulación/compañeros se sigue
+// mostrando con su nombre normal, sin tocar.
+function ofuscarNombreInterventor(nombre){
+  if(!nombre) return nombre;
+  return nombre.replace(/[AaEe]/g, function(letra){
+    return (letra==='A'||letra==='a') ? '4' : '3';
+  });
+}
+
 function renderTrain(trainNum, day, matches, interventorMatches){
   interventorMatches = interventorMatches || [];
   const _render = ()=>{
@@ -16276,7 +16287,7 @@ function renderTrain(trainNum, day, matches, interventorMatches){
     filas += `<div class="pcard" style="border-color:var(--nar);background:rgba(249,115,22,.08)">
       <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
       <div class="pcard-info">
-        <div class="pcard-name">${m.name}</div>
+        <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
         <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
       </div>
     </div>`;
@@ -16455,7 +16466,7 @@ function renderCompanions(day, id, name, cell){
     html += `<div class="pcard" style="cursor:default;border-color:var(--nar);background:rgba(249,115,22,.08)">
       <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
       <div class="pcard-info">
-        <div class="pcard-name">${m.name}</div>
+        <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
         <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
         <div class="comp-cell">${m.cell}</div>
       </div>
