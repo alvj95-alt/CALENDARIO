@@ -15123,6 +15123,13 @@ async function cargarHorarioGlobalDesdeAdmin(){
 // responsabilidades. Solo si ambas cosas se cumplen se llama a
 // abrirBuscadorConHorarioGlobal() (ya existente, sin tocarla).
 window.abrirAccesoBuscadorCompaneros = function(){
+  // NUEVO — si esta matrícula ya aceptó el descargo antes en este
+  // dispositivo, no se le vuelve a preguntar: se entra directo.
+  var matriculaGuardada = localStorage.getItem('descargoAceptado_matricula');
+  if(matriculaGuardada){
+    abrirBuscadorConHorarioGlobal();
+    return;
+  }
   document.getElementById('accesoMatriculaInput').value = '';
   document.getElementById('accesoAceptoCheck').checked = false;
   document.getElementById('btnContinuarAccesoBuscador').disabled = true;
@@ -15165,6 +15172,20 @@ window.validarAccesoBuscador = async function(){
     msg.innerHTML = '<div class="msg-error">Esa matrícula no aparece en el Horario General. Revisa que la hayas escrito bien.</div>';
     return;
   }
+
+  // NUEVO — Registro silencioso de la aceptación (matrícula + nombre
+  // si se conoce + fecha/hora automática). El usuario no ve nada de
+  // esto — es solo la prueba de que aceptó, para uso interno.
+  var empleadoMatch = BASES.global.data.find(function(e){ return String(e[0]).trim() === matricula; });
+  var nombreEmpleado = empleadoMatch ? empleadoMatch[1] : null;
+  if(typeof sbAdmin !== 'undefined'){
+    sbAdmin.from('aceptaciones_descargo').insert({
+      matricula: matricula,
+      nombre: nombreEmpleado,
+      fecha_hora: new Date().toISOString()
+    }).then(function(){}).catch(function(){});
+  }
+  localStorage.setItem('descargoAceptado_matricula', matricula);
 
   msg.innerHTML = '<div class="msg-ok">✅ Matrícula verificada.</div>';
   closeOv('ov-acceso-buscador');
