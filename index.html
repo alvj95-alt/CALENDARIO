@@ -16163,14 +16163,17 @@ window.parseHorarioGeneralXLSX = parseHorarioGeneralXLSX;
 //    'horario_general_%' y se fusionan en un único listado, cada
 //    empleado etiquetado con su sede real (para poder distinguirlos
 //    si hiciera falta más adelante).
+var _diagHorarioGeneral = null; // último motivo de fallo, para poder verlo en pantalla
 async function cargarHorarioGlobalDesdeAdmin(){
+  _diagHorarioGeneral = null;
   try{
-    if(typeof sbAdmin === 'undefined') return false;
+    if(typeof sbAdmin === 'undefined'){ _diagHorarioGeneral = 'sbAdmin no está definido'; return false; }
     var esAdmin = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
 
     if(esAdmin){
       var respTodas = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
-      if(respTodas.error || !respTodas.data || !respTodas.data.length) return false;
+      if(respTodas.error){ _diagHorarioGeneral = 'Error en consulta (admin, todas las sedes): '+respTodas.error.message; return false; }
+      if(!respTodas.data || !respTodas.data.length){ _diagHorarioGeneral = 'Consulta (admin) sin filas: no hay ninguna fila con tipo LIKE horario_general_%'; return false; }
       var datosFusionados = [];
       var fechaMasReciente = null;
       for(var i=0; i<respTodas.data.length; i++){
@@ -16188,7 +16191,7 @@ async function cargarHorarioGlobalDesdeAdmin(){
         var fechaFila = new Date(filaSede.fecha_subida);
         if(!fechaMasReciente || fechaFila>fechaMasReciente) fechaMasReciente = fechaFila;
       }
-      if(!datosFusionados.length) return false;
+      if(!datosFusionados.length){ _diagHorarioGeneral = 'Filas encontradas ('+respTodas.data.length+'), pero 0 empleados tras parsear todas'; return false; }
       BASES.global.data = datosFusionados;
       BASES.global.month = fechaMasReciente ? fechaMasReciente.toLocaleDateString('es-ES') : '—';
       BASES.global.label = 'Horario General · Todas las sedes (admin)';
@@ -16202,19 +16205,22 @@ async function cargarHorarioGlobalDesdeAdmin(){
     // tocar el archivo de otra sede, ni siquiera de forma temporal.
     var miSede = _sedeUsuarioActual();
     if(!miSede){
-      console.log('Horario General: no hay Estación Base configurada, no se puede derivar la sede.');
+      _diagHorarioGeneral = 'No hay Estación Base configurada (AJ.base='+JSON.stringify(AJ.base)+'), no se puede derivar la sede.';
       return false;
     }
     var tipoSede = 'horario_general_' + _baseSlug(miSede);
     var resp = await sbAdmin.from('config_global').select('*').eq('tipo',tipoSede).single();
-    if(resp.error || !resp.data || !resp.data.url_archivo) return false;
+    if(resp.error){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · tipoSede="'+tipoSede+'" · Error en consulta: '+resp.error.message; return false; }
+    if(!resp.data){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · tipoSede="'+tipoSede+'" · Sin error, pero sin datos (resp.data vacío)'; return false; }
+    if(!resp.data.url_archivo){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila encontrada pero sin url_archivo'; return false; }
     var datos = await _descargarYParsearHorario(resp.data);
-    if(!datos || !datos.length) return false;
+    if(!datos || !datos.length){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila y URL encontradas, pero 0 empleados tras descargar/parsear el archivo'; return false; }
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
     BASES.global.label = 'Horario General · '+(resp.data.sede||miSede);
     return true;
   }catch(e){
+    _diagHorarioGeneral = 'Excepción: '+(e && e.message ? e.message : String(e));
     console.log('No se pudo cargar el horario general publicado:', e);
     return false;
   }
@@ -16336,7 +16342,8 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   if(ok){
     activateBase('global');
   } else if(statusEl){
-    statusEl.textContent = 'Todavía no hay ningún horario publicado por el administrador. Vuelve a intentarlo más tarde.';
+    statusEl.textContent = 'Todavía no hay ningún horario publicado por el administrador. Vuelve a intentarlo más tarde.'
+      + (_diagHorarioGeneral ? (' [Diagnóstico: '+_diagHorarioGeneral+']') : '');
   }
 
   // NUEVO — Intervención: se descarga y se cruza en segundo plano,
