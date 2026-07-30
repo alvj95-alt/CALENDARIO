@@ -4459,7 +4459,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         </div>
       </div>
       <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">1. SEDE DE ESTE ARCHIVO</label>
-      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px">
+      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px" onfocus="this.select()">
       <datalist id="listaSedes">
         <option value="Barcelona"><option value="Madrid"><option value="Valencia">
         <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
@@ -15773,7 +15773,21 @@ async function subirArchivoGlobalAdmin(tipo, file){
     return;
   }
   refrescarEstadoArchivosAdmin();
-  toast('✅ Archivo publicado' + (sedeSlug ? ' para '+document.getElementById('selSedeHorarioGeneral').value : ' para todos'));
+  var sedePublicada = payload.sede || '';
+  toast('✅ Archivo publicado' + (sedeSlug ? ' para '+sedePublicada : ' para todos'));
+
+  // FIX — limpiar el formulario tras publicar con éxito: la sede y el
+  // archivo elegido se quedaban puestos, lo que hacía parecer que ya
+  // no se podía escribir una sede distinta para la siguiente subida.
+  // Ahora queda listo de cero para subir la sede que toque después.
+  if(tipo.indexOf('horario_general')===0){
+    var campoSede = document.getElementById('selSedeHorarioGeneral');
+    if(campoSede) campoSede.value = '';
+    var campoArchivo = document.getElementById('fileHorarioGeneral');
+    if(campoArchivo) campoArchivo.value = '';
+    var txtArchivo = document.getElementById('txtHorarioGeneral');
+    if(txtArchivo) txtArchivo.textContent = 'Toca para elegir el PDF (o CSV/XLSX si lo prefieres)';
+  }
 }
 
 // NUEVO — Sube el Gráfico + el Informe de Intervención, junto con el
