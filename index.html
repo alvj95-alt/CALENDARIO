@@ -65,6 +65,19 @@
   --sh-btn: 0 4px 16px rgba(37,99,235,.45);
   --sh-nar: 0 4px 16px rgba(249,115,22,.4);
 }
+
+/* NUEVO — MODO ADMINISTRADOR: mientras la sesión de admin esté activa,
+   se recolorea el acento principal de TODA la app (botones, cabeceras,
+   estados activos...) a un tono rojo de aviso, para que sea imposible
+   olvidar que se está en este modo. Se activa/desactiva junto con el
+   login/logout de admin — ver cerrarSesionAdmin() y
+   cargarPerfilYVerificarAdmin(). Solo cambia colores, no toca ninguna
+   estructura ni funcionalidad. */
+body.modo-admin{
+  --acc:#DC2626;
+  --acc2:#EF4444;
+  --acc3:#FCA5A5;
+}
 *,*::before,*::after{box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh}
 @media(min-width:480px){body{background:#060D18;padding:20px}
@@ -2643,7 +2656,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
-      <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Acceso de administrador">🧑‍💼</button>
+      <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
 </div>
@@ -2797,6 +2810,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
               style="font-variant-numeric:tabular-nums">
           </div>
+
+          <!-- NUEVO — Mi cuenta en la nube ahora vive en su propio
+               overlay (ov-cuenta-nube), accesible también desde el
+               icono de la cabecera. Aquí solo un resumen + acceso. -->
+          <div class="admin-card" style="margin-bottom:10px" onclick="abrirAccesoAdmin()">
+            <div class="admin-card-hdr">
+              <div class="admin-card-ico">☁️</div>
+              <div>
+                <div class="admin-card-tit">Mi cuenta en la nube</div>
+                <div class="admin-card-sub">Guarda tus turnos con tu matrícula + un PIN, para recuperarlos si cambias de móvil. Toca aquí para crear tu cuenta o iniciar sesión.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="aj-roles">
             <div class="aj-rol-btn" id="rs-t" onclick="setRol('tripulante')">
               <div class="rol-ico">🚆</div>
@@ -4428,6 +4455,54 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="adminLoginMsg"></div>
 
       <div class="msg-info">El acceso se verifica siempre contra tu cuenta real en Supabase — no hay ninguna contraseña guardada en el código de la app.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: MI CUENTA EN LA NUBE. Es lo que se abre por defecto al
+     tocar el icono de la cabecera (antes solo abría el login admin).
+     Dos estados: bloqueCuentaFuera (sin sesión: crear cuenta/iniciar
+     sesión) y bloqueCuentaDentro (con sesión: guardar/cargar/cerrar
+     sesión), alternados por actualizarUICuentaNube(). Abajo del todo,
+     un enlace discreto a "Acceso Administrador" para quien lo necesite. -->
+<div class="ov" id="ov-cuenta-nube" onclick="if(event.target===this)closeOv('ov-cuenta-nube')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">☁️</div>
+      <div>
+        <div class="sh-tit">Mi cuenta en la nube</div>
+        <div class="sh-sub">Guarda tus turnos con matrícula + PIN</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-cuenta-nube')">✕</button>
+    </div>
+    <div style="padding:16px">
+
+      <div id="bloqueCuentaFuera">
+        <div class="msg-info" style="margin-bottom:10px">Es opcional — si no creas cuenta, tus turnos se siguen guardando solo en este dispositivo, como siempre.</div>
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">MATRÍCULA</label>
+        <input class="aj-nombre-inp" id="cuentaMatInput" placeholder="Tu número de matrícula…" autocomplete="off" inputmode="numeric" pattern="[0-9]*" style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">PIN (4 a 6 dígitos)</label>
+        <input class="aj-nombre-inp" id="cuentaPinInput" placeholder="····" autocomplete="off" inputmode="numeric" pattern="[0-9]*" type="password" maxlength="6" style="margin-bottom:10px;letter-spacing:4px;font-variant-numeric:tabular-nums">
+        <div id="bloqueConfirmarPin">
+          <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">REPITE EL PIN</label>
+          <input class="aj-nombre-inp" id="cuentaPinConfirmInput" placeholder="····" autocomplete="off" inputmode="numeric" pattern="[0-9]*" type="password" maxlength="6" style="margin-bottom:10px;letter-spacing:4px;font-variant-numeric:tabular-nums">
+        </div>
+        <button class="m-save" style="width:100%;margin-bottom:8px" id="btnCrearCuentaNube" onclick="crearCuentaConMatricula()">Crear mi cuenta</button>
+        <button class="dct-btn-sec" style="width:100%" onclick="mostrarLoginCuentaNube()" id="btnMostrarLogin">Ya tengo cuenta — iniciar sesión</button>
+        <div id="estadoCuentaNube" class="estado-archivo sin-archivo" style="margin-top:8px;display:none"></div>
+
+        <div style="height:1px;background:var(--div);margin:18px 0"></div>
+        <button class="dct-btn-sec" style="width:100%;font-size:11px;opacity:.7" onclick="closeOv('ov-cuenta-nube');openOv('ov-admin-login')">🧑‍💼 Acceso Administrador</button>
+      </div>
+
+      <div id="bloqueCuentaDentro" style="display:none">
+        <div class="msg-info" style="margin-bottom:8px">Sesión iniciada como matrícula <b id="cuentaMatActivaLbl">—</b></div>
+        <button class="m-save" style="width:100%;margin-bottom:8px" onclick="guardarHorarioEnNube()">☁️ Guardar mis turnos ahora</button>
+        <button class="dct-btn-sec" style="width:100%;margin-bottom:8px" onclick="comprobarHorarioEnNube()">⬇️ Comprobar copia guardada</button>
+        <button class="dct-btn-sec sec-red" style="width:100%" onclick="cerrarSesionUsuarioNube()">🚪 Cerrar sesión de esta cuenta</button>
+        <div id="estadoHorarioNubeUsr" class="estado-archivo sin-archivo" style="margin-top:8px">Aún no se ha guardado nada en este dispositivo.</div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -15553,6 +15628,13 @@ const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
 const sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
 
 let perfilAdminActual = null; // {id, email, rol}
+// NUEVO — cualquier persona con sesión iniciada (admin o con
+// matrícula+PIN), para la copia de seguridad personal en la nube.
+// perfilAdminActual sigue siendo SOLO para verificar el rol admin
+// (Panel de Control); usuarioActual es más amplio: "hay alguien
+// logueado", sea quien sea, y sirve para guardar/cargar SU propio
+// horario. Un admin logueado también cuenta como usuarioActual.
+let usuarioActual = null; // {id, matricula|null, email|null}
 let _emailAdminPendiente = null;
 
 function abrirAccesoAdmin(){
@@ -15565,7 +15647,13 @@ function abrirAccesoAdmin(){
     refrescarEstadoArchivosAdmin();
     return;
   }
-  openOv('ov-admin-login');
+  // NUEVO — este mismo botón ahora es la puerta de entrada de
+  // "Mi cuenta en la nube" para cualquier persona (no solo el admin).
+  // Si ya hay sesión de matrícula+PIN, va directo a su panel; si no
+  // hay nadie logueado, abre el formulario de crear cuenta/iniciar
+  // sesión, con un enlace discreto abajo para el acceso de admin.
+  actualizarUICuentaNube();
+  openOv('ov-cuenta-nube');
 }
 
 // NUEVO — Cierra la sesión de administrador en ESTE dispositivo. Tras
@@ -15580,6 +15668,7 @@ async function cerrarSesionAdmin(){
   perfilAdminActual = null;
   var btnAdmin = document.getElementById('hbtn-admin');
   if(btnAdmin) btnAdmin.classList.remove('es-admin');
+  document.body.classList.remove('modo-admin');
   closeOv('ov-panel-admin');
   toast('🚪 Sesión de administrador cerrada');
 }
@@ -15619,6 +15708,11 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
   var btnAdmin = document.getElementById('hbtn-admin');
   if(perfilAdminActual.rol === 'admin'){
     if(btnAdmin) btnAdmin.classList.add('es-admin');
+    // NUEVO — recolorea toda la app mientras dure la sesión de admin,
+    // tanto en un login explícito como en una recarga con sesión ya
+    // persistida (así nunca se te olvida que sigues siendo admin,
+    // aunque no hayas abierto el panel en esta carga de la página).
+    document.body.classList.add('modo-admin');
     if(abrirPanel){
       closeOv('ov-admin-login');
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
@@ -15628,7 +15722,7 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
       // que es justo lo que pasa al entrar desde un dispositivo nuevo sin
       // sesión guardada). En una recarga con sesión ya persistida en este
       // mismo dispositivo (abrirPanel=false) no se molesta con el pop-up.
-      comprobarHorarioEnNube();
+      comprobarHorarioEnNube(true);
     }
   } else if(abrirPanel){
     var msg = document.getElementById('adminLoginMsg');
@@ -15642,7 +15736,21 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
 // haciendo.
 sbAdmin.auth.onAuthStateChange(function(event, session){
   if(session && session.user){
+    usuarioActual = {
+      id: session.user.id,
+      email: session.user.email || null,
+      // El "email" de una cuenta matrícula+PIN es matricula@interno.trenturnov5 —
+      // se extrae la matrícula de ahí si aplica; si no, es una cuenta
+      // real de admin (correo normal) y no tiene matrícula asociada.
+      matricula: (session.user.email && session.user.email.endsWith('@interno.trenturnov5'))
+        ? session.user.email.split('@')[0]
+        : null
+    };
     cargarPerfilYVerificarAdmin(session.user, false);
+    actualizarUICuentaNube();
+  } else if(event === 'SIGNED_OUT'){
+    usuarioActual = null;
+    actualizarUICuentaNube();
   }
 });
 
@@ -15945,10 +16053,22 @@ async function eliminarIntervencionAdmin(){
 ═══════════════════════════════════════════════════════════ */
 var _datosNubePendientes = null;
 
+// Ayudante — actualiza CUALQUIER cuadro de estado que exista en la
+// pantalla actual (el del Panel Admin y/o el de Ajustes), ya que la
+// misma acción (guardar/comprobar) puede lanzarse desde cualquiera
+// de los dos sitios y ambos deben reflejar el resultado.
+function _actualizarEstadosNube(texto, esOk){
+  ['estadoHorarioNube','estadoHorarioNubeUsr'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = texto;
+    if(esOk) el.classList.remove('sin-archivo'); else el.classList.add('sin-archivo');
+  });
+}
+
 async function guardarHorarioEnNube(){
-  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
-  var estado = document.getElementById('estadoHorarioNube');
-  if(estado) estado.textContent = 'Guardando...';
+  if(!usuarioActual) return;
+  _actualizarEstadosNube('Guardando...', false);
 
   var indice = await getMonthIndex();
   var meses = {};
@@ -15957,30 +16077,30 @@ async function guardarHorarioEnNube(){
   }
 
   var payload = {
-    user_id: perfilAdminActual.id,
+    user_id: usuarioActual.id,
     tv_json: TV,
     horarios_json: {index: indice, meses: meses},
     actualizado: new Date().toISOString()
   };
   var resp = await sbAdmin.from('datos_personales').upsert(payload);
   if(resp.error){
-    if(estado) estado.textContent = 'Error al guardar: ' + resp.error.message;
+    _actualizarEstadosNube('Error al guardar: ' + resp.error.message, false);
     return;
   }
-  if(estado){
-    estado.classList.remove('sin-archivo');
-    estado.textContent = '✅ Guardado el ' + new Date().toLocaleString('es-ES');
-  }
+  _actualizarEstadosNube('✅ Guardado el ' + new Date().toLocaleString('es-ES'), true);
   toast('☁️ Horario personal guardado en la nube');
 }
 
 // Se llama SOLO tras un login explícito (dispositivo nuevo o sesión
 // no persistida). Si hay datos guardados en la nube para este user_id,
 // pregunta antes de tocar nada local — nunca carga en automático.
-async function comprobarHorarioEnNube(){
-  if(!perfilAdminActual) return;
-  var resp = await sbAdmin.from('datos_personales').select('*').eq('user_id', perfilAdminActual.id).single();
-  if(resp.error || !resp.data) return; // sin datos guardados aún: no hay nada que preguntar
+async function comprobarHorarioEnNube(silencioso){
+  if(!usuarioActual) return;
+  var resp = await sbAdmin.from('datos_personales').select('*').eq('user_id', usuarioActual.id).single();
+  if(resp.error || !resp.data){
+    if(!silencioso) _actualizarEstadosNube('No hay ninguna copia guardada todavía para esta cuenta.', false);
+    return;
+  }
   _datosNubePendientes = resp.data;
   var lbl = document.getElementById('nubeFechaLbl');
   if(lbl) lbl.textContent = resp.data.actualizado ? new Date(resp.data.actualizado).toLocaleString('es-ES') : '—';
@@ -16017,6 +16137,129 @@ async function cargarHorarioDesdeNube(){
 function rechazarCargaNube(){
   closeOv('ov-cargar-nube');
   _datosNubePendientes = null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CUENTA CON MATRÍCULA + PIN — para cualquier compañero (no solo
+   admin). Traduce matrícula+PIN a un email ficticio interno
+   (matricula@interno.trenturnov5) que Supabase entiende como
+   email+contraseña normal, pero que la persona nunca ve. Al crear la
+   cuenta, se verifica la matrícula contra TODOS los Horarios Generales
+   publicados (todas las sedes), reutilizando _descargarYParsearHorario()
+   ya existente — el mismo mecanismo que usa el admin para ver "todas
+   las sedes fusionadas" en el Buscador.
+   IMPORTANTE (recordatorio — no aplicable desde el código): en
+   Supabase hay que tener desactivado "Confirm email" (Authentication →
+   Providers → Email), porque este email ficticio nunca podrá recibir
+   un correo de confirmación real.
+═══════════════════════════════════════════════════════════ */
+
+function _dominioInternoCuenta(matricula){
+  return matricula.trim() + '@interno.trenturnov5';
+}
+
+// Descarga y parsea TODAS las sedes publicadas y comprueba si la
+// matrícula aparece en cualquiera de ellas — no importa la sede.
+async function _verificarMatriculaEnTodasLasSedes(matricula){
+  var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
+  if(resp.error || !resp.data || !resp.data.length) return false;
+  for(var i=0; i<resp.data.length; i++){
+    var fila = resp.data[i];
+    if(!fila.url_archivo) continue;
+    var datos = await _descargarYParsearHorario(fila);
+    if(datos && datos.some(function(emp){ return String(emp[0]).trim() === matricula; })){
+      return true;
+    }
+  }
+  return false;
+}
+
+async function crearCuentaConMatricula(){
+  var matricula = document.getElementById('cuentaMatInput').value.trim();
+  var pin = document.getElementById('cuentaPinInput').value.trim();
+  var pinConfirm = document.getElementById('cuentaPinConfirmInput').value.trim();
+  var estado = document.getElementById('estadoCuentaNube');
+  var mostrarEstado = function(txt){ if(estado){ estado.style.display='block'; estado.textContent = txt; } };
+
+  if(!/^[0-9]+$/.test(matricula)){ mostrarEstado('Escribe tu número de matrícula (solo números).'); return; }
+  if(!/^[0-9]{4,6}$/.test(pin)){ mostrarEstado('El PIN debe tener entre 4 y 6 dígitos, solo números.'); return; }
+  if(pin !== pinConfirm){ mostrarEstado('Los dos PIN no coinciden.'); return; }
+
+  mostrarEstado('Comprobando tu matrícula en los horarios publicados...');
+  var existe = await _verificarMatriculaEnTodasLasSedes(matricula);
+  if(!existe){
+    mostrarEstado('Esa matrícula no aparece en ningún Horario General publicado todavía. Prueba más tarde, o contacta con tu administrador.');
+    return;
+  }
+
+  mostrarEstado('Creando tu cuenta...');
+  var resp = await sbAdmin.auth.signUp({ email: _dominioInternoCuenta(matricula), password: pin });
+  if(resp.error){
+    mostrarEstado('No se pudo crear la cuenta: ' + resp.error.message);
+    return;
+  }
+  toast('✅ Cuenta creada. Ya tienes sesión iniciada.');
+  document.getElementById('cuentaPinInput').value = '';
+  document.getElementById('cuentaPinConfirmInput').value = '';
+}
+
+// Alterna el bloque entre "crear cuenta" y "iniciar sesión" (la
+// confirmación de PIN solo hace falta al crear la cuenta).
+var _modoCuentaNube = 'crear';
+function mostrarLoginCuentaNube(){
+  _modoCuentaNube = (_modoCuentaNube === 'crear') ? 'login' : 'crear';
+  var bloqueConfirm = document.getElementById('bloqueConfirmarPin');
+  var btnPrincipal = document.getElementById('btnCrearCuentaNube');
+  var btnAlternar = document.getElementById('btnMostrarLogin');
+  if(_modoCuentaNube === 'login'){
+    if(bloqueConfirm) bloqueConfirm.style.display = 'none';
+    if(btnPrincipal){ btnPrincipal.textContent = 'Iniciar sesión'; btnPrincipal.setAttribute('onclick','iniciarSesionConMatricula()'); }
+    if(btnAlternar) btnAlternar.textContent = 'No tengo cuenta — crear una';
+  } else {
+    if(bloqueConfirm) bloqueConfirm.style.display = 'block';
+    if(btnPrincipal){ btnPrincipal.textContent = 'Crear mi cuenta'; btnPrincipal.setAttribute('onclick','crearCuentaConMatricula()'); }
+    if(btnAlternar) btnAlternar.textContent = 'Ya tengo cuenta — iniciar sesión';
+  }
+}
+
+async function iniciarSesionConMatricula(){
+  var matricula = document.getElementById('cuentaMatInput').value.trim();
+  var pin = document.getElementById('cuentaPinInput').value.trim();
+  var estado = document.getElementById('estadoCuentaNube');
+  var mostrarEstado = function(txt){ if(estado){ estado.style.display='block'; estado.textContent = txt; } };
+  if(!matricula || !pin){ mostrarEstado('Escribe tu matrícula y tu PIN.'); return; }
+
+  mostrarEstado('Entrando...');
+  var resp = await sbAdmin.auth.signInWithPassword({ email: _dominioInternoCuenta(matricula), password: pin });
+  if(resp.error){
+    mostrarEstado('Matrícula o PIN incorrectos.');
+    return;
+  }
+  toast('✅ Sesión iniciada');
+  document.getElementById('cuentaPinInput').value = '';
+}
+
+function cerrarSesionUsuarioNube(){
+  sbAdmin.auth.signOut();
+  // usuarioActual se pone a null en el propio onAuthStateChange (evento SIGNED_OUT)
+  toast('🚪 Sesión cerrada');
+}
+
+// Alterna la UI de Ajustes entre "sin cuenta" (formulario) y "con
+// cuenta" (guardar/cargar/cerrar sesión), según usuarioActual.
+function actualizarUICuentaNube(){
+  var fuera = document.getElementById('bloqueCuentaFuera');
+  var dentro = document.getElementById('bloqueCuentaDentro');
+  if(!fuera || !dentro) return;
+  if(usuarioActual){
+    fuera.style.display = 'none';
+    dentro.style.display = 'block';
+    var lbl = document.getElementById('cuentaMatActivaLbl');
+    if(lbl) lbl.textContent = usuarioActual.matricula || usuarioActual.email || '—';
+  } else {
+    fuera.style.display = 'block';
+    dentro.style.display = 'none';
+  }
 }
 
 async function refrescarEstadoArchivosAdmin(){
@@ -16281,6 +16524,14 @@ window.abrirAccesoBuscadorCompaneros = function(){
   var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
   if(!esAdminActivo && !_sedeUsuarioActual()){
     alert('Antes de usar el Buscador de Compañeros, configura tu Estación Base en Ajustes → Perfil.');
+    return;
+  }
+  // NUEVO — si ya hay sesión iniciada con matrícula+PIN, esa matrícula
+  // ya quedó demostrada al crear la cuenta / iniciar sesión — no hace
+  // falta volver a escribirla aquí. Solo aplica a cuentas de matrícula
+  // (usuarioActual.matricula), no al admin (que entra por otra vía).
+  if(usuarioActual && usuarioActual.matricula){
+    abrirBuscadorConHorarioGlobal();
     return;
   }
   // NUEVO — si esta matrícula ya aceptó el descargo antes en este
