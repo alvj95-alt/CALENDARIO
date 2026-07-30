@@ -13730,6 +13730,85 @@ function renderComparativaComputoExcel(){
 }
 
 /* ═══════════════════════════════════════════════════════════
+   HTDL — RESUMEN DE COMPENSACIÓN EN DÍAS (Estadísticas)
+   Módulo aditivo. La app ya obliga a que un HTDL con comp==='dias'
+   elija sus fechas dentro del MES SIGUIENTE (ver el filtro dy===yC
+   && dm===mC en el guardado del formulario) y las guarda como
+   TV[iso]={tipo:'comp', origen:k} — pero hasta ahora eso solo se
+   veía entrando al detalle de cada turno, uno a uno. Este bloque
+   lo resume en Estadísticas, igual que ya hace _renderArt5152Stats:
+   1) Los HTDL de ESTE mes que pediste como días → a qué fechas del
+      mes siguiente van.
+   2) Los días libres que caen EN este mes por un HTDL del mes
+      anterior → de qué HTDL vienen.
+   Solo lectura: no crea ni modifica ningún TV[k].
+═══════════════════════════════════════════════════════════ */
+function _renderHtdlDiasStats(){
+  var csBox = document.getElementById('cs-box');
+  if(!csBox) return;
+  var box = document.getElementById('htdl-dias-stats-box');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'htdl-dias-stats-box';
+    csBox.insertAdjacentElement('afterend', box);
+  }
+
+  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  var pref = y+'-'+pad(m);
+
+  // Días libres que llegan ESTE mes (compensación de un HTDL anterior)
+  var recibidos = Object.keys(TV).filter(function(k){
+    return k.startsWith(pref) && TV[k] && TV[k].tipo==='comp';
+  }).sort();
+
+  // HTDL trabajados ESTE mes cuya compensación es 'días'
+  var solicitados = [];
+  Object.keys(TV).filter(function(k){return k.startsWith(pref);}).forEach(function(k){
+    var t=TV[k];
+    if(t && t.comp==='dias' && t.diasComp && t.diasComp.length) solicitados.push({k:k, t:t});
+  });
+
+  if(!recibidos.length && !solicitados.length){ box.innerHTML=''; return; }
+
+  var html = '<div class="cs-box"><div class="cs-t">📅 HTDL — Compensación en días</div>';
+
+  if(solicitados.length){
+    html += '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:4px">SOLICITADOS ESTE MES → CAEN EL MES SIGUIENTE</div>';
+    solicitados.forEach(function(r){
+      html += '<div class="cs-r" style="padding-left:12px">'
+        +'<span class="cl" style="font-size:10px">HTDL '+_keyAFechaLbl(r.k)+'</span>'
+        +'<span class="cv" style="font-size:10px;color:var(--cyan2);font-weight:700">'+r.t.diasComp.map(_keyAFechaLbl).join(' y ')+'</span></div>';
+    });
+  }
+
+  if(recibidos.length){
+    if(solicitados.length) html += '<div class="cr-div" style="margin:6px 0"></div>';
+    html += '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:4px">DÍAS LIBRES ESTE MES (compensación de HTDL)</div>';
+    recibidos.forEach(function(iso){
+      var origen = TV[iso].origen;
+      html += '<div class="cs-r" style="padding-left:12px">'
+        +'<span class="cl" style="font-size:10px">'+_keyAFechaLbl(iso)+'</span>'
+        +'<span class="cv" style="font-size:10px;color:var(--cyan2);font-weight:700">'+(origen?'← HTDL '+_keyAFechaLbl(origen):'Día libre HTDL')+'</span></div>';
+    });
+  }
+
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// ── Enganche a renderStats() — mismo patrón que ya usa Art.51/52:
+// envuelve la versión ACTUAL de renderStats (que ya incluye la
+// Auditoría de Horas, Art.51/52 y el Cómputo Excel) sin tocar nada
+// de lo existente, solo añade esta llamada al final.
+if(typeof renderStats === 'function'){
+  var _renderStats_base_htdldias = renderStats;
+  renderStats = function(){
+    _renderStats_base_htdldias.apply(this, arguments);
+    _renderHtdlDiasStats();
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
    VALIDACIÓN ASISTIDA DH — extensión del motor de cálculo.
    Al marcar un tramo del horario individual como DH, la app
    pausa el registro automático y exige, mediante un pop-up,
