@@ -4513,6 +4513,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- NUEVO — OV: elegir qué sede del Horario General eliminar. Lista
+     SOLO las sedes que de verdad tienen un archivo publicado ahora
+     mismo (consultado en el momento, nunca una lista fija) — así no
+     hay que escribir el nombre de la sede a mano para borrarla. -->
+<div class="ov" id="ov-eliminar-sede" onclick="if(event.target===this)closeOv('ov-eliminar-sede')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">🗑</div>
+      <div>
+        <div class="sh-tit">Eliminar Horario General</div>
+        <div class="sh-sub">Elige qué sede quieres borrar</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-eliminar-sede')">✕</button>
+    </div>
+    <div style="padding:16px" id="lista-sedes-eliminar"></div>
+  </div>
+</div>
+
 <!-- NUEVO — OV: confirmación antes de CARGAR el horario personal desde
      la nube. Nunca se carga en automático: siempre pregunta primero,
      porque sobrescribiría los turnos/horario de este dispositivo. -->
@@ -15744,18 +15762,36 @@ async function subirIntervencionGlobalAdmin(){
   toast('✅ Intervención publicada para todos');
 }
 
-// NUEVO — Borra el Horario General de LA SEDE seleccionada en el
-// desplegable (fila en config_global + el archivo en Storage).
-// Requiere confirmación (acción irreversible para esa sede).
+// NUEVO — Abre un pop-up listando SOLO las sedes que de verdad tienen
+// un Horario General publicado ahora mismo (consulta en directo a
+// config_global) — ya no depende de escribir el nombre a mano en el
+// mismo campo que se usa para subir.
 async function eliminarHorarioGeneralAdmin(){
   if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
-  var sedeSel = document.getElementById('selSedeHorarioGeneral');
-  var sedeNombre = sedeSel ? sedeSel.value : '';
-  if(!sedeNombre){ alert('Selecciona primero la sede que quieres eliminar.'); return; }
-  var tipoSede = 'horario_general_' + _baseSlug(sedeNombre);
+  var cont = document.getElementById('lista-sedes-eliminar');
+  cont.innerHTML = '<div class="msg-info">Buscando sedes publicadas...</div>';
+  openOv('ov-eliminar-sede');
+
+  var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
+  if(resp.error || !resp.data || !resp.data.length){
+    cont.innerHTML = '<div class="msg-info">No hay ninguna sede con Horario General publicado todavía.</div>';
+    return;
+  }
+
+  cont.innerHTML = resp.data.map(function(fila){
+    var sedeLbl = fila.sede || fila.tipo.replace('horario_general_','');
+    return '<button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:8px;text-align:left" onclick="confirmarEliminarSede(\''+fila.tipo+'\',\''+sedeLbl.replace(/'/g,"\\'")+'\')">'
+      +'🗑 '+sedeLbl+'<br><span style="font-size:10px;opacity:.75;font-weight:400">'+fila.nombre_archivo+' · '+new Date(fila.fecha_subida).toLocaleString('es-ES')+'</span>'
+      +'</button>';
+  }).join('');
+}
+
+// Borra la sede EXACTA elegida en el pop-up (tipoSede ya viene
+// resuelto, sin volver a construirlo a partir de texto escrito).
+async function confirmarEliminarSede(tipoSede, sedeNombre){
   if(!confirm('¿Seguro que quieres borrar el Horario General de '+sedeNombre+'? Los compañeros de esa sede dejarán de verlo hasta que subas uno nuevo.')) return;
-  var elEstado = document.getElementById('estadoHorarioGeneral');
-  elEstado.textContent = 'Borrando '+sedeNombre+'...';
+  var cont = document.getElementById('lista-sedes-eliminar');
+  cont.innerHTML = '<div class="msg-info">Borrando '+sedeNombre+'...</div>';
 
   var fila = await sbAdmin.from('config_global').select('url_archivo').eq('tipo',tipoSede).single();
   if(fila.data && fila.data.url_archivo){
@@ -15764,9 +15800,10 @@ async function eliminarHorarioGeneralAdmin(){
   }
   var borrado = await sbAdmin.from('config_global').delete().eq('tipo',tipoSede);
   if(borrado.error){
-    elEstado.textContent = 'Error al borrar: ' + borrado.error.message;
+    cont.innerHTML = '<div class="msg-error">Error al borrar: '+borrado.error.message+'</div>';
     return;
   }
+  closeOv('ov-eliminar-sede');
   toast('🗑 Horario General de '+sedeNombre+' eliminado');
   refrescarEstadoArchivosAdmin();
 }
