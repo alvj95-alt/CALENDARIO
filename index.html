@@ -15772,14 +15772,22 @@ async function eliminarHorarioGeneralAdmin(){
   cont.innerHTML = '<div class="msg-info">Buscando sedes publicadas...</div>';
   openOv('ov-eliminar-sede');
 
-  var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
-  if(resp.error || !resp.data || !resp.data.length){
+  // FIX — antes solo buscaba 'horario_general_%' (con guion bajo +
+  // sede detrás), así que el registro ANTIGUO de antes de tener sedes
+  // (tipo EXACTO 'horario_general', sin nada más) no aparecía aquí,
+  // aunque sí salía en el estado de arriba (ese filtro es más laxo).
+  // Se piden todas las filas y se filtra en el cliente para coger
+  // ambos casos: el antiguo y los nuevos por sede.
+  var resp = await sbAdmin.from('config_global').select('*');
+  var filas = (resp.data||[]).filter(function(f){ return f.tipo && f.tipo.indexOf('horario_general')===0; });
+  if(resp.error || !filas.length){
     cont.innerHTML = '<div class="msg-info">No hay ninguna sede con Horario General publicado todavía.</div>';
     return;
   }
 
-  cont.innerHTML = resp.data.map(function(fila){
-    var sedeLbl = fila.sede || fila.tipo.replace('horario_general_','');
+  cont.innerHTML = filas.map(function(fila){
+    var esFormatoAntiguo = fila.tipo === 'horario_general';
+    var sedeLbl = esFormatoAntiguo ? 'Formato antiguo (sin sede)' : (fila.sede || fila.tipo.replace('horario_general_',''));
     return '<button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:8px;text-align:left" onclick="confirmarEliminarSede(\''+fila.tipo+'\',\''+sedeLbl.replace(/'/g,"\\'")+'\')">'
       +'🗑 '+sedeLbl+'<br><span style="font-size:10px;opacity:.75;font-weight:400">'+fila.nombre_archivo+' · '+new Date(fila.fecha_subida).toLocaleString('es-ES')+'</span>'
       +'</button>';
