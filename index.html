@@ -2795,6 +2795,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
               style="font-variant-numeric:tabular-nums">
           </div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">TU SEDE (para el Buscador de Compañeros)</label>
+            <input class="aj-nombre-inp" id="aj-sede" list="listaSedes" placeholder="Escribe tu sede…" autocomplete="off">
+            <datalist id="listaSedes">
+              <option value="Barcelona"><option value="Madrid"><option value="Valencia">
+              <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
+            </datalist>
+            <div style="font-size:9px;color:var(--tx3);margin-top:4px">El Buscador de Compañeros solo te mostrará gente de tu misma sede — nunca de otra, por protección de datos. Escribe el nombre exacto tal como lo pondrá el administrador (mayúsculas/tildes no importan).</div>
+          </div>
           <div class="aj-roles">
             <div class="aj-rol-btn" id="rs-t" onclick="setRol('tripulante')">
               <div class="rol-ico">🚆</div>
@@ -4460,6 +4469,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="fp-ico">📄</div>
         <div class="fp-txt">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
       </div>
+      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede de este archivo (Barcelona, Bilbao...)" autocomplete="off" style="margin-top:8px">
       <input type="file" id="fileHorarioGeneral" accept="application/pdf,.csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
       <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarHorarioGeneralAdmin()">🗑 Eliminar Horario General</button>
@@ -4751,7 +4761,7 @@ var TARIFAS_ROL = {
 };
 
 var AJ=Object.assign({
-  nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,
+  nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,sedeBase:'',
   // FIX — art5152Monto/art5152ValorBase no tenían valor por defecto
   // (a diferencia de 'vh', que sí lo tiene: 12.5). Sin este valor
   // inicial, si el usuario nunca entraba a Ajustes → Art.51/52 y
@@ -4805,6 +4815,27 @@ function _guardarComputoExcelPorMes(){
   try{ localStorage.setItem(COMPUTO_EXCEL_KEY, JSON.stringify(_computoExcelPorMes)); }
   catch(e){ console.log('No se pudo guardar Cómputo Excel en localStorage:', e); }
 }
+
+// NUEVO — Filtro por categoría + exportación de "Días con diferencias".
+// comparable:true = la app SÍ calcula esto, así que puede haber una
+// diferencia real Excel-vs-App. comparable:false = categoría que solo
+// existe en el Excel (Rebase, Traslados...): no hay "diferencia" posible,
+// se listan los días en los que el Excel tiene algo en esa columna.
+var COMPUTO_EXCEL_CATEGORIAS = [
+  {id:'todas',      lbl:'Todas las diferencias'},
+  {id:'HE',         lbl:'Horas Efectivas',    comparable:true},
+  {id:'HP',         lbl:'Horas Presencia',    comparable:true},
+  {id:'Noct',       lbl:'Nocturnidad',        comparable:true},
+  {id:'HTDL',       lbl:'HTDL',               comparable:true},
+  {id:'JT',         lbl:'Plus JT',            comparable:true, esConteo:true},
+  {id:'Rebase',     lbl:'Rebase (solo Excel)',           comparable:false},
+  {id:'Trasl',      lbl:'Traslados (solo Excel)',        comparable:false},
+  {id:'PlusTrasl',  lbl:'Plus Traslado (solo Excel)',     comparable:false},
+  {id:'TpTrans',    lbl:'Tiempo Transporte (solo Excel)', comparable:false, esNumero:true},
+  {id:'PlusInter',  lbl:'Plus Interrupción (solo Excel)', comparable:false, esNumero:true}
+];
+var _computoExcelFiltro = 'todas';
+var _computoExcelDatosActual = null; // {discrepancias, porDia, y, m, mesLbl} del último render
 
 // ── Estado del formulario ──
 // REGLA: hF/hL/sal/lle = tramo IDA (día seleccionado)
@@ -10876,6 +10907,7 @@ function loadAjUI(){
   }
   document.getElementById('aj-nom').value=AJ.nombre||'';
   document.getElementById('aj-mat').value=AJ.matricula||'';
+  document.getElementById('aj-sede').value=AJ.sedeBase||'';
   document.getElementById('aj-vh').value=AJ.vh||12.5;
   document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
   var bv=document.getElementById('aj-base-v');
@@ -10938,6 +10970,7 @@ function setPlus(k,v){var r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={
 function saveAj(){
   AJ.nombre=document.getElementById('aj-nom').value.trim()||'Mis Turnos';
   AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
+  AJ.sedeBase=document.getElementById('aj-sede').value||'';
   AJ.vh=parseFloat(document.getElementById('aj-vh').value)||12.5;
   AJ.nocturnidad=parseFloat(document.getElementById('aj-noc').value)||1.80;
   localStorage.setItem('aj5',JSON.stringify(AJ));
@@ -13630,6 +13663,12 @@ function _parseComputoExcelFilas(filas){
     var k=_xlsxSerialAFechaKey(fechaV);
     if(!k) continue;
     if(y===null){ var kk=k.split('-'); y=parseInt(kk[0]); m=parseInt(kk[1]); }
+    // Rotación 1/2 = número(s) de tren/servicio del día, tal como los
+    // reporta Serveo. Se leen "a la ligera" (no van en `need`): si algún
+    // mes no trae estas columnas, el resto del Cómputo sigue funcionando
+    // igual, solo que sin número de tren que mostrar/comparar.
+    var rot1 = (cols['Rotación 1']!==undefined) ? String(fila[cols['Rotación 1']]||'').trim() : '';
+    var rot2 = (cols['Rotación 2']!==undefined) ? String(fila[cols['Rotación 2']]||'').trim() : '';
     porDia[k]={
       HE:_xlsxSerialAMin(fila[cols['H. E.']]),
       HP:_xlsxSerialAMin(fila[cols['H. P.']]),
@@ -13640,7 +13679,8 @@ function _parseComputoExcelFilas(filas){
       PlusTrasl:_xlsxSerialAMin(fila[cols['Plus Trasl.']]),
       TpTrans:parseFloat(fila[cols['TpTrans']])||0,
       PlusInter:parseFloat(fila[cols['Plus Inter.']])||0,
-      JT:parseFloat(fila[cols['JT']])||0
+      JT:parseFloat(fila[cols['JT']])||0,
+      TrenExcel: (rot1 + (rot2 ? ' / '+rot2 : '')).trim()
     };
   }
   if(y===null){
@@ -13667,6 +13707,21 @@ function quitarComputoExcel(){
   var panel=document.getElementById('computo-excel-panel');
   if(panel){ panel.style.display='none'; panel.innerHTML=''; }
   var inp=document.getElementById('fileComputoExcel'); if(inp) inp.value='';
+}
+
+// NUEVO — junta TODOS los números de tren que la app tiene registrados
+// para un día (ida, vuelta, intermedio de pernocta, y los de un DH),
+// para poder comparar contra "Rotación 1/2" del Cómputo Excel oficial.
+function _trenesAppDelDia(k){
+  var t = TV[k];
+  if(!t) return '';
+  var trenes = [t.numTren, t.numTrenVuelta, t.numTrenIntermedio, t.dhTrenDH, t.dhTrenDHVuelta]
+    .filter(function(x){ return x && String(x).trim().length; })
+    .map(function(x){ return String(x).trim(); });
+  // Sin duplicados, mismo orden en que aparecen
+  var vistos={};
+  trenes = trenes.filter(function(x){ if(vistos[x]) return false; vistos[x]=true; return true; });
+  return trenes.join(' / ');
 }
 
 function renderComparativaComputoExcel(){
@@ -13725,7 +13780,39 @@ function renderComparativaComputoExcel(){
     // nivel de día (los ajustes de enlace entre días de calculateEarnings
     // solo se aplican al total del mes, no aquí), así que se usa solo
     // para señalar posibles diferencias a revisar, no como cifra oficial.
-    var jornada=calcularJornadaDiaria(getTurnosDia(k), k);
+    //
+    // FIX — el día de VUELTA de una pernocta (tipo 'vuelta-pernocta') o
+    // el día intermedio de una pernocta de 3 días ('pernocta3-intermedio')
+    // no los reconoce calcularJornadaDiaria() (solo conoce ordinario/
+    // trabajado/art5152/reserva), así que sin este parche ese día
+    // siempre salía con 0 horas en la comparativa — aunque el número de
+    // tren sí saliera bien (viene de otro campo, _trenesAppDelDia). Las
+    // horas reales de ESE día concreto están en su propio hF/hL: se
+    // guardan ahí tal cual al crear la pernocta (ver TV[kSig]/TV[kFin]
+    // más arriba en el archivo). El tipo de bucket (HTDL u ordinario) se
+    // hereda del turno de origen (origenPernocta), que es el que dice si
+    // toda la pernocta es un HTDL trabajado o un servicio ordinario.
+    var turnoDelDia = TV[k];
+    var esDiaDerivadoPernocta = turnoDelDia && (turnoDelDia.tipo==='vuelta-pernocta' || turnoDelDia.tipo==='pernocta3-intermedio');
+    var jornada;
+    if(esDiaDerivadoPernocta){
+      var minVuelta = (turnoDelDia.hF && turnoDelDia.hL) ? calcMins(turnoDelDia.hF, turnoDelDia.hL) : 0;
+      var origenPernoctaT = turnoDelDia.origenPernocta ? TV[turnoDelDia.origenPernocta] : null;
+      var esHTDLDerivado = !!(origenPernoctaT && origenPernoctaT.tipo==='trabajado');
+      jornada = {efectivasMin: minVuelta, presenciaMin: 0, esHTDL: esHTDLDerivado};
+    } else {
+      jornada = calcularJornadaDiaria(getTurnosDia(k), k);
+      // Si ESTE día es el ORIGEN de una pernocta, calcularJornadaDiaria()
+      // suma también el tramo de vuelta (hF2/hL2) a este mismo día, aunque
+      // esa vuelta ocurra físicamente al día siguiente. Como ese tramo ya
+      // se cuenta en SU propio día (rama de arriba), aquí se resta para
+      // que cada tramo compute una sola vez y en el día que le toca —
+      // igual que hace el Cómputo Excel, que reparte por fecha real.
+      if(turnoDelDia && (turnoDelDia.modo==='pernocta' || turnoDelDia.modo==='pernocta3') && turnoDelDia.hF2 && turnoDelDia.hL2){
+        var minVueltaEnOrigen = calcMins(turnoDelDia.hF2, turnoDelDia.hL2);
+        jornada = {efectivasMin: Math.max(0, jornada.efectivasMin - minVueltaEnOrigen), presenciaMin: jornada.presenciaMin, esHTDL: jornada.esHTDL};
+      }
+    }
     var appHE = jornada.esHTDL ? 0 : jornada.efectivasMin;
     var appHP = jornada.esHTDL ? 0 : jornada.presenciaMin;
     var appHTDL = jornada.esHTDL ? (jornada.efectivasMin+jornada.presenciaMin) : 0;
@@ -13739,8 +13826,12 @@ function renderComparativaComputoExcel(){
     if(Math.abs(ex.Noct-appNoct)>UMBRAL_MIN) diffs.push({c:'Noct.',ex:ex.Noct,app:appNoct});
     if(Math.abs(ex.HTDL-appHTDL)>UMBRAL_MIN) diffs.push({c:'HTDL',ex:ex.HTDL,app:appHTDL});
     if(ex.JT!==appJT) diffs.push({c:'Plus JT',ex:ex.JT,app:appJT,esConteo:true});
-    if(diffs.length) discrepancias.push({fecha:pad(dd)+'/'+pad(m), diffs:diffs});
+    if(diffs.length) discrepancias.push({fecha:pad(dd)+'/'+pad(m), diffs:diffs, trenExcel:ex.TrenExcel||'', trenApp:_trenesAppDelDia(k)});
   });
+
+  // Guardado para que el selector de categoría y los botones de
+  // descarga puedan usarlo sin tener que recalcular nada.
+  _computoExcelDatosActual = {discrepancias:discrepancias, porDia:datos.porDia, y:y, m:m, mesLbl:datos.mesLbl};
 
   var filaTotal=function(lbl,cKey){
     var ex=totalExcel[cKey], ap=totalApp[cKey];
@@ -13774,21 +13865,6 @@ function renderComparativaComputoExcel(){
       +'</tr>';
   };
 
-  var htmlDiscrepancias = discrepancias.length
-    ? ('<div style="height:1px;background:var(--div);margin:10px 0"></div>'
-      +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--red2);margin-bottom:6px">DÍAS CON DIFERENCIAS ('+discrepancias.length+')</div>'
-      +discrepancias.map(function(d){
-        return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px">'
-          +'<strong>'+d.fecha+'</strong> — '
-          +d.diffs.map(function(x){
-            if(x.esConteo) return x.c+': Excel '+x.ex+' vs App '+x.app;
-            return x.c+': Excel '+_minAHHMM(x.ex)+' vs App '+_minAHHMM(x.app);
-          }).join(' · ')
-          +'</div>';
-      }).join(''))
-    : ('<div style="height:1px;background:var(--div);margin:10px 0"></div>'
-      +'<div style="font-size:12px;color:var(--green2);font-weight:700;text-align:center;padding:8px">✅ Sin diferencias por encima de 1 minuto en ningún día</div>');
-
   panel.innerHTML =
     '<div class="cs-box">'
     +'<div style="display:flex;justify-content:space-between;align-items:center">'
@@ -13818,8 +13894,186 @@ function renderComparativaComputoExcel(){
     +filaExcelSolo('Tiempo Transporte','TpTrans',true)
     +filaExcelSolo('Plus Interrupción','PlusInter',true)
     +'</table>'
-    +htmlDiscrepancias
+    +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
+    +'<label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">FILTRAR POR CATEGORÍA</label>'
+    +'<select id="selComputoExcelFiltro" onchange="cambiarFiltroComputoExcel(this.value)" style="width:100%;padding:8px;border-radius:8px;background:var(--s2);color:var(--tx);border:1px solid var(--div);font-size:12px;margin-bottom:8px">'
+    +COMPUTO_EXCEL_CATEGORIAS.map(function(c){ return '<option value="'+c.id+'">'+c.lbl+'</option>'; }).join('')
+    +'</select>'
+    +'<div id="computo-excel-dias-cont"></div>'
+    +'<div style="display:flex;gap:6px;margin-top:10px">'
+      +'<button class="upload-btn" style="flex:1;justify-content:center;font-size:11px;padding:8px" onclick="descargarComputoExcelFiltrado()">⬇️ Descargar esta vista</button>'
+      +'<button class="upload-btn" style="flex:1;justify-content:center;font-size:11px;padding:8px" onclick="descargarComputoExcelPorCategorias()">⬇️ Descargar todo por categorías</button>'
+    +'</div>'
     +'</div>';
+
+  // El <select> se reconstruye en cada render (panel.innerHTML entero),
+  // así que hay que reponer el valor elegido y rellenar el contenedor
+  // de días DESPUÉS de que exista en el DOM.
+  var selFiltro = document.getElementById('selComputoExcelFiltro');
+  if(selFiltro) selFiltro.value = _computoExcelFiltro;
+  _renderSeccionDiferenciasComputoExcel();
+}
+
+// NUEVO — construye, para una categoría dada, la lista de días a
+// mostrar/exportar. comparable → días con diferencia real Excel-vs-App
+// (reutiliza discrepancias, ya calculado). No comparable → todos los
+// días en los que el Excel tiene algo en esa columna (no hay "app" con
+// quien comparar, así que no es una diferencia, es solo informativo).
+function _construirFilasCategoria(catId){
+  var d = _computoExcelDatosActual;
+  if(!d || catId==='todas') return null;
+  var cat = COMPUTO_EXCEL_CATEGORIAS.find(function(c){return c.id===catId;});
+  if(!cat) return null;
+
+  if(cat.comparable){
+    var labelDiff = {HE:'H.E.', HP:'H.P.', Noct:'Noct.', HTDL:'HTDL', JT:'Plus JT'}[catId];
+    var filas = [];
+    d.discrepancias.forEach(function(disc){
+      var x = disc.diffs.filter(function(x){return x.c===labelDiff;})[0];
+      if(x) filas.push({fecha:disc.fecha, excel:x.ex, app:x.app, esConteo:!!x.esConteo, trenExcel:disc.trenExcel||'', trenApp:disc.trenApp||''});
+    });
+    return {esComparable:true, cat:cat, filas:filas};
+  }
+
+  var filas = [];
+  Object.keys(d.porDia).sort().forEach(function(k){
+    var val = d.porDia[k][catId]||0;
+    if(val>0){
+      var kk=k.split('-');
+      filas.push({fecha:pad(parseInt(kk[2]))+'/'+pad(d.m), valor:val, trenExcel:d.porDia[k].TrenExcel||'', trenApp:_trenesAppDelDia(k)});
+    }
+  });
+  return {esComparable:false, cat:cat, filas:filas};
+}
+
+function cambiarFiltroComputoExcel(v){
+  _computoExcelFiltro = v;
+  _renderSeccionDiferenciasComputoExcel();
+}
+
+function _renderSeccionDiferenciasComputoExcel(){
+  var cont = document.getElementById('computo-excel-dias-cont');
+  if(!cont || !_computoExcelDatosActual) return;
+  var d = _computoExcelDatosActual;
+  var html = '';
+
+  if(_computoExcelFiltro==='todas'){
+    html = d.discrepancias.length
+      ? ('<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--red2);margin-bottom:6px">DÍAS CON DIFERENCIAS ('+d.discrepancias.length+')</div>'
+        +d.discrepancias.map(function(disc){
+          var trenTxt = (disc.trenExcel||disc.trenApp) ? ('<div style="opacity:.75;margin-top:2px">🚆 Excel: '+(disc.trenExcel||'—')+' · App: '+(disc.trenApp||'—')+'</div>') : '';
+          return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px">'
+            +'<strong>'+disc.fecha+'</strong> — '
+            +disc.diffs.map(function(x){
+              if(x.esConteo) return x.c+': Excel '+x.ex+' vs App '+x.app;
+              return x.c+': Excel '+_minAHHMM(x.ex)+' vs App '+_minAHHMM(x.app);
+            }).join(' · ')
+            +trenTxt
+            +'</div>';
+        }).join(''))
+      : '<div style="font-size:12px;color:var(--green2);font-weight:700;text-align:center;padding:8px">✅ Sin diferencias por encima de 1 minuto en ningún día</div>';
+  } else {
+    var r = _construirFilasCategoria(_computoExcelFiltro);
+    if(!r){ cont.innerHTML=''; return; }
+    if(r.esComparable){
+      html = r.filas.length
+        ? ('<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--red2);margin-bottom:6px">DÍAS CON DIFERENCIA EN '+r.cat.lbl.toUpperCase()+' ('+r.filas.length+')</div>'
+          +r.filas.map(function(f){
+            var txt = f.esConteo ? ('Excel '+f.excel+' vs App '+f.app) : ('Excel '+_minAHHMM(f.excel)+' vs App '+_minAHHMM(f.app));
+            var trenTxt = (f.trenExcel||f.trenApp) ? ('<div style="opacity:.75;margin-top:2px">🚆 Excel: '+(f.trenExcel||'—')+' · App: '+(f.trenApp||'—')+'</div>') : '';
+            return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px"><strong>'+f.fecha+'</strong> — '+txt+trenTxt+'</div>';
+          }).join(''))
+        : '<div style="font-size:12px;color:var(--green2);font-weight:700;text-align:center;padding:8px">✅ Sin diferencias en '+r.cat.lbl+' este mes</div>';
+    } else {
+      html = r.filas.length
+        ? ('<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--acc2);margin-bottom:6px">DÍAS CON '+r.cat.lbl.toUpperCase()+' ('+r.filas.length+')</div>'
+          +r.filas.map(function(f){
+            var txt = r.cat.esNumero ? f.valor : _minAHHMM(f.valor);
+            var trenTxt = (f.trenExcel||f.trenApp) ? ('<div style="opacity:.75;margin-top:2px">🚆 Excel: '+(f.trenExcel||'—')+' · App: '+(f.trenApp||'—')+'</div>') : '';
+            return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px"><strong>'+f.fecha+'</strong> — '+txt+trenTxt+'</div>';
+          }).join(''))
+        : '<div style="font-size:12px;color:var(--tx3);text-align:center;padding:8px">Sin días con esta categoría en el Excel este mes</div>';
+    }
+  }
+  cont.innerHTML = html;
+}
+
+// Filas listas para exportar (mismo formato para pantalla y Excel —
+// una sola fuente de verdad, regla de oro).
+function _filasParaExportComputoExcel(catId){
+  if(!_computoExcelDatosActual) return [];
+  if(catId==='todas'){
+    var filas=[];
+    _computoExcelDatosActual.discrepancias.forEach(function(disc){
+      disc.diffs.forEach(function(x){
+        filas.push({
+          Fecha: disc.fecha,
+          Categoria: x.c,
+          Excel: x.esConteo ? x.ex : _minAHHMM(x.ex),
+          App: x.esConteo ? x.app : _minAHHMM(x.app),
+          'Tren Excel': disc.trenExcel||'',
+          'Tren App': disc.trenApp||''
+        });
+      });
+    });
+    return filas;
+  }
+  var cat = COMPUTO_EXCEL_CATEGORIAS.filter(function(c){return c.id===catId;})[0];
+  var r = _construirFilasCategoria(catId);
+  if(!r) return [];
+  if(r.esComparable){
+    return r.filas.map(function(f){
+      return {
+        Fecha: f.fecha,
+        Categoria: cat.lbl,
+        Excel: f.esConteo ? f.excel : _minAHHMM(f.excel),
+        App: f.esConteo ? f.app : _minAHHMM(f.app),
+        'Tren Excel': f.trenExcel||'',
+        'Tren App': f.trenApp||''
+      };
+    });
+  }
+  return r.filas.map(function(f){
+    return {
+      Fecha: f.fecha,
+      Categoria: cat.lbl,
+      Valor: cat.esNumero ? f.valor : _minAHHMM(f.valor),
+      'Tren Excel': f.trenExcel||'',
+      'Tren App': f.trenApp||''
+    };
+  });
+}
+
+function descargarComputoExcelFiltrado(){
+  if(!_computoExcelDatosActual){ alert('No hay ninguna comparativa cargada este mes.'); return; }
+  if(typeof XLSX==='undefined'){ alert('No se pudo cargar el lector/escritor de Excel. Comprueba tu conexión.'); return; }
+  var filas = _filasParaExportComputoExcel(_computoExcelFiltro);
+  if(!filas.length){ alert('No hay días que descargar con este filtro.'); return; }
+  var cat = COMPUTO_EXCEL_CATEGORIAS.filter(function(c){return c.id===_computoExcelFiltro;})[0];
+  var nombreHoja = (cat ? cat.lbl : 'Diferencias').replace(/[\\\/\?\*\[\]:]/g,'').substring(0,31);
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.json_to_sheet(filas);
+  XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+  var nombreArchivo = 'Diferencias_'+_computoExcelDatosActual.mesLbl.replace(' ','_')+'_'+(cat?cat.id:'Todas')+'.xlsx';
+  XLSX.writeFile(wb, nombreArchivo);
+}
+
+function descargarComputoExcelPorCategorias(){
+  if(!_computoExcelDatosActual){ alert('No hay ninguna comparativa cargada este mes.'); return; }
+  if(typeof XLSX==='undefined'){ alert('No se pudo cargar el lector/escritor de Excel. Comprueba tu conexión.'); return; }
+  var wb = XLSX.utils.book_new();
+  var huboAlguna = false;
+  COMPUTO_EXCEL_CATEGORIAS.forEach(function(cat){
+    if(cat.id==='todas') return;
+    var filas = _filasParaExportComputoExcel(cat.id);
+    if(!filas.length) return;
+    huboAlguna = true;
+    var ws = XLSX.utils.json_to_sheet(filas);
+    var nombreHoja = cat.lbl.replace(/[\\\/\?\*\[\]:]/g,'').substring(0,31);
+    XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+  });
+  if(!huboAlguna){ alert('No hay ningún día con diferencias ni datos que descargar este mes.'); return; }
+  XLSX.writeFile(wb, 'ComputoExcel_'+_computoExcelDatosActual.mesLbl.replace(' ','_')+'_PorCategorias.xlsx');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -15363,9 +15617,36 @@ sbAdmin.auth.onAuthStateChange(function(event, session){
   }
 });
 
+// NUEVO — normaliza un nombre de sede a un identificador simple para
+// usar como parte de `tipo` en config_global (sin tildes/espacios).
+function _baseSlug(nombre){
+  return String(nombre||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quita acentos
+}
+
 async function subirArchivoGlobalAdmin(tipo, file){
   if(!file || !perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
   var elEstado = document.getElementById(tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion');
+
+  // NUEVO — el Horario General ahora es UN ARCHIVO POR SEDE (Barcelona,
+  // Madrid, Valencia, Sevilla), cada uno en su propia fila de
+  // config_global (tipo: 'horario_general_'+sede). Así, cuando un
+  // compañero abre el Buscador, la app solo pide/descarga la fila de SU
+  // propia sede — el archivo de las demás sedes no llega ni a
+  // descargarse a su dispositivo, no es solo un filtro visual.
+  var sedeSlug = '';
+  if(tipo==='horario_general'){
+    var sedeSel = document.getElementById('selSedeHorarioGeneral');
+    var sedeNombre = sedeSel ? sedeSel.value : '';
+    if(!sedeNombre){
+      elEstado.classList.remove('sin-archivo');
+      elEstado.textContent = 'Selecciona antes la sede de este archivo (Barcelona, Madrid...).';
+      return;
+    }
+    sedeSlug = _baseSlug(sedeNombre);
+    tipo = 'horario_general_' + sedeSlug;
+  }
+
   elEstado.textContent = 'Subiendo...';
   var path = tipo + '/' + Date.now() + '_' + file.name;
 
@@ -15376,19 +15657,24 @@ async function subirArchivoGlobalAdmin(tipo, file){
   }
   var urlData = sbAdmin.storage.from('admin-archivos').getPublicUrl(path);
 
-  var tabla = await sbAdmin.from('config_global').upsert({
+  var payload = {
     tipo: tipo,
     nombre_archivo: file.name,
     url_archivo: urlData.data.publicUrl,
     fecha_subida: new Date().toISOString(),
     subido_por: perfilAdminActual.id
-  });
+  };
+  if(sedeSlug){
+    var sedeSel2 = document.getElementById('selSedeHorarioGeneral');
+    payload.sede = sedeSel2 ? sedeSel2.value : '';
+  }
+  var tabla = await sbAdmin.from('config_global').upsert(payload);
   if(tabla.error){
     elEstado.textContent = 'Archivo subido, pero no se pudo registrar: ' + tabla.error.message;
     return;
   }
   refrescarEstadoArchivosAdmin();
-  toast('✅ Archivo publicado para todos');
+  toast('✅ Archivo publicado' + (sedeSlug ? ' para '+document.getElementById('selSedeHorarioGeneral').value : ' para todos'));
 }
 
 // NUEVO — Sube el Gráfico + el Informe de Intervención, junto con el
@@ -15450,28 +15736,31 @@ async function subirIntervencionGlobalAdmin(){
   toast('✅ Intervención publicada para todos');
 }
 
-// NUEVO — Borra el Horario General publicado: fila en config_global +
-// el archivo en Storage. Requiere confirmación (acción irreversible
-// para todos los usuarios, no solo para este dispositivo).
+// NUEVO — Borra el Horario General de LA SEDE seleccionada en el
+// desplegable (fila en config_global + el archivo en Storage).
+// Requiere confirmación (acción irreversible para esa sede).
 async function eliminarHorarioGeneralAdmin(){
   if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
-  if(!confirm('¿Seguro que quieres borrar el Horario General publicado? Todos los compañeros dejarán de verlo hasta que subas uno nuevo.')) return;
+  var sedeSel = document.getElementById('selSedeHorarioGeneral');
+  var sedeNombre = sedeSel ? sedeSel.value : '';
+  if(!sedeNombre){ alert('Selecciona primero la sede que quieres eliminar.'); return; }
+  var tipoSede = 'horario_general_' + _baseSlug(sedeNombre);
+  if(!confirm('¿Seguro que quieres borrar el Horario General de '+sedeNombre+'? Los compañeros de esa sede dejarán de verlo hasta que subas uno nuevo.')) return;
   var elEstado = document.getElementById('estadoHorarioGeneral');
-  elEstado.textContent = 'Borrando...';
+  elEstado.textContent = 'Borrando '+sedeNombre+'...';
 
-  var fila = await sbAdmin.from('config_global').select('url_archivo').eq('tipo','horario_general').single();
+  var fila = await sbAdmin.from('config_global').select('url_archivo').eq('tipo',tipoSede).single();
   if(fila.data && fila.data.url_archivo){
     var partes = fila.data.url_archivo.split('/admin-archivos/');
     if(partes[1]) await sbAdmin.storage.from('admin-archivos').remove([decodeURIComponent(partes[1])]);
   }
-  var borrado = await sbAdmin.from('config_global').delete().eq('tipo','horario_general');
+  var borrado = await sbAdmin.from('config_global').delete().eq('tipo',tipoSede);
   if(borrado.error){
     elEstado.textContent = 'Error al borrar: ' + borrado.error.message;
     return;
   }
-  elEstado.classList.add('sin-archivo');
-  elEstado.textContent = 'Aún no hay ningún archivo activo.';
-  toast('🗑 Horario General eliminado');
+  toast('🗑 Horario General de '+sedeNombre+' eliminado');
+  refrescarEstadoArchivosAdmin();
 }
 
 // NUEVO — Borra la Intervención publicada (Gráfico + Informe): fila
@@ -15593,12 +15882,31 @@ function rechazarCargaNube(){
 async function refrescarEstadoArchivosAdmin(){
   var resp = await sbAdmin.from('config_global').select('*');
   if(!resp.data) return;
+
+  // NUEVO — el Horario General ahora son varias filas (una por sede,
+  // tipo:'horario_general_'+sede), así que se listan todas juntas en
+  // el mismo recuadro de estado en vez de una sola línea.
+  var filasHorario = resp.data.filter(function(f){ return f.tipo && f.tipo.indexOf('horario_general')===0; });
+  var elHorario = document.getElementById('estadoHorarioGeneral');
+  if(elHorario){
+    if(filasHorario.length){
+      elHorario.classList.remove('sin-archivo');
+      elHorario.innerHTML = filasHorario.map(function(f){
+        return '<div style="margin-bottom:4px"><b>'+(f.sede||f.tipo.replace('horario_general_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+'</div>';
+      }).join('');
+    } else {
+      elHorario.classList.add('sin-archivo');
+      elHorario.textContent = 'Aún no hay ningún archivo activo en ninguna sede.';
+    }
+  }
+
   resp.data.forEach(function(fila){
-    var id = fila.tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion';
-    var el = document.getElementById(id);
-    if(!el) return;
-    el.classList.remove('sin-archivo');
-    el.innerHTML = 'Archivo activo: <b>'+fila.nombre_archivo+'</b><br>Subido: '+new Date(fila.fecha_subida).toLocaleString('es-ES');
+    if(fila.tipo==='grafico_intervencion'){
+      var el = document.getElementById('estadoGraficoIntervencion');
+      if(!el) return;
+      el.classList.remove('sin-archivo');
+      el.innerHTML = 'Archivo activo: <b>'+fila.nombre_archivo+'</b><br>Subido: '+new Date(fila.fecha_subida).toLocaleString('es-ES');
+    }
   });
 }
 
@@ -15715,37 +16023,92 @@ function parseHorarioGeneralXLSX(buf){
 // Carga el horario publicado por el admin (Supabase) y, si existe,
 // lo activa automáticamente — el usuario ya no elige base a mano.
 // Reutiliza sbAdmin (ya conectado, declarado antes en este script).
+//
+// NUEVO — dos rutas distintas según quién pregunta:
+//  · Usuario normal: SOLO se pide/descarga la fila de SU sede
+//    (AJ.sedeBase). Protección de datos real, no solo un filtro
+//    visual — el archivo de otra sede nunca llega a tocar su
+//    dispositivo.
+//  · Administrador (perfilAdminActual.rol==='admin'): puede ver a
+//    TODOS los compañeros de TODAS las sedes en el Buscador, aunque
+//    su propia sede personal sea una sola. Se piden todas las filas
+//    'horario_general_%' y se fusionan en un único listado, cada
+//    empleado etiquetado con su sede real (para poder distinguirlos
+//    si hiciera falta más adelante).
 async function cargarHorarioGlobalDesdeAdmin(){
   try{
     if(typeof sbAdmin === 'undefined') return false;
-    var resp = await sbAdmin.from('config_global').select('*').eq('tipo','horario_general').single();
-    if(resp.error || !resp.data || !resp.data.url_archivo) return false;
-    var archivoResp = await fetch(resp.data.url_archivo);
-    if(!archivoResp.ok) return false;
-    var nombreArchivo = resp.data.nombre_archivo || '';
-    var esXlsx = /\.xlsx$/i.test(nombreArchivo);
-    var esPdf = /\.pdf$/i.test(nombreArchivo);
-    var datos;
-    if(esPdf){
-      // Mismo PDF que ya usas para Barcelona/Madrid — se lee con el
-      // mismo parser (parsearBufferPdfHorario), sin duplicar lógica.
-      var bufPdf = await archivoResp.arrayBuffer();
-      datos = await parsearBufferPdfHorario(bufPdf);
-    } else if(esXlsx){
-      var buf = await archivoResp.arrayBuffer();
-      datos = parseHorarioGeneralXLSX(buf);
-    } else {
-      var texto = await archivoResp.text();
-      datos = parseHorarioGeneralCSV(texto);
+    var esAdmin = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
+
+    if(esAdmin){
+      var respTodas = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
+      if(respTodas.error || !respTodas.data || !respTodas.data.length) return false;
+      var datosFusionados = [];
+      var fechaMasReciente = null;
+      for(var i=0; i<respTodas.data.length; i++){
+        var filaSede = respTodas.data[i];
+        if(!filaSede.url_archivo) continue;
+        var datosSede = await _descargarYParsearHorario(filaSede);
+        if(datosSede && datosSede.length){
+          // Se etiqueta cada empleado con su sede real, añadiéndola
+          // como 4º elemento de la tupla [id, nombre, dias, sede] —
+          // no rompe nada existente, que solo usa los 3 primeros.
+          var sedeLbl = filaSede.sede || filaSede.tipo.replace('horario_general_','');
+          datosSede.forEach(function(emp){ emp[3] = sedeLbl; });
+          datosFusionados = datosFusionados.concat(datosSede);
+        }
+        var fechaFila = new Date(filaSede.fecha_subida);
+        if(!fechaMasReciente || fechaFila>fechaMasReciente) fechaMasReciente = fechaFila;
+      }
+      if(!datosFusionados.length) return false;
+      BASES.global.data = datosFusionados;
+      BASES.global.month = fechaMasReciente ? fechaMasReciente.toLocaleDateString('es-ES') : '—';
+      BASES.global.label = 'Horario General · Todas las sedes (admin)';
+      return true;
     }
+
+    // Usuario normal — protección de datos por sede: se pide SOLO la
+    // fila de la sede configurada en Ajustes (AJ.sedeBase). Si no hay
+    // sede configurada, o el admin no ha subido nada para esa sede
+    // todavía, no se descarga NADA — nunca se llega a tocar el
+    // archivo de otra sede, ni siquiera de forma temporal.
+    if(!AJ.sedeBase){
+      console.log('Horario General: no se ha configurado una sede en Ajustes, no se puede cargar nada.');
+      return false;
+    }
+    var tipoSede = 'horario_general_' + _baseSlug(AJ.sedeBase);
+    var resp = await sbAdmin.from('config_global').select('*').eq('tipo',tipoSede).single();
+    if(resp.error || !resp.data || !resp.data.url_archivo) return false;
+    var datos = await _descargarYParsearHorario(resp.data);
     if(!datos || !datos.length) return false;
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
+    BASES.global.label = 'Horario General · '+(resp.data.sede||AJ.sedeBase);
     return true;
   }catch(e){
     console.log('No se pudo cargar el horario general publicado:', e);
     return false;
   }
+}
+
+// Descarga y parsea UNA fila de config_global (PDF/XLSX/CSV) — factor
+// común extraído para poder reutilizarlo tanto en la ruta admin (varias
+// filas) como en la de usuario normal (una sola), sin duplicar código.
+async function _descargarYParsearHorario(fila){
+  var archivoResp = await fetch(fila.url_archivo);
+  if(!archivoResp.ok) return null;
+  var nombreArchivo = fila.nombre_archivo || '';
+  var esXlsx = /\.xlsx$/i.test(nombreArchivo);
+  var esPdf = /\.pdf$/i.test(nombreArchivo);
+  if(esPdf){
+    var bufPdf = await archivoResp.arrayBuffer();
+    return await parsearBufferPdfHorario(bufPdf);
+  } else if(esXlsx){
+    var buf = await archivoResp.arrayBuffer();
+    return parseHorarioGeneralXLSX(buf);
+  }
+  var texto = await archivoResp.text();
+  return parseHorarioGeneralCSV(texto);
 }
 
 // Se expone a window porque el botón que abre el buscador vive
@@ -15755,6 +16118,16 @@ async function cargarHorarioGlobalDesdeAdmin(){
 // responsabilidades. Solo si ambas cosas se cumplen se llama a
 // abrirBuscadorConHorarioGlobal() (ya existente, sin tocarla).
 window.abrirAccesoBuscadorCompaneros = function(){
+  // NUEVO — sin sede configurada en Ajustes, no hay forma de saber qué
+  // Horario General pedir (ni de proteger la privacidad de otras
+  // sedes), así que se avisa aquí mismo, antes de nada. El admin queda
+  // exento: él ve todas las sedes fusionadas, no necesita configurar
+  // ninguna en concreto.
+  var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
+  if(!esAdminActivo && !AJ.sedeBase){
+    alert('Antes de usar el Buscador de Compañeros, configura tu sede (Barcelona, Madrid, Valencia, Sevilla...) en Ajustes → Perfil.');
+    return;
+  }
   // NUEVO — si esta matrícula ya aceptó el descargo antes en este
   // dispositivo, no se le vuelve a preguntar: se entra directo.
   var matriculaGuardada = localStorage.getItem('descargoAceptado_matricula');
