@@ -4486,6 +4486,39 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarIntervencionAdmin()">🗑 Eliminar Intervención</button>
     </div>
+
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico">☁️</div>
+        <div>
+          <div class="admin-card-tit">Mi horario personal en la nube</div>
+          <div class="admin-card-sub">Guarda tus turnos y tu horario individual en tu cuenta, para poder recuperarlos desde otro móvil u ordenador. Solo tú puedes verlos ni escribirlos (acceso restringido a tu usuario).</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%" onclick="guardarHorarioEnNube()">☁️ Guardar mi horario ahora</button>
+      <div class="estado-archivo sin-archivo" id="estadoHorarioNube">Aún no se ha guardado nada en este dispositivo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — OV: confirmación antes de CARGAR el horario personal desde
+     la nube. Nunca se carga en automático: siempre pregunta primero,
+     porque sobrescribiría los turnos/horario de este dispositivo. -->
+<div class="ov" id="ov-cargar-nube" onclick="if(event.target===this)rechazarCargaNube()">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">☁️</div>
+      <div>
+        <div class="sh-tit">Horario guardado en la nube</div>
+        <div class="sh-sub">Guardado el <span id="nubeFechaLbl">—</span></div>
+      </div>
+      <button class="sh-close" onclick="rechazarCargaNube()">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div class="msg-info">Se ha encontrado un horario personal guardado en tu cuenta. Cargarlo reemplazará los turnos y el horario individual de ESTE dispositivo por los de la nube.</div>
+      <button class="m-save" style="width:100%;margin-top:10px" onclick="cargarHorarioDesdeNube()">☁️ Sí, cargar mi horario</button>
+      <button class="dct-btn-sec" style="width:100%;margin-top:8px" onclick="rechazarCargaNube()">No, mantener este dispositivo</button>
+    </div>
   </div>
 </div>
 
@@ -5014,8 +5047,12 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
       // descansadas computan como Horas Efectivas.
       resultado.computaPresencia = true;
     } else if(tipoEnlace==='HTDL_HTDL'){
-      // Ambos lados HTDL/Art.51-52: computa como Impacto Económico.
-      resultado.computaFinanciero = true;
+      // FIX — Enlace entre dos HTDL: es un HTDL con acuerdo, así que NO
+      // se cobra en dinero ni computa como horas (antes sí computaba
+      // económicamente). La notificación del enlace SÍ debe seguir
+      // saliendo, pero con el aviso de que no computa — mismo patrón
+      // que ya usa el caso "Ordinaria → HTDL" (A2) más abajo.
+      resultado.avisoNoComputa = 'Ojo: Enlace entre dos HTDL (con acuerdo) — no computa en horas ni en dinero.';
     } else if(tipoEnlace==='HTDL_A_ORDINARIA_B'){
       // B — HTDL o Art.51-52 enlazando con una Ordinaria POSTERIOR:
       // sí se paga, con la tarifa del lado HTDL/Art.51-52 (turnoA).
@@ -5039,7 +5076,10 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
      .incumple            → true si hay incumplimiento de descanso
      .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'HTDL_A_ORDINARIA_B' | 'ORDINARIA_A_HTDL_B' | 'TURNO_INTERCAMBIADO'
      .computaPresencia     → true si el tipo de jornada es Ordinaria (ver nota abajo)
-     .computaFinanciero    → true si el tipo de jornada es HTDL o Art.51/52
+     .computaFinanciero    → true SOLO si tipoEnlace==='HTDL_A_ORDINARIA_B'
+                             (HTDL/Art.51-52 → Ordinaria posterior). El
+                             caso HTDL_HTDL (HTDL con acuerdo) NO computa
+                             ni en horas ni en dinero — solo genera aviso.
      .descMin/.limiteMin   → minutos de descanso real / mínimo exigido
      .esEnBase             → true=12h exigidas, false=8h exigidas
    NOTA: el campo se sigue llamando "computaPresencia" por
@@ -11653,7 +11693,10 @@ function calculateEarnings(ks){
   // toca ningún dato de TV, solo decide en qué contador entra el
   // tiempo de descanso incumplido, según la matriz de decisión:
   //   Ordinaria + Ordinaria           → Horas Efectivas (minEfectivasCal).
-  //   (HTDL o Art.51/52) + (HTDL/52)  → Impacto Económico (hHTDL / tH).
+  //   (HTDL/Art.51-52) + Ordinaria    → Impacto Económico (hHTDL / tH),
+  //                                     con la tarifa del lado HTDL/52.
+  //   HTDL + HTDL (con acuerdo)       → no computa ni en horas ni en
+  //                                     dinero; solo aviso (avisoNoComputa).
   //   Ordinaria + (HTDL o Art.51/52)  → no se suma a ningún contador; el
   //                                     aviso ya se muestra en el banner
   //                                     del día (ALERTAS_DESCANSO / avisoNoComputa).
@@ -11685,8 +11728,9 @@ function calculateEarnings(ks){
       // FIX — el turno de referencia para la tarifa depende del tipo
       // de enlace: en el caso B (HTDL_A_ORDINARIA_B) el lado HTDL/
       // Art.51-52 es SIEMPRE tAEnl (antes se miraba tBEnl, que en
-      // este caso es la Ordinaria — tarifa equivocada). En HTDL_HTDL
-      // se prioriza el lado que sea Art.51/52 si lo hay, igual que antes.
+      // este caso es la Ordinaria — tarifa equivocada). HTDL_HTDL ya
+      // no llega aquí (computaFinanciero=false para ese caso), así
+      // que este bloque solo se ejecuta para HTDL_A_ORDINARIA_B.
       var turnoTarifaEnl = (enlace.tipoEnlace==='HTDL_A_ORDINARIA_B') ? tAEnl
         : (tBEnl.tipo==='art5152' ? tBEnl : tAEnl.tipo==='art5152' ? tAEnl : tBEnl);
       if(turnoTarifaEnl.tipo==='art5152'){
@@ -15258,6 +15302,11 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
       openOv('ov-panel-admin');
       refrescarEstadoArchivosAdmin();
+      // NUEVO — solo se comprueba en un login EXPLÍCITO (abrirPanel=true,
+      // que es justo lo que pasa al entrar desde un dispositivo nuevo sin
+      // sesión guardada). En una recarga con sesión ya persistida en este
+      // mismo dispositivo (abrirPanel=false) no se molesta con el pop-up.
+      comprobarHorarioEnNube();
     }
   } else if(abrirPanel){
     var msg = document.getElementById('adminLoginMsg');
@@ -15413,6 +15462,93 @@ async function eliminarIntervencionAdmin(){
   elEstado.classList.add('sin-archivo');
   elEstado.textContent = 'Aún no hay ninguna Intervención activa.';
   toast('🗑 Intervención eliminada');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MI HORARIO PERSONAL EN LA NUBE — módulo aditivo, independiente
+   de config_global (que es la que comparten todos los compañeros).
+   Usa la tabla PROPIA "datos_personales" (una fila por user_id, con
+   RLS: cada usuario solo puede leer/escribir la suya — ver el SQL
+   aparte que crea esta tabla). Guarda TV (turnos) y el horario
+   individual (horarios:index + cada horario:MESKEY del localStore ya
+   existente). Nunca se carga sola: siempre pide confirmación primero
+   mediante el pop-up ov-cargar-nube, porque sobrescribiría los datos
+   de este dispositivo.
+═══════════════════════════════════════════════════════════ */
+var _datosNubePendientes = null;
+
+async function guardarHorarioEnNube(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var estado = document.getElementById('estadoHorarioNube');
+  if(estado) estado.textContent = 'Guardando...';
+
+  var indice = await getMonthIndex();
+  var meses = {};
+  for(var i=0; i<indice.length; i++){
+    meses[indice[i]] = await loadMonth(indice[i]);
+  }
+
+  var payload = {
+    user_id: perfilAdminActual.id,
+    tv_json: TV,
+    horarios_json: {index: indice, meses: meses},
+    actualizado: new Date().toISOString()
+  };
+  var resp = await sbAdmin.from('datos_personales').upsert(payload);
+  if(resp.error){
+    if(estado) estado.textContent = 'Error al guardar: ' + resp.error.message;
+    return;
+  }
+  if(estado){
+    estado.classList.remove('sin-archivo');
+    estado.textContent = '✅ Guardado el ' + new Date().toLocaleString('es-ES');
+  }
+  toast('☁️ Horario personal guardado en la nube');
+}
+
+// Se llama SOLO tras un login explícito (dispositivo nuevo o sesión
+// no persistida). Si hay datos guardados en la nube para este user_id,
+// pregunta antes de tocar nada local — nunca carga en automático.
+async function comprobarHorarioEnNube(){
+  if(!perfilAdminActual) return;
+  var resp = await sbAdmin.from('datos_personales').select('*').eq('user_id', perfilAdminActual.id).single();
+  if(resp.error || !resp.data) return; // sin datos guardados aún: no hay nada que preguntar
+  _datosNubePendientes = resp.data;
+  var lbl = document.getElementById('nubeFechaLbl');
+  if(lbl) lbl.textContent = resp.data.actualizado ? new Date(resp.data.actualizado).toLocaleString('es-ES') : '—';
+  openOv('ov-cargar-nube');
+}
+
+async function cargarHorarioDesdeNube(){
+  if(!_datosNubePendientes) return;
+  var d = _datosNubePendientes;
+
+  if(d.tv_json){
+    TV = d.tv_json;
+    saveTV();
+  }
+  if(d.horarios_json && d.horarios_json.meses){
+    var idx = d.horarios_json.index || Object.keys(d.horarios_json.meses);
+    for(var i=0; i<idx.length; i++){
+      var mk = idx[i], mdata = d.horarios_json.meses[mk];
+      if(mdata) localStore.set('horario:' + mk, JSON.stringify(mdata));
+    }
+    await saveMonthIndex(idx);
+  }
+
+  closeOv('ov-cargar-nube');
+  toast('☁️ Horario cargado desde la nube');
+  _datosNubePendientes = null;
+
+  // Refresca todas las vistas que dependen de TV / horario individual
+  if(typeof renderCal==='function') renderCal();
+  if(typeof renderStats==='function') renderStats();
+  if(typeof renderMonthListIndividual==='function') renderMonthListIndividual();
+}
+
+function rechazarCargaNube(){
+  closeOv('ov-cargar-nube');
+  _datosNubePendientes = null;
 }
 
 async function refrescarEstadoArchivosAdmin(){
