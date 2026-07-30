@@ -15690,6 +15690,7 @@ async function subirArchivoGlobalAdmin(tipo, file){
   // publicarlo para todos los compañeros de esa sede, en vez de
   // descubrirlo luego cuando alguien abra el Buscador y no vea a nadie.
   var datosValidacion = null;
+  var errorTecnicoValidacion = null;
   try{
     var esXlsxVal = /\.xlsx$/i.test(file.name);
     var esCsvVal = /\.csv$/i.test(file.name);
@@ -15707,10 +15708,18 @@ async function subirArchivoGlobalAdmin(tipo, file){
     }
   }catch(errVal){
     console.log('Error validando el contenido del archivo:', errVal);
+    errorTecnicoValidacion = errVal && errVal.message ? errVal.message : String(errVal);
     datosValidacion = null;
   }
   if(!datosValidacion || !datosValidacion.length){
-    var continuar = confirm('Este archivo no parece un Horario General válido: no se ha reconocido ningún empleado dentro (revisando el contenido, no el nombre). ¿Quieres publicarlo de todas formas?');
+    // FIX — distingue "hubo un fallo técnico leyendo el PDF" de "se leyó
+    // bien pero no había ningún empleado dentro". Antes ambos casos
+    // daban el mismo mensaje genérico, y no se podía saber si el
+    // archivo era inválido de verdad o si algo se rompió al leerlo.
+    var msgValidacion = errorTecnicoValidacion
+      ? ('No se ha podido leer el archivo por completo (' + errorTecnicoValidacion + '). Puede que aun así contenga datos válidos. ¿Quieres publicarlo de todas formas?')
+      : 'Este archivo no parece un Horario General válido: no se ha reconocido ningún empleado dentro (revisando el contenido, no el nombre). ¿Quieres publicarlo de todas formas?';
+    var continuar = confirm(msgValidacion);
     if(!continuar){
       elEstado.classList.add('sin-archivo');
       elEstado.textContent = 'Subida cancelada — el archivo no se reconoció como Horario General.';
@@ -16998,31 +17007,47 @@ async function parsearBufferPdfHorario(buf, onProgress){
   const pdf = await pdfjsLib.getDocument({data: buf}).promise;
   const numPages = pdf.numPages;
   const empleados = [];
+  var paginasConError = [];
   for(let pi=1; pi<=numPages; pi++){
     if(onProgress) onProgress(pi, numPages);
-    const page = await pdf.getPage(pi);
-    const viewport = page.getViewport({scale:1});
-    const pageHeight = viewport.height;
-    const content = await page.getTextContent();
-    const words = [];
-    for(const item of content.items){
-      const str = (item.str||'').trim();
-      if(!str) continue;
-      const x0 = item.transform[4];
-      const top = pageHeight - item.transform[5];
-      const parts = str.split(/\s+/).filter(Boolean);
-      if(parts.length<=1){
-        words.push({text: str, x0, top});
-      } else {
-        const w = item.width || 0;
-        parts.forEach((p, idx)=>{
-          words.push({text: p, x0: x0 + (w*idx/parts.length), top});
-        });
+    // FIX — antes, si UNA sola página (de las 59 que puede tener este
+    // PDF) fallaba al leerla (página dañada, contenido inesperado,
+    // etc.), la excepción tiraba TODO el bucle abajo y se perdían los
+    // empleados ya reconocidos en las páginas anteriores — el archivo
+    // entero se daba por "no reconocido" aunque la inmensa mayoría
+    // estuviera perfectamente bien. Ahora cada página es independiente:
+    // si una falla, se anota y se sigue con la siguiente.
+    try{
+      const page = await pdf.getPage(pi);
+      const viewport = page.getViewport({scale:1});
+      const pageHeight = viewport.height;
+      const content = await page.getTextContent();
+      const words = [];
+      for(const item of content.items){
+        const str = (item.str||'').trim();
+        if(!str) continue;
+        const x0 = item.transform[4];
+        const top = pageHeight - item.transform[5];
+        const parts = str.split(/\s+/).filter(Boolean);
+        if(parts.length<=1){
+          words.push({text: str, x0, top});
+        } else {
+          const w = item.width || 0;
+          parts.forEach((p, idx)=>{
+            words.push({text: p, x0: x0 + (w*idx/parts.length), top});
+          });
+        }
       }
+      const parsed = parsePageWords(words);
+      empleados.push(...parsed);
+    }catch(errPagina){
+      paginasConError.push(pi);
+      console.log('Cómputo/Horario: no se pudo leer la página '+pi+' de '+numPages+', se continúa con el resto.', errPagina);
     }
-    const parsed = parsePageWords(words);
-    empleados.push(...parsed);
     await new Promise(r=>setTimeout(r, 0)); // deja respirar a la UI
+  }
+  if(paginasConError.length){
+    console.log('Horario General: '+paginasConError.length+' página(s) no se pudieron leer: '+paginasConError.join(', ')+'. El resto del documento se procesó con normalidad.');
   }
   return empleados;
 }
