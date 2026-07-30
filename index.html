@@ -4786,6 +4786,26 @@ var AJ=Object.assign({
 var TV=JSON.parse(localStorage.getItem('tv5')||'{}');
 var curM=new Date(), selDay=null, statsM=new Date();
 
+// NUEVO — Cómputo Excel: persistente en localStorage, indexado por mes
+// ('YYYY-MM'). FIX: esto tiene que declararse AQUÍ, antes de init(),
+// porque renderComparativaComputoExcel() se llama desde dentro de
+// renderStats(), y esa ya se ejecuta en el primer render automático al
+// cargar la página (dentro de init()). Si esta variable se declaraba
+// más abajo en el archivo (después de la llamada a init()), en ese
+// primerísimo render aún valía undefined pese al hoisting de "var" (el
+// hoisting sube el nombre, no el valor) — y renderComparativaComputoExcel()
+// petaba con "Cannot read properties of undefined (reading '2026-07')"
+// al intentar leer _computoExcelPorMes[claveMes] sobre undefined.
+var COMPUTO_EXCEL_KEY = 'computoExcelPorMes';
+var _computoExcelPorMes = (function(){
+  try{ return JSON.parse(localStorage.getItem(COMPUTO_EXCEL_KEY) || '{}'); }
+  catch(e){ return {}; }
+})();
+function _guardarComputoExcelPorMes(){
+  try{ localStorage.setItem(COMPUTO_EXCEL_KEY, JSON.stringify(_computoExcelPorMes)); }
+  catch(e){ console.log('No se pudo guardar Cómputo Excel en localStorage:', e); }
+}
+
 // ── Estado del formulario ──
 // REGLA: hF/hL/sal/lle = tramo IDA (día seleccionado)
 //        hF2/hL2/sal2/lle2 = tramo VUELTA
@@ -13492,8 +13512,6 @@ async function renderAuditoriaHoras(){
    como discrepancia.
    Solo lectura: no escribe en TV, TV2 ni en ningún dato guardado.
 ═══════════════════════════════════════════════════════════ */
-var _computoExcelUltimo = null; // {porDia, totalesExcel, y, m, mesLbl, nombre}
-
 function _xlsxSerialAMin(v){
   // Celdas de duración (formato [h]:mm:ss) llegan como número =
   // fracción de día, y PUEDEN superar 1 (ej. "1 día, 7:51:00").
@@ -13554,7 +13572,9 @@ function handleComputoExcelUpload(file){
         return;
       }
       parsed.nombre = file.name;
-      _computoExcelUltimo = parsed;
+      var claveMes = parsed.y+'-'+pad(parsed.m);
+      _computoExcelPorMes[claveMes] = parsed;
+      _guardarComputoExcelPorMes();
       renderComparativaComputoExcel(); // decide por sí sola si mostrar u ocultar, según el mes visible
       var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
       if(parsed.y!==yVisible || parsed.m!==mVisible){
@@ -13636,13 +13656,14 @@ function toggleComputoExcelPanel(){
   panel.style.display = (panel.style.display==='none') ? 'block' : 'none';
 }
 
-// NUEVO — Quita la comparación cargada (no borra nada de TV/AJ, solo el
-// dato temporal del Excel en memoria). Necesario porque cada mes trae
-// su propio Cómputo Oficial: al cambiar de mes hay que subir el Excel
-// de ESE mes, y este botón deja el panel limpio para hacerlo sin
-// confusión con el mes anterior.
+// NUEVO — Quita SOLO la comparación del mes que estás viendo ahora
+// mismo (no borra nada de TV/AJ, ni los demás meses guardados). Si
+// subiste junio y julio, y quitas julio, junio sigue intacto.
 function quitarComputoExcel(){
-  _computoExcelUltimo = null;
+  var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
+  var claveMes = yVisible+'-'+pad(mVisible);
+  delete _computoExcelPorMes[claveMes];
+  _guardarComputoExcelPorMes();
   var panel=document.getElementById('computo-excel-panel');
   if(panel){ panel.style.display='none'; panel.innerHTML=''; }
   var inp=document.getElementById('fileComputoExcel'); if(inp) inp.value='';
@@ -13650,19 +13671,16 @@ function quitarComputoExcel(){
 
 function renderComparativaComputoExcel(){
   var panel=document.getElementById('computo-excel-panel');
-  var datos=_computoExcelUltimo;
   if(!panel) return;
-  if(!datos){ panel.style.display='none'; return; }
 
-  // NUEVO — el Excel subido solo se muestra si coincide con el mes
-  // visible de Estadísticas (statsM). Si no coincide (p.ej. subiste el
-  // de julio y ahora estás viendo agosto), se oculta — pero SIN borrar
-  // _computoExcelUltimo, así que en cuanto vuelvas a julio reaparece
-  // automáticamente, sin tener que volver a subir el archivo.
+  // El Excel a mostrar es el que corresponda al mes visible de
+  // Estadísticas (statsM), buscado directamente en el almacén
+  // persistente por mes — así sobrevive a recargar la página y
+  // aparece solo, sin volver a subir nada, en cuanto navegas a ESE mes.
   var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
-  if(datos.y!==yVisible || datos.m!==mVisible){
-    panel.style.display='none';
-    return;
+  var claveMes = yVisible+'-'+pad(mVisible);
+  var datos = _computoExcelPorMes[claveMes];
+  if(!datos){ panel.style.display='none'; return;
   }
   panel.style.display='block';
 
