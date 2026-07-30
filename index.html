@@ -15704,7 +15704,12 @@ async function subirArchivoGlobalAdmin(tipo, file){
     var esCsvVal = /\.csv$/i.test(file.name);
     if(esXlsxVal){
       bufferParaSubir = await file.arrayBuffer();
-      datosValidacion = parseHorarioGeneralXLSX(bufferParaSubir);
+      // FIX — se pasa una COPIA (slice(0)) al lector, nunca el buffer
+      // original. XLSX/pdf.js pueden vaciar ("transferir") el buffer
+      // que reciben para procesarlo; si se les pasa el mismo objeto
+      // que luego se usa para subir, ese buffer llega vacío (0 bytes)
+      // a Supabase — es justo lo que causó "The PDF file is empty".
+      datosValidacion = parseHorarioGeneralXLSX(bufferParaSubir.slice(0));
     } else if(esCsvVal){
       var textoVal = await file.text();
       bufferParaSubir = textoVal; // el texto plano sirve igual para subir un CSV
@@ -15713,7 +15718,7 @@ async function subirArchivoGlobalAdmin(tipo, file){
       // Por defecto se trata como PDF (igual que hace el resto del
       // código más abajo), sea cual sea el nombre del archivo.
       bufferParaSubir = await file.arrayBuffer();
-      datosValidacion = await parsearBufferPdfHorario(bufferParaSubir);
+      datosValidacion = await parsearBufferPdfHorario(bufferParaSubir.slice(0));
     }
   }catch(errVal){
     console.log('Error validando el contenido del archivo:', errVal);
