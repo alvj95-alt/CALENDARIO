@@ -4443,6 +4443,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-panel-admin')">✕</button>
     </div>
 
+    <div style="padding:0 16px">
+      <button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:6px" onclick="cerrarSesionAdmin()">🚪 Cerrar sesión de administrador</button>
+      <div class="msg-info" style="margin:0 0 10px">Ciérrala cuando termines de revisar o subir algo: mientras la sesión esté activa, cualquier acción de este panel (guardar, publicar, eliminar) queda habilitada. Cerrándola evitas guardar algo por error sin querer.</div>
+    </div>
+
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico blue">📅</div>
@@ -15260,6 +15265,22 @@ function abrirAccesoAdmin(){
     return;
   }
   openOv('ov-admin-login');
+}
+
+// NUEVO — Cierra la sesión de administrador en ESTE dispositivo. Tras
+// esto, perfilAdminActual queda a null, así que TODAS las funciones
+// admin (subirArchivoGlobalAdmin, guardarHorarioEnNube, eliminar*, etc.)
+// vuelven a bloquearse solas, porque todas comprueban
+// "perfilAdminActual && perfilAdminActual.rol==='admin'" antes de hacer
+// nada. Así se evita guardar/publicar algo sin querer mientras la
+// sesión sigue abierta.
+async function cerrarSesionAdmin(){
+  await sbAdmin.auth.signOut();
+  perfilAdminActual = null;
+  var btnAdmin = document.getElementById('hbtn-admin');
+  if(btnAdmin) btnAdmin.classList.remove('es-admin');
+  closeOv('ov-panel-admin');
+  toast('🚪 Sesión de administrador cerrada');
 }
 
 async function iniciarSesionAdmin(){
