@@ -10969,7 +10969,7 @@ function renderStats(){
     _rowIdx++;
     var alt = (_rowIdx%2===0) ? ' cs-r-alt' : '';
     return '<div class="cs-r'+alt+'" style="flex-direction:column;align-items:flex-start;gap:2px">'
-      +'<div style="display:flex;width:100%"><span class="cl">'+lbl+'</span>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;width:100%"><span class="cl">'+lbl+'</span>'
       +'<span class="cv '+(colClass||'')+'">'+val+'</span></div>'
       +dT(dias||[])+'</div>';
   };
@@ -11019,7 +11019,7 @@ function renderStats(){
         e.diasNocDetail.forEach(function(d){
           if(typeof d!=='object') return;
           des+='<div class="cs-r cs-r-sub" style="flex-direction:column;gap:1px">';
-          des+='<div style="display:flex;width:100%">';
+          des+='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">';
           des+='<span class="cl">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
           des+='<span class="cv cv-muted">'+d.hNoc.toFixed(2)+'h · <span class="cv-warn" style="font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
           des+='</div>';
@@ -13546,7 +13546,7 @@ function _parseComputoExcelFilas(filas){
     console.log('Cómputo Excel: no se encontró ninguna fila con la columna "Fecha". Primeras filas leídas:', filas.slice(0,10));
     return {error:'sin-cabecera'};
   }
-  var need=['Fecha','H. E.','H. P.','Noct.','Rebase','HTDL','Trasl.','Plus Trasl.','TpTrans','Plus Inter.'];
+  var need=['Fecha','H. E.','H. P.','Noct.','Rebase','HTDL','Trasl.','Plus Trasl.','TpTrans','Plus Inter.','JT'];
   var faltan = need.filter(function(n){ return cols[n]===undefined; });
   if(faltan.length){
     console.log('Cómputo Excel: faltan columnas', faltan, '· cabeceras detectadas:', Object.keys(cols));
@@ -13570,7 +13570,8 @@ function _parseComputoExcelFilas(filas){
       Trasl:_xlsxSerialAMin(fila[cols['Trasl.']]),
       PlusTrasl:_xlsxSerialAMin(fila[cols['Plus Trasl.']]),
       TpTrans:parseFloat(fila[cols['TpTrans']])||0,
-      PlusInter:parseFloat(fila[cols['Plus Inter.']])||0
+      PlusInter:parseFloat(fila[cols['Plus Inter.']])||0,
+      JT:parseFloat(fila[cols['JT']])||0
     };
   }
   if(y===null){
@@ -13630,9 +13631,14 @@ function renderComparativaComputoExcel(){
   // (ya calculado por calculateEarnings, mismo cn() de siempre).
   var totalNocAppMin = Math.round((eMes.diasNocDetail||[]).reduce(function(s,d){return s+(d.hNoc||0);},0)*60);
   var totalApp={HE:eMes.efectivasCalMin||0, HP:eMes.presenciaCalMin||0, Noct:totalNocAppMin, HTDL:(eMes.efectivasHTDLMin||0)+(eMes.presenciaHTDLMin||0)};
-  var totalExcel={HE:0,HP:0,Noct:0,Rebase:0,HTDL:0,Trasl:0,PlusTrasl:0,TpTrans:0,PlusInter:0};
+  var totalExcel={HE:0,HP:0,Noct:0,Rebase:0,HTDL:0,Trasl:0,PlusTrasl:0,TpTrans:0,PlusInter:0,JT:0};
   var discrepancias=[];
   var UMBRAL_MIN=1; // ignora diferencias de redondeo de menos de 1 minuto
+
+  // Plus JT: la app ya lo calcula por turno (t.plusJT) y lo agrega en
+  // calculateEarnings() como e.diasJT (mismo dato que se muestra en el
+  // desglose "✅ Plus JT (×N)" de Estadísticas) — se reutiliza tal cual.
+  totalApp.JT = (eMes.diasJT||[]).length;
 
   // Nocturnidad por etiqueta de día ("3 jun") — mismo array que ya usa
   // la app en otros sitios (diasNocDetail), solo se agrega por fecha
@@ -13643,7 +13649,8 @@ function renderComparativaComputoExcel(){
   Object.keys(datos.porDia).sort().forEach(function(k){
     var ex=datos.porDia[k];
     var kk=k.split('-'); var dd=parseInt(kk[2]);
-    Object.keys(totalExcel).forEach(function(c){ totalExcel[c]+=ex[c]||0; });
+    Object.keys(totalExcel).forEach(function(c){ if(c!=='JT') totalExcel[c]+=ex[c]||0; });
+    totalExcel.JT += ex.JT||0;
 
     // Desglose día a día — mismo criterio de reparto que calculateEarnings:
     // un día HTDL suma su Efectiva+Presencia a un único total HTDL; un
@@ -13657,12 +13664,14 @@ function renderComparativaComputoExcel(){
     var appHTDL = jornada.esHTDL ? (jornada.efectivasMin+jornada.presenciaMin) : 0;
     var dL = dd+' '+MESES_C[m-1];
     var appNoct = nocPorLbl[dL]||0;
+    var appJT = (TV[k] && TV[k].plusJT) ? 1 : 0;
 
     var diffs=[];
     if(Math.abs(ex.HE-appHE)>UMBRAL_MIN) diffs.push({c:'H.E.',ex:ex.HE,app:appHE});
     if(Math.abs(ex.HP-appHP)>UMBRAL_MIN) diffs.push({c:'H.P.',ex:ex.HP,app:appHP});
     if(Math.abs(ex.Noct-appNoct)>UMBRAL_MIN) diffs.push({c:'Noct.',ex:ex.Noct,app:appNoct});
     if(Math.abs(ex.HTDL-appHTDL)>UMBRAL_MIN) diffs.push({c:'HTDL',ex:ex.HTDL,app:appHTDL});
+    if(ex.JT!==appJT) diffs.push({c:'Plus JT',ex:ex.JT,app:appJT,esConteo:true});
     if(diffs.length) discrepancias.push({fecha:pad(dd)+'/'+pad(m), diffs:diffs});
   });
 
@@ -13680,8 +13689,21 @@ function renderComparativaComputoExcel(){
   var filaExcelSolo=function(lbl,cKey,esNumero){
     var v=totalExcel[cKey];
     return '<tr style="border-top:1px solid var(--div)">'
-      +'<td style="padding:6px 4px;color:var(--tx3);font-size:11px">'+lbl+'</td>'
-      +'<td style="padding:6px 4px;text-align:center;color:var(--tx3);font-size:11px" colspan="3">'+(esNumero?v:_minAHHMM(v))+' <span style="opacity:.6">(solo Excel — no modelado en la app)</span></td>'
+      +'<td style="padding:6px 4px;color:var(--tx2);font-size:11px">'+lbl+'</td>'
+      +'<td style="padding:6px 4px;text-align:center;color:var(--acc2);font-weight:700;font-size:12px" colspan="3">'+(esNumero?v:_minAHHMM(v))+'</td>'
+      +'</tr>';
+  };
+
+  // Plus JT es un CONTADOR de días (0/1), no una duración — filaTotal
+  // usaría _minAHHMM() y mostraría cosas sin sentido tipo "0h 01m".
+  var filaTotalCount=function(lbl,cKey){
+    var ex=totalExcel[cKey], ap=totalApp[cKey];
+    var ok=ex===ap;
+    return '<tr style="border-top:1px solid var(--div)">'
+      +'<td style="padding:8px 4px;color:var(--tx2)">'+lbl+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--amber2)">'+ex+' día(s)</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+ap+' día(s)</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:'+(ok?'var(--green2)':'var(--red2)')+'">'+(ok?'✅':(ex>ap?'+':'')+(ex-ap))+'</td>'
       +'</tr>';
   };
 
@@ -13691,7 +13713,10 @@ function renderComparativaComputoExcel(){
       +discrepancias.map(function(d){
         return '<div style="font-size:11px;color:var(--tx2);margin-bottom:4px;padding:6px 8px;background:var(--s2);border-radius:8px">'
           +'<strong>'+d.fecha+'</strong> — '
-          +d.diffs.map(function(x){return x.c+': Excel '+_minAHHMM(x.ex)+' vs App '+_minAHHMM(x.app);}).join(' · ')
+          +d.diffs.map(function(x){
+            if(x.esConteo) return x.c+': Excel '+x.ex+' vs App '+x.app;
+            return x.c+': Excel '+_minAHHMM(x.ex)+' vs App '+_minAHHMM(x.app);
+          }).join(' · ')
           +'</div>';
       }).join(''))
     : ('<div style="height:1px;background:var(--div);margin:10px 0"></div>'
@@ -13715,9 +13740,10 @@ function renderComparativaComputoExcel(){
     +filaTotal('Horas Presencia','HP')
     +filaTotal('Nocturnidad','Noct')
     +filaTotal('HTDL','HTDL')
+    +filaTotalCount('Plus JT','JT')
     +'</table>'
     +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
-    +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:2px">CATEGORÍAS SOLO EN EL EXCEL OFICIAL (la app no las calcula — ni aquí ni en Auditoría de Horas/PDF)</div>'
+    +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx2);margin-bottom:6px">CATEGORÍAS SOLO EN EL EXCEL OFICIAL <span style="font-weight:600;opacity:.85">(la app no las calcula — ni aquí ni en Auditoría de Horas/PDF)</span></div>'
     +'<table style="width:100%;border-collapse:collapse">'
     +filaExcelSolo('Rebase','Rebase')
     +filaExcelSolo('Traslados','Trasl')
