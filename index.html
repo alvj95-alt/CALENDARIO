@@ -4458,16 +4458,19 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="admin-card-sub">Sube el mismo PDF de turnos que ya usas para Barcelona/Madrid. Se publica al instante para todos.</div>
         </div>
       </div>
-      <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
-        <div class="fp-ico">📄</div>
-        <div class="fp-txt">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
-      </div>
-      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede de este archivo (Barcelona, Bilbao...)" autocomplete="off" style="margin-top:8px">
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">1. SEDE DE ESTE ARCHIVO</label>
+      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px">
       <datalist id="listaSedes">
         <option value="Barcelona"><option value="Madrid"><option value="Valencia">
         <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
       </datalist>
-      <input type="file" id="fileHorarioGeneral" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">2. ARCHIVO</label>
+      <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
+        <div class="fp-ico">📄</div>
+        <div class="fp-txt" id="txtHorarioGeneral">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
+      </div>
+      <input type="file" id="fileHorarioGeneral" style="display:none" onchange="document.getElementById('txtHorarioGeneral').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF (o CSV/XLSX si lo prefieres)'">
+      <button class="m-save" style="width:100%;margin-top:8px" onclick="subirArchivoGlobalAdmin('horario_general', document.getElementById('fileHorarioGeneral').files[0])">3. Subir y Publicar</button>
       <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarHorarioGeneralAdmin()">🗑 Eliminar Horario General</button>
     </div>
@@ -15651,8 +15654,13 @@ function _baseSlug(nombre){
 }
 
 async function subirArchivoGlobalAdmin(tipo, file){
-  if(!file || !perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
   var elEstado = document.getElementById(tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion');
+  if(!file){
+    elEstado.classList.remove('sin-archivo');
+    elEstado.textContent = 'Elige antes el archivo (paso 2).';
+    return;
+  }
 
   // NUEVO — el Horario General ahora es UN ARCHIVO POR SEDE (Barcelona,
   // Madrid, Valencia, Sevilla), cada uno en su propia fila de
