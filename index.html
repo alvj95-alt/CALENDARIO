@@ -16126,6 +16126,12 @@ function parseHorarioGeneralXLSX(buf){
   }
   return out;
 }
+// FIX — expuestas a window: subirArchivoGlobalAdmin() vive FUERA de este
+// IIFE (más arriba en el archivo) y necesita llamarlas para la
+// validación de contenido antes de publicar. Sin esto, daba
+// "parseHorarioGeneralCSV/XLSX is not defined".
+window.parseHorarioGeneralCSV = parseHorarioGeneralCSV;
+window.parseHorarioGeneralXLSX = parseHorarioGeneralXLSX;
 
 // Carga el horario publicado por el admin (Supabase) y, si existe,
 // lo activa automáticamente — el usuario ya no elige base a mano.
@@ -17051,6 +17057,10 @@ async function parsearBufferPdfHorario(buf, onProgress){
   }
   return empleados;
 }
+// FIX — mismo motivo que parseHorarioGeneralCSV/XLSX: subirArchivoGlobalAdmin()
+// vive fuera de este IIFE y necesita poder llamarla para la validación
+// de contenido antes de publicar.
+window.parsearBufferPdfHorario = parsearBufferPdfHorario;
 
 async function procesarPdfParaBase(key, label, file){
   showPanel('panel-progress');
