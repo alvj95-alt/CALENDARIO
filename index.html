@@ -1736,7 +1736,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     flex:1;
     gap:4px;
     overflow-x:auto;
+    scrollbar-width:none;
   }
+  .timeline::-webkit-scrollbar{display:none}
   .tpoint{
     text-align:center;
     min-width:54px;
@@ -2794,15 +2796,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="aj-nombre-ico">🪪</div>
             <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
               style="font-variant-numeric:tabular-nums">
-          </div>
-          <div style="margin-bottom:10px">
-            <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">TU SEDE (para el Buscador de Compañeros)</label>
-            <input class="aj-nombre-inp" id="aj-sede" list="listaSedes" placeholder="Escribe tu sede…" autocomplete="off">
-            <datalist id="listaSedes">
-              <option value="Barcelona"><option value="Madrid"><option value="Valencia">
-              <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
-            </datalist>
-            <div style="font-size:9px;color:var(--tx3);margin-top:4px">El Buscador de Compañeros solo te mostrará gente de tu misma sede — nunca de otra, por protección de datos. Escribe el nombre exacto tal como lo pondrá el administrador (mayúsculas/tildes no importan).</div>
           </div>
           <div class="aj-roles">
             <div class="aj-rol-btn" id="rs-t" onclick="setRol('tripulante')">
@@ -4470,6 +4463,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="fp-txt">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
       </div>
       <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede de este archivo (Barcelona, Bilbao...)" autocomplete="off" style="margin-top:8px">
+      <datalist id="listaSedes">
+        <option value="Barcelona"><option value="Madrid"><option value="Valencia">
+        <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
+      </datalist>
       <input type="file" id="fileHorarioGeneral" accept="application/pdf,.csv,.xlsx" style="display:none" onchange="subirArchivoGlobalAdmin('horario_general', this.files[0])">
       <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarHorarioGeneralAdmin()">🗑 Eliminar Horario General</button>
@@ -10907,7 +10904,6 @@ function loadAjUI(){
   }
   document.getElementById('aj-nom').value=AJ.nombre||'';
   document.getElementById('aj-mat').value=AJ.matricula||'';
-  document.getElementById('aj-sede').value=AJ.sedeBase||'';
   document.getElementById('aj-vh').value=AJ.vh||12.5;
   document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
   var bv=document.getElementById('aj-base-v');
@@ -10967,10 +10963,22 @@ function renderPlusGrid(){
   }).join('');
 }
 function setPlus(k,v){var r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={};AJ.pluses[r][k]=parseFloat(v)||0;}
+
+// NUEVO — la sede para el Buscador de Compañeros YA NO se pide aparte:
+// se deriva automáticamente de "Estación Base" (AJ.base), que el
+// usuario ya configura para otras cosas (límites de descanso, etc.).
+// Las estaciones siguen el patrón "Ciudad + nombre" (p.ej. "Barcelona
+// Sants", "Valencia Joaquín Sorolla", "Madrid Chamartín"), así que la
+// primera palabra es la ciudad/sede — sin pedirle nada nuevo al
+// usuario ni duplicar un dato que ya existe.
+function _sedeUsuarioActual(){
+  if(!AJ.base) return '';
+  return AJ.base.trim().split(/\s+/)[0] || '';
+}
+
 function saveAj(){
   AJ.nombre=document.getElementById('aj-nom').value.trim()||'Mis Turnos';
   AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
-  AJ.sedeBase=document.getElementById('aj-sede').value||'';
   AJ.vh=parseFloat(document.getElementById('aj-vh').value)||12.5;
   AJ.nocturnidad=parseFloat(document.getElementById('aj-noc').value)||1.80;
   localStorage.setItem('aj5',JSON.stringify(AJ));
@@ -16025,13 +16033,14 @@ function parseHorarioGeneralXLSX(buf){
 // Reutiliza sbAdmin (ya conectado, declarado antes en este script).
 //
 // NUEVO — dos rutas distintas según quién pregunta:
-//  · Usuario normal: SOLO se pide/descarga la fila de SU sede
-//    (AJ.sedeBase). Protección de datos real, no solo un filtro
-//    visual — el archivo de otra sede nunca llega a tocar su
-//    dispositivo.
+//  · Usuario normal: SOLO se pide/descarga la fila de SU sede, que se
+//    obtiene automáticamente de su Estación Base ya configurada
+//    (_sedeUsuarioActual(), sin campo nuevo que rellenar). Protección
+//    de datos real, no solo un filtro visual — el archivo de otra
+//    sede nunca llega a tocar su dispositivo.
 //  · Administrador (perfilAdminActual.rol==='admin'): puede ver a
 //    TODOS los compañeros de TODAS las sedes en el Buscador, aunque
-//    su propia sede personal sea una sola. Se piden todas las filas
+//    su propia Estación Base sea una sola. Se piden todas las filas
 //    'horario_general_%' y se fusionan en un único listado, cada
 //    empleado etiquetado con su sede real (para poder distinguirlos
 //    si hiciera falta más adelante).
@@ -16068,22 +16077,23 @@ async function cargarHorarioGlobalDesdeAdmin(){
     }
 
     // Usuario normal — protección de datos por sede: se pide SOLO la
-    // fila de la sede configurada en Ajustes (AJ.sedeBase). Si no hay
-    // sede configurada, o el admin no ha subido nada para esa sede
-    // todavía, no se descarga NADA — nunca se llega a tocar el
-    // archivo de otra sede, ni siquiera de forma temporal.
-    if(!AJ.sedeBase){
-      console.log('Horario General: no se ha configurado una sede en Ajustes, no se puede cargar nada.');
+    // fila de la sede que le corresponde según su Estación Base. Si no
+    // tiene Estación Base configurada, o el admin no ha subido nada
+    // para esa sede todavía, no se descarga NADA — nunca se llega a
+    // tocar el archivo de otra sede, ni siquiera de forma temporal.
+    var miSede = _sedeUsuarioActual();
+    if(!miSede){
+      console.log('Horario General: no hay Estación Base configurada, no se puede derivar la sede.');
       return false;
     }
-    var tipoSede = 'horario_general_' + _baseSlug(AJ.sedeBase);
+    var tipoSede = 'horario_general_' + _baseSlug(miSede);
     var resp = await sbAdmin.from('config_global').select('*').eq('tipo',tipoSede).single();
     if(resp.error || !resp.data || !resp.data.url_archivo) return false;
     var datos = await _descargarYParsearHorario(resp.data);
     if(!datos || !datos.length) return false;
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
-    BASES.global.label = 'Horario General · '+(resp.data.sede||AJ.sedeBase);
+    BASES.global.label = 'Horario General · '+(resp.data.sede||miSede);
     return true;
   }catch(e){
     console.log('No se pudo cargar el horario general publicado:', e);
@@ -16118,14 +16128,15 @@ async function _descargarYParsearHorario(fila){
 // responsabilidades. Solo si ambas cosas se cumplen se llama a
 // abrirBuscadorConHorarioGlobal() (ya existente, sin tocarla).
 window.abrirAccesoBuscadorCompaneros = function(){
-  // NUEVO — sin sede configurada en Ajustes, no hay forma de saber qué
+  // NUEVO — la sede se deriva de tu Estación Base (Ajustes → Perfil →
+  // Estación Base). Sin eso configurado no hay forma de saber qué
   // Horario General pedir (ni de proteger la privacidad de otras
   // sedes), así que se avisa aquí mismo, antes de nada. El admin queda
   // exento: él ve todas las sedes fusionadas, no necesita configurar
   // ninguna en concreto.
   var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
-  if(!esAdminActivo && !AJ.sedeBase){
-    alert('Antes de usar el Buscador de Compañeros, configura tu sede (Barcelona, Madrid, Valencia, Sevilla...) en Ajustes → Perfil.');
+  if(!esAdminActivo && !_sedeUsuarioActual()){
+    alert('Antes de usar el Buscador de Compañeros, configura tu Estación Base en Ajustes → Perfil.');
     return;
   }
   // NUEVO — si esta matrícula ya aceptó el descargo antes en este
