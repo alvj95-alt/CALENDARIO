@@ -15689,22 +15689,31 @@ async function subirArchivoGlobalAdmin(tipo, file){
   // es el correcto (o el parser no lo reconoce), se avisa ANTES de
   // publicarlo para todos los compañeros de esa sede, en vez de
   // descubrirlo luego cuando alguien abra el Buscador y no vea a nadie.
+  //
+  // FIX — el buffer que se lee AQUÍ para validar se reutiliza luego
+  // para la SUBIDA (más abajo), en vez de releer el archivo por
+  // segunda vez. Antes se leía dos veces (una para validar, otra al
+  // subir) — en algunos móviles, releer el mismo archivo elegido desde
+  // el selector puede fallar silenciosamente, lo que probablemente
+  // causaba el "Failed to fetch" al llegar a la subida real.
   var datosValidacion = null;
   var errorTecnicoValidacion = null;
+  var bufferParaSubir = null; // se guarda aquí para no releer el archivo
   try{
     var esXlsxVal = /\.xlsx$/i.test(file.name);
     var esCsvVal = /\.csv$/i.test(file.name);
     if(esXlsxVal){
-      var bufVal = await file.arrayBuffer();
-      datosValidacion = parseHorarioGeneralXLSX(bufVal);
+      bufferParaSubir = await file.arrayBuffer();
+      datosValidacion = parseHorarioGeneralXLSX(bufferParaSubir);
     } else if(esCsvVal){
       var textoVal = await file.text();
+      bufferParaSubir = textoVal; // el texto plano sirve igual para subir un CSV
       datosValidacion = parseHorarioGeneralCSV(textoVal);
     } else {
       // Por defecto se trata como PDF (igual que hace el resto del
       // código más abajo), sea cual sea el nombre del archivo.
-      var bufPdfVal = await file.arrayBuffer();
-      datosValidacion = await parsearBufferPdfHorario(bufPdfVal);
+      bufferParaSubir = await file.arrayBuffer();
+      datosValidacion = await parsearBufferPdfHorario(bufferParaSubir);
     }
   }catch(errVal){
     console.log('Error validando el contenido del archivo:', errVal);
@@ -15730,7 +15739,12 @@ async function subirArchivoGlobalAdmin(tipo, file){
   elEstado.textContent = 'Subiendo...';
   var path = tipo + '/' + Date.now() + '_' + file.name;
 
-  var subida = await sbAdmin.storage.from('admin-archivos').upload(path, file, { upsert: true });
+  // FIX — se sube el BUFFER ya leído (bufferParaSubir), nunca el
+  // objeto `file` original una segunda vez. Si por lo que sea no se
+  // llegó a capturar ningún buffer (caso raro), se cae al objeto
+  // `file` como último recurso, igual que antes.
+  var contenidoParaSubir = bufferParaSubir!=null ? bufferParaSubir : file;
+  var subida = await sbAdmin.storage.from('admin-archivos').upload(path, contenidoParaSubir, { upsert: true, contentType: file.type || undefined });
   if(subida.error){
     elEstado.textContent = 'Error al subir: ' + subida.error.message;
     return;
