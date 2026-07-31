@@ -16208,15 +16208,92 @@ function _dominioInternoCuenta(matricula){
 
 // Descarga y parsea TODAS las sedes publicadas y comprueba si la
 // matrícula aparece en cualquiera de ellas — no importa la sede.
+// FIX — antes esta verificación era muy lenta: comprobaba las sedes
+// UNA A UNA (en serie) y, dentro de cada PDF, leía las 59 páginas
+// enteras antes de mirar si la matrícula estaba — aunque apareciera
+// en la página 2. Ahora: (1) todas las sedes se comprueban EN
+// PARALELO, ganando la que responda antes (Promise.any); (2) dentro
+// de cada PDF, se para de leer en cuanto aparece la matrícula, sin
+// esperar a las páginas restantes.
 async function _verificarMatriculaEnTodasLasSedes(matricula){
   var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
   if(resp.error || !resp.data || !resp.data.length) return false;
-  for(var i=0; i<resp.data.length; i++){
-    var fila = resp.data[i];
-    if(!fila.url_archivo) continue;
-    var datos = await _descargarYParsearHorario(fila);
-    if(datos && datos.some(function(emp){ return String(emp[0]).trim() === matricula; })){
-      return true;
+
+  var filasConArchivo = resp.data.filter(function(f){ return f.url_archivo; });
+  if(!filasConArchivo.length) return false;
+
+  var promesas = filasConArchivo.map(function(fila){
+    return _buscarMatriculaEnArchivo(fila, matricula).then(function(encontrado){
+      if(encontrado) return true;
+      return Promise.reject(new Error('no está en esta sede'));
+    });
+  });
+
+  try{
+    await Promise.any(promesas); // se resuelve en cuanto la PRIMERA sede confirma que sí está
+    return true;
+  }catch(e){
+    return false; // ninguna sede la tenía (todas las promesas rechazadas)
+  }
+}
+
+// Busca la matrícula en UN archivo (XLSX/CSV/PDF). Para PDF, lee
+// página a página y para en cuanto la encuentra — no necesita parsear
+// el documento entero para responder que SÍ está.
+async function _buscarMatriculaEnArchivo(fila, matricula){
+  var archivoResp = await fetch(fila.url_archivo);
+  if(!archivoResp.ok) return false;
+  var nombreArchivo = fila.nombre_archivo || '';
+  if(/\.xlsx$/i.test(nombreArchivo)){
+    var buf = await archivoResp.arrayBuffer();
+    var datos = parseHorarioGeneralXLSX(buf);
+    return datos.some(function(e){ return String(e[0]).trim()===matricula; });
+  }
+  if(/\.csv$/i.test(nombreArchivo)){
+    var texto = await archivoResp.text();
+    var datosCsv = parseHorarioGeneralCSV(texto);
+    return datosCsv.some(function(e){ return String(e[0]).trim()===matricula; });
+  }
+  var bufPdf = await archivoResp.arrayBuffer();
+  return await _buscarMatriculaEnPdf(bufPdf, matricula);
+}
+
+// Igual que parsearBufferPdfHorario(), pero se detiene en la primera
+// página donde aparece la matrícula buscada, en vez de leer siempre
+// el documento entero.
+async function _buscarMatriculaEnPdf(buf, matricula){
+  await asegurarPdfWorkerSeguro();
+  var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  var numPages = pdf.numPages;
+  for(var pi=1; pi<=numPages; pi++){
+    try{
+      var page = await pdf.getPage(pi);
+      var viewport = page.getViewport({scale:1});
+      var pageHeight = viewport.height;
+      var content = await page.getTextContent();
+      var words = [];
+      for(var wi=0; wi<content.items.length; wi++){
+        var item = content.items[wi];
+        var str = (item.str||'').trim();
+        if(!str) continue;
+        var x0 = item.transform[4];
+        var top = pageHeight - item.transform[5];
+        var parts = str.split(/\s+/).filter(Boolean);
+        if(parts.length<=1){
+          words.push({text: str, x0: x0, top: top});
+        } else {
+          var w = item.width || 0;
+          (function(parts, x0, w, top){
+            parts.forEach(function(p, idx){
+              words.push({text: p, x0: x0 + (w*idx/parts.length), top: top});
+            });
+          })(parts, x0, w, top);
+        }
+      }
+      var parsed = parsePageWords(words);
+      if(parsed.some(function(e){ return String(e[0]).trim()===matricula; })) return true; // ENCONTRADA — para aquí, no sigue leyendo páginas
+    }catch(errPag){
+      console.log('Búsqueda de matrícula: no se pudo leer la página '+pi+' de '+numPages+', se continúa.', errPag);
     }
   }
   return false;
@@ -16247,8 +16324,17 @@ async function crearCuentaConMatricula(){
     return;
   }
   toast('✅ Cuenta creada. Ya tienes sesión iniciada.');
+  document.getElementById('cuentaMatInput').value = '';
   document.getElementById('cuentaPinInput').value = '';
   document.getElementById('cuentaPinConfirmInput').value = '';
+  // FIX — antes el pop-up se quedaba abierto mostrando el formulario
+  // de "crear cuenta" incluso después de haber terminado con éxito.
+  // Ahora se cierra solo: actualizarUICuentaNube() ya se dispara desde
+  // onAuthStateChange al iniciarse la sesión, así que al reabrir el
+  // icono de la cabecera se verá directamente el panel de "ya tengo
+  // sesión" (guardar/cargar/cerrar sesión).
+  actualizarUICuentaNube();
+  closeOv('ov-cuenta-nube');
 }
 
 // Alterna el bloque entre "crear cuenta" y "iniciar sesión" (la
@@ -16284,7 +16370,10 @@ async function iniciarSesionConMatricula(){
     return;
   }
   toast('✅ Sesión iniciada');
+  document.getElementById('cuentaMatInput').value = '';
   document.getElementById('cuentaPinInput').value = '';
+  actualizarUICuentaNube();
+  closeOv('ov-cuenta-nube');
 }
 
 function cerrarSesionUsuarioNube(){
