@@ -2313,7 +2313,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .train-meta{font-size:11px;color:var(--tx3);margin-bottom:12px;padding:0 2px}
 .train-meta b{color:var(--acc3)}
 .train-track{position:relative;overflow-x:auto;overflow-y:hidden;padding:10px 4px 18px;
-             scrollbar-width:thin}
+             scrollbar-width:none}
+.train-track::-webkit-scrollbar{display:none}
 /* NUEVO — clase exclusiva para el contenedor de resultados del
    comparador de compañeros. Antes reutilizaba ".train-track", el
    mismo nombre que ya usa el mini-tren animado de la barra de estado
@@ -2324,8 +2325,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
    y nunca los nombres. Esta clase nueva define TODAS las propiedades
    necesarias, sin depender de ninguna otra regla. */
 .train-track-resultados{position:relative;overflow-x:auto;overflow-y:hidden;
-             padding:10px 4px 18px;scrollbar-width:thin;
+             padding:10px 4px 18px;scrollbar-width:none;
              width:auto;height:auto;flex-shrink:initial;pointer-events:auto}
+.train-track-resultados::-webkit-scrollbar{display:none}
 .train-rail{display:flex;align-items:flex-end;gap:0;min-width:min-content}
 
 .loco{flex-shrink:0;width:58px;height:74px;background:linear-gradient(160deg,var(--acc) 0%,#1d4ed8 100%);
@@ -2809,19 +2811,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="aj-nombre-ico">🪪</div>
             <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
               style="font-variant-numeric:tabular-nums">
-          </div>
-
-          <!-- NUEVO — Mi cuenta en la nube ahora vive en su propio
-               overlay (ov-cuenta-nube), accesible también desde el
-               icono de la cabecera. Aquí solo un resumen + acceso. -->
-          <div class="admin-card" style="margin-bottom:10px" onclick="abrirAccesoAdmin()">
-            <div class="admin-card-hdr">
-              <div class="admin-card-ico">☁️</div>
-              <div>
-                <div class="admin-card-tit">Mi cuenta en la nube</div>
-                <div class="admin-card-sub">Guarda tus turnos con tu matrícula + un PIN, para recuperarlos si cambias de móvil. Toca aquí para crear tu cuenta o iniciar sesión.</div>
-              </div>
-            </div>
           </div>
 
           <div class="aj-roles">
@@ -8067,7 +8056,10 @@ function renderDiaArea(){
       body += '<div class="ibox" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);margin-top:8px">'
         +'<span class="ibox-i">📋</span><span>Turno pisado por esta baja: '
         +(tp.numTren?'Tren #'+tp.numTren+' · ':'')
-        +(tp.sal&&tp.lle?tp.sal+' → '+tp.lle:tp.tipo)+'</span></div>';
+        +(tp.sal&&tp.lle?tp.sal+' → '+tp.lle:tp.tipo)+'</span></div>'
+        // NUEVO — permite deshacer la conversión: recupera el turno
+        // guardado en turnoPisado y quita el estado de baja de este día.
+        +'<button onclick="quitarBajaLaboral(\''+k+'\')" style="width:100%;margin-top:6px;padding:9px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:9px;color:#6EE7B7;font-size:12px;font-weight:700;cursor:pointer">↩️ Quitar Baja Laboral (recuperar turno)</button>';
       if(t.primeraBajaAnio===true){
         body += '<div style="font-size:10px;color:var(--green2);margin-top:6px">✅ Primera baja del año — a cargo de la empresa, sin descuento de horas.</div>';
       } else if(t.primeraBajaAnio===false){
@@ -10410,6 +10402,24 @@ function pedirEliminar(){if(!selDay||!selDay.t)return;openOv('ov-del');}
 function confirmarEliminar(){
   if(!selDay)return;
   var k=selDay.k, t=TV[k];
+  // FIX — si el turno que se elimina es un Art.51/52 con compensación
+  // 'dinero' o 'dias' (las dos únicas que cuentan para el límite de
+  // "una vez al mes"/"3 veces al año"), hay que DECREMENTAR esos
+  // mismos contadores aquí. Antes solo se incrementaban al crear y
+  // nunca se liberaban al borrar, así que un Art.51/52 eliminado
+  // seguía bloqueando el mes/año como si siguiera existiendo.
+  if(t && t.tipo==='art5152' && (t.compensacion==='dinero' || t.compensacion==='dias')){
+    var mesOrigenDel = k.slice(0,7);
+    var anioOrigenDel = k.slice(0,4);
+    if(ART5152_USO[mesOrigenDel]){
+      ART5152_USO[mesOrigenDel] = Math.max(0, ART5152_USO[mesOrigenDel]-1);
+      _saveArt5152Uso();
+    }
+    if(ART5152_USO_ANUAL[anioOrigenDel]){
+      ART5152_USO_ANUAL[anioOrigenDel] = Math.max(0, ART5152_USO_ANUAL[anioOrigenDel]-1);
+      _saveArt5152UsoAnual();
+    }
+  }
   if(t && t.diasComp && t.diasComp.length){
     t.diasComp.forEach(function(iso){
       if(TV[iso] && TV[iso].origen===k) delete TV[iso];
@@ -10466,6 +10476,24 @@ function pedirBorrarTodo(){openOv('ov-borrar');}
 // baja registrada desde cero (abrirModalDiasBaja → confirmarDiasBaja,
 // que ya preserva el turno pisado en turnoPisado → pregunta primera
 // baja del año → correo) — cero lógica nueva de guardado.
+// NUEVO — Deshace convertirTurnoEnBaja(): recupera el turno guardado
+// en turnoPisado y lo restaura como el turno activo de ese día,
+// quitando el estado de 'baja'. Solo disponible si de verdad había un
+// turno pisado (si la baja se puso sobre un día vacío, no hay nada que
+// recuperar y el botón ni siquiera se muestra).
+function quitarBajaLaboral(k){
+  var t = TV[k];
+  if(!t || t.tipo!=='baja' || !t.turnoPisado) return;
+  if(!confirm('¿Quitar la baja laboral de este día y recuperar el turno que tenía antes?')) return;
+  TV[k] = t.turnoPisado;
+  saveTV();
+  if(typeof verificarDescansosMes==='function') ALERTAS_DESCANSO = verificarDescansosMes();
+  renderCal();
+  renderStats();
+  if(typeof renderDiaArea==='function') renderDiaArea();
+  toast('✅ Turno restaurado, baja laboral quitada');
+}
+
 function convertirTurnoEnBaja(k){
   if(!selDay || selDay.k!==k) return;
   abrirModalDiasBaja();
@@ -14148,6 +14176,24 @@ function _filasParaExportComputoExcel(catId){
   });
 }
 
+// NUEVO — calcula un ancho de columna razonable según el contenido
+// más largo de cada una (cabecera incluida), para que Excel no las
+// abra con columnas estrechas que recortan visualmente el texto (el
+// dato en sí siempre estaba completo, pero así ya se ve sin tener que
+// ensanchar nada a mano).
+function _anchoColumnasAuto(filas){
+  if(!filas.length) return [];
+  var claves = Object.keys(filas[0]);
+  return claves.map(function(clave){
+    var maxLen = String(clave).length;
+    filas.forEach(function(fila){
+      var val = fila[clave]==null ? '' : String(fila[clave]);
+      if(val.length > maxLen) maxLen = val.length;
+    });
+    return {wch: Math.min(maxLen + 2, 60)}; // +2 de margen, tope de 60 para no desbordar
+  });
+}
+
 function descargarComputoExcelFiltrado(){
   if(!_computoExcelDatosActual){ alert('No hay ninguna comparativa cargada este mes.'); return; }
   if(typeof XLSX==='undefined'){ alert('No se pudo cargar el lector/escritor de Excel. Comprueba tu conexión.'); return; }
@@ -14157,6 +14203,7 @@ function descargarComputoExcelFiltrado(){
   var nombreHoja = (cat ? cat.lbl : 'Diferencias').replace(/[\\\/\?\*\[\]:]/g,'').substring(0,31);
   var wb = XLSX.utils.book_new();
   var ws = XLSX.utils.json_to_sheet(filas);
+  ws['!cols'] = _anchoColumnasAuto(filas);
   XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
   var nombreArchivo = 'Diferencias_'+_computoExcelDatosActual.mesLbl.replace(' ','_')+'_'+(cat?cat.id:'Todas')+'.xlsx';
   XLSX.writeFile(wb, nombreArchivo);
@@ -14173,6 +14220,7 @@ function descargarComputoExcelPorCategorias(){
     if(!filas.length) return;
     huboAlguna = true;
     var ws = XLSX.utils.json_to_sheet(filas);
+    ws['!cols'] = _anchoColumnasAuto(filas);
     var nombreHoja = cat.lbl.replace(/[\\\/\?\*\[\]:]/g,'').substring(0,31);
     XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
   });
