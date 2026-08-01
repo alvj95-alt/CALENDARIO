@@ -16275,6 +16275,16 @@ async function _buscarMatriculaEnPdf(buf, matricula){
   await asegurarPdfWorkerSeguro();
   var pdf = await pdfjsLib.getDocument({data: buf}).promise;
   var numPages = pdf.numPages;
+  // FIX — esta función tenía su PROPIA copia de la lectura de PDF,
+  // separada de parsearBufferPdfHorario(), y se había quedado sin el
+  // arreglo del "sobrante entre páginas": si el bloque de un empleado
+  // quedaba cortado justo en el límite de dos páginas (ID/turno en
+  // una, "Jor." con las horas en la siguiente — igual que pasaba
+  // antes con los nombres del Buscador), esa matrícula nunca se
+  // encontraba aquí aunque SÍ apareciera ya en el Buscador de
+  // Compañeros. 'leftover' se encadena exactamente igual que en
+  // parsearBufferPdfHorario() para que ambas rutas vean lo mismo.
+  var leftover = [];
   for(var pi=1; pi<=numPages; pi++){
     try{
       var page = await pdf.getPage(pi);
@@ -16290,20 +16300,22 @@ async function _buscarMatriculaEnPdf(buf, matricula){
         var top = pageHeight - item.transform[5];
         var parts = str.split(/\s+/).filter(Boolean);
         if(parts.length<=1){
-          words.push({text: str, x0: x0, top: top});
+          words.push({text: str, x0: x0, top: top, pagina: pi});
         } else {
           var w = item.width || 0;
           (function(parts, x0, w, top){
             parts.forEach(function(p, idx){
-              words.push({text: p, x0: x0 + (w*idx/parts.length), top: top});
+              words.push({text: p, x0: x0 + (w*idx/parts.length), top: top, pagina: pi});
             });
           })(parts, x0, w, top);
         }
       }
-      var parsed = parsePageWords(words);
+      var parsed = parsePageWords(words, leftover, pi);
+      leftover = parsed.leftover || [];
       if(parsed.some(function(e){ return String(e[0]).trim()===matricula; })) return true; // ENCONTRADA — para aquí, no sigue leyendo páginas
     }catch(errPag){
       console.log('Búsqueda de matrícula: no se pudo leer la página '+pi+' de '+numPages+', se continúa.', errPag);
+      leftover = []; // la página falló entera: no hay nada fiable que arrastrar
     }
   }
   return false;
