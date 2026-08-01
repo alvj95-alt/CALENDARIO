@@ -16728,9 +16728,15 @@ window.validarAccesoBuscador = async function(){
   }
 
   btn.disabled = true; btn.textContent = 'Comprobando...';
-  // Por si la carga en segundo plano (al abrir el modal) aún no
-  // terminó, se espera aquí a que el Horario General esté listo.
-  if(!BASES.global.data) await cargarHorarioGlobalDesdeAdmin();
+  // FIX — antes solo se recargaba el Horario General si BASES.global.data
+  // todavía estaba vacío ("if(!BASES.global.data)"). Si el admin subía un
+  // PDF nuevo con matrículas nuevas MIENTRAS alguien ya tenía la app
+  // abierta (y esa sesión ya había cargado el PDF viejo antes), esa
+  // persona nueva no se encontraba hasta recargar la página entera —
+  // la comprobación seguía mirando la copia vieja en memoria. Ahora se
+  // vuelve a pedir siempre lo último publicado, para que una matrícula
+  // recién añadida se reconozca sin tener que cerrar y reabrir la app.
+  await cargarHorarioGlobalDesdeAdmin();
   btn.disabled = false; btn.textContent = 'Continuar';
 
   if(!BASES.global.data){
