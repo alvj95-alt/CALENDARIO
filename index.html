@@ -4471,6 +4471,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div>
         <div class="sh-tit">Mi cuenta en la nube</div>
         <div class="sh-sub">Guarda tus turnos con matrícula + PIN</div>
+        <!-- MARCA DE VERSIÓN — solo para comprobar a simple vista, sin
+             consola ni GitHub, si el archivo publicado es este mismo. -->
+        <div style="font-size:9px;color:var(--tx3);opacity:.6;margin-top:2px">build 2026-08-01 · v3 · cuentas propias</div>
       </div>
       <button class="sh-close" onclick="closeOv('ov-cuenta-nube')">✕</button>
     </div>
@@ -15705,13 +15708,11 @@ function abrirAccesoAdmin(){
     refrescarEstadoArchivosAdmin();
     return;
   }
-  // NUEVO — este mismo botón ahora es la puerta de entrada de
-  // "Mi cuenta en la nube" para cualquier persona (no solo el admin).
-  // Si ya hay sesión de matrícula+PIN, va directo a su panel; si no
-  // hay nadie logueado, abre el formulario de crear cuenta/iniciar
-  // sesión, con un enlace discreto abajo para el acceso de admin.
-  actualizarUICuentaNube();
-  openOv('ov-cuenta-nube');
+  // SIMPLIFICADO — se quita del todo el paso de "Mi cuenta en la
+  // nube" (crear cuenta / iniciar sesión con matrícula+PIN): ese
+  // sistema quedó fuera. Este botón va directo al login de
+  // administrador, que es la única vía de acceso que queda.
+  openOv('ov-admin-login');
 }
 
 // NUEVO — Cierra la sesión de administrador en ESTE dispositivo. Tras
@@ -15792,22 +15793,39 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
 // a comprobar en silencio si sigues logueado (para que el icono se
 // pinte en ámbar si eres admin), sin interrumpir lo que estés
 // haciendo.
+// FIX — REDISEÑO: la sesión de matrícula+PIN ya NO vive en Supabase
+// Auth (ver crearCuentaConMatricula), así que ya no llega aquí por
+// onAuthStateChange. Se restaura leyendo directamente lo que quedó
+// guardado en este dispositivo la última vez que se creó cuenta o se
+// inició sesión con matrícula. onAuthStateChange, más abajo, sigue
+// existiendo tal cual para la sesión de ADMIN (esa sí es un login
+// real de Supabase Auth con email/contraseña, y no cambia).
+(function _restaurarSesionMatricula(){
+  var mat = localStorage.getItem('sesionMatriculaActiva');
+  if(mat){
+    usuarioActual = { id: null, email: null, matricula: mat };
+    // Seguro llamarla aquí aunque esté declarada más abajo en el
+    // archivo: las funciones "function nombre(){...}" quedan
+    // disponibles desde el principio del script (hoisting).
+    actualizarUICuentaNube();
+  }
+})();
+
 sbAdmin.auth.onAuthStateChange(function(event, session){
   if(session && session.user){
-    usuarioActual = {
-      id: session.user.id,
-      email: session.user.email || null,
-      // El "email" de una cuenta matrícula+PIN es matricula@interno.trenturnov5 —
-      // se extrae la matrícula de ahí si aplica; si no, es una cuenta
-      // real de admin (correo normal) y no tiene matrícula asociada.
-      matricula: (session.user.email && session.user.email.endsWith('@interno.trenturnov5'))
-        ? session.user.email.split('@')[0]
-        : null
-    };
+    // Con el rediseño, si hay sesión de Supabase Auth es SIEMPRE una
+    // cuenta real de admin (email+contraseña) — las cuentas de
+    // matrícula+PIN ya no pasan por aquí.
+    usuarioActual = { id: session.user.id, email: session.user.email || null, matricula: null };
     cargarPerfilYVerificarAdmin(session.user, false);
     actualizarUICuentaNube();
   } else if(event === 'SIGNED_OUT'){
-    usuarioActual = null;
+    // Si quien cerró sesión era el admin, se limpia usuarioActual —
+    // salvo que en este dispositivo siga activa una sesión de
+    // matrícula+PIN (independiente de Supabase Auth), en cuyo caso se
+    // mantiene.
+    var mat = localStorage.getItem('sesionMatriculaActiva');
+    usuarioActual = mat ? { id: null, email: null, matricula: mat } : null;
     actualizarUICuentaNube();
   }
 });
@@ -16134,8 +16152,13 @@ async function guardarHorarioEnNube(){
     meses[indice[i]] = await loadMonth(indice[i]);
   }
 
+  // FIX — REDISEÑO: user_id ya no es un UUID de Supabase Auth (las
+  // cuentas de matrícula+PIN ya no viven ahí). Se usa directamente la
+  // matrícula como identificador — sigue siendo única por persona.
+  // Requiere que la columna user_id de esta tabla acepte texto (no
+  // solo UUID); ver nota al usuario sobre el cambio de esquema.
   var payload = {
-    user_id: usuarioActual.id,
+    user_id: usuarioActual.matricula || usuarioActual.id,
     tv_json: TV,
     horarios_json: {index: indice, meses: meses},
     actualizado: new Date().toISOString()
@@ -16154,7 +16177,7 @@ async function guardarHorarioEnNube(){
 // pregunta antes de tocar nada local — nunca carga en automático.
 async function comprobarHorarioEnNube(silencioso){
   if(!usuarioActual) return;
-  var resp = await sbAdmin.from('datos_personales').select('*').eq('user_id', usuarioActual.id).single();
+  var resp = await sbAdmin.from('datos_personales').select('*').eq('user_id', usuarioActual.matricula || usuarioActual.id).single();
   if(resp.error || !resp.data){
     if(!silencioso) _actualizarEstadosNube('No hay ninguna copia guardada todavía para esta cuenta.', false);
     return;
@@ -16214,6 +16237,16 @@ function rechazarCargaNube(){
 
 function _dominioInternoCuenta(matricula){
   return matricula.trim() + '@interno.trenturnov5';
+}
+// NUEVO — cifra el PIN antes de guardarlo, para no tener nunca el PIN
+// en texto plano en la base de datos. Usa SHA-256 (disponible en
+// cualquier navegador moderno, sin librerías externas). No es
+// reversible: para comprobar un PIN, se cifra el que escribe la
+// persona y se compara el resultado, nunca se descifra el guardado.
+async function _hashPin(pin){
+  var datos = new TextEncoder().encode(pin);
+  var buffer = await crypto.subtle.digest('SHA-256', datos);
+  return Array.from(new Uint8Array(buffer)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
 }
 
 // Descarga y parsea TODAS las sedes publicadas y comprueba si la
@@ -16353,23 +16386,45 @@ async function crearCuentaConMatricula(){
     }
     mostrarEstado('Creando tu cuenta...');
   }
-  var resp = await sbAdmin.auth.signUp({ email: _dominioInternoCuenta(matricula), password: pin });
-  if(resp.error){
-    mostrarEstado('No se pudo crear la cuenta: ' + resp.error.message);
+
+  // FIX — REDISEÑO: esta cuenta ya NO usa Supabase Auth (signUp con un
+  // email inventado tipo "matricula@interno.trenturnov5"). Ese diseño
+  // dependía de que "Confirm email" estuviera desactivado en el panel
+  // de Supabase — si alguien lo encendía (o venía activado por
+  // defecto), la cuenta se quedaba a medias sin que nadie lo notara,
+  // porque ese email inventado nunca puede recibir ni confirmar nada.
+  // Ahora es una tabla propia y sencilla: matricula + PIN cifrado
+  // (nunca en texto plano). Sin email de ningún tipo de por medio, no
+  // hay ningún ajuste de Supabase Auth que pueda romper esto.
+  var yaExiste = await sbAdmin.from('cuentas_matricula').select('matricula').eq('matricula', matricula).maybeSingle();
+  if(yaExiste.data){
+    mostrarEstado('Ya existe una cuenta con esa matrícula. Usa "Ya tengo cuenta — iniciar sesión".');
     return;
   }
+
+  var pinHash = await _hashPin(pin);
+  var alta = await sbAdmin.from('cuentas_matricula').insert({ matricula: matricula, pin_hash: pinHash });
+  if(alta.error){
+    mostrarEstado('No se pudo crear la cuenta: ' + alta.error.message);
+    return;
+  }
+
+  _establecerSesionMatricula(matricula);
   toast('✅ Cuenta creada. Ya tienes sesión iniciada.');
   document.getElementById('cuentaMatInput').value = '';
   document.getElementById('cuentaPinInput').value = '';
   document.getElementById('cuentaPinConfirmInput').value = '';
-  // FIX — antes el pop-up se quedaba abierto mostrando el formulario
-  // de "crear cuenta" incluso después de haber terminado con éxito.
-  // Ahora se cierra solo: actualizarUICuentaNube() ya se dispara desde
-  // onAuthStateChange al iniciarse la sesión, así que al reabrir el
-  // icono de la cabecera se verá directamente el panel de "ya tengo
-  // sesión" (guardar/cargar/cerrar sesión).
   actualizarUICuentaNube();
   closeOv('ov-cuenta-nube');
+}
+
+// NUEVO — deja registrado en ESTE dispositivo que la matrícula dada
+// tiene sesión iniciada (sustituye a la sesión de Supabase Auth que
+// antes se guardaba sola). Se usa tanto al crear cuenta como al
+// iniciar sesión, y también al recargar la app para restaurarla.
+function _establecerSesionMatricula(matricula){
+  usuarioActual = { id: null, email: null, matricula: matricula };
+  localStorage.setItem('sesionMatriculaActiva', matricula);
 }
 
 // Alterna el bloque entre "crear cuenta" y "iniciar sesión" (la
@@ -16399,11 +16454,17 @@ async function iniciarSesionConMatricula(){
   if(!matricula || !pin){ mostrarEstado('Escribe tu matrícula y tu PIN.'); return; }
 
   mostrarEstado('Entrando...');
-  var resp = await sbAdmin.auth.signInWithPassword({ email: _dominioInternoCuenta(matricula), password: pin });
-  if(resp.error){
+  var fila = await sbAdmin.from('cuentas_matricula').select('pin_hash').eq('matricula', matricula).maybeSingle();
+  if(fila.error || !fila.data){
     mostrarEstado('Matrícula o PIN incorrectos.');
     return;
   }
+  var pinHash = await _hashPin(pin);
+  if(pinHash !== fila.data.pin_hash){
+    mostrarEstado('Matrícula o PIN incorrectos.');
+    return;
+  }
+  _establecerSesionMatricula(matricula);
   toast('✅ Sesión iniciada');
   document.getElementById('cuentaMatInput').value = '';
   document.getElementById('cuentaPinInput').value = '';
@@ -16412,8 +16473,9 @@ async function iniciarSesionConMatricula(){
 }
 
 function cerrarSesionUsuarioNube(){
-  sbAdmin.auth.signOut();
-  // usuarioActual se pone a null en el propio onAuthStateChange (evento SIGNED_OUT)
+  usuarioActual = null;
+  localStorage.removeItem('sesionMatriculaActiva');
+  actualizarUICuentaNube();
   toast('🚪 Sesión cerrada');
 }
 
