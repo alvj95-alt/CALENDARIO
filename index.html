@@ -2431,6 +2431,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
        background:var(--s2);border:1px solid var(--div);border-radius:20px;padding:3px 9px}
 .p-leg .at-dot{width:6px;height:6px;border-radius:50%}
 
+/* ── Resumen de horas del compañero (Totales/EF/PR/Jor.Prorr.) ──
+   Mismos tokens visuales que el resto del perfil (--s2/--div/--tx2/
+   --nar2), para que encaje sin desentonar con p-head/p-legend. */
+.p-stats{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px 16px}
+.p-stat{flex:1;min-width:72px;background:var(--s2);border:1px solid var(--div);
+        border-radius:12px;padding:8px 10px;text-align:center}
+.p-stat-val{font-size:15px;font-weight:800;color:var(--nar2);font-variant-numeric:tabular-nums}
+.p-stat-lbl{font-size:8px;color:var(--tx3);letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
+.p-meta{font-size:10px;color:var(--tx3);padding:0 4px 4px}
+
 /* ── TIMELINE VERTICAL (nueva estética de calendario) ── */
 .at-timeline{position:relative;padding:4px 4px 4px 6px}
 .tl-item{position:relative;display:flex;gap:13px;padding-bottom:14px;cursor:pointer}
@@ -17455,6 +17465,12 @@ async function parsearBufferPdfHorario(buf, onProgress){
   const numPages = pdf.numPages;
   const empleados = [];
   var paginasConError = [];
+  // FIX — el bloque de un empleado puede quedar cortado justo entre
+  // dos páginas (turno/ID/nombre en una, "Horas.../Jor." con los
+  // números en la siguiente). 'leftover' guarda ese trozo suelto de
+  // la página anterior para fusionarlo con la siguiente en vez de
+  // perderlo — antes ese compañero desaparecía sin más del Buscador.
+  let leftover = [];
   for(let pi=1; pi<=numPages; pi++){
     if(onProgress) onProgress(pi, numPages);
     // FIX — antes, si UNA sola página (de las 59 que puede tener este
@@ -17477,19 +17493,21 @@ async function parsearBufferPdfHorario(buf, onProgress){
         const top = pageHeight - item.transform[5];
         const parts = str.split(/\s+/).filter(Boolean);
         if(parts.length<=1){
-          words.push({text: str, x0, top});
+          words.push({text: str, x0, top, pagina: pi});
         } else {
           const w = item.width || 0;
           parts.forEach((p, idx)=>{
-            words.push({text: p, x0: x0 + (w*idx/parts.length), top});
+            words.push({text: p, x0: x0 + (w*idx/parts.length), top, pagina: pi});
           });
         }
       }
-      const parsed = parsePageWords(words);
+      const parsed = parsePageWords(words, leftover, pi);
+      leftover = parsed.leftover || [];
       empleados.push(...parsed);
     }catch(errPagina){
       paginasConError.push(pi);
       console.log('Cómputo/Horario: no se pudo leer la página '+pi+' de '+numPages+', se continúa con el resto.', errPagina);
+      leftover = []; // la página falló entera: no hay nada fiable que arrastrar
     }
     await new Promise(r=>setTimeout(r, 0)); // deja respirar a la UI
   }
@@ -17539,6 +17557,54 @@ async function procesarPdfParaBase(key, label, file){
   }
 }
 
+// FIX — nombres "sucios" en el Buscador de Compañeros: dos causas
+// distintas, cada una con su filtro:
+//  1) El pie de página del PDF ("ATENCIÓN: la suma de horas de
+//     presencia incluye...") caía dentro de la franja x0<101 y, al
+//     ser lo último de la página, se arrastraba como "leftover" al
+//     siguiente empleado — colándose delante de su nombre real.
+//  2) Algún fragmento de ruta (estación-BSN, ej. "COR-BSN") a veces
+//     cae justo en esa misma franja de nombre por cómo el PDF parte
+//     las líneas. Los códigos de estación son siempre 2-4 letras a
+//     cada lado del guion (BSN, COR, ATO, ZAZ…) — una lista blanca
+//     los reconoce y descarta sin arriesgarse a comerse un apellido
+//     compuesto real (esos son casi siempre más largos, ej.
+//     "PEREZ-HINOJOSA").
+const STATION_CODES = new Set(['BSN','ATO','ZAZ','GRA','HSK','FVL','VIG','PAL','CHA','SLM',
+  'VLJ','GIJ','MUR','COR','BIL','AGP','SVQ','ALC','CAR','LYO','SSB','VLN','OUR','PAM','VDA',
+  'MRS','HUE','LOG','ZAM','UM','DH','TDH']);
+function looksLikeStationCode(tok){
+  const parts = tok.toUpperCase().split('-').filter(Boolean);
+  if(parts.length < 2) return false;
+  return parts.every(p => STATION_CODES.has(p));
+}
+function esTextoDePiePagina(tok){
+  // el pie legal siempre va en minúscula/mixta — ninguna sigla real
+  // de turno o apellido va nunca así (todo el PDF va en mayúsculas).
+  // Se mantiene como red de seguridad extra, pero el filtro principal
+  // contra el pie de página es removeFooterLine() (ver más abajo),
+  // que quita la línea entera anclada en "ATENCIÓN:" en vez de
+  // adivinar palabra por palabra (esa propia palabra ya va en
+  // mayúsculas y se escapaba de este filtro).
+  return tok !== tok.toUpperCase() && /^[a-zA-ZÁÉÍÓÚÑñ.,:]+$/.test(tok);
+}
+// FIX — el pie de página legal ("ATENCIÓN: la suma de horas de
+// presencia incluye...") se cuela como texto porque, al ser lo
+// último de la página, terminaba arrastrándose como "leftover" y
+// apareciendo delante del nombre del primer compañero de la página
+// siguiente (ej. "la suma de horas ALVARADO ... COR-BSN RODRIGUEZ").
+// En vez de adivinar palabra por palabra (la propia palabra
+// "ATENCIÓN:" ya va en mayúsculas, así que un filtro por minúsculas
+// no la pilla), se busca esa palabra ancla exacta y se elimina TODA
+// la línea que comparte su misma altura (top) — así se quita de
+// una vez, esté donde esté, antes de que contamine nada más.
+function removeFooterLine(words){
+  const anchors = words.filter(w => w.text === 'ATENCIÓN:');
+  if(anchors.length === 0) return words;
+  const footerTops = anchors.map(a => a.top);
+  return words.filter(w => !footerTops.some(t => Math.abs(w.top - t) <= 2.5));
+}
+
 const SHIFT_WHITELIST = new Set(['DO','F','R','LD','CP','DOP','B','EX','PP','FE','Pr']);
 function isShiftCode(text){
   if(text.includes(':') || text.includes(',')) return false;
@@ -17551,16 +17617,71 @@ function getDayColumns(words){
   if(cands.length>=31) return cands.slice(0,31).map(w=>w.x0);
   return null;
 }
-function parsePageWords(rawWords){
+// FIX — cuando dos o más días SEGUIDOS tienen exactamente el mismo
+// código de turno, el PDF los pega sin espacio (pdf.js los da como
+// una única palabra, ej. "3162DH-3162DH-3162DH-" para 3 días con el
+// mismo turno). Sin esto, ese código entero se le asignaba solo al
+// primero de esos días y los siguientes se quedaban vacíos. Si
+// 'text' es una unidad que se repite N veces de forma exacta,
+// devuelve {unit, n}; si no se repite, {unit:text, n:1}.
+function splitRepeatedTurnoCode(text){
+  const L = text.length;
+  for(let unitLen=3; unitLen<=Math.floor(L/2); unitLen++){
+    if(L % unitLen !== 0) continue;
+    const unit = text.slice(0, unitLen);
+    const n = L / unitLen;
+    if(unit.repeat(n) === text && n>=2) return {unit:unit, n:n};
+  }
+  return {unit:text, n:1};
+}
+// Busca en 'bwords' la fila de un subtotal ("Totales"/"EF"/"PR"/
+// "Prorr.") por su segunda palabra de etiqueta (x0<25, única por
+// fila) y devuelve el primer valor numérico (hh:mm o NN,NN) que
+// aparece en esa misma línea, antes de la zona de días.
+function extractSummaryValue(bwords, subLabel){
+  const anchor = bwords.find(w => w.x0<25 && w.text===subLabel);
+  if(!anchor) return '';
+  const rowWords = bwords.filter(w => Math.abs(w.top-anchor.top)<=2.5 && w.x0<100);
+  const val = rowWords.find(w => /^[0-9]+[:,][0-9]+$/.test(w.text));
+  return val ? val.text : '';
+}
+// FIX — un bloque de empleado puede quedar cortado justo en el
+// límite entre dos páginas (turno/ID/nombre en la página N, y las
+// líneas "Horas.../Jor." con los números en la N+1). Antes, ese
+// trozo suelto se descartaba entero y ese compañero desaparecía del
+// Buscador. Ahora parsePageWords() acepta el sobrante de la página
+// anterior (leftoverIn, ya con el 'top' desplazado muy al negativo
+// para que siempre quede ANTES que el contenido de la página
+// actual al ordenar) y devuelve también su propio sobrante final
+// (array.leftover) para que la llamada siguiente lo encadene.
+// 'pageNum' solo se usa para anotar en qué página del PDF apareció
+// cada empleado (útil para localizarlo en el documento original).
+function parsePageWords(rawWords, leftoverIn, pageNum){
   const daycols = getDayColumns(rawWords);
-  if(!daycols) return [];
-  const words = rawWords.filter(w=>w.top>60);
+  const pageWords = rawWords.filter(w=>w.top>60);
+  const words = removeFooterLine((leftoverIn||[]).concat(pageWords));
+  if(!daycols){
+    const out = [];
+    out.leftover = words;
+    return out;
+  }
   const jorTops = words.filter(w=>w.text==='Jor.' && w.x0<25).map(w=>w.top).sort((a,b)=>a-b);
-  if(jorTops.length===0) return [];
+  if(jorTops.length===0){
+    const out = [];
+    out.leftover = words;
+    return out;
+  }
   const blockRanges = [];
-  let start = 0;
+  let start = -1e9;
   for(const t of jorTops){ blockRanges.push([start, t+1]); start = t+1; }
   const out = [];
+  // ancho medio de columna, usado para repartir un código repetido
+  // entre varios días consecutivos manteniendo el orden de lectura.
+  let colWidth = 23;
+  if(daycols.length>1){
+    let sum=0; for(let i=1;i<daycols.length;i++) sum += (daycols[i]-daycols[i-1]);
+    colWidth = sum/(daycols.length-1);
+  }
   for(const [btop, etop] of blockRanges){
     const bwords = words.filter(w => w.top>=btop && w.top<=etop);
     if(bwords.length===0) continue;
@@ -17568,7 +17689,10 @@ function parsePageWords(rawWords){
     const empId = idWords.length ? idWords[0].text : '';
     const horasWords = bwords.filter(w => w.x0<25 && w.text==='Horas');
     const nameLimitTop = horasWords.length ? Math.min(...horasWords.map(w=>w.top)) : etop;
-    const nameWords = bwords.filter(w => w.x0>=20 && w.x0<101 && w.top<nameLimitTop && w.text!==empId);
+    const nameWords = bwords.filter(w =>
+      w.x0>=20 && w.x0<101 && w.top<nameLimitTop && w.text!==empId
+      && !looksLikeStationCode(w.text) && !esTextoDePiePagina(w.text)
+    );
     nameWords.sort((a,b)=> a.top-b.top || a.x0-b.x0);
     const name = nameWords.map(w=>w.text).join(' ').trim();
     if(!name) continue;
@@ -17577,16 +17701,52 @@ function parsePageWords(rawWords){
     for(const w of codeWords){
       let bestIdx = 0, bestDiff = Infinity;
       daycols.forEach((cx, idx)=>{ const d = Math.abs(w.x0-cx); if(d<bestDiff){bestDiff=d; bestIdx=idx;} });
-      const day = bestIdx+1;
-      (dayData[day] = dayData[day] || []).push([w.top, w.text]);
+      const {unit, n} = splitRepeatedTurnoCode(w.text);
+      if(n===1){
+        const day = bestIdx+1;
+        (dayData[day] = dayData[day] || []).push([w.top, w.x0, w.text]);
+      } else {
+        // el mismo código se repite en 'n' días seguidos a partir de
+        // bestIdx — se reparte una copia por cada columna de día.
+        for(let k=0; k<n; k++){
+          const idx = bestIdx + k;
+          if(idx >= daycols.length) break;
+          const day = idx+1;
+          (dayData[day] = dayData[day] || []).push([w.top, w.x0 + k*colWidth, unit]);
+        }
+      }
     }
     const daysFinal = {};
     for(const day in dayData){
-      const items = dayData[day].sort((a,b)=>a[0]-b[0]);
-      daysFinal[day] = items.map(x=>x[1]).join(' ');
+      // orden de lectura real: primero de arriba a abajo (top, para
+      // reconstruir códigos partidos en 2-3 líneas), y solo dentro
+      // de la misma línea, de izquierda a derecha (x0).
+      const items = dayData[day].sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+      daysFinal[day] = items.map(x=>x[2]).join('');
     }
-    out.push([empId, name, daysFinal]);
+    // NUEVO — resumen de horas del mes + página del PDF donde
+    // aparece, para mostrarlos junto al nombre en el Buscador (igual
+    // que ya aparecía en la maqueta de verificación).
+    const horasTotales = extractSummaryValue(bwords, 'Totales');
+    const horasEF = extractSummaryValue(bwords, 'EF');
+    const horasPR = extractSummaryValue(bwords, 'PR');
+    const jorProrr = extractSummaryValue(bwords, 'Prorr.');
+    const pagina = (idWords.length && idWords[0].pagina) ? idWords[0].pagina
+                 : ((bwords.length && bwords[0].pagina) ? bwords[0].pagina : pageNum);
+    // índice 3 se deja libre a propósito: cargarHorarioGlobalDesdeAdmin()
+    // lo usa para anotar la sede cuando el admin fusiona varias sedes
+    // (emp[3] = sedeLbl) — no lo tocamos para no romper esa función.
+    out.push([empId, name, daysFinal, undefined, horasTotales, horasEF, horasPR, jorProrr, pagina]);
   }
+  // sobrante: todo lo que quedó después del último "Jor." de este
+  // bloque combinado — se traslada, desplazado bien al negativo, a
+  // la página siguiente por si el último empleado quedó a medias.
+  // Se excluye expresamente cualquier resto del pie de página legal
+  // ("ATENCIÓN: la suma de horas..."), que si no también viajaría
+  // arrastrado y se colaría delante del siguiente nombre.
+  const lastEtop = jorTops[jorTops.length-1] + 1;
+  out.leftover = words.filter(w => w.top > lastEtop && !esTextoDePiePagina(w.text))
+                       .map(w => ({text:w.text, x0:w.x0, top:w.top - 100000, pagina:w.pagina}));
   return out;
 }
 
@@ -17594,7 +17754,11 @@ function parsePageWords(rawWords){
 const OFF_CODES = {"DO":"des","F":"res","R":"res","LD":"oth","CP":"oth","DOP":"dop","B":"oth","EX":"oth","PP":"oth","FE":"oth","Pr":"oth"};
 const WEEKDAYS = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
 function weekdayForDay(d){
-  const dt = new Date(2026,6,d);
+  // FIX — estaba fijado a julio (mes índice 6); el Horario General
+  // que se está usando ahora es de AGOSTO 2026 (índice 7), así que
+  // los días de la semana salían todos desplazados uno respecto al
+  // PDF real. Si el mes cambia otra vez, hay que volver a tocar esto.
+  const dt = new Date(2026,7,d);
   return WEEKDAYS[dt.getDay()];
 }
 function classifyCell(cell){
@@ -17941,7 +18105,7 @@ function renderList(matches, query){
 }
 
 const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
-function renderProfile([id, name, days]){
+function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina]){
   let items = '';
   for(let d=1; d<=31; d++){
     const cell = days[String(d)] || '';
@@ -17961,6 +18125,21 @@ function renderProfile([id, name, days]){
       </div>
     </div>`;
   }
+  // NUEVO — resumen de horas del mes, igual que en la maqueta de
+  // verificación: Horas Totales / EF (efectivas) / PR (presencia) /
+  // Jor. Prorr. (jornada prorrateada). Si algún dato no se pudo leer
+  // del PDF para este compañero, se omite esa tarjeta en vez de
+  // mostrar un hueco vacío.
+  const stats = [
+    ['Horas Totales', horasTotales],
+    ['Horas EF', horasEF],
+    ['Horas PR', horasPR],
+    ['Jor. Prorr.', jorProrr],
+  ].filter(([,v]) => v);
+  const statsHtml = stats.length ? `
+      <div class="p-stats">
+        ${stats.map(([lbl,val])=>`<div class="p-stat"><div class="p-stat-val">${val}</div><div class="p-stat-lbl">${lbl}</div></div>`).join('')}
+      </div>` : '';
   viewEl.innerHTML = `
     <div class="profile">
       <button class="p-back" id="backBtn">‹ Volver a la búsqueda</button>
@@ -17971,6 +18150,8 @@ function renderProfile([id, name, days]){
           ${id ? `<div class="p-id">ID ${id}</div>` : ''}
         </div>
       </div>
+      ${statsHtml}
+      ${pagina ? `<div class="p-meta">Página ${pagina} del PDF del Horario General</div>` : ''}
       <div class="p-legend">
         <span class="p-leg"><span class="dot dot-ord"></span>Turno</span>
         <span class="p-leg"><span class="dot dot-des"></span>Descanso</span>
@@ -18017,7 +18198,7 @@ function renderCompanions(day, id, name, cell){
   // Esta vista de "Buscar por nombre" asume siempre julio de 2026 (igual que
   // weekdayForDay), así que se construye la fecha real con ese mismo supuesto
   // para poder cruzar contra los servicios de Interventor cargados.
-  const fechaParaInterventor = new Date(2026, 6, day);
+  const fechaParaInterventor = new Date(2026, 7, day); // FIX: agosto, no julio
   const trenesDelDia = [...trainTokens(cell)];
   let interventorMatches = [];
   for(const t of trenesDelDia){
