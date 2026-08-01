@@ -16310,14 +16310,27 @@ async function crearCuentaConMatricula(){
   if(!/^[0-9]{4,6}$/.test(pin)){ mostrarEstado('El PIN debe tener entre 4 y 6 dígitos, solo números.'); return; }
   if(pin !== pinConfirm){ mostrarEstado('Los dos PIN no coinciden.'); return; }
 
-  mostrarEstado('Comprobando tu matrícula en los horarios publicados...');
-  var existe = await _verificarMatriculaEnTodasLasSedes(matricula);
-  if(!existe){
-    mostrarEstado('Esa matrícula no aparece en ningún Horario General publicado todavía. Prueba más tarde, o contacta con tu administrador.');
-    return;
-  }
+  // NUEVO — el admin no necesita que su matrícula aparezca en ningún
+  // Horario General para crear su cuenta con matrícula+PIN: su
+  // identidad ya quedó demostrada al iniciar sesión con su email y
+  // contraseña de administrador, que es una verificación más fuerte
+  // que buscar un número en un PDF. Esta verificación, para cualquier
+  // otra persona, sigue siendo obligatoria y se hace UNA sola vez —
+  // una vez creada la cuenta, queda válida para siempre, aunque el
+  // admin suba/cambie el PDF general más adelante.
+  var esAdminCreandoSuCuenta = !!(perfilAdminActual && perfilAdminActual.rol === 'admin');
 
-  mostrarEstado('Creando tu cuenta...');
+  if(esAdminCreandoSuCuenta){
+    mostrarEstado('Creando tu cuenta de administrador...');
+  } else {
+    mostrarEstado('Comprobando tu matrícula en los horarios publicados...');
+    var existe = await _verificarMatriculaEnTodasLasSedes(matricula);
+    if(!existe){
+      mostrarEstado('Esa matrícula no aparece en ningún Horario General publicado todavía. Prueba más tarde, o contacta con tu administrador.');
+      return;
+    }
+    mostrarEstado('Creando tu cuenta...');
+  }
   var resp = await sbAdmin.auth.signUp({ email: _dominioInternoCuenta(matricula), password: pin });
   if(resp.error){
     mostrarEstado('No se pudo crear la cuenta: ' + resp.error.message);
