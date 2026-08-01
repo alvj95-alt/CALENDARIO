@@ -273,6 +273,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ov.on{display:flex}
 /* DH popup siempre encima de todo — posición fija, z-index máximo */
 #ov-dh{position:fixed;z-index:9999}
+#ov-dh-cont{position:fixed;z-index:9999}
 /* Sheet: flex column, max 82% height, inner body scrolls */
 .sh{background:var(--s1);border-radius:24px 24px 0 0;width:100%;
     max-height:82%;display:flex;flex-direction:column;overflow:hidden;
@@ -3475,6 +3476,64 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           Cancelar
         </button>
         <button onclick="confirmarDH()"
+          style="flex:2;padding:14px;background:linear-gradient(135deg,var(--amber2),#b45309);
+          border:none;border-radius:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;
+          box-shadow:0 4px 16px rgba(245,158,11,.3)">
+          ✓ Confirmar DH
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     DH DENTRO DE UN TRAMO DE CONTINUIDAD — versión simplificada
+     del popup de arriba (ov-dh). No pregunta "mismo tren o
+     diferente": un tramo de continuidad YA es por definición otro
+     tren, así que ese dato no aplica aquí. Solo pide desde/hasta
+     estación y hora de inicio/fin de la parte sin trabajar, dejando
+     el resto del tramo como trabajado. ═══════════════════════════ -->
+<div class="ov" id="ov-dh-cont" onclick="if(event.target===this)closeOv('ov-dh-cont')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:72%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🔀</div>
+      <div>
+        <div class="sh-tit" id="dhcont-tit">DH en tramo de continuidad</div>
+        <div class="sh-sub">¿Desde dónde hasta dónde vas sin trabajar?</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-dh-cont')">✕</button>
+    </div>
+    <div style="padding:16px 18px 28px;overflow-y:auto">
+      <div class="fsec-lbl">DESDE QUÉ ESTACIÓN <span style="color:var(--tx3)">(vacío = desde la salida del tramo)</span></div>
+      <input id="dhcont-desde" type="text" placeholder="Vacío = desde el inicio del tramo" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:14px;padding:12px 14px;outline:none;margin-bottom:14px;font-family:inherit">
+      <div class="fsec-lbl">HASTA QUÉ ESTACIÓN <span style="color:var(--nar2)">*</span></div>
+      <input id="dhcont-hasta" type="text" placeholder="Ej: Zaragoza Delicias" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--amber2);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:20px;font-family:inherit">
+      <div class="fsec-lbl">HORA INICIO DH <span style="color:var(--nar2)">*</span></div>
+      <input id="dhcont-hora-inicio" type="time" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:14px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="fsec-lbl">HORA FIN DH <span style="color:var(--nar2)">*</span></div>
+      <input id="dhcont-hora-fin" type="time" autocomplete="off"
+        style="width:100%;background:var(--s2);border:1.5px solid var(--div);border-radius:10px;
+        color:var(--tx);font-size:15px;padding:12px 14px;outline:none;margin-bottom:8px;
+        font-family:inherit;font-variant-numeric:tabular-nums">
+      <div class="ibox blue" style="margin-top:2px;margin-bottom:6px">
+        <span class="ibox-i">ℹ️</span>
+        <span>Solo esa parte del tramo cuenta como Presencia (viajando sin trabajar). El resto del tramo sigue sumando a Efectiva.</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="quitarDHContinuidad()"
+          style="flex:1;padding:14px;background:var(--s2);border:1px solid var(--div);
+          border-radius:11px;color:var(--tx3);font-size:13px;font-weight:700;cursor:pointer">
+          Quitar DH
+        </button>
+        <button onclick="guardarDHContinuidad()"
           style="flex:2;padding:14px;background:linear-gradient(135deg,var(--amber2),#b45309);
           border:none;border-radius:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;
           box-shadow:0 4px 16px rgba(245,158,11,.3)">
@@ -6847,7 +6906,14 @@ function autocompletarTramo(inputElement){
     if(!el.classList.contains('ph')) return; // ya tiene un dato: no se sobrescribe
     var valorCampo = i===0 ? registro.sal : registro.lle;
     if(!valorCampo) return;
-    F[el.dataset.f] = valorCampo;
+    // NUEVO — si la clave es de un tramo de continuidad, se escribe en
+    // su propio array; si no, en la propiedad plana de F de siempre.
+    var contInfoF = _contKeyParse(el.dataset.f);
+    if(contInfoF){
+      _contArrFor(contInfoF)[contInfoF.idx][contInfoF.tipo==='Sal'?'salida':'llegada'] = valorCampo;
+    } else {
+      F[el.dataset.f] = valorCampo;
+    }
     el.textContent = valorCampo;
     el.classList.remove('ph');
     el.classList.add('auto-filled'); // NUEVO: marca de campo autocompletado
@@ -6860,13 +6926,31 @@ function autocompletarTramo(inputElement){
     if(!el.classList.contains('ph')) return;
     var valorCampo = i===0 ? registro.hF : registro.hL;
     if(!valorCampo) return;
-    F[el.dataset.hora] = valorCampo;
+    var contInfoH = _contKeyParse(el.dataset.hora);
+    if(contInfoH){
+      _contArrFor(contInfoH)[contInfoH.idx][contInfoH.tipo==='HF'?'horaInicio':'horaFin'] = valorCampo;
+    } else {
+      F[el.dataset.hora] = valorCampo;
+    }
     el.textContent = valorCampo;
     el.classList.remove('ph');
     el.classList.add('hv');
     el.classList.add('auto-filled'); // NUEVO: marca de campo autocompletado
     var wrap = el.closest('.sf'); if(wrap) wrap.classList.add('fil');
   });
+
+  // NUEVO — tras autocompletar un tramo de continuidad, se recalcula
+  // ya mismo la escala informativa (diferencia entre la llegada del
+  // tramo anterior y la salida de este) y se refresca el formulario
+  // para que se vea reflejada al instante.
+  if(cont.dataset.tramo === 'continuidad'){
+    var refTramo = cont.dataset.subtramo === 'vuelta' ? 'vuelta' : 'ida';
+    var refArrKey = refTramo==='vuelta' ? 'continuidadVuelta' : 'continuidad';
+    var refHoraBase = refTramo==='vuelta' ? (F.hL2||'') : (F.hL||'');
+    recalcularContinuidad(refHoraBase, F[refArrKey]||[]);
+    renderFormBody();
+    return;
+  }
 
   // La línea del servicio solo la define el tramo de ida.
   if(cont.dataset.tramo==='ida' && registro.linea && !F.linea){
@@ -7345,9 +7429,15 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
     if(t.continuidad && t.continuidad.length){
       t.continuidad.forEach(function(c, idx){
         if(!c || !c.tren) return;
-        h += '<div class="tv-block ida">'
+        var dhInfoTxt = (c.tipoTramo==='dh' && (c.dhHasta||c.dhHoraInicio))
+          ? '<div class="tv-dh-tag"><span class="tv-dh-badge">🔀 DH</span>'
+            + '<span class="tv-dh-detail">'+((c.dhDesde||'inicio')+' → '+(c.dhHasta||'?'))
+            + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
+          : '';
+        h += '<div class="tv-block ida'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
           + '<div class="tv-block-tag">🚂 TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
+          + dhInfoTxt
           + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
           + (c.horaInicio&&c.horaFin?'<div class="tv-hours">'+c.horaInicio+' – '+c.horaFin+'</div>':'')
           + (c.escalaMin!=null?'<div class="tv-route">⏳ Escala: '+c.escalaMin+' min</div>':'')
@@ -7428,9 +7518,15 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
     if(t.continuidadVuelta && t.continuidadVuelta.length){
       t.continuidadVuelta.forEach(function(c, idx){
         if(!c || !c.tren) return;
-        h += '<div class="tv-block vuelta">'
+        var dhInfoTxtV = (c.tipoTramo==='dh' && (c.dhHasta||c.dhHoraInicio))
+          ? '<div class="tv-dh-tag"><span class="tv-dh-badge">🔀 DH</span>'
+            + '<span class="tv-dh-detail">'+((c.dhDesde||'inicio')+' → '+(c.dhHasta||'?'))
+            + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
+          : '';
+        h += '<div class="tv-block vuelta'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
           + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
+          + dhInfoTxtV
           + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
           + (c.horaInicio&&c.horaFin?'<div class="tv-hours">'+c.horaInicio+' – '+c.horaFin+'</div>':'')
           + (c.escalaMin!=null?'<div class="tv-route">⏳ Escala: '+c.escalaMin+' min</div>':'')
@@ -8032,6 +8128,32 @@ function renderDiaArea(){
         + '<div style="font-size:11px;color:var(--tx3);padding:4px 0">'
         + (esIntermedio?'Jornada intermedia — sin datos de tren asignados':'Sin datos de vuelta registrados')
         + '</div></div>';
+    }
+    // FIX — este día derivado (último día de la pernocta) no lleva sus
+    // propios tramos de continuidad: viven en el registro de ORIGEN
+    // (origenParaDH.continuidadVuelta), igual que ya pasa con el DH de
+    // arriba (infoDHVtaDia2). Sin esto, cualquier tramo de continuidad
+    // añadido en la vuelta desaparecía al ver este día en concreto,
+    // aunque SÍ se hubiera guardado bien.
+    if(!esIntermedio && origenParaDH && origenParaDH.continuidadVuelta && origenParaDH.continuidadVuelta.length){
+      origenParaDH.continuidadVuelta.forEach(function(c, idx){
+        if(!c || !c.tren) return;
+        var dhInfoTxtD2 = (c.tipoTramo==='dh' && (c.dhHasta||c.dhHoraInicio))
+          ? '<div class="tv-dh-tag"><span class="tv-dh-badge">🔀 DH</span>'
+            + '<span class="tv-dh-detail">'+((c.dhDesde||'inicio')+' → '+(c.dhHasta||'?'))
+            + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
+          : '';
+        body += '<div class="tv-block vuelta'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
+          + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
+          + '<div class="tv-num">'+c.tren+'</div>'
+          + dhInfoTxtD2
+          + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
+          + (c.horaInicio&&c.horaFin?'<div class="tv-hours">'+c.horaInicio+' – '+c.horaFin+'</div>':'')
+          + (c.escalaMin!=null?'<div class="tv-route">⏳ Escala: '+c.escalaMin+' min</div>':'')
+          + '<div class="tv-hours" style="opacity:.65;font-size:9px">'
+          + (c.tipoTramo==='dh'?'Suma a Presencia':'Suma a Efectiva')+'</div>'
+          + '</div>';
+      });
     }
   } else if(t.tipo==='reserva'){
     var resActiva = !!t.reservaActiva;
@@ -9418,69 +9540,106 @@ function secTramo(tramo){
     : '';
 
   // ── Tramos de continuidad — mismo servicio, tren y horario propios ──
-  // Campo exclusivo de estos tramos añadidos: NO existe en el tramo
-  // principal (ida/vuelta), por diseño — ahí solo aplica lo de siempre.
+  // REDISEÑO — misma apariencia y componentes que el tramo normal
+  // (SALIDA/LLEGADA y FIRMA/LLEGADA con el mismo selector de siempre,
+  // en vez de inputs de texto sueltos). El tiempo de escala ya NO se
+  // escribe a mano: se calcula solo a partir de la hora de llegada
+  // del tramo anterior y la hora de salida de este.
   var contKey = esV ? 'continuidadVuelta' : 'continuidad';
   var contArr = F[contKey] || [];
+  // Se recalcula la escala informativa cada vez que se renderiza, por
+  // si acaba de cambiar alguna hora (autocompletado o edición manual).
+  recalcularContinuidad(esV ? (F.hL2||'') : (F.hL||''), contArr);
   var contHTML = contArr.length
     ? '<div class="fsec-lbl" style="margin-top:8px">Tramos de continuidad <span style="color:var(--tx3)">(mismo servicio, otro tren)</span></div>'
     : '';
   contArr.forEach(function(c, idx){
     c = c || {};
+    var kSal = _contKeyGen('Sal', tramo, idx), kLle = _contKeyGen('Lle', tramo, idx);
+    var kHF  = _contKeyGen('HF',  tramo, idx), kHL  = _contKeyGen('HL',  tramo, idx);
+    var esDHCont = c.tipoTramo === 'dh';
+
+    // ── DH de este tramo de continuidad — misma estética que "Marcar
+    // DH" del tramo principal (tarjeta grande en ámbar cuando activo),
+    // pero abre un popup propio (abrirDHContinuidadPopup) que pregunta
+    // desde/hasta estación y hora de inicio/fin de la parte SIN
+    // trabajar — igual que hace el DH del tramo principal, en vez de
+    // marcar el tramo entero de golpe.
+    var dhRangoTxt = (c.dhDesde||c.dhHasta)
+      ? ((c.dhDesde||'inicio del tramo')+' → '+(c.dhHasta||'?'))
+      : '';
+    var dhHorasTxt = (c.dhHoraInicio&&c.dhHoraFin) ? (c.dhHoraInicio+' – '+c.dhHoraFin) : '';
+    var dhContHTML = esDHCont
+      ? '<div onclick="abrirDHContinuidadPopup(\''+tramo+'\','+idx+')" style="'
+        +'display:flex;align-items:center;gap:10px;background:rgba(245,158,11,.15);'
+        +'border:2px solid var(--amber2);border-radius:12px;padding:10px 14px;cursor:pointer;'
+        +'margin-bottom:8px;box-shadow:0 0 0 3px rgba(245,158,11,.1)">'
+        +'<span style="font-size:18px">🔀</span>'
+        +'<div style="flex:1">'
+        +'<div style="font-size:10px;font-weight:900;color:var(--amber2)">DH · SUMA A PRESENCIA</div>'
+        +'<div style="font-size:10px;color:var(--tx2);margin-top:2px">'+(dhRangoTxt||'Toca para indicar desde/hasta dónde')+(dhHorasTxt?' · '+dhHorasTxt:'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:10px;color:var(--amber2);font-weight:700">Editar ›</span>'
+        +'</div>'
+      : '<button onclick="abrirDHContinuidadPopup(\''+tramo+'\','+idx+')" style="'
+        +'padding:7px 12px;border-radius:8px;border:1.5px solid var(--div);'
+        +'background:var(--s2);color:var(--tx3);font-size:11px;font-weight:700;'
+        +'cursor:pointer;display:inline-flex;align-items:center;gap:5px;'
+        +'margin-bottom:8px;transition:all .15s">'
+        +'🔀 Marcar DH (viajas sin trabajar)</button>';
+
+    // ── Escala informativa (ya NO es un campo que se escriba a mano:
+    // se calcula sola a partir de la llegada del tramo anterior y la
+    // salida de este, igual que pide la regla de oro del horario real).
+    var escalaInfo = (c.escalaMin!=null)
+      ? '<div style="font-size:10px;color:var(--tx3);margin-top:2px">⏳ Escala: '+c.escalaMin+' min (calculada)</div>'
+      : '<div style="font-size:10px;color:var(--tx3);margin-top:2px">La escala se calculará sola en cuanto haya hora de llegada del tramo anterior y hora de salida de este.</div>';
+
+    var sSal = c.salida, sLle = c.llegada, sHF = c.horaInicio, sHL = c.horaFin;
+
     contHTML += '<div class="tramo-container" data-tramo="continuidad" data-subtramo="'+tramo+'" data-idx="'+idx+'" '
-      +'style="background:var(--s2);border:1px solid var(--div);border-radius:11px;padding:11px 12px;margin-bottom:8px">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      +'<div style="font-size:11px;font-weight:800;color:var(--tx3);flex:1">TRAMO '+(idx+2)+'</div>'
-      +'<button onclick="quitarTramoContinuidad(\''+tramo+'\','+idx+')" style="background:none;border:1px solid var(--div);'
-      +'border-radius:8px;color:var(--tx3);font-size:12px;padding:5px 9px;cursor:pointer">✕ Quitar</button>'
+      +'style="border-top:1px solid var(--div);padding-top:10px;margin-top:6px">'
+      +'<div class="tramo-hdr" style="background:rgba(59,127,255,.08);margin-bottom:5px">'
+      +'<span>🚆</span>'
+      +'<span style="font-size:9px;font-weight:800;color:var(--acc2);flex:1">TRAMO '+(idx+2)+(esDHCont?' · DH':'')+'</span>'
+      +'<span onclick="quitarTramoContinuidad(\''+tramo+'\','+idx+')" style="font-size:11px;font-weight:700;color:var(--tx3);cursor:pointer">✕ Quitar</span>'
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+      // Nº Tren — mismo tamaño/estilo que el tramo principal
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
       +'<div style="font-size:16px">🚆</div>'
       +'<input type="text" inputmode="numeric" placeholder="Nº tren, ej: 2081" value="'+(c.tren||'')+'" autocomplete="off"'
       +' oninput="autocompletarTramo(this);mostrarSugerenciasTren(this)" onblur="setTimeout(cerrarSugerenciasTren,180)"'
-      +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
-      +'color:var(--tx);font-size:16px;font-weight:800;padding:7px 11px;outline:none;'
-      +'font-variant-numeric:tabular-nums">'
+      +' style="flex:1;background:var(--s2);border:1.5px solid '+(c.tren?'var(--acc2)':'var(--div)')+';border-radius:10px;'
+      +'color:var(--tx);font-size:22px;font-weight:800;padding:8px 13px;outline:none;'
+      +'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">'
       +'</div>'
-      +'<div class="fsec-lbl" style="margin-top:0">Tiempo de escala (minutos)</div>'
-      +'<input type="number" inputmode="numeric" min="0" max="999" placeholder="Ej: 20" value="'+(c.escalaMin!=null?c.escalaMin:'')+'"'
-      +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'escalaMin\',this.value)"'
-      +' style="width:100%;background:var(--s1);border:1.5px solid var(--amber2);border-radius:9px;'
-      +'color:var(--tx);font-size:14px;padding:7px 10px;outline:none;font-variant-numeric:tabular-nums">'
-      // NUEVO — Estación origen/destino de este tramo de continuidad
-      // (antes solo se guardaba el nº de tren, sin ruta).
-      +'<div style="display:flex;gap:6px;margin-top:8px">'
-      +'<input type="text" placeholder="Estación origen" value="'+(c.salida||'')+'"'
-      +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'salida\',this.value)"'
-      +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
-      +'color:var(--tx);font-size:12px;padding:7px 9px;outline:none">'
-      +'<input type="text" placeholder="Estación destino" value="'+(c.llegada||'')+'"'
-      +' oninput="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'llegada\',this.value)"'
-      +' style="flex:1;background:var(--s1);border:1.5px solid var(--div);border-radius:9px;'
-      +'color:var(--tx);font-size:12px;padding:7px 9px;outline:none">'
+      +dhContHTML
+      // Trayecto — mismos selectores SALIDA/LLEGADA que el tramo normal
+      +'<div class="fsec-lbl">Trayecto</div>'
+      +'<div class="sf '+(sSal?'fil':'')+'" onclick="openEstSheet(\''+kSal+'\')">'
+      +'<div class="sf-i">🚉</div><div class="sf-b"><div class="sf-lbl">SALIDA</div>'
+      +'<div class="sf-val '+(sSal?'':'ph')+'" data-f="'+kSal+'">'+(sSal||'Seleccionar')+'</div>'
+      +'</div><span class="sf-arr">⌄</span></div>'
+      +'<div class="sf '+(sLle?'fil':'')+'" onclick="openEstSheet(\''+kLle+'\')">'
+      +'<div class="sf-i">🏁</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+      +'<div class="sf-val '+(sLle?'':'ph')+'" data-f="'+kLle+'">'+(sLle||'Seleccionar')+'</div>'
+      +'</div><span class="sf-arr">⌄</span></div>'
+      // Horario — mismos selectores FIRMA/LLEGADA que el tramo normal
+      +'<div class="fsec-lbl" style="margin-top:5px">Horario</div>'
+      +'<div class="hora-row">'
+      +'<div class="sf '+(sHF?'fil':'')+'" onclick="openHora(\''+kHF+'\')">'
+      +'<div class="sf-i">⏱</div><div class="sf-b"><div class="sf-lbl">FIRMA</div>'
+      +'<div class="sf-val '+(sHF?'hv':'ph')+'" data-hora="'+kHF+'">'+(sHF||'--:--')+'</div>'
+      +'</div></div>'
+      +'<div class="sf '+(sHL?'fil':'')+'" onclick="openHora(\''+kHL+'\')">'
+      +'<div class="sf-i">🔚</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
+      +'<div class="sf-val '+(sHL?'hv':'ph')+'" data-hora="'+kHL+'">'+(sHL||'--:--')+'</div>'
+      +'</div></div>'
       +'</div>'
-      // NUEVO — Tipo de tramo: Trabajado (suma a Efectiva) o DH (suma a
-      // Presencia). Por defecto 'trabajado', igual que el comportamiento
-      // que ya tenía este tramo antes de añadir esta opción — así los
-      // tramos ya guardados no cambian de comportamiento.
-      +'<div class="fsec-lbl" style="margin-top:8px">Tipo de tramo</div>'
-      +'<div style="display:flex;gap:6px">'
-      +'<div onclick="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'tipoTramo\',\'trabajado\')" '
-      +'style="flex:1;text-align:center;padding:7px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;'
-      +'border:1.5px solid '+((c.tipoTramo||'trabajado')==='trabajado'?'var(--acc)':'var(--div)')+';'
-      +'background:'+((c.tipoTramo||'trabajado')==='trabajado'?'rgba(59,127,255,.12)':'var(--s1)')+';'
-      +'color:'+((c.tipoTramo||'trabajado')==='trabajado'?'var(--acc)':'var(--tx2)')+'">Trabajado · Efectiva</div>'
-      +'<div onclick="actualizarTramoContinuidad(\''+tramo+'\','+idx+',\'tipoTramo\',\'dh\')" '
-      +'style="flex:1;text-align:center;padding:7px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;'
-      +'border:1.5px solid '+(c.tipoTramo==='dh'?'var(--amber2)':'var(--div)')+';'
-      +'background:'+(c.tipoTramo==='dh'?'rgba(245,158,11,.12)':'var(--s1)')+';'
-      +'color:'+(c.tipoTramo==='dh'?'var(--amber2)':'var(--tx2)')+'">DH · Presencia</div>'
-      +'</div>'
+      +escalaInfo
       +'<div style="font-size:9px;color:var(--tx3);margin-top:4px">'
-      +'Este tramo se sumará a: <strong style="color:var(--acc3)">'+(calcularContinuidad(F.tipo)==='HTDL'?'desglose HTDL':'STATS general')+'</strong></div>'
-      +(c.horaInicio&&c.horaFin
-        ? '<div style="font-size:10px;color:var(--tx3);margin-top:6px">⏱ '+c.horaInicio+' – '+c.horaFin+' (calculado automáticamente)</div>'
-        : '<div style="font-size:10px;color:var(--tx3);margin-top:6px">El horario se calcula solo a partir de la llegada del tramo anterior + la escala.</div>')
+      +'Este tramo se sumará a: <strong style="color:var(--acc3)">'+(esDHCont?'Presencia':'Efectiva')+'</strong></div>'
+      +(sHF&&sHL?'<div class="dur-badge" style="margin-top:6px">⏱ '+calcDur(sHF,sHL)+'</div>':'')
       +'</div>';
   });
   contHTML += '<button onclick="agregarTramoContinuidad(\''+tramo+'\')" style="width:100%;padding:9px;'
@@ -9541,21 +9700,49 @@ function secTramo(tramo){
    Presencia vive únicamente en calculateEarnings() — ver el bloque
    "Horas Efectivas / Presencia — DH validado" para la inyección.
 ═══════════════════════════════════════════════════════════ */
-// Deriva horaInicio/horaFin de cada tramo de continuidad automáticamente:
-//   horaInicio del tramo N = horaFin del tramo N-1 (o, para el primero,
-//                             la hora de llegada del tramo principal)
-//   horaFin del tramo N    = horaInicio + su propio tiempo de escala
-// No requiere ninguna entrada manual — se recalcula siempre al guardar.
+// NUEVO — claves virtuales para que los tramos de continuidad puedan
+// reutilizar EXACTAMENTE los mismos selectores de estación/hora que ya
+// usa el tramo normal (openEstSheet/openHora), en vez de inputs de
+// texto sueltos. Formato: 'contSal_ida_0', 'contHF_vuelta_1', etc.
+function _contKeyGen(tipo, tramo, idx){ return 'cont'+tipo+'_'+tramo+'_'+idx; }
+function _contKeyParse(key){
+  var m = /^cont(Sal|Lle|HF|HL)_(ida|vuelta)_(\d+)$/.exec(String(key||''));
+  if(!m) return null;
+  return { tipo: m[1], tramo: m[2], idx: parseInt(m[3],10) };
+}
+function _contArrFor(info){
+  var k = info.tramo==='vuelta' ? 'continuidadVuelta' : 'continuidad';
+  if(!F[k]) F[k]=[];
+  if(!F[k][info.idx]) F[k][info.idx] = {tren:'', horaInicio:'', horaFin:'', escalaMin:null, salida:'', llegada:'', tipoTramo:'trabajado'};
+  return F[k];
+}
+
+// FIX — REDISEÑO: antes había que escribir a mano los "minutos de
+// escala" y la app calculaba horaInicio/horaFin sumando esos minutos a
+// la llegada del tramo anterior (tiempos inventados, no los reales del
+// tren). Ahora horaInicio/horaFin se autocompletan del tren guardado
+// (o se eligen a mano con el mismo selector de hora de siempre) — la
+// ESCALA pasa a ser un dato INFORMATIVO, calculado como la diferencia
+// entre la llegada del tramo anterior y la salida de este. Se
+// mantiene compatibilidad con tramos ya guardados solo con
+// escalaMin (flujo antiguo): esos siguen derivando sus horas igual
+// que siempre.
 function recalcularContinuidad(horaLlegadaTramoAnterior, arr){
   var horaAnterior = horaLlegadaTramoAnterior || '';
   (arr||[]).forEach(function(c){
-    c.horaInicio = horaAnterior;
-    var m = horaAnterior ? _horasToMin(horaAnterior) : null;
-    if(m!=null && c.escalaMin!=null && c.escalaMin>=0){
-      m += c.escalaMin; if(m>=1440) m-=1440;
-      c.horaFin = _minToHoras(m);
-    } else {
-      c.horaFin = '';
+    if(c.horaInicio){
+      if(horaAnterior){
+        var mIni = _horasToMin(horaAnterior), mFin = _horasToMin(c.horaInicio);
+        var diff = mFin - mIni; if(diff<0) diff += 1440;
+        c.escalaMin = diff;
+      }
+    } else if(c.escalaMin!=null && c.escalaMin>=0){
+      var m = horaAnterior ? _horasToMin(horaAnterior) : null;
+      if(m!=null){
+        m += c.escalaMin; if(m>=1440) m-=1440;
+        c.horaInicio = horaAnterior;
+        c.horaFin = _minToHoras(m);
+      }
     }
     horaAnterior = c.horaFin || horaAnterior;
   });
@@ -9590,6 +9777,65 @@ function actualizarTramoContinuidad(tramo, idx, campo, valor){
   } else {
     F[key][idx][campo] = valor.trim();
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DH DENTRO DE UN TRAMO DE CONTINUIDAD — a diferencia del tramo
+   principal (que pregunta "mismo tren o diferente"), aquí ese dato
+   no aplica: un tramo de continuidad ya es por definición otro tren.
+   Solo se pide desde/hasta estación y hora de inicio/fin de la parte
+   SIN trabajar — el resto del tramo sigue sumando a Efectiva. Se
+   guarda en el propio objeto del tramo: dhDesde, dhHasta,
+   dhHoraInicio, dhHoraFin (nombres distintos de horaInicio/horaFin,
+   que son los del tramo COMPLETO, no de la parte DH).
+═══════════════════════════════════════════════════════════ */
+var _dhContEditando = null; // {tramo:'ida'|'vuelta', idx:N}
+
+function abrirDHContinuidadPopup(tramo, idx){
+  _dhContEditando = {tramo:tramo, idx:idx};
+  var arr = _contArrFor(_dhContEditando);
+  var c = arr[idx];
+  var tit = document.getElementById('dhcont-tit');
+  if(tit) tit.textContent = 'DH — Tramo '+(idx+2)+(c.tren?' · Tren #'+c.tren:'');
+  var dIn = document.getElementById('dhcont-desde');
+  var hIn = document.getElementById('dhcont-hasta');
+  var iIn = document.getElementById('dhcont-hora-inicio');
+  var fIn = document.getElementById('dhcont-hora-fin');
+  if(dIn) dIn.value = c.dhDesde || '';
+  if(hIn) hIn.value = c.dhHasta || '';
+  if(iIn) iIn.value = c.dhHoraInicio || '';
+  if(fIn) fIn.value = c.dhHoraFin || '';
+  openOv('ov-dh-cont');
+}
+
+function guardarDHContinuidad(){
+  if(!_dhContEditando) return;
+  var hasta = (document.getElementById('dhcont-hasta').value||'').trim();
+  var horaIni = document.getElementById('dhcont-hora-inicio').value||'';
+  var horaFin = document.getElementById('dhcont-hora-fin').value||'';
+  if(!hasta || !horaIni || !horaFin){
+    alert('Faltan datos: indica al menos hasta qué estación y las horas de inicio y fin de la parte sin trabajar.');
+    return;
+  }
+  var arr = _contArrFor(_dhContEditando);
+  var c = arr[_dhContEditando.idx];
+  c.dhDesde = (document.getElementById('dhcont-desde').value||'').trim();
+  c.dhHasta = hasta;
+  c.dhHoraInicio = horaIni;
+  c.dhHoraFin = horaFin;
+  c.tipoTramo = 'dh';
+  closeOv('ov-dh-cont');
+  renderFormBody();
+}
+
+function quitarDHContinuidad(){
+  if(!_dhContEditando) return;
+  var arr = _contArrFor(_dhContEditando);
+  var c = arr[_dhContEditando.idx];
+  c.tipoTramo = 'trabajado';
+  c.dhDesde = ''; c.dhHasta = ''; c.dhHoraInicio = ''; c.dhHoraFin = '';
+  closeOv('ov-dh-cont');
+  renderFormBody();
 }
 
 function secDescansoOpciones(){
@@ -10083,12 +10329,38 @@ function guardarTurno(){
     d.dhHoraInicioVuelta=F.dhHoraInicioVuelta||'';
     d.dhHoraFinVuelta=F.dhHoraFinVuelta||'';
     d.dhMinutosVuelta=(F.dhMinutosVuelta!=null)?F.dhMinutosVuelta:null;
+    // FIX — antes este mapeo solo guardaba {tren, escalaMin} y
+    // descartaba en silencio salida/llegada/tipoTramo que el usuario
+    // ya había rellenado en el formulario — por eso el resumen del
+    // día podía salir incompleto. Ahora se guardan todos los campos.
     d.continuidad=(F.continuidad||[])
-      .map(function(c){return {tren:(c.tren||'').trim(), escalaMin:(c.escalaMin!=null?c.escalaMin:null)};})
+      .map(function(c){return {
+        tren:(c.tren||'').trim(),
+        salida:c.salida||null,
+        llegada:c.llegada||null,
+        horaInicio:c.horaInicio||'',
+        horaFin:c.horaFin||'',
+        escalaMin:(c.escalaMin!=null?c.escalaMin:null),
+        tipoTramo:c.tipoTramo||'trabajado',
+        // NUEVO — parte concreta del tramo que es DH (desde/hasta
+        // estación + horas), en vez de marcar el tramo entero.
+        dhDesde:c.dhDesde||'', dhHasta:c.dhHasta||'',
+        dhHoraInicio:c.dhHoraInicio||'', dhHoraFin:c.dhHoraFin||''
+      };})
       .filter(function(c){return c.tren;});
     recalcularContinuidad(F.hL||'', d.continuidad);
     d.continuidadVuelta=(F.continuidadVuelta||[])
-      .map(function(c){return {tren:(c.tren||'').trim(), escalaMin:(c.escalaMin!=null?c.escalaMin:null)};})
+      .map(function(c){return {
+        tren:(c.tren||'').trim(),
+        salida:c.salida||null,
+        llegada:c.llegada||null,
+        horaInicio:c.horaInicio||'',
+        horaFin:c.horaFin||'',
+        escalaMin:(c.escalaMin!=null?c.escalaMin:null),
+        tipoTramo:c.tipoTramo||'trabajado',
+        dhDesde:c.dhDesde||'', dhHasta:c.dhHasta||'',
+        dhHoraInicio:c.dhHoraInicio||'', dhHoraFin:c.dhHoraFin||''
+      };})
       .filter(function(c){return c.tren;});
     recalcularContinuidad(F.hL2||'', d.continuidadVuelta);
     d.sal2=F.sal2||null;
@@ -10739,8 +11011,16 @@ function openEstSheet(field){
               sal3:'Salida Tramo Intermedio',lle3:'Llegada Tramo Intermedio',base:'Estación Base'};
   var icos={sal:'🚉',lle:'🏁',sal2:'🌙',lle2:'🌙',sal3:'🌙',lle3:'🌙',base:'🏠'};
   var tit=document.getElementById('est-tit');
-  tit.innerHTML='<span style="font-size:20px">'+(icos[field]||'📍')+'</span>'
-    +'<span>'+(labs[field]||'Estación')+'</span>';
+  // NUEVO — título dinámico para tramos de continuidad, ya que sus
+  // claves son generadas (contSal_ida_0...) y no están en 'labs'.
+  var contInfo = _contKeyParse(field);
+  if(contInfo){
+    var lblCont = (contInfo.tipo==='Sal'?'Salida':'Llegada')+' · Tramo '+(contInfo.idx+2);
+    tit.innerHTML='<span style="font-size:20px">'+(contInfo.tipo==='Sal'?'🚉':'🏁')+'</span><span>'+lblCont+'</span>';
+  } else {
+    tit.innerHTML='<span style="font-size:20px">'+(icos[field]||'📍')+'</span>'
+      +'<span>'+(labs[field]||'Estación')+'</span>';
+  }
   document.getElementById('est-srch-inp').value='';
   renderEstList('');
   openOv('ov-est');
@@ -10749,7 +11029,12 @@ function openEstSheet(field){
 
 function renderEstList(q){
   var lista=document.getElementById('est-list');
-  var cur=estField==='base'?AJ.base:F[estField];
+  // NUEVO — valor actual también para campos de continuidad (para
+  // resaltar la estación ya elegida en ese tramo, si la hay).
+  var contInfoCur = _contKeyParse(estField);
+  var cur = contInfoCur
+    ? _contArrFor(contInfoCur)[contInfoCur.idx][contInfoCur.tipo==='Sal'?'salida':'llegada']
+    : (estField==='base'?AJ.base:F[estField]);
   var lin=estField==='base'?null:F.linea;
   var grupos=lin?{}:LINEAS;if(lin)grupos[lin]=LINEAS[lin];
   var h='';
@@ -10798,6 +11083,18 @@ function renderEstList(q){
    Se aplica tanto en turno nuevo como en edición.
 ──────────────────────────────────────────────────────────── */
 function selEst(e){
+  // NUEVO — si el campo es de un tramo de continuidad (clave virtual
+  // 'contSal_.../contLle_...'), se guarda en su propio array en vez de
+  // en una propiedad plana de F, y se sale ya sin tocar la lógica de
+  // encadenamiento de pernocta (que no aplica aquí).
+  var contInfo = _contKeyParse(estField);
+  if(contInfo){
+    var arr = _contArrFor(contInfo);
+    arr[contInfo.idx][contInfo.tipo==='Sal' ? 'salida' : 'llegada'] = e;
+    closeOv('ov-est');
+    renderFormBody();
+    return;
+  }
   if(estField==='base'){AJ.base=e;var bv=document.getElementById('aj-base-v');bv.textContent=e;bv.className='aj-base-val';closeOv('ov-est');return;}
   F[estField]=e;
   var hayI=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(x){return ESTACIONES_INTERNACIONALES.has(x);});
@@ -10854,8 +11151,12 @@ function actualizarBadgeIntl(){
 ═══════════════════════════════════════ */
 function openHora(field){
   TP.field = field;
-  // Leer valor actual del campo en F (preserva lo que ya había)
-  var ex = F[field];
+  // NUEVO — leer el valor actual también para campos de continuidad
+  // (guardados en su propio array, no como propiedad plana de F).
+  var contInfo = _contKeyParse(field);
+  var ex = contInfo
+    ? _contArrFor(contInfo)[contInfo.idx][contInfo.tipo==='HF' ? 'horaInicio' : 'horaFin']
+    : F[field];
   if(ex && ex.includes(':')){
     var p = ex.split(':');
     TP.H = p[0]; TP.M = p[1];
@@ -10869,7 +11170,12 @@ function openHora(field){
   // Label
   var labs = {hF:'⏱ Firma — ida', hL:'🔚 Llegada — ida',
                 hF2:'🌙 Firma — vuelta', hL2:'🔚 Llegada — vuelta'};
-  document.getElementById('hora-tit').textContent = labs[field] || '⏱ Hora';
+  if(contInfo){
+    document.getElementById('hora-tit').textContent =
+      (contInfo.tipo==='HF'?'⏱ Firma':'🔚 Llegada')+' · Tramo '+(contInfo.idx+2);
+  } else {
+    document.getElementById('hora-tit').textContent = labs[field] || '⏱ Hora';
+  }
 
   horaRefresh();
   openOv('ov-hora');
@@ -10968,6 +11274,21 @@ function confHora(){
   }
 
   var hora = TP.H + ':' + TP.M;
+
+  // NUEVO — si es un tramo de continuidad, se guarda en su propio
+  // array (no como propiedad plana de F) y se refresca el formulario
+  // entero para que se recalcule la escala informativa a partir de
+  // esta nueva hora — el resto de la función (badges de duración,
+  // etc.) es específico del tramo principal y no aplica aquí.
+  var contInfo = _contKeyParse(TP.field);
+  if(contInfo){
+    var arr = _contArrFor(contInfo);
+    arr[contInfo.idx][contInfo.tipo==='HF' ? 'horaInicio' : 'horaFin'] = hora;
+    closeOv('ov-hora');
+    renderFormBody();
+    return;
+  }
+
   F[TP.field] = hora;
   closeOv('ov-hora');
 
