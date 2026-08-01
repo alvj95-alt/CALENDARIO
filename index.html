@@ -8788,15 +8788,20 @@ function compConvertir(nuevoTipo){
   var k = selDay.k;
   var t = TV[k];
 
-  // Desvincular este día del turno origen
-  if(t.origen && TV[t.origen]){
-    var ori = TV[t.origen];
-    if(ori.diasComp){
-      ori.diasComp = ori.diasComp.filter(function(d){ return d !== k; });
-    }
-  }
-
   if(nuevoTipo === 'descanso'){
+    // FIX — el desvincular (quitar 'k' de ori.diasComp) se hace SOLO
+    // aquí, al marcar descanso: eso sí libera de verdad el día. Antes
+    // se desvinculaba también al elegir "trabajar" (HTDL/Art.51/52),
+    // y eso hacía que STATS perdiera el registro de qué días se
+    // habían solicitado el mes anterior en cuanto se trabajaban —
+    // justo lo contrario de lo que se quiere: un historial que se
+    // conserve aunque el día ya se haya trabajado.
+    if(t.origen && TV[t.origen]){
+      var oriD = TV[t.origen];
+      if(oriD.diasComp){
+        oriD.diasComp = oriD.diasComp.filter(function(d){ return d !== k; });
+      }
+    }
     // 1. Guardar primero
     TV[k] = {tipo:'descanso'};
     selDay.t = TV[k];
@@ -8808,11 +8813,9 @@ function compConvertir(nuevoTipo){
     renderStats();
     toast('Día convertido a descanso');
   } else {
-    // FIX — antes esta rama SIEMPRE abría 'ordinario', sin importar qué
-    // tipo se pidiera. Ahora respeta el tipo indicado (p.ej. 'trabajado'
-    // para que la app lo marque como HTDL en automático, o 'art5152'
-    // para Art. 51/52) — necesario para poder ofrecer ambas opciones al
-    // trabajar un día de compensación.
+    // 'trabajado' (HTDL automático) o 'art5152' — NO se desvincula de
+    // ori.diasComp, para que STATS siga mostrando este día como
+    // "solicitado" aunque ya esté trabajado (registro histórico).
     closeOv('ov-edit-comp');
     resetF(nuevoTipo);
     abrirForm(false);
@@ -10647,7 +10650,16 @@ function guardarTurno(){
   d.plusJT=F.plusJT||false;
 
   var anterior=TV[k];
-  if(anterior&&anterior.tipo==='comp'&&anterior.origen){
+  // FIX — antes esto desvinculaba SIEMPRE que un día 'comp' se
+  // sobrescribía con cualquier cosa, sin importar con qué. Por eso,
+  // al trabajar un día de compensación (HTDL o Art.51/52), este
+  // guardado general lo desvinculaba de todas formas — aunque
+  // compConvertir() ya NO lo hiciera por su lado — y STATS perdía el
+  // registro de qué días se habían solicitado. Ahora se exceptúan
+  // esos dos tipos: solo se desvincula si el día se convierte en
+  // OTRA cosa (descanso, ordinario, etc.), que sí libera el día de
+  // verdad.
+  if(anterior && anterior.tipo==='comp' && anterior.origen && t!=='trabajado' && t!=='art5152'){
     var ori=TV[anterior.origen];
     if(ori&&ori.diasComp) ori.diasComp=ori.diasComp.filter(function(iso){return iso!==k;});
   }
