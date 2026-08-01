@@ -8228,7 +8228,12 @@ function renderDiaArea(){
     +'<div class="dct-ico">'+ti.ico+'</div>'
     +'<div class="dct-info"><div class="dct-fecha">'+fstr+'</div>'
     +'<div class="dct-tipo" style="color:'+(alerta?'var(--red2)':col)+'">'+ti.lbl+(alerta?' ⚠️':'')+'</div></div>'
-    +(t.hF?'<div class="dct-dur" style="color:'+col+'">'+calcDur(t.hF,t.hL)+'</div>':'')
+    // QUITADO — este badge solo mostraba calcDur(t.hF,t.hL), es decir,
+    // la duración de la IDA nada más (sin vuelta ni escala), y salía
+    // sin contexto ni etiqueta. Confundía porque ya está el bloque
+    // "⏱ TOTAL DEL DÍA" (con ida+vuelta+escala) más abajo, que es el
+    // dato correcto y completo. Puramente visual — no participaba en
+    // ningún cálculo, así que quitarlo no afecta a nada más.
     +(t.cambioSolicitado?'<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.25);border-radius:6px;padding:2px 7px;font-size:9px;font-weight:700;color:var(--nar2);margin-left:3px">🔄 Enviado</div>':'')
     +retrasoTag
     +'</div>'
@@ -14685,9 +14690,24 @@ function _renderHtdlDiasStats(){
   var pref = y+'-'+pad(m);
 
   // Días libres que llegan ESTE mes (compensación de un HTDL anterior)
-  var recibidos = Object.keys(TV).filter(function(k){
-    return k.startsWith(pref) && TV[k] && TV[k].tipo==='comp';
-  }).sort();
+  // FIX — antes se buscaba solo TV[iso].tipo==='comp': en cuanto ese
+  // día se trabajaba (HTDL o Art.51/52 — ver compConvertir), dejaba
+  // de aparecer aquí, aunque a propósito siguiera guardado en
+  // ori.diasComp para conservar el historial. Ahora se recorren
+  // directamente los arrays diasComp de todos los turnos y se listan
+  // las fechas que caen en el mes actual — así el registro se
+  // mantiene visible aunque el día ya se haya trabajado, marcándolo
+  // como tal.
+  var recibidos = [];
+  Object.keys(TV).forEach(function(kOrigen){
+    var tOrigen = TV[kOrigen];
+    if(tOrigen && tOrigen.comp==='dias' && tOrigen.diasComp && tOrigen.diasComp.length){
+      tOrigen.diasComp.forEach(function(iso){
+        if(iso.indexOf(pref)===0) recibidos.push({iso:iso, origen:kOrigen});
+      });
+    }
+  });
+  recibidos.sort(function(a,b){ return a.iso.localeCompare(b.iso); });
 
   // HTDL trabajados ESTE mes cuya compensación es 'días'
   var solicitados = [];
@@ -14712,11 +14732,11 @@ function _renderHtdlDiasStats(){
   if(recibidos.length){
     if(solicitados.length) html += '<div class="cr-div" style="margin:6px 0"></div>';
     html += '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:4px">DÍAS LIBRES ESTE MES (compensación de HTDL)</div>';
-    recibidos.forEach(function(iso){
-      var origen = TV[iso].origen;
+    recibidos.forEach(function(r){
+      var yaTrabajado = TV[r.iso] && TV[r.iso].tipo!=='comp'; // sigue en la lista, pero ya no está "pendiente"
       html += '<div class="cs-r" style="padding-left:12px">'
-        +'<span class="cl" style="font-size:10px">'+_keyAFechaLbl(iso)+'</span>'
-        +'<span class="cv" style="font-size:10px;color:var(--cyan2);font-weight:700">'+(origen?'← HTDL '+_keyAFechaLbl(origen):'Día libre HTDL')+'</span></div>';
+        +'<span class="cl" style="font-size:10px">'+_keyAFechaLbl(r.iso)+(yaTrabajado?' <span style="color:var(--tx3);font-weight:400">(trabajado)</span>':'')+'</span>'
+        +'<span class="cv" style="font-size:10px;color:var(--cyan2);font-weight:700">'+(r.origen?'← HTDL '+_keyAFechaLbl(r.origen):'Día libre HTDL')+'</span></div>';
     });
   }
 
