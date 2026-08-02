@@ -6850,6 +6850,34 @@ function searchByTrainNumber(n){
   return exactas.concat(parciales).slice(0,6);
 }
 
+// NUEVO — autocompleta estación de inicio, estación final y horario
+// de un tramo del "Registrar Intercambio" en cuanto se escribe un
+// número de tren YA GUARDADO antes (mismo origen de datos — SF — que
+// usa el autocompletado del turno normal, sin duplicarlo). Solo
+// rellena campos que estén vacíos, nunca pisa lo que el usuario ya
+// haya escrito a mano. Recordatorio: este intercambio es solo
+// informativo — nunca entra en el cálculo de horas, se rellene como
+// se rellene.
+function autocompletarTramoIntercambio(idx){
+  var trenEl = document.getElementById('reg-interc-tren-'+idx);
+  if(!trenEl) return;
+  var num = trenEl.value.trim();
+  if(!num) return;
+  var exacto = null;
+  for(var si=0; si<SF.length; si++){
+    if(SF[si].numTren === num){ exacto = SF[si]; break; }
+  }
+  if(!exacto) return; // solo coincidencia EXACTA — nada de resultados parciales aquí
+  var estIniEl = document.getElementById('reg-interc-est-ini-'+idx);
+  var estFinEl = document.getElementById('reg-interc-est-fin-'+idx);
+  var hiniEl   = document.getElementById('reg-interc-hini-'+idx);
+  var hfinEl   = document.getElementById('reg-interc-hfin-'+idx);
+  if(estIniEl && !estIniEl.value.trim() && exacto.sal) estIniEl.value = exacto.sal;
+  if(estFinEl && !estFinEl.value.trim() && exacto.lle) estFinEl.value = exacto.lle;
+  if(hiniEl && !hiniEl.value && exacto.hF) hiniEl.value = exacto.hF;
+  if(hfinEl && !hfinEl.value && exacto.hL) hfinEl.value = exacto.hL;
+}
+
 function guardarServicioFrecuente(datos){
   var numTren  = datos.numTren;
   var linea    = datos.linea;
@@ -9151,7 +9179,7 @@ function _renderDiasIntercambio(){
     html += '<div style="background:var(--s2);border:1px solid var(--div);border-radius:11px;padding:12px;margin-bottom:10px">'
       + '<div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--tx3);margin-bottom:8px">'+_etiquetaTramoIntercambio(i-1)+'</div>'
       + '<div style="margin-bottom:7px"><div class="aj-nombre-wrap"><span class="aj-nombre-ico">🚆</span>'
-      + '<input id="reg-interc-tren-'+i+'" class="aj-nombre-inp" inputmode="numeric" placeholder="'+etiquetaTren(i-1)+'" style="font-size:14px;font-weight:800"></div></div>'
+      + '<input id="reg-interc-tren-'+i+'" class="aj-nombre-inp" inputmode="numeric" placeholder="'+etiquetaTren(i-1)+'" style="font-size:14px;font-weight:800" oninput="autocompletarTramoIntercambio('+i+')"></div></div>'
       + '<div style="display:flex;gap:7px;margin-bottom:7px">'
       + '<input id="reg-interc-est-ini-'+i+'" placeholder="Estación inicio" style="flex:1;background:var(--s1);'
       + 'border:1.5px solid var(--div);border-radius:9px;color:var(--tx);font-size:12px;padding:9px 10px;outline:none">'
