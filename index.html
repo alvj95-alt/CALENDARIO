@@ -7450,7 +7450,7 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
             + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
           : '';
         h += '<div class="tv-block ida'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
-          + '<div class="tv-block-tag">🚂 TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
+          + '<div class="tv-block-tag">🚆 CONT. '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
           + dhInfoTxt
           + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
@@ -7539,7 +7539,7 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
             + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
           : '';
         h += '<div class="tv-block vuelta'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
-          + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
+          + '<div class="tv-block-tag">🚆 CONT. '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
           + dhInfoTxtV
           + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
@@ -8159,7 +8159,7 @@ function renderDiaArea(){
             + (c.dhHoraInicio&&c.dhHoraFin?' · '+c.dhHoraInicio+'–'+c.dhHoraFin:'')+'</span></div>'
           : '';
         body += '<div class="tv-block vuelta'+(c.tipoTramo==='dh'?' tv-block-dh':'')+'">'
-          + '<div class="tv-block-tag">↩ TRAMO '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
+          + '<div class="tv-block-tag">🚆 CONT. '+(idx+2)+(c.tipoTramo==='dh'?' · DH':'')+'</div>'
           + '<div class="tv-num">'+c.tren+'</div>'
           + dhInfoTxtD2
           + (c.salida&&c.llegada?'<div class="tv-route">'+c.salida+' → '+c.llegada+'</div>':'')
@@ -9635,7 +9635,7 @@ function secTramo(tramo){
       +'style="border-top:1px solid var(--div);padding-top:10px;margin-top:6px">'
       +'<div class="tramo-hdr" style="background:rgba(59,127,255,.08);margin-bottom:5px">'
       +'<span>🚆</span>'
-      +'<span style="font-size:9px;font-weight:800;color:var(--acc2);flex:1">TRAMO '+(idx+2)+(esDHCont?' · DH':'')+'</span>'
+      +'<span style="font-size:9px;font-weight:800;color:var(--acc2);flex:1">CONT. '+(idx+2)+(esDHCont?' · DH':'')+'</span>'
       +'<span onclick="quitarTramoContinuidad(\''+tramo+'\','+idx+')" style="font-size:11px;font-weight:700;color:var(--tx3);cursor:pointer">✕ Quitar</span>'
       +'</div>'
       // Nº Tren — mismo tamaño/estilo que el tramo principal
@@ -9697,7 +9697,6 @@ function secTramo(tramo){
     +'font-variant-numeric:tabular-nums;-moz-appearance:textfield;letter-spacing:1px">'
     +'</div>'
     +dhHTML
-    +contHTML
     // Trayecto
     +'<div class="fsec-lbl">Trayecto</div>'
     +'<div class="sf '+(sShow?'fil':'')+'" onclick="openEstSheet(\''+sk+'\')">'
@@ -9720,7 +9719,17 @@ function secTramo(tramo){
     +'<div class="sf-i">🔚</div><div class="sf-b"><div class="sf-lbl">LLEGADA</div>'
     +'<div class="sf-val '+(hLv?'hv':'ph')+'" data-hora="'+hLk+'">'+(hLv||'--:--')+'</div>'
     +'</div></div>'
-    +'</div>'+nocBadge+dur+'</div>';
+    +'</div>'+nocBadge+dur
+    // FIX — el bloque "TRAMOS DE CONTINUIDAD" (tren 2, 3...) ahora va
+    // AQUÍ, después de que el Tramo 1 esté completo del todo (su
+    // propio tren + trayecto + horario). Antes se insertaba justo
+    // después del número de tren del Tramo 1, ANTES de su propia
+    // Trayecto/Horario — así que al rellenar salía primero el tramo 2
+    // entero y solo al final los datos del tramo 1, en el orden
+    // contrario al que se lee (Tren → Estación → Horario, Tren 2 →
+    // Estación → Horario, y no al revés).
+    +contHTML
+    +'</div>';
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -9830,7 +9839,7 @@ function abrirDHContinuidadPopup(tramo, idx){
   var arr = _contArrFor(_dhContEditando);
   var c = arr[idx];
   var tit = document.getElementById('dhcont-tit');
-  if(tit) tit.textContent = 'DH — Tramo '+(idx+2)+(c.tren?' · Tren #'+c.tren:'');
+  if(tit) tit.textContent = 'DH — Tren de continuidad '+(idx+2)+(c.tren?' · Tren #'+c.tren:'');
   var dIn = document.getElementById('dhcont-desde');
   var hIn = document.getElementById('dhcont-hasta');
   var iIn = document.getElementById('dhcont-hora-inicio');
@@ -13035,7 +13044,7 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
     (t.continuidad||[]).forEach(function(c, idx){
       if(!c.tren) return;
       var horaTxt = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
-      rows += fila('TRAMO '+(idx+2), '🚆 #'+c.tren+horaTxt, 'var(--nar2)');
+      rows += fila('CONT. '+(idx+2), '🚆 #'+c.tren+horaTxt, 'var(--nar2)');
     });
   }
   // Ruta ida
@@ -13050,7 +13059,7 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
     (t.continuidadVuelta||[]).forEach(function(c, idx){
       if(!c.tren) return;
       var horaTxtV = (c.horaInicio&&c.horaFin) ? ' · '+c.horaInicio+'–'+c.horaFin : '';
-      rows += fila('TRAMO '+(idx+2), '🚆 #'+c.tren+horaTxtV, 'var(--amber2)');
+      rows += fila('CONT. '+(idx+2), '🚆 #'+c.tren+horaTxtV, 'var(--amber2)');
     });
   }
   // Ruta vuelta
