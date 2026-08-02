@@ -78,6 +78,15 @@ body.modo-admin{
   --acc2:#EF4444;
   --acc3:#FCA5A5;
 }
+/* NUEVO — MODO INTERVENTOR: igual mecanismo que modo-admin, pero en
+   violeta, para que se note a simple vista que no es ni tripulante
+   (azul) ni administrador (rojo). Se activa desde el Portal de
+   Perfil (primera pantalla de la app) — ver elegirPerfilPortal(). */
+body.modo-interventor{
+  --acc:#7C3AED;
+  --acc2:#A78BFA;
+  --acc3:#DDD6FE;
+}
 *,*::before,*::after{box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh}
 @media(min-width:480px){body{background:#060D18;padding:20px}
@@ -2611,6 +2620,18 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   // y eliminación completa del DOM, para que el usuario pueda
   // interactuar con la interfaz sin ningún bloqueo posterior.
   setTimeout(function(){
+    // FIX — antes el Portal de Perfil decidía si aparecer usando SU
+    // PROPIO cronómetro independiente (un setTimeout calculado a
+    // ojo). Al ser dos temporizadores distintos, cualquier pequeño
+    // desajuste dejaba un hueco en el que se veía el calendario de
+    // tripulación por debajo, justo cuando el tren empezaba a
+    // desvanecerse. Ahora se avisa al portal EN ESTE MISMO INSTANTE
+    // — el momento exacto en que el tren empieza a desvanecerse — en
+    // vez de que cada uno calcule el tiempo por su cuenta. Así es
+    // imposible que se descoordinen.
+    if(typeof window.__revisarPerfilAlTerminarSplash === 'function'){
+      window.__revisarPerfilAlTerminarSplash();
+    }
     splash.style.transition = 'opacity .4s ease';
     splash.style.opacity = '0';
     setTimeout(function(){ splash.remove(); }, 420);
@@ -2624,6 +2645,85 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
      navegador dibuja el desplegable. Se rellena desde
      actualizarDatalistTrenes(), leyendo SF (solo lectura). -->
 <datalist id="trenes-datalist"></datalist>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     PORTAL DE PERFIL — Tripulante vs Interventor. Se pregunta UNA
+     sola vez (primera carga de este dispositivo); la elección queda
+     en localStorage y no se vuelve a preguntar.
+═══════════════════════════════════════════════════════════ -->
+<div id="portal-perfil" style="display:none;position:fixed;inset:0;z-index:10000;
+  background:#07111F;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:360px;text-align:center">
+    <div style="font-size:44px;margin-bottom:6px">🚆</div>
+    <div style="font-size:20px;font-weight:900;color:#F8FAFC;margin-bottom:2px">TrenTurnos v5</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:28px">¿Qué eres?</div>
+
+    <button id="btnPerfilTripulante" style="width:100%;display:flex;align-items:center;gap:14px;
+      background:linear-gradient(135deg,#1A2D44,#132236);border:2px solid #2563EB;border-radius:16px;
+      padding:18px 20px;margin-bottom:14px;cursor:pointer;text-align:left">
+      <span style="font-size:32px">🚂</span>
+      <span style="flex:1">
+        <div style="font-size:16px;font-weight:900;color:#3B82F6">Tripulante</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:2px">Tu calendario, horas y nómina</div>
+      </span>
+      <span style="color:#3B82F6;font-size:20px">›</span>
+    </button>
+
+    <button id="btnPerfilInterventor" style="width:100%;display:flex;align-items:center;gap:14px;
+      background:linear-gradient(135deg,#2E1F4D,#1E1533);border:2px solid #7C3AED;border-radius:16px;
+      padding:18px 20px;cursor:pointer;text-align:left">
+      <span style="font-size:32px">🕵️</span>
+      <span style="flex:1">
+        <div style="font-size:16px;font-weight:900;color:#A78BFA">Interventor</div>
+        <div style="font-size:11px;color:#94A3B8;margin-top:2px">Portal de Interventor</div>
+      </span>
+      <span style="color:#A78BFA;font-size:20px">›</span>
+    </button>
+  </div>
+</div>
+
+<!-- Portal de Interventor — pantalla propia y simple, distinta de
+     todo lo demás. De momento un punto de partida en blanco: aquí
+     se irá construyendo lo que necesite el interventor, sin mezclar
+     con el Buscador de Compañeros ni con la app de tripulante. -->
+<div id="portal-interventor-screen" style="display:none;position:fixed;inset:0;z-index:9998;
+  background:#0F0A1F;flex-direction:column;padding:20px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <span style="font-size:28px">🕵️</span>
+    <div style="flex:1">
+      <div style="font-size:18px;font-weight:900;color:#A78BFA">Portal de Interventor</div>
+      <div style="font-size:11px;color:#94A3B8">TrenTurnos v5</div>
+    </div>
+    <button id="btnCambiarPerfilInterventor" style="background:rgba(124,58,237,.12);border:1px solid #7C3AED;
+      border-radius:9px;color:#C4B5FD;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer">
+      🔄 Cambiar
+    </button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;padding-top:10px;overflow-y:auto">
+    <div style="font-size:12px;color:#94A3B8;margin-bottom:14px">
+      Busca un compañero por nombre en el Horario General publicado.
+    </div>
+    <div class="srch" style="margin-bottom:10px">
+      <span class="srch-ico">👤</span>
+      <input type="text" id="q2" placeholder="Escribe un nombre..." autocomplete="off">
+      <button class="srch-clear" id="clearBtn2">✕</button>
+    </div>
+    <div id="view2"></div>
+
+    <div style="font-size:12px;color:#94A3B8;margin:18px 0 10px;border-top:1px solid rgba(148,163,184,.15);padding-top:16px">
+      O busca por número de tren (muestra tripulación e interventor):
+    </div>
+    <div class="srch" style="margin-bottom:10px">
+      <span class="srch-ico">🚆</span>
+      <input type="text" id="trTrainInput2" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+    </div>
+    <div class="cal-tren-panel" id="calTrenPanel2"></div>
+    <button class="tr-go" id="trGoBtn2" style="width:100%;margin-bottom:10px">Buscar</button>
+    <div id="trainView2"></div>
+  </div>
+</div>
+
 <div class="ph" id="ph">
 
 <!-- BOTÓN FLOTANTE AYUDA — WhatsApp. Puramente visual/navegación
@@ -3274,6 +3374,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
   <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
   <button id="btnBuscadorCompaneros" class="upload-btn" style="margin-top:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="abrirAccesoBuscadorCompaneros()">🚆 Buscador de Compañeros</button>
+  <!-- NUEVO — reinicia la elección Tripulante/Interventor del Portal
+       de Perfil, por si alguien se equivocó al elegir o presta el
+       móvil a otra persona. -->
+  <button id="btnCambiarPerfilAjustes" class="upload-btn" style="margin-top:8px;background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.35);color:#C4B5FD;font-size:12px">🔄 Cambiar: Tripulante / Interventor</button>
 </div>
 
 
@@ -17144,7 +17248,11 @@ async function cargarHorarioGlobalDesdeAdmin(){
   _diagHorarioGeneral = null;
   try{
     if(typeof sbAdmin === 'undefined'){ _diagHorarioGeneral = 'sbAdmin no está definido'; return false; }
-    var esAdmin = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
+    var esAdmin = !!(perfilAdminActual && perfilAdminActual.rol==='admin')
+      // NUEVO — el interventor ve todas las sedes fusionadas, igual
+      // que el admin: no tiene una Estación Base propia de la que
+      // partir, así que restringirlo a una sola no tendría sentido.
+      || !!(usuarioActual && usuarioActual.esInterventor);
 
     if(esAdmin){
       var respTodas = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
@@ -17236,7 +17344,11 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // exento: él ve todas las sedes fusionadas, no necesita configurar
   // ninguna en concreto.
   var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
-  if(!esAdminActivo && !_sedeUsuarioActual()){
+  // NUEVO — el interventor tampoco necesita Estación Base: no está
+  // ligado a ninguna sede de tripulación, así que queda exento igual
+  // que el admin (ver validarAccesoInterventor()).
+  var esInterventorActivo = !!(usuarioActual && usuarioActual.esInterventor);
+  if(!esAdminActivo && !esInterventorActivo && !_sedeUsuarioActual()){
     alert('Antes de usar el Buscador de Compañeros, configura tu Estación Base en Ajustes → Perfil.');
     return;
   }
@@ -17354,6 +17466,23 @@ window.abrirBuscadorConHorarioGlobal = async function(){
       alert('Fallo crítico Intervención: '+errIntervencionFatal);
     }
   }
+};
+
+// NUEVO — MISMA carga de datos que abrirBuscadorConHorarioGlobal()
+// de arriba (Horario General + Intervención), pero SIN abrir ninguna
+// ventana — la usa la pantalla de Interventor, que ya tiene su propia
+// pantalla y no necesita el overlay "ov-buscador" de tripulación.
+// Se expone a window por el mismo motivo que la de arriba: el Portal
+// de Perfil vive fuera de este módulo aislado.
+window.cargarDatosParaInterventor = async function(){
+  var ok = await cargarHorarioGlobalDesdeAdmin();
+  if(ok) activateBase('global');
+  try{
+    await cargarIntervencionGlobalDesdeAdmin();
+  }catch(errIntervencionFatal){
+    console.warn('Fallo al cargar Intervención para el Portal de Interventor:', errIntervencionFatal);
+  }
+  return ok;
 };
 
 // NUEVO — Descarga el Gráfico + el Informe publicados por el admin
@@ -18826,7 +18955,442 @@ clearBtn.addEventListener('click', ()=>{
   qInput.focus();
 });
 
+
+
+/* ═══════════════════════════════════════════════════════════
+   COPIA — Buscador de Compañeros para INTERVENTOR (q2/clearBtn2/
+   view2). Es una copia deliberada de la pantalla de tripulante,
+   para poder modificarla sin riesgo de romper la de tripulación.
+   Envuelta en su propia función para que sus nombres internos
+   (renderList, doSearch, etc.) no choquen con los de arriba.
+   Comparte los MISMOS datos (activeBase, classifyCell,
+   weekdayForDay, findCompanions...) — esa parte NO se duplica.
+═══════════════════════════════════════════════════════════ */
+(function(){
+const qInput = document.getElementById('q2');
+const clearBtn = document.getElementById('clearBtn2');
+const viewEl = document.getElementById('view2');
+
+function renderEmptyHint(){
+  viewEl.innerHTML = `<div class="hint-empty">Escribe al menos <b>2 letras</b> del nombre de un compañero de <b>${activeBase ? activeBase.label : ''}</b> para ver su turno.</div>`;
+}
+
+function renderList(matches, query){
+  if(matches.length===0){
+    viewEl.innerHTML = `<div class="hint-empty">Sin resultados para "<b>${query}</b>" en ${activeBase.label}.</div>`;
+    return;
+  }
+  const _render = ()=>{
+  let html = '<div class="list">';
+  for(const [id, name] of matches){
+    html += `<div class="pcard perfil-companero" data-id="${id}" data-name="${encodeURIComponent(name)}">
+      <img class="pcard-avatar-img" src="${AVATAR_PLACEHOLDER}" alt="">
+      <div class="pcard-info">
+        <span class="pcard-name-full">${name}</span>
+        ${id ? `<div class="pcard-id">ID ${id}</div>` : ''}
+      </div>
+      <div class="pcard-arr">›</div>
+    </div>`;
+  }
+  html += '</div>';
+  viewEl.innerHTML = html;
+  viewEl.querySelectorAll('.pcard[data-id]').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const id = card.dataset.id;
+      const name = decodeURIComponent(card.dataset.name);
+      const entry = activeBase.data.find(e => e[0]===id && e[1]===name);
+      if(entry) renderProfile(entry);
+    });
+  });
+  };
+  mostrarConAnimacionTren(viewEl, _render);
+}
+
+const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
+function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina]){
+  let items = '';
+  for(let d=1; d<=31; d++){
+    const cell = days[String(d)] || '';
+    const info = classifyCell(cell);
+    const tag = TAG_LABEL[info.type] || 'OTROS';
+    items += `<div class="tl-item ${info.off?'off':''}" data-day="${d}">
+      <div class="tl-rail">
+        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d)}</span></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-card">
+        <div class="tl-card-top">
+          <span class="tl-tag tag-${info.type}">${tag}</span>
+          <span class="tl-arr">›</span>
+        </div>
+        <div class="tl-val">${cell || '—'}</div>
+      </div>
+    </div>`;
+  }
+  // NUEVO — resumen de horas del mes, igual que en la maqueta de
+  // verificación: Horas Totales / EF (efectivas) / PR (presencia) /
+  // Jor. Prorr. (jornada prorrateada). Si algún dato no se pudo leer
+  // del PDF para este compañero, se omite esa tarjeta en vez de
+  // mostrar un hueco vacío.
+  const stats = [
+    ['Horas Totales', horasTotales],
+    ['Horas EF', horasEF],
+    ['Horas PR', horasPR],
+    ['Jor. Prorr.', jorProrr],
+  ].filter(([,v]) => v);
+  const statsHtml = stats.length ? `
+      <div class="p-stats">
+        ${stats.map(([lbl,val])=>`<div class="p-stat"><div class="p-stat-val">${val}</div><div class="p-stat-lbl">${lbl}</div></div>`).join('')}
+      </div>` : '';
+  viewEl.innerHTML = `
+    <div class="profile">
+      <button class="p-back" id="backBtn">‹ Volver a la búsqueda</button>
+      <div class="p-head">
+        <div class="p-av">${initials(name)}</div>
+        <div>
+          <div class="p-name">${name}</div>
+          ${id ? `<div class="p-id">ID ${id}</div>` : ''}
+        </div>
+      </div>
+      ${statsHtml}
+      ${pagina ? `<div class="p-meta">Página ${pagina} del PDF del Horario General</div>` : ''}
+      <div class="p-legend">
+        <span class="p-leg"><span class="dot dot-ord"></span>Turno</span>
+        <span class="p-leg"><span class="dot dot-des"></span>Descanso</span>
+        <span class="p-leg"><span class="dot dot-res"></span>Franco / Reserva</span>
+        <span class="p-leg"><span class="dot dot-dop"></span>DOP</span>
+        <span class="p-leg"><span class="dot dot-oth"></span>Otros</span>
+      </div>
+      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día en la línea de tiempo para ver con quién compartes ese turno.</div>
+      <div class="timeline">${items}</div>
+      <div id="compZone"></div>
+    </div>
+  `;
+  document.getElementById('backBtn').addEventListener('click', ()=>{ doSearch(); });
+  viewEl.querySelectorAll('.tl-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const d = parseInt(item.dataset.day, 10);
+      const cell = days[String(d)] || '';
+      renderCompanions(d, id, name, cell);
+      viewEl.querySelectorAll('.tl-item').forEach(r=>{
+        r.classList.remove('sel');
+        r.querySelector('.tl-arr').textContent = '›';
+      });
+      item.classList.add('sel');
+      item.querySelector('.tl-arr').textContent = '▾';
+      document.getElementById('compZone').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+}
+
+function renderCompanions(day, id, name, cell){
+  const zone = document.getElementById('compZone');
+  const info = classifyCell(cell);
+  const wd = weekdayForDay(day);
+  if(info.off || !cell){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· sin tren asignado ese día</span></div>
+      <div class="comp-none">Ese día tienes <b>${cell || 'sin turno registrado'}</b>, así que no hay tren que compartir con nadie.</div>
+    </div>`;
+    return;
+  }
+  const companions = findCompanions(day, id, name, cell);
+
+  // ── NUEVO: buscar también el/los interventor(es) de ese mismo tren ese día ──
+  // Esta vista de "Buscar por nombre" asume siempre julio de 2026 (igual que
+  // weekdayForDay), así que se construye la fecha real con ese mismo supuesto
+  // para poder cruzar contra los servicios de Interventor cargados.
+  const fechaParaInterventor = new Date(2026, 7, day); // FIX: agosto, no julio
+  const trenesDelDia = [...trainTokens(cell)];
+  let interventorMatches = [];
+  for(const t of trenesDelDia){
+    interventorMatches.push(...buscarInterventor(t, fechaParaInterventor));
+  }
+  // dedupe (un mismo interventor puede salir por más de un token de tren)
+  const vistos = new Set();
+  interventorMatches = interventorMatches.filter(m=>{
+    const k = m.id+'|'+m.name+'|'+m.servicio;
+    if(vistos.has(k)) return false;
+    vistos.add(k); return true;
+  });
+
+  if(companions.length===0 && interventorMatches.length===0){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${cell}</span></div>
+      <div class="comp-none">Nadie más coincide contigo en ese tren <b>${wd} ${day}</b> según la plantilla, ni hay ningún interventor cargado para ese tren.</div>
+    </div>`;
+    return;
+  }
+  const partes = [];
+  if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+  if(companions.length) partes.push(`${companions.length} compañero(s)`);
+  let html = `<div class="comp-wrap">
+    <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${partes.join(' · ')} · ${cell}</span></div>
+    <div class="comp-list">`;
+  for(const m of interventorMatches){
+    html += `<div class="pcard" style="cursor:default;border-color:var(--nar);background:rgba(249,115,22,.08)">
+      <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
+        <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
+        <div class="comp-cell">${m.cell}</div>
+      </div>
+    </div>`;
+  }
+  for(const c of companions){
+    html += `<div class="pcard" style="cursor:default">
+      <div class="pcard-av">${initials(c.name)}</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${c.name}</div>
+        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        <div class="comp-cell">${c.cell}</div>
+      </div>
+    </div>`;
+  }
+  html += '</div></div>';
+  zone.innerHTML = html;
+}
+
+function doSearch(){
+  if(!activeBase) return;
+  const q = qInput.value.trim().toUpperCase();
+  clearBtn.style.display = q ? 'block' : 'none';
+  if(q.length < 2){ renderEmptyHint(); return; }
+  const matches = activeBase.data.filter(([id,name]) => name.toUpperCase().includes(q)).slice(0, 40);
+  renderList(matches, qInput.value.trim());
+}
+
+qInput.addEventListener('input', doSearch);
+clearBtn.addEventListener('click', ()=>{
+  qInput.value = '';
+  clearBtn.style.display = 'none';
+  renderEmptyHint();
+  qInput.focus();
+});
+
+})();
+/* ═══════════════════════════════════════════════════════════
+   COPIA — Buscar por tren para INTERVENTOR (trTrainInput2/
+   trGoBtn2/calTrenPanel2/trainView2). Reutiliza las funciones
+   compartidas (activeBase, cellContainsTrain, buscarInterventor,
+   generarCalendarioUI, mostrarConAnimacionTren, weekdayForDay,
+   initials, ofuscarNombreInterventor) — solo se duplica el
+   estado propio de ESTE widget (selectedTrainDay2, fecha propia,
+   y el trainView2 donde pinta sus resultados).
+═══════════════════════════════════════════════════════════ */
+(function(){
+  let selectedTrainDay2 = null;
+  let fecha_seleccionada_busqueda2 = null;
+
+  generarCalendarioUI('calTrenPanel2', (fecha)=>{
+    selectedTrainDay2 = fecha.getDate();
+    fecha_seleccionada_busqueda2 = fecha;
+  });
+
+  const trainView2 = document.getElementById('trainView2');
+
+  function renderTrain2(trainNum, day, matches, interventorMatches){
+    interventorMatches = interventorMatches || [];
+    const _render = ()=>{
+      const wd = weekdayForDay(day);
+      const total = matches.length + interventorMatches.length;
+      if(total===0){
+        trainView2.innerHTML = `<div class="train-scene">
+          <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
+          <div class="train-empty">Nadie de <b>${activeBase.label}</b> ni ningún interventor cargado hace el tren <b>${trainNum}</b> ese día.</div>
+        </div>`;
+        return;
+      }
+      let filas = '';
+      interventorMatches.forEach((m)=>{
+        filas += `<div class="pcard" style="border-color:var(--nar);background:rgba(249,115,22,.08)">
+          <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+          <div class="pcard-info">
+            <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
+            <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
+          </div>
+        </div>`;
+      });
+      matches.forEach((m)=>{
+        filas += `<div class="pcard">
+          <div class="pcard-av">${initials(m.name)}</div>
+          <div class="pcard-info">
+            <div class="pcard-name">${m.name}</div>
+            <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+          </div>
+        </div>`;
+      });
+      const partes = [];
+      if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+      if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
+      trainView2.innerHTML = `<div class="train-scene">
+        <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
+        <div class="comp-list">${filas}</div>
+      </div>`;
+    };
+    mostrarConAnimacionTren(trainView2, _render);
+  }
+
+  document.getElementById('trGoBtn2').addEventListener('click', async ()=>{
+    if(!activeBase){ return; }
+    const raw = document.getElementById('trTrainInput2').value.trim().replace(/^0+/, '');
+    if(!selectedTrainDay2){
+      trainView2.innerHTML = `<div class="train-scene"><div class="train-empty">Selecciona primero un <b>día</b>.</div></div>`;
+      return;
+    }
+    if(!raw){
+      trainView2.innerHTML = `<div class="train-scene"><div class="train-empty">Escribe un <b>número de tren</b>.</div></div>`;
+      return;
+    }
+    const btn = document.getElementById('trGoBtn2');
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Buscando...';
+    try{
+      const matches = [];
+      for(const [id, name, days] of activeBase.data){
+        const cell = days[String(selectedTrainDay2)];
+        if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+      }
+      const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda2);
+      renderTrain2(raw, selectedTrainDay2, matches, interventorMatches);
+      await new Promise(resolve => setTimeout(resolve, 380));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
+})();
+
+
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PORTAL DE PERFIL — Tripulante vs Interventor.
+     Bloque TOTALMENTE AISLADO en su propio bloque de código, al
+     final del todo del documento, sin depender de ninguna otra
+     función ni variable del resto de la app. Se pregunta UNA sola
+     vez (primera carga de este dispositivo); la elección queda en
+     localStorage.
+═══════════════════════════════════════════════════════════ -->
+
+
+<script>
+(function(){
+  function mostrarPortal(){
+    var el = document.getElementById('portal-perfil');
+    if(el) el.style.display = 'flex';
+  }
+  function ocultarPortal(){
+    var el = document.getElementById('portal-perfil');
+    if(el) el.style.display = 'none';
+  }
+  function mostrarPantallaInterventor(){
+    var el = document.getElementById('portal-interventor-screen');
+    if(el) el.style.display = 'flex';
+    document.body.classList.add('modo-interventor');
+    _marcarUsuarioComoInterventor();
+    // FIX — antes se llamaba directamente a cargarHorarioGlobalDesdeAdmin()
+    // y activateBase(), pero esas funciones viven DENTRO de un módulo
+    // de código aislado (el mismo que usa el Buscador de Compañeros) y
+    // no eran visibles desde aquí — la comprobación "typeof...==='function'"
+    // fallaba en silencio y nunca llegaba a cargar nada, por eso el
+    // buscador de Interventor no reconocía ni nombres ni trenes. Ahora
+    // se llama a cargarDatosParaInterventor(), expuesta a propósito
+    // para este caso (hace lo mismo, sin abrir ninguna ventana).
+    if(typeof cargarDatosParaInterventor === 'function'){
+      cargarDatosParaInterventor();
+    }
+  }
+  function ocultarPantallaInterventor(){
+    var el = document.getElementById('portal-interventor-screen');
+    if(el) el.style.display = 'none';
+    document.body.classList.remove('modo-interventor');
+  }
+
+  // FIX — el Buscador de Compañeros normal exige tener una "Estación
+  // Base" configurada (Ajustes → Perfil), algo que un interventor
+  // nunca rellena porque no es de tripulación. Sin esta marca, el
+  // botón parecía "no hacer nada" — en realidad SÍ se ejecutaba, pero
+  // se topaba con un aviso pidiendo esa Estación Base y se quedaba
+  // ahí. usuarioActual ya existe como variable global en el resto de
+  // la app (ver _restaurarSesionMatricula) — aquí solo se ajusta el
+  // flag esInterventor que ya sabían leer abrirAccesoBuscadorCompaneros()
+  // y cargarHorarioGlobalDesdeAdmin() para eximir de la sede.
+  function _marcarUsuarioComoInterventor(){
+    if(typeof usuarioActual !== 'undefined'){
+      usuarioActual = { id:null, email:null, matricula:null, esInterventor:true };
+    }
+  }
+
+  function elegirTripulante(){
+    localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
+    ocultarPortal();
+    ocultarPantallaInterventor();
+  }
+  function elegirInterventor(){
+    localStorage.setItem('perfilPortalTrenTurnos', 'interventor');
+    ocultarPortal();
+    mostrarPantallaInterventor();
+  }
+  function cambiarPerfil(){
+    localStorage.removeItem('perfilPortalTrenTurnos');
+    if(typeof usuarioActual !== 'undefined') usuarioActual = null;
+    ocultarPantallaInterventor();
+    mostrarPortal();
+  }
+
+  function iniciar(){
+    var btnT = document.getElementById('btnPerfilTripulante');
+    var btnI = document.getElementById('btnPerfilInterventor');
+    var btnC1 = document.getElementById('btnCambiarPerfilInterventor');
+    var btnC2 = document.getElementById('btnCambiarPerfilAjustes');
+    if(btnT) btnT.addEventListener('click', elegirTripulante);
+    if(btnI) btnI.addEventListener('click', elegirInterventor);
+    if(btnC1) btnC1.addEventListener('click', cambiarPerfil);
+    if(btnC2) btnC2.addEventListener('click', cambiarPerfil);
+  }
+
+  // FIX — antes el Portal de Perfil decidía cuándo aparecer con SU
+  // PROPIO cronómetro (un setTimeout calculado a ojo, por separado
+  // del que usa el splash) — dos relojes distintos que podían
+  // desajustarse, dejando ver el calendario de tripulación un
+  // instante antes de que el portal llegara a taparlo. Ahora la
+  // decisión de "¿toca mostrar el portal?" se separa del enganchado
+  // de los botones (que puede hacerse ya mismo, sin esperar nada), y
+  // se expone en window para que el propio splash (ver su <script>
+  // más arriba) avise en el momento EXACTO en que empieza a
+  // desvanecerse — nunca dos cronómetros corriendo por su cuenta.
+  var _yaSeReviso = false;
+  function revisarPerfil(){
+    if(_yaSeReviso) return; // por si el splash Y la red de seguridad disparan los dos
+    _yaSeReviso = true;
+    var elegido = localStorage.getItem('perfilPortalTrenTurnos');
+    if(elegido === 'interventor'){
+      mostrarPantallaInterventor();
+    } else if(elegido !== 'tripulante'){
+      mostrarPortal();
+    }
+  }
+  window.__revisarPerfilAlTerminarSplash = revisarPerfil;
+
+  function iniciarConRetraso(){
+    iniciar();
+    // Red de seguridad: si por lo que sea el splash no llegara a
+    // avisar (por ejemplo, si su elemento no existiera en el DOM),
+    // esto asegura que el portal aparezca de todos modos, un poco
+    // más tarde que de costumbre en vez de nunca.
+    setTimeout(revisarPerfil, 3200);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', iniciarConRetraso);
+  } else {
+    iniciarConRetraso();
+  }
+})();
+</script>
+
 </body>
 </html>
