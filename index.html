@@ -7379,12 +7379,14 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
   if(t.plusJT)       badges += '<span class="tv-badge-mini" title="Plus JT">🕐</span>';
   if(badges) h += '<div class="tv-badges-row">'+badges+'</div>';
 
-  // NUEVO — total del día (ida + vuelta + escala entre ambas), solo
-  // cuando el MISMO registro trae ida y vuelta completas (turno de un
-  // solo día — en pernocta cada día ya muestra su propio tramo suelto,
-  // sumar aquí duplicaría o confundiría con el total de días distintos).
-  if(!esPernocta && t.hF && t.hL && t.hF2 && t.hL2){
-    var totalDiaMin = calcularTotalDiaMin(t);
+  // FIX — antes esto se excluía del todo en pernocta ("!esPernocta"),
+  // así que en un día 1/2 o último día con tramo de continuidad nunca
+  // salía el total, aunque sí tuviera datos. Ahora sale siempre que
+  // haya algo que sumar — en pernocta se cuenta SOLO el lado de este
+  // día concreto (mostrarIda/mostrarVuelta, ya calculados arriba),
+  // para no mezclar horas del día 1 con las del día 2.
+  var totalDiaMin = calcularTotalDiaMin(t, mostrarIda, mostrarVuelta);
+  if(totalDiaMin > 0){
     h += '<div class="tv-total-dia" style="display:flex;align-items:center;justify-content:space-between;'
       +'background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.25);border-radius:10px;'
       +'padding:9px 13px;margin-bottom:8px">'
@@ -8093,6 +8095,27 @@ function renderDiaArea(){
     var esIntermedio = t.tipo==='pernocta3-intermedio';
     var diaLbl = esIntermedio ? 'Día 2 de 3 · En tránsito' : 'Último día · Vuelta';
     body = '<div class="tv-pernocta-dia"><span class="tv-pernocta-badge">🌙 '+diaLbl+'</span></div>';
+    // NUEVO — total del día también aquí (antes solo existía en
+    // renderizarPopUpSimplificado, así que el último día de una
+    // pernocta con tramo de continuidad nunca lo mostraba). Este
+    // registro derivado usa t.hF/t.hL para SU PROPIA vuelta (no
+    // hF2/hL2), y sus tramos de continuidad viven en el origen — se
+    // adapta a la forma que espera calcularTotalDiaMin() sin duplicar
+    // esa lógica.
+    var origenParaDHTotal = (t.origenPernocta && TV[t.origenPernocta]) ? TV[t.origenPernocta] : null;
+    var totalDiaMinD2 = calcularTotalDiaMin({
+      hF2: t.hF, hL2: t.hL,
+      continuidadVuelta: (origenParaDHTotal && origenParaDHTotal.continuidadVuelta) ? origenParaDHTotal.continuidadVuelta : []
+    }, false, true);
+    if(totalDiaMinD2 > 0){
+      body += '<div class="tv-total-dia" style="display:flex;align-items:center;justify-content:space-between;'
+        +'background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.25);border-radius:10px;'
+        +'padding:9px 13px;margin-bottom:8px">'
+        +'<span style="font-size:11px;font-weight:800;color:var(--acc2)">⏱ TOTAL DEL DÍA</span>'
+        +'<span style="font-size:15px;font-weight:900;color:var(--tx);font-variant-numeric:tabular-nums">'
+        +Math.floor(totalDiaMinD2/60)+'h '+pad(totalDiaMinD2%60)+'m</span>'
+        +'</div>';
+    }
     // FIX — DH de vuelta: el propio registro de este día (vuelta-pernocta)
     // no guarda estadoServicioVuelta ni numTrenVuelta — esos campos
     // viven en el registro ORIGEN de la pernocta. Se reutiliza
@@ -11891,25 +11914,37 @@ function _etiquetaRepartoDH(c){
   return 'Suma a Presencia';
 }
 
-// NUEVO — total de minutos del día (ida + vuelta + tramos de
-// continuidad + escalas + hueco entre ida y vuelta). Se usa para
-// mostrar arriba del resumen del día "Total: Xh Ym" cuando hay ida Y
-// vuelta en el MISMO registro (turno de un solo día, no pernocta).
-function calcularTotalDiaMin(t){
+// NUEVO — total de minutos del día (ida y/o vuelta + tramos de
+// continuidad + escalas + hueco entre ida y vuelta si hay ambas). Se
+// usa para mostrar "⏱ TOTAL DEL DÍA" arriba del resumen. Acepta qué
+// lado incluir (para pernocta, donde cada día del calendario solo
+// muestra un lado del mismo registro — si no se filtrara, el día 1
+// de una pernocta sumaría también las horas de la vuelta del día 2,
+// que es de otro día).
+function calcularTotalDiaMin(t, incluirIda, incluirVuelta){
+  if(incluirIda===undefined) incluirIda=true;
+  if(incluirVuelta===undefined) incluirVuelta=true;
   var total = 0;
-  if(t.hF && t.hL) total += calcMins(t.hF, t.hL);
-  if(t.hF2 && t.hL2) total += calcMins(t.hF2, t.hL2);
-  if(t.hL && t.hF2){
+  var tieneIda = incluirIda && t.hF && t.hL;
+  var tieneVuelta = incluirVuelta && t.hF2 && t.hL2;
+  if(tieneIda) total += calcMins(t.hF, t.hL);
+  if(tieneVuelta) total += calcMins(t.hF2, t.hL2);
+  if(tieneIda && tieneVuelta){
     var hueco = calcMins(t.hL, t.hF2);
     if(hueco>0) total += hueco;
   }
-  [t.continuidad, t.continuidadVuelta].forEach(function(arr){
-    if(!arr || !arr.length) return;
-    arr.forEach(function(c){
+  if(incluirIda && t.continuidad && t.continuidad.length){
+    t.continuidad.forEach(function(c){
       if(c.horaInicio && c.horaFin) total += calcMins(c.horaInicio, c.horaFin);
       if(c.escalaMin!=null && c.escalaMin>0) total += c.escalaMin;
     });
-  });
+  }
+  if(incluirVuelta && t.continuidadVuelta && t.continuidadVuelta.length){
+    t.continuidadVuelta.forEach(function(c){
+      if(c.horaInicio && c.horaFin) total += calcMins(c.horaInicio, c.horaFin);
+      if(c.escalaMin!=null && c.escalaMin>0) total += c.escalaMin;
+    });
+  }
   return total;
 }
 
