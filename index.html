@@ -18337,8 +18337,15 @@ async function pdfToLines(pdfjsLib, data){
 }
 
 function parseAgentsTable(lines, startDateISO){
-  const dateTokenRe = /(\d{2})\s+([LMXJVSD])\b/g;
-  let headerIdx = -1, dates = [], dow = [];
+  // FIX — el Informe de Bilbao usa fechas completas en la cabecera
+  // ("04/08/2026 M") en vez del formato simple de Barcelona ("01 S"),
+  // y a veces sin espacio antes de la letra del día ("2026M"). La
+  // expresión anterior (\d{2}\s+[LMXJVSD]) solo reconocía "01 S" y
+  // además, sobre "04/08/2026 M", encontraba por error el "26" final
+  // de "2026" como si fuera el día. Ahora admite ambos formatos y
+  // cero o más espacios antes de la letra.
+  const dateTokenRe = /(\d{2}(?:\/\d{2}\/\d{4})?)\s*([LMXJVSD])\b/g;
+  let headerIdx = -1, dates = [], dow = [], colStarts = [];
   for(let i=0;i<lines.length;i++){
     const l = lines[i];
     const matches = [...l.matchAll(dateTokenRe)];
@@ -18346,6 +18353,12 @@ function parseAgentsTable(lines, startDateISO){
       headerIdx = i;
       dow = matches.map(m => m[2]);
       dates = matches.map(m => m[1]);
+      // NUEVO — posición (índice de carácter) donde empieza cada
+      // columna de fecha en la línea de cabecera. pdfToLines() ya
+      // reconstruye cada línea respetando la posición X real de cada
+      // palabra en el PDF, así que esa misma posición de carácter
+      // coincide, fila tras fila, con la misma columna de la tabla.
+      colStarts = matches.map(m => m.index);
       break;
     }
   }
@@ -18367,18 +18380,44 @@ function parseAgentsTable(lines, startDateISO){
   }
 
   const agents = [];
-  const rowRe = /^\s*(\d{6,8})\s+(.*)$/;
+  const rowRe = /^\s*(\d{6,8})\s+/;
   for(let i=headerIdx+1;i<lines.length;i++){
     const l = lines[i];
     if(!l.trim()) continue;
     const m = rowRe.exec(l);
     if(!m) continue;
     const matricula = m[1];
-    const rest = m[2].trim();
-    const tokens = rest.split(/\s+/);
-    if(tokens.length < nCols) continue;
-    const values = tokens.slice(tokens.length - nCols);
-    const nombre = tokens.slice(0, tokens.length - nCols).join(' ');
+    const restStart = m[0].length; // posición donde empiezan nombre+valores
+
+    // FIX — antes se partía la fila por espacios y se asumía que los
+    // ÚLTIMOS nCols tokens eran siempre los valores de cada columna.
+    // Eso se rompía en cuanto un agente tenía algún día en blanco
+    // (sin turno asignado, muy habitual en Bilbao): con menos tokens
+    // de valor que columnas, el recorte agarraba trozos del NOMBRE
+    // como si fueran valores de fecha, y agentes con MUCHOS días en
+    // blanco se descartaban directamente (menos tokens que columnas).
+    // Ahora cada token se ubica por su propia posición de carácter en
+    // la línea (igual que colStarts) y se asigna a la columna de
+    // fecha cuyo rango lo contiene — una celda en blanco simplemente
+    // no aporta ningún token a esa columna, en vez de desalinear las
+    // siguientes.
+    const tokenRe = /\S+/g;
+    let tm;
+    const nombreParts = [];
+    const values = new Array(nCols).fill('');
+    while((tm = tokenRe.exec(l)) !== null){
+      if(tm.index < restStart) continue; // dentro de la matrícula
+      if(tm.index < colStarts[0]){ nombreParts.push(tm[0]); continue; }
+      let col = -1;
+      for(let c=0;c<nCols;c++){
+        const left = colStarts[c];
+        const right = (c+1<nCols) ? colStarts[c+1] : Infinity;
+        if(tm.index >= left && tm.index < right){ col = c; break; }
+      }
+      if(col>=0 && !values[col]) values[col] = tm[0];
+    }
+    if(!nombreParts.length) continue; // fila sin nombre reconocible: no es un agente
+    const nombre = nombreParts.join(' ').trim();
     agents.push({matricula, nombre, valores: values});
   }
   return {dates, dow, agents, isoDates, dowMismatch};
