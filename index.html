@@ -12578,8 +12578,23 @@ function calcularJornadaDiaria(turnos, fecha){
       // sumando a Presencia como si fuera una escala del mismo día.
       // En pernocta ese descanso no debe contar para nada.
       var esPernoctaTurno = (t.modo==='pernocta' || t.modo==='pernocta3');
-      if(!esPernoctaTurno && t.hL && t.hF2){
-        var huecoIdaVuelta = calcMins(t.hL, t.hF2);
+      // FIX — cuando la ida tiene tramos de continuidad (más de un
+      // tren), el hueco hacia la vuelta se estaba midiendo SIEMPRE
+      // desde t.hL — que es el fin del PRIMER tramo de la ida, no el
+      // último. Si había continuidad, ese hueco se solapaba con el
+      // trabajo real de esos tramos (ya contado aparte como
+      // Efectivas) y con su propia escala (ya contada aparte como
+      // Presencia), contando dos veces el mismo tiempo — de ahí
+      // salían totales inflados. Ahora se usa el fin del ÚLTIMO
+      // tramo de continuidad de la ida cuando existe; si no hay
+      // continuidad, sigue siendo t.hL, exactamente como antes.
+      var finIdaReal = t.hL;
+      if(t.continuidad && t.continuidad.length){
+        var ultimoTramoIda = t.continuidad[t.continuidad.length-1];
+        if(ultimoTramoIda && ultimoTramoIda.horaFin) finIdaReal = ultimoTramoIda.horaFin;
+      }
+      if(!esPernoctaTurno && finIdaReal && t.hF2){
+        var huecoIdaVuelta = calcMins(finIdaReal, t.hF2);
         if(huecoIdaVuelta>0){
           // FIX — en HTDL (t.tipo==='trabajado') la escala entre ida
           // y vuelta del mismo día se paga en dinero junto con el
