@@ -4910,6 +4910,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- NUEVO — OV: elegir qué Intervención (Gráfico+Informe) eliminar,
+     cuando hay varias publicadas a la vez. Mismo patrón exacto que
+     ov-eliminar-sede, para el Horario General. -->
+<div class="ov" id="ov-eliminar-intervencion" onclick="if(event.target===this)closeOv('ov-eliminar-intervencion')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">🗑</div>
+      <div>
+        <div class="sh-tit">Eliminar Intervención</div>
+        <div class="sh-sub">Elige qué Intervención quieres borrar</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-eliminar-intervencion')">✕</button>
+    </div>
+    <div style="padding:16px" id="lista-intervenciones-eliminar"></div>
+  </div>
+</div>
+
 <!-- NUEVO — OV: confirmación antes de CARGAR el horario personal desde
      la nube. Nunca se carga en automático: siempre pregunta primero,
      porque sobrescribiría los turnos/horario de este dispositivo. -->
@@ -5945,6 +5962,45 @@ function calcularMix(horasIda, horasVuelta, kIda, kVuelta){
   };
 }
 
+// NUEVO — Aviso (sin mover nada): comprueba si un retraso añadido
+// DESPUÉS de guardar un Mix de Art.51/52 haría que el lado "días"
+// pasara a tener más horas que el lado "dinero" (sumando cada tramo
+// —ida y vuelta— con su propio retraso, tal y como se pidió). Solo
+// informa; NO reasigna el dinero ni mueve los días de descanso ya
+// generados en el calendario, porque eso movería fechas que el
+// usuario ya da por hechas. k = celda de origen (ida) del turno.
+function _art5152MixAvisoRetraso(k, t){
+  if(!t || t.tipo!=='art5152' || t.compensacion!=='mix' || !t.mixDinero || !t.mixDias || !t.diaSiguiente) return null;
+  var tVuelta = TV[t.diaSiguiente];
+  var sumarRetrasos = function(reg){
+    if(!reg) return 0;
+    if(reg.retrasos && reg.retrasos.length){
+      var s=0; reg.retrasos.forEach(function(r){ s+=r.minutos||0; }); return s;
+    }
+    if(reg.retrasoMin>0) return reg.retrasoMin;
+    return 0;
+  };
+  var retIdaH = Math.round(sumarRetrasos(t)/60*100)/100;         // celda de origen = ida
+  var retVueltaH = Math.round(sumarRetrasos(tVuelta)/60*100)/100; // celda del día siguiente = vuelta
+
+  var eraIdaDinero = (t.mixDinero.dia===k);
+  var horasIdaBase = eraIdaDinero ? t.mixDinero.horas : t.mixDias.horas;
+  var horasVueltaBase = eraIdaDinero ? t.mixDias.horas : t.mixDinero.horas;
+
+  var horasIdaTotal = Math.round((horasIdaBase + retIdaH)*100)/100;
+  var horasVueltaTotal = Math.round((horasVueltaBase + retVueltaH)*100)/100;
+  var seriaIdaDinero = horasIdaTotal >= horasVueltaTotal;
+
+  if((retIdaH>0 || retVueltaH>0) && eraIdaDinero !== seriaIdaDinero){
+    return {
+      cambiaria:true,
+      horasIdaTotal:horasIdaTotal, horasVueltaTotal:horasVueltaTotal,
+      ladoActual: eraIdaDinero?'ida':'vuelta', ladoNuevo: seriaIdaDinero?'ida':'vuelta'
+    };
+  }
+  return {cambiaria:false, horasIdaTotal:horasIdaTotal, horasVueltaTotal:horasVueltaTotal};
+}
+
 // ── Selector de compensación DENTRO del propio formulario ──
 // Mismo patrón que setComp() (HTDL), pero con su propio campo
 // F.compArt5152 para no interferir en absoluto con F.comp de HTDL.
@@ -6528,21 +6584,45 @@ if(typeof calculateEarnings === 'function'){
     ks.forEach(function(k){
       var t = TV[k];
       if(!t || t.tipo!=='art5152') return;
+
+      // FIX — Retraso del tramo de VUELTA (T2), recalculado EN VIVO
+      // cada vez (nunca se congela), igual que ya hace HTDL en el
+      // bucle principal de calculateEarnings(). T1 (ida) es solo
+      // informativo, nunca cambia el importe. En pernocta, T2 vive
+      // en la celda del día siguiente (t.diaSiguiente), no en esta
+      // — mismo criterio ya usado para HTDL. La tarifa que se aplica
+      // sigue siendo la de Art.51/52 (montoArtActual), NUNCA la de
+      // HTDL (AJ.vh) — son importes distintos configurados por
+      // separado en Ajustes.
+      var esPernoctaArtLive = (t.modo==='pernocta' || t.modo==='pernocta3');
+      var _tRetArt = (esPernoctaArtLive && t.diaSiguiente) ? TV[t.diaSiguiente] : t;
+      var minRetT2Art = 0;
+      if(_tRetArt){
+        if(_tRetArt.retrasos && _tRetArt.retrasos.length){
+          _tRetArt.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2Art += r.minutos||0; });
+        } else if(_tRetArt.retrasoMin>0 && !_tRetArt.retrasos){
+          minRetT2Art += _tRetArt.retrasoMin;
+        }
+      }
+      var hRetT2Art = Math.round(minRetT2Art/60*100)/100;
+
       if(t.compensacion==='dinero' && t.horasEfectivas){
-        var importeVivo = Math.round((t.horasEfectivas*montoArtActual + baseArtActual)*100)/100;
+        var horasVivasArt = Math.round((t.horasEfectivas + hRetT2Art)*100)/100;
+        var importeVivo = Math.round((horasVivasArt*montoArtActual + baseArtActual)*100)/100;
         extraHTDL += importeVivo;
         var lbl1 = _keyAFechaLbl(k);
-        extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:(t.modo==='pernocta'||t.modo==='pernocta3'),
-          hIda:0, hEscala:t.hEscala||0, hVuelta:0, hRetT2:0, minRetT2:0,
-          hTotal:t.horasEfectivas||0, importe:importeVivo, art5152:true});
+        extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:esPernoctaArtLive,
+          hIda:0, hEscala:t.hEscala||0, hVuelta:0, hRetT2:hRetT2Art, minRetT2:minRetT2Art,
+          hTotal:horasVivasArt, importe:importeVivo, art5152:true});
         extraLbl.push(t.numTren?lbl1+' #'+t.numTren+' (Art.51/52)':lbl1+' (Art.51/52)');
       } else if(t.compensacion==='mix' && t.mixDinero && t.mixDinero.horas){
-        var importeMixVivo = Math.round((t.mixDinero.horas*montoArtActual + baseArtActual)*100)/100;
+        var horasMixVivasArt = Math.round((t.mixDinero.horas + hRetT2Art)*100)/100;
+        var importeMixVivo = Math.round((horasMixVivasArt*montoArtActual + baseArtActual)*100)/100;
         extraHTDL += importeMixVivo;
         var lbl2 = _keyAFechaLbl(t.mixDinero.dia);
         extraDetalle.push({lbl:lbl2, tren:t.numTren||'', esPernocta:true,
-          hIda:0, hEscala:0, hVuelta:0, hRetT2:0, minRetT2:0,
-          hTotal:t.mixDinero.horas||0, importe:importeMixVivo, art5152:true, mix:true});
+          hIda:0, hEscala:0, hVuelta:0, hRetT2:hRetT2Art, minRetT2:minRetT2Art,
+          hTotal:horasMixVivasArt, importe:importeMixVivo, art5152:true, mix:true});
         extraLbl.push(t.numTren?lbl2+' #'+t.numTren+' (Mix Art.51/52)':lbl2+' (Mix Art.51/52)');
       }
     });
@@ -6601,20 +6681,53 @@ function mostrarDetalleArt5152(k){
   var montoArtDetalle = parseFloat(AJ.art5152Monto)||0;
   var baseArtDetalle = parseFloat(AJ.art5152ValorBase)||0;
 
+  // FIX — Retraso del tramo de vuelta (T2), en vivo, mismo criterio
+  // que en el TAS (calculateEarnings): T1 es informativo, T2 suma.
+  // En pernocta vive en la celda del día siguiente.
+  var esPernoctaDetalle = (t.modo==='pernocta' || t.modo==='pernocta3');
+  var _tRetDetalle = (esPernoctaDetalle && t.diaSiguiente) ? TV[t.diaSiguiente] : t;
+  var minRetT2Detalle = 0;
+  if(_tRetDetalle){
+    if(_tRetDetalle.retrasos && _tRetDetalle.retrasos.length){
+      _tRetDetalle.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2Detalle += r.minutos||0; });
+    } else if(_tRetDetalle.retrasoMin>0 && !_tRetDetalle.retrasos){
+      minRetT2Detalle += _tRetDetalle.retrasoMin;
+    }
+  }
+  var hRetT2Detalle = Math.round(minRetT2Detalle/60*100)/100;
+
   if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
-    var importeMixDetalle = Math.round(((t.mixDinero.horas||0)*montoArtDetalle + baseArtDetalle)*100)/100;
+    var horasMixDetalle = Math.round(((t.mixDinero.horas||0) + hRetT2Detalle)*100)/100;
+    var importeMixDetalle = Math.round((horasMixDetalle*montoArtDetalle + baseArtDetalle)*100)/100;
     html += '<div class="cs-t">🔀 Compensación Mix</div>';
     html += fila('Tramo mayor horas', _keyAFechaLbl(t.mixDinero.dia)+' · '+t.mixDinero.horas+' h', 'var(--acc3)');
+    if(hRetT2Detalle>0) html += fila('Retraso tramo vuelta', '+'+hRetT2Detalle+' h', 'var(--amber2)');
     html += fila('Compensación económica', importeMixDetalle.toFixed(2)+' €', 'var(--green2)');
     html += fila('Tramo menor horas', _keyAFechaLbl(t.mixDias.dia)+' · '+t.mixDias.horas+' h', 'var(--acc3)');
     html += fila('Días de descanso', '+'+t.mixDias.diasGenerados+' día(s) → '+t.mixDias.mesDestino, 'var(--cyan2)');
     if(t.mixDias.diasComp && t.mixDias.diasComp.length){
       html += fila('Fechas elegidas', t.mixDias.diasComp.map(_keyAFechaLbl).join(' y '), 'var(--cyan2)');
     }
+    // NUEVO — aviso (sin mover nada): si el retraso hace que el lado
+    // "días" tenga ahora más horas que el lado "dinero", se avisa
+    // aquí para que el usuario revise y decida manualmente — no se
+    // reasigna el dinero ni se mueven los días de descanso ya
+    // generados en el calendario.
+    var _avisoMixDetalle = _art5152MixAvisoRetraso(k, t);
+    if(_avisoMixDetalle && _avisoMixDetalle.cambiaria){
+      html += '<div style="margin-top:8px;padding:9px 10px;background:rgba(245,158,11,.12);'
+        +'border:1px solid rgba(245,158,11,.4);border-radius:9px;font-size:11px;color:#FCD34D;line-height:1.5">'
+        +'⚠️ Con el retraso incluido, ida suma '+_avisoMixDetalle.horasIdaTotal+' h y vuelta '+_avisoMixDetalle.horasVueltaTotal+' h. '
+        +'El lado con más horas ahora sería <b>'+_avisoMixDetalle.ladoNuevo+'</b> (actualmente el dinero está asignado a <b>'+_avisoMixDetalle.ladoActual+'</b>). '
+        +'No se ha movido nada automáticamente — revísalo y corrígelo a mano si hace falta.'
+        +'</div>';
+    }
   } else if(t.compensacion==='dinero'){
-    var importeDineroDetalle = Math.round(((t.horasEfectivas||0)*montoArtDetalle + baseArtDetalle)*100)/100;
+    var horasDineroDetalle = Math.round(((t.horasEfectivas||0) + hRetT2Detalle)*100)/100;
+    var importeDineroDetalle = Math.round((horasDineroDetalle*montoArtDetalle + baseArtDetalle)*100)/100;
     html += '<div class="cs-t">💶 Compensación económica</div>';
     html += fila('Horas efectivas', (t.horasEfectivas||0)+' h', 'var(--acc3)');
+    if(hRetT2Detalle>0) html += fila('Retraso tramo vuelta', '+'+hRetT2Detalle+' h', 'var(--amber2)');
     html += fila('Importe', importeDineroDetalle.toFixed(2)+' €', 'var(--green2)');
   } else if(t.compensacion==='dias'){
     html += '<div class="cs-t">📅 Días de descanso</div>';
@@ -6678,6 +6791,13 @@ function _renderArt5152Stats(){
     var val;
     if(r.t.compensacion==='mix'){
       val = '🔀 Dinero + '+r.t.mixDias.diasGenerados+' día(s)';
+      // NUEVO — aviso (sin mover nada) si un retraso posterior haría
+      // que el lado "días" pasara a tener más horas que el lado
+      // "dinero". Ver _art5152MixAvisoRetraso().
+      var _avisoMix = _art5152MixAvisoRetraso(r.k, r.t);
+      if(_avisoMix && _avisoMix.cambiaria){
+        val += ' ⚠️';
+      }
     } else if(r.t.compensacion==='dias'){
       val = '+'+r.t.diasGenerados+' día(s) → '+r.t.mesDestino;
     } else {
@@ -12449,9 +12569,34 @@ function calcularJornadaDiaria(turnos, fecha){
       // entre la llegada de ida (hL) y la salida de vuelta (hF2) es
       // tiempo de Presencia obligatorio — nunca se descarta ni se
       // cuenta como Efectivas.
-      if(t.hL && t.hF2){
+      // FIX — esto solo vale cuando ida y vuelta son del MISMO día
+      // (modo 'ida'). En una pernocta (modo 'pernocta'/'pernocta3'),
+      // hL es la llegada del día 1 y hF2 es la salida del día 2:
+      // calcMins() da la vuelta al reloj cuando hF2 < hL (para poder
+      // calcular jornadas nocturnas normales), así que sin este
+      // filtro el descanso nocturno ENTERO de la pernocta se estaba
+      // sumando a Presencia como si fuera una escala del mismo día.
+      // En pernocta ese descanso no debe contar para nada.
+      var esPernoctaTurno = (t.modo==='pernocta' || t.modo==='pernocta3');
+      if(!esPernoctaTurno && t.hL && t.hF2){
         var huecoIdaVuelta = calcMins(t.hL, t.hF2);
-        if(huecoIdaVuelta>0) prEste += huecoIdaVuelta;
+        if(huecoIdaVuelta>0){
+          // FIX — en HTDL (t.tipo==='trabajado') la escala entre ida
+          // y vuelta del mismo día se paga en dinero junto con el
+          // resto del servicio (toma → deje completo): no se resta
+          // como Presencia, se suma a Efectivas — igual que ya hacía
+          // calculateEarnings() para el importe (ver hEscalaHTDL, la
+          // variable que ya separaba y sumaba este mismo tramo). En
+          // ordinario y Art.51/52 sigue siendo Presencia, sin cambios.
+          // FIX — Art.51/52 sigue el MISMO criterio que HTDL para la
+          // escala (confirmado por el propio guardado de Art.51/52 en
+          // guardarTurno(): "mismo criterio que HTDL" — ida y vuelta
+          // mismo día suma Ida+Escala+Vuelta; en pernocta la escala
+          // queda excluida). Antes solo miraba 'trabajado' y dejaba
+          // art5152 agrupado con ordinario por error.
+          if(t.tipo==='trabajado' || t.tipo==='art5152') efEste += huecoIdaVuelta;
+          else prEste += huecoIdaVuelta;
+        }
       }
 
       if(t.estadoServicio==='dh' && typeof t.dhMismoTren==='boolean' && t.dhMinutos!=null){
@@ -12492,9 +12637,36 @@ function calcularJornadaDiaria(turnos, fecha){
               efEste += durC;
             }
           }
-          if(c.escalaMin!=null && c.escalaMin>0) prEste += c.escalaMin;
+          // FIX — misma regla que la escala principal ida-vuelta:
+          // en HTDL la escala de un tramo de continuidad también se
+          // paga junto con el resto (suma a Efectivas); en ordinario
+          // y Art.51/52 sigue siendo Presencia.
+          if(c.escalaMin!=null && c.escalaMin>0){
+            if(t.tipo==='trabajado' || t.tipo==='art5152') efEste += c.escalaMin;
+            else prEste += c.escalaMin;
+          }
         });
       });
+
+      // FIX — Retraso del tramo de VUELTA (tramo 2): suma a Efectivas
+      // en todos los tipos de turno (ordinario, pernocta, HTDL,
+      // Art.51/52). El retraso del tramo de IDA (tramo 1) es solo
+      // informativo — nunca cambia ninguna hora. En pernocta, el
+      // tramo 2 vive en la celda del día siguiente (t.diaSiguiente),
+      // no en la de origen — mismo criterio ya usado en
+      // calculateEarnings() para el importe económico de HTDL (ver
+      // comentario "MÓDULO A" más abajo en el archivo), generalizado
+      // aquí a Efectivas/Presencia para todos los tipos.
+      var _tConRetrasoT2 = (esPernoctaTurno && t.diaSiguiente && typeof TV!=='undefined') ? TV[t.diaSiguiente] : t;
+      var minRetT2 = 0;
+      if(_tConRetrasoT2){
+        if(_tConRetrasoT2.retrasos && _tConRetrasoT2.retrasos.length){
+          _tConRetrasoT2.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2 += r.minutos||0; });
+        } else if(_tConRetrasoT2.retrasoMin>0 && !_tConRetrasoT2.retrasos){
+          minRetT2 += _tConRetrasoT2.retrasoMin; // retraso legacy sin tramo: se trata como T2
+        }
+      }
+      efEste += minRetT2;
 
       efectivas += efEste;
       presencia += prEste;
@@ -16852,8 +17024,18 @@ async function subirIntervencionGlobalAdmin(){
   var urlGrafico = sbAdmin.storage.from('admin-archivos').getPublicUrl(pathGrafico);
   var urlInforme = sbAdmin.storage.from('admin-archivos').getPublicUrl(pathInforme);
 
+  // FIX — antes 'tipo' era SIEMPRE el literal 'grafico_intervencion',
+  // así que cada publicación nueva SOBREESCRIBÍA la anterior (una sola
+  // Intervención posible a la vez). Ahora, igual que ya hace el
+  // Horario General por sede, el tipo incluye el nombre del servicio
+  // (slugificado con _baseSlug(), ya existente) — así conviven varias
+  // Intervenciones publicadas a la vez, una por nombre de servicio.
+  // Publicar dos veces con el MISMO nombre sigue sustituyendo esa
+  // Intervención en concreto (mismo comportamiento de siempre).
+  var tipoIntervencion = 'grafico_intervencion_' + _baseSlug(nombre);
+
   var tabla = await sbAdmin.from('config_global').upsert({
-    tipo: 'grafico_intervencion',
+    tipo: tipoIntervencion,
     nombre_archivo: fGrafico.name,
     url_archivo: urlGrafico.data.publicUrl,
     nombre_archivo_informe: fInforme.name,
@@ -16870,6 +17052,22 @@ async function subirIntervencionGlobalAdmin(){
   elEstado.classList.remove('sin-archivo');
   elEstado.innerHTML = 'Intervención activa: <b>'+nombre+'</b><br>Desde: '+fecha;
   toast('✅ Intervención publicada para todos');
+
+  // Deja el formulario listo para publicar OTRA Intervención distinta
+  // a continuación, sin arrastrar los datos de la anterior.
+  var campoNombreInt = document.getElementById('nombreServicioIntervencion');
+  if(campoNombreInt) campoNombreInt.value = '';
+  var campoFechaInt = document.getElementById('fechaInicioIntervencion');
+  if(campoFechaInt) campoFechaInt.value = '';
+  var campoGraficoInt = document.getElementById('fileIntervencionGrafico');
+  if(campoGraficoInt) campoGraficoInt.value = '';
+  var txtGraficoInt = document.getElementById('txtIntervencionGrafico');
+  if(txtGraficoInt) txtGraficoInt.textContent = 'Toca para elegir el PDF del Gráfico de Intervención (GL)';
+  var campoInformeInt = document.getElementById('fileIntervencionInforme');
+  if(campoInformeInt) campoInformeInt.value = '';
+  var txtInformeInt = document.getElementById('txtIntervencionInforme');
+  if(txtInformeInt) txtInformeInt.textContent = 'Toca para elegir el PDF del Informe / Servicio Previsto';
+  refrescarEstadoArchivosAdmin();
 }
 
 // NUEVO — Abre un pop-up listando SOLO las sedes que de verdad tienen
@@ -16926,15 +17124,45 @@ async function confirmarEliminarSede(tipoSede, sedeNombre){
   refrescarEstadoArchivosAdmin();
 }
 
-// NUEVO — Borra la Intervención publicada (Gráfico + Informe): fila
-// en config_global + los 2 archivos en Storage.
+// NUEVO — Abre un pop-up listando SOLO las Intervenciones (Gráfico+
+// Informe) que de verdad están publicadas ahora mismo (consulta en
+// directo a config_global) — mismo patrón que ya usa
+// eliminarHorarioGeneralAdmin() para las sedes. Permite tener varias
+// Intervenciones publicadas a la vez y borrar solo una en concreto.
 async function eliminarIntervencionAdmin(){
   if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
-  if(!confirm('¿Seguro que quieres borrar la Intervención publicada (Gráfico + Informe)? Todos los compañeros dejarán de ver el cruce hasta que subas una nueva.')) return;
-  var elEstado = document.getElementById('estadoGraficoIntervencion');
-  elEstado.textContent = 'Borrando...';
+  var cont = document.getElementById('lista-intervenciones-eliminar');
+  cont.innerHTML = '<div class="msg-info">Buscando Intervenciones publicadas...</div>';
+  openOv('ov-eliminar-intervencion');
 
-  var fila = await sbAdmin.from('config_global').select('url_archivo, url_archivo_informe').eq('tipo','grafico_intervencion').single();
+  var resp = await sbAdmin.from('config_global').select('*');
+  // FIX — se incluye también el formato antiguo (tipo EXACTO
+  // 'grafico_intervencion', sin nombre detrás), por si quedara alguna
+  // Intervención publicada con la versión anterior de esta función.
+  var filas = (resp.data||[]).filter(function(f){ return f.tipo && f.tipo.indexOf('grafico_intervencion')===0; });
+  if(resp.error || !filas.length){
+    cont.innerHTML = '<div class="msg-info">No hay ninguna Intervención publicada todavía.</div>';
+    return;
+  }
+
+  cont.innerHTML = filas.map(function(fila){
+    var esFormatoAntiguo = fila.tipo === 'grafico_intervencion';
+    var nombreLbl = esFormatoAntiguo ? (fila.nombre_servicio || 'Formato antiguo (sin nombre)') : (fila.nombre_servicio || fila.tipo.replace('grafico_intervencion_',''));
+    return '<button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:8px;text-align:left" onclick="confirmarEliminarIntervencion(\''+fila.tipo+'\',\''+nombreLbl.replace(/'/g,"\\'")+'\')">'
+      +'🗑 '+nombreLbl+'<br><span style="font-size:10px;opacity:.75;font-weight:400">'+fila.nombre_archivo+' · '+new Date(fila.fecha_subida).toLocaleString('es-ES')+'</span>'
+      +'</button>';
+  }).join('');
+}
+
+// Borra la Intervención EXACTA elegida en el pop-up (tipo ya viene
+// resuelto, sin volver a construirlo a partir de texto escrito):
+// fila en config_global + los 2 archivos (Gráfico e Informe) en Storage.
+async function confirmarEliminarIntervencion(tipoServicio, nombreLbl){
+  if(!confirm('¿Seguro que quieres borrar la Intervención «'+nombreLbl+'»? Los compañeros dejarán de ver ese cruce hasta que subas uno nuevo con ese mismo nombre.')) return;
+  var cont = document.getElementById('lista-intervenciones-eliminar');
+  cont.innerHTML = '<div class="msg-info">Borrando '+nombreLbl+'...</div>';
+
+  var fila = await sbAdmin.from('config_global').select('url_archivo, url_archivo_informe').eq('tipo',tipoServicio).single();
   var rutas = [];
   if(fila.data){
     [fila.data.url_archivo, fila.data.url_archivo_informe].forEach(function(url){
@@ -16945,14 +17173,14 @@ async function eliminarIntervencionAdmin(){
   }
   if(rutas.length) await sbAdmin.storage.from('admin-archivos').remove(rutas);
 
-  var borrado = await sbAdmin.from('config_global').delete().eq('tipo','grafico_intervencion');
+  var borrado = await sbAdmin.from('config_global').delete().eq('tipo',tipoServicio);
   if(borrado.error){
-    elEstado.textContent = 'Error al borrar: ' + borrado.error.message;
+    cont.innerHTML = '<div class="msg-error">Error al borrar: '+borrado.error.message+'</div>';
     return;
   }
-  elEstado.classList.add('sin-archivo');
-  elEstado.textContent = 'Aún no hay ninguna Intervención activa.';
-  toast('🗑 Intervención eliminada');
+  closeOv('ov-eliminar-intervencion');
+  toast('🗑 Intervención «'+nombreLbl+'» eliminada');
+  refrescarEstadoArchivosAdmin();
 }
 
 // NUEVO — Accesos del Buscador de Compañeros (tripulación): igual que
@@ -17442,14 +17670,23 @@ async function refrescarEstadoArchivosAdmin(){
     }
   }
 
-  resp.data.forEach(function(fila){
-    if(fila.tipo==='grafico_intervencion'){
-      var el = document.getElementById('estadoGraficoIntervencion');
-      if(!el) return;
-      el.classList.remove('sin-archivo');
-      el.innerHTML = 'Archivo activo: <b>'+fila.nombre_archivo+'</b><br>Subido: '+new Date(fila.fecha_subida).toLocaleString('es-ES');
+  // FIX — la Intervención ahora son varias filas posibles (una por
+  // nombre de servicio, tipo:'grafico_intervencion_'+nombre), así que
+  // se listan todas juntas en el mismo recuadro de estado, igual que
+  // ya hace el Horario General por sede — en vez de solo la última.
+  var filasIntervencion = resp.data.filter(function(f){ return f.tipo && f.tipo.indexOf('grafico_intervencion')===0; });
+  var elIntervencion = document.getElementById('estadoGraficoIntervencion');
+  if(elIntervencion){
+    if(filasIntervencion.length){
+      elIntervencion.classList.remove('sin-archivo');
+      elIntervencion.innerHTML = filasIntervencion.map(function(f){
+        return '<div style="margin-bottom:4px"><b>'+(f.nombre_servicio||f.tipo.replace('grafico_intervencion_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+'</div>';
+      }).join('');
+    } else {
+      elIntervencion.classList.add('sin-archivo');
+      elIntervencion.textContent = 'Aún no hay ninguna Intervención activa.';
     }
-  });
+  }
 }
 
 
@@ -17910,99 +18147,116 @@ window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
 var _diagIntervencion = null;
 async function cargarIntervencionGlobalDesdeAdmin(){
   _diagIntervencion = null;
-  try{
-    if(typeof sbAdmin === 'undefined'){
-      _diagIntervencion = 'Supabase no está disponible en este navegador.';
-      toast('⚠️ Intervención: Supabase no está disponible en este navegador');
-      return false;
-    }
-    var resp = await sbAdmin.from('config_global').select('*').eq('tipo','grafico_intervencion').single();
-    if(resp.error){
-      _diagIntervencion = 'Error al consultar config_global: '+resp.error.message;
-      toast('⚠️ Intervención: '+resp.error.message);
-      return false;
-    }
-    if(!resp.data || !resp.data.url_archivo || !resp.data.url_archivo_informe){
-      _diagIntervencion = 'El admin aún no ha publicado el Gráfico+Informe de Intervención (falta la fila o alguno de los dos archivos).';
-      toast('⚠️ Intervención: el admin aún no ha publicado el Gráfico+Informe');
-      return false;
-    }
-    var d = resp.data;
-
-    // FIX — antes se evitaba reprocesar comparando SOLO
-    // d.nombre_servicio: si el admin resubía un Informe nuevo
-    // reutilizando el mismo nombre de servicio (lo habitual en una
-    // publicación semanal), la app se quedaba para siempre con la
-    // copia vieja en caché y nunca veía las matrículas nuevas — el
-    // Acceso de Interventor podía rechazar a alguien que SÍ estaba
-    // en el Informe recién publicado. Ahora se compara también
-    // fecha_subida: incluso con el mismo nombre, una subida más
-    // reciente sí se vuelve a descargar y parsear.
-    var idxServicioExistente = INTERVENTOR_SERVICES.findIndex(function(s){ return s.name === d.nombre_servicio; });
-    var yaActualizado = idxServicioExistente !== -1 && INTERVENTOR_SERVICES[idxServicioExistente].fechaSubida === d.fecha_subida;
-    if(yaActualizado){
-      toast('ℹ️ Intervención «'+d.nombre_servicio+'» ya estaba cargada');
-      return true;
-    }
-
-    toast('🔀 Sincronizando intervención («'+d.nombre_servicio+'»)...');
-    var elEstado = document.getElementById('estadoIntervencionBuscador');
-    if(elEstado) elEstado.textContent = 'Sincronizando intervención («'+d.nombre_servicio+'»)...';
-
-    // FIX — antes no se aseguraba el worker de PDF.js aquí (sí se
-    // hacía para el Horario General). Si el Horario General se
-    // publicó en CSV/XLSX, el worker nunca llegaba a configurarse
-    // por el método seguro, y la lectura de estos 2 PDF podía fallar
-    // en silencio.
-    await asegurarPdfWorkerSeguro();
-
-    var respGrafico = await fetch(d.url_archivo);
-    var respInforme = await fetch(d.url_archivo_informe);
-    if(!respGrafico.ok || !respInforme.ok){
-      _diagIntervencion = 'No se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+').';
-      toast('⚠️ Intervención: no se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+')');
-      return false;
-    }
-
-    var graficoBuf = await respGrafico.arrayBuffer();
-    var graficoLines = await pdfToLines(pdfjsLib, new Uint8Array(graficoBuf));
-    var turnosData = parseGraficoTurnos(graficoLines);
-
-    var informeBuf = await respInforme.arrayBuffer();
-    var informeLines = await pdfToLines(pdfjsLib, new Uint8Array(informeBuf));
-    var agentsData = parseAgentsTable(informeLines, d.fecha_inicio);
-
-    if(!agentsData){
-      _diagIntervencion = 'No se reconoció la tabla de fechas del Informe (revisa que el PDF tenga cabecera con fechas tipo "01 S").';
-      toast('⚠️ Intervención: no se reconoció la tabla de fechas del Informe');
-      return false;
-    }
-    if(Object.keys(turnosData).length === 0){
-      _diagIntervencion = 'No se encontraron trenes en el Gráfico.';
-      toast('⚠️ Intervención: no se encontraron trenes en el Gráfico');
-      return false;
-    }
-
-    var diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
-    var nuevoServicio = { name: d.nombre_servicio, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData, fechaSubida: d.fecha_subida };
-    // FIX — si ya existía un servicio con este nombre (versión vieja),
-    // se REEMPLAZA en el mismo sitio en vez de añadir uno duplicado;
-    // así INTERVENTOR_SERVICES nunca arrastra una copia desactualizada
-    // que pudiera seguir "validando" una matrícula ya retirada.
-    if(idxServicioExistente !== -1){
-      INTERVENTOR_SERVICES[idxServicioExistente] = nuevoServicio;
-    } else {
-      INTERVENTOR_SERVICES.push(nuevoServicio);
-    }
-    atGuardarInterventor();
-    if(elEstado) elEstado.textContent = 'Intervención sincronizada: «'+d.nombre_servicio+'»';
-    toast('✅ Intervención sincronizada: '+diasPorAgente.length+' agentes cruzados');
-    return true;
-  }catch(e){
-    _diagIntervencion = 'Excepción: '+(e && e.message ? e.message : String(e));
-    toast('⚠️ Error Intervención: '+(e&&e.message?e.message:e));
+  if(typeof sbAdmin === 'undefined'){
+    _diagIntervencion = 'Supabase no está disponible en este navegador.';
+    toast('⚠️ Intervención: Supabase no está disponible en este navegador');
     return false;
   }
+
+  // FIX — antes se pedía SOLO la fila con tipo EXACTO
+  // 'grafico_intervencion' (.single()), así que solo podía existir
+  // UNA Intervención publicada a la vez — publicar una nueva
+  // sobreescribía la anterior. Ahora se piden TODAS las filas cuyo
+  // tipo empiece por 'grafico_intervencion' (una por cada nombre de
+  // servicio publicado — ver subirIntervencionGlobalAdmin) y se
+  // procesan una a una, igual que ya hace el Horario General con
+  // varias sedes a la vez.
+  var resp = await sbAdmin.from('config_global').select('*');
+  if(resp.error){
+    _diagIntervencion = 'Error al consultar config_global: '+resp.error.message;
+    toast('⚠️ Intervención: '+resp.error.message);
+    return false;
+  }
+  var filas = (resp.data||[]).filter(function(f){ return f.tipo && f.tipo.indexOf('grafico_intervencion')===0 && f.url_archivo && f.url_archivo_informe; });
+  if(!filas.length){
+    _diagIntervencion = 'El admin aún no ha publicado ninguna Intervención (Gráfico+Informe).';
+    toast('⚠️ Intervención: el admin aún no ha publicado ninguna Intervención');
+    return false;
+  }
+
+  var elEstado = document.getElementById('estadoIntervencionBuscador');
+  var huboExito = false;
+  var ultimoError = null;
+
+  for(var i=0; i<filas.length; i++){
+    var d = filas[i];
+    try{
+      // FIX — antes se evitaba reprocesar comparando SOLO
+      // d.nombre_servicio: si el admin resubía un Informe nuevo
+      // reutilizando el mismo nombre de servicio (lo habitual en una
+      // publicación semanal), la app se quedaba para siempre con la
+      // copia vieja en caché y nunca veía las matrículas nuevas — el
+      // Acceso de Interventor podía rechazar a alguien que SÍ estaba
+      // en el Informe recién publicado. Ahora se compara también
+      // fecha_subida: incluso con el mismo nombre, una subida más
+      // reciente sí se vuelve a descargar y parsear.
+      var idxServicioExistente = INTERVENTOR_SERVICES.findIndex(function(s){ return s.name === d.nombre_servicio; });
+      var yaActualizado = idxServicioExistente !== -1 && INTERVENTOR_SERVICES[idxServicioExistente].fechaSubida === d.fecha_subida;
+      if(yaActualizado){
+        huboExito = true;
+        continue;
+      }
+
+      toast('🔀 Sincronizando intervención («'+d.nombre_servicio+'»)...');
+      if(elEstado) elEstado.textContent = 'Sincronizando intervención («'+d.nombre_servicio+'»)...';
+
+      // FIX — antes no se aseguraba el worker de PDF.js aquí (sí se
+      // hacía para el Horario General). Si el Horario General se
+      // publicó en CSV/XLSX, el worker nunca llegaba a configurarse
+      // por el método seguro, y la lectura de estos 2 PDF podía fallar
+      // en silencio.
+      await asegurarPdfWorkerSeguro();
+
+      var respGrafico = await fetch(d.url_archivo);
+      var respInforme = await fetch(d.url_archivo_informe);
+      if(!respGrafico.ok || !respInforme.ok){
+        ultimoError = 'No se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+') de «'+d.nombre_servicio+'».';
+        toast('⚠️ Intervención «'+d.nombre_servicio+'»: no se pudo descargar el Gráfico o el Informe');
+        continue;
+      }
+
+      var graficoBuf = await respGrafico.arrayBuffer();
+      var graficoLines = await pdfToLines(pdfjsLib, new Uint8Array(graficoBuf));
+      var turnosData = parseGraficoTurnos(graficoLines);
+
+      var informeBuf = await respInforme.arrayBuffer();
+      var informeLines = await pdfToLines(pdfjsLib, new Uint8Array(informeBuf));
+      var agentsData = parseAgentsTable(informeLines, d.fecha_inicio);
+
+      if(!agentsData){
+        ultimoError = 'No se reconoció la tabla de fechas del Informe de «'+d.nombre_servicio+'».';
+        toast('⚠️ Intervención «'+d.nombre_servicio+'»: no se reconoció la tabla de fechas del Informe');
+        continue;
+      }
+      if(Object.keys(turnosData).length === 0){
+        ultimoError = 'No se encontraron trenes en el Gráfico de «'+d.nombre_servicio+'».';
+        toast('⚠️ Intervención «'+d.nombre_servicio+'»: no se encontraron trenes en el Gráfico');
+        continue;
+      }
+
+      var diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
+      var nuevoServicio = { name: d.nombre_servicio, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData, fechaSubida: d.fecha_subida };
+      // FIX — si ya existía un servicio con este nombre (versión vieja),
+      // se REEMPLAZA en el mismo sitio en vez de añadir uno duplicado;
+      // así INTERVENTOR_SERVICES nunca arrastra una copia desactualizada
+      // que pudiera seguir "validando" una matrícula ya retirada.
+      if(idxServicioExistente !== -1){
+        INTERVENTOR_SERVICES[idxServicioExistente] = nuevoServicio;
+      } else {
+        INTERVENTOR_SERVICES.push(nuevoServicio);
+      }
+      atGuardarInterventor();
+      if(elEstado) elEstado.textContent = 'Intervención sincronizada: «'+d.nombre_servicio+'»';
+      toast('✅ Intervención «'+d.nombre_servicio+'» sincronizada: '+diasPorAgente.length+' agentes cruzados');
+      huboExito = true;
+    }catch(eFila){
+      ultimoError = 'Excepción en «'+(d.nombre_servicio||d.tipo)+'»: '+(eFila && eFila.message ? eFila.message : String(eFila));
+      toast('⚠️ Error Intervención «'+(d.nombre_servicio||d.tipo)+'»: '+(eFila&&eFila.message?eFila.message:eFila));
+    }
+  }
+
+  if(!huboExito && ultimoError) _diagIntervencion = ultimoError;
+  return huboExito;
 }
 
 function refreshBaseCards(){
