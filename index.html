@@ -18436,7 +18436,13 @@ function parseGraficoTurnos(lines){
     if(s.includes('Jornada ciclo') || s.includes('Legal')) continue;
     if(/\d{2}:\d{2}\s*$/.test(s)) blockStarts.push(i);
   }
-  const specialRe = /^\s*(\d{3,4})\s+([LMXJVSD]{1,8})\b(.*)$/;
+  // FIX — algunos Gráficos (Bilbao) traen el número de turno, las
+  // letras del día, la hora o el número de tren PEGADOS sin ningún
+  // espacio entre sí (p.ej. "402LMXJVSD", "40117:58", "AUX10174"),
+  // según cómo de apretado esté el texto en el PDF original. Los
+  // patrones de aquí abajo se relajan para tolerar cero espacios sin
+  // dejar de reconocer el formato normal (con espacio), como Barcelona.
+  const specialRe = /^\s*(\d{3,4})\s*([LMXJVSD]{1,8})\b(.*)$/;
   function isSpecial(l){
     const nl = norm(l);
     if(!specialRe.test(l)) return false;
@@ -18459,7 +18465,14 @@ function parseGraficoTurnos(lines){
     }
     if(cut > start) spans.push([start, cut]);
   }
-  const anchorRe = /^\s*(\d{3,4})\b(?!\/)/;
+  // FIX — antes exigía un límite de palabra (\b) justo después de los
+  // dígitos, que NUNCA se cumple si vienen pegados a más dígitos (la
+  // hora, "40117:58") o a letras (el día, "402LMXJVSD") — ambas son
+  // \w, así que no hay frontera entre ellas. Ahora: si justo después
+  // viene una hora HH:MM completa, el turno se corta ahí (esos
+  // dígitos son la hora, no el turno); si no, basta con que NO sigan
+  // más dígitos (si siguen letras, no hay problema).
+  const anchorRe = /^\s*(\d{3,4})(?:(?=\d{2}:\d{2})|(?!\d))(?!\/)/;
   function findTurnoInSpan(lo, hi){
     for(let i=lo;i<hi;i++){
       const m = anchorRe.exec(lines[i]);
@@ -18473,7 +18486,7 @@ function parseGraficoTurnos(lines){
       const stripped = l.trim();
       if(!stripped) continue;
       if(/^[LMXJVSD]{1,8}$/.test(stripped)) return stripped;
-      let m = /^\s*\d{3,4}\s+([LMXJVSD]{1,8})\b/.exec(l);
+      let m = /^\s*\d{3,4}\s*([LMXJVSD]{1,8})\b/.exec(l);
       if(m) return m[1];
       m = /^\s*([LMXJVSD]{1,8})\b/.exec(l);
       if(m) return m[1];
@@ -18484,22 +18497,41 @@ function parseGraficoTurnos(lines){
     const out = [];
     for(let i=lo;i<hi;i++){
       let l = lines[i];
-      l = l.replace(/^(\s*)(\d{3,4})\b/, (m0,g1,g2)=> g1 + ' '.repeat(g2.length));
+      // FIX — mismo criterio que anchorRe, para borrar bien el
+      // número de turno del principio de la línea incluso cuando
+      // viene pegado a la hora que sigue.
+      l = l.replace(/^(\s*)(\d{3,4})(?:(?=\d{2}:\d{2})|(?!\d))/, (m0,g1,g2)=> g1 + ' '.repeat(g2.length));
       const used = [];
       const overlaps = (s,e) => used.some(([us,ue]) => !(e<=us || s>=ue));
       const times = [...l.matchAll(/\d{2}:\d{2}/g)].map(m=>m[0]);
       const hora = times.length ? times[0] : null;
+      // FIX — una hora puede quedar pegada SIN espacio al número de
+      // tren que la sigue ("22:3510174" = hora 22:35 + tren 10174),
+      // formando un único bloque de dígitos donde ya no se distingue
+      // dónde acaba una cosa y empieza la otra. Se "tapan" con
+      // espacios todas las horas reconocidas ANTES de buscar números
+      // de tren, para que el tren quede aislado y sí se reconozca.
+      let lSinHoras = l.replace(/\d{2}:\d{2}/g, (m0)=> ' '.repeat(m0.length));
       for(const [re, kind] of [
-        [/\bAUX\s+(\d{3,6})\b/g, 'AUX'],
-        [/\bUND\s*M[UÚ]LT\s+(\d{3,6})\b/g, 'UNDMULT'],
-        [/\bV(\d{5,6})\b/g, 'V'],
+        // FIX — se quita el límite de palabra ANTES de la etiqueta
+        // (AUX/UND MULT/V): también puede venir pegada a la hora
+        // anterior ("22:35AUX10174"), y detrás basta con 0+ espacios.
+        [/AUX\s*(\d{3,6})\b/g, 'AUX'],
+        [/UND\s*M[UÚ]LT\s*(\d{3,6})\b/g, 'UNDMULT'],
+        [/(?<![A-Za-z])V(\d{5,6})\b/g, 'V'],
       ]){
         for(const m of l.matchAll(re)){
           out.push({line:i, train_raw: m[1], kind, hora});
           used.push([m.index, m.index+m[0].length]);
         }
       }
-      for(const m of l.matchAll(/(?<![A-Za-z0-9])(\d{4,6})(?![A-Za-z0-9])/g)){
+      // FIX — antes exigía que ni antes ni después del número hubiera
+      // NINGUNA letra (además de ningún dígito), pero un número de
+      // tren puede venir pegado a un código de dos letras sin espacio
+      // ("ME10177"). Ahora solo se evita partir un número más largo
+      // (no pegarse a otro dígito) — pegarse a una letra ya no lo
+      // descarta.
+      for(const m of lSinHoras.matchAll(/(?<!\d)(\d{4,6})(?!\d)/g)){
         if(overlaps(m.index, m.index+m[0].length)) continue;
         if(['2024','2025','2026'].includes(m[1])) continue;
         out.push({line:i, train_raw: m[1], kind:'NORMAL', hora});
@@ -18546,7 +18578,7 @@ function parseGraficoTurnos(lines){
     const stripped = lines[i].trim();
     if(!stripped) continue;
     if(/^[LMXJVSD]{1,8}$/.test(stripped)){ dayMarkerLines.push([i, stripped]); continue; }
-    let m = /^\s*\d{3,4}\s+([LMXJVSD]{1,8})\b/.exec(lines[i]);
+    let m = /^\s*\d{3,4}\s*([LMXJVSD]{1,8})\b/.exec(lines[i]);
     if(m){ dayMarkerLines.push([i, m[1]]); continue; }
     m = /^\s*([LMXJVSD]{1,8})\b/.exec(lines[i]);
     if(m) dayMarkerLines.push([i, m[1]]);
