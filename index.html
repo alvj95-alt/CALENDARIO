@@ -2722,8 +2722,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
     <span style="font-size:28px">🕵️</span>
     <div style="flex:1">
-      <div style="font-size:18px;font-weight:900;color:#A78BFA">Portal de Interventor</div>
-      <div style="font-size:11px;color:#94A3B8">TrenTurnos v5</div>
+      <div style="font-size:18px;font-weight:900;color:#A78BFA" id="interventorHdrTitulo">Portal de Interventor</div>
+      <div style="font-size:11px;color:#94A3B8" id="interventorHdrSub">TrenTurnos v5</div>
     </div>
     <button id="btnCambiarPerfilInterventor" style="background:rgba(124,58,237,.12);border:1px solid #7C3AED;
       border-radius:9px;color:#C4B5FD;font-size:11px;font-weight:700;padding:8px 12px;cursor:pointer">
@@ -2751,6 +2751,80 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="cal-tren-panel" id="calTrenPanel2"></div>
     <button class="tr-go" id="trGoBtn2" style="width:100%;margin-bottom:10px">Buscar</button>
     <div id="trainView2"></div>
+  </div>
+</div>
+
+<!-- NUEVO — ACCESO DE INTERVENTOR. Antes de mostrar la pantalla de
+     Interventor se exige la matrícula de interventor, comprobada
+     contra el Horario General ya publicado (mismo dato/tabla que usa
+     el Buscador de Compañeros de tripulación — se actualiza cada
+     semana desde el Panel de Administrador → Supabase). Igual que
+     portal-interventor-screen, vive fuera de .ph, con su propio
+     z-index fijo, entre el Portal de Perfil (10000) y la pantalla de
+     Interventor (9998). -->
+<div id="portal-interventor-acceso" style="display:none;position:fixed;inset:0;z-index:9999;
+  background:#0F0A1F;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:360px;text-align:center">
+    <div style="font-size:44px;margin-bottom:6px">🔒</div>
+    <div style="font-size:18px;font-weight:900;color:#A78BFA;margin-bottom:2px">Acceso de Interventor</div>
+    <div style="font-size:12px;color:#94A3B8;margin-bottom:22px;line-height:1.5">
+      Introduce tu número de matrícula de interventor.<br>Debe figurar en el Informe de Intervención publicado.
+    </div>
+
+    <input type="text" id="accesoMatriculaInterventorInput" placeholder="Ej. 1234567" inputmode="numeric" autocomplete="off"
+      style="width:100%;background:#1E1533;border:2px solid #7C3AED;border-radius:12px;color:#F8FAFC;
+      font-size:15px;font-weight:700;padding:14px 16px;text-align:center;letter-spacing:.5px;margin-bottom:10px;outline:none">
+
+    <div id="accesoInterventorMsg" style="min-height:18px;font-size:12px;margin-bottom:10px;line-height:1.4"></div>
+
+    <!-- NUEVO — Descargo de responsabilidad. La casilla de aceptación
+         empieza deshabilitada: hay que abrir el descargo al menos una
+         vez (no hace falta leerlo entero) para que se habilite. -->
+    <button type="button" id="btnVerDescargoInterventor" style="width:100%;background:rgba(124,58,237,.12);
+      border:1px solid #7C3AED;border-radius:12px;color:#C4B5FD;font-size:12px;font-weight:700;
+      padding:12px;cursor:pointer;margin-bottom:10px">
+      📄 Ver descargo de responsabilidad
+    </button>
+
+    <label id="lblAceptoDescargoInterventor" style="display:flex;align-items:flex-start;gap:9px;margin:0 0 14px;
+      cursor:pointer;font-size:12px;color:#94A3B8;line-height:1.5;opacity:.5;text-align:left">
+      <input type="checkbox" id="accesoAceptoDescargoInterventor" disabled
+        style="width:17px;height:17px;flex-shrink:0;margin-top:1px;accent-color:#7C3AED">
+      He abierto y acepto el descargo de responsabilidad
+    </label>
+
+    <button id="btnContinuarAccesoInterventor" style="width:100%;background:linear-gradient(135deg,#7C3AED,#A78BFA);
+      border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;padding:14px;cursor:pointer;margin-bottom:8px">
+      Continuar
+    </button>
+    <button id="btnVolverAccesoInterventor" style="width:100%;background:transparent;border:none;
+      color:#94A3B8;font-size:12px;font-weight:700;padding:8px;cursor:pointer">
+      ‹ Volver
+    </button>
+  </div>
+</div>
+
+<!-- NUEVO — Modal del descargo de responsabilidad del Acceso de
+     Interventor. Se abre desde el botón "📄 Ver descargo de
+     responsabilidad" de arriba; con solo abrirlo (aunque no se lea)
+     se habilita la casilla de aceptación. z-index por encima de
+     portal-interventor-acceso (9999). -->
+<div id="interventorDescargoModal" style="display:none;position:fixed;inset:0;z-index:10001;
+  background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:420px;background:#1E1533;border-radius:20px 20px 0 0;
+    padding:22px 20px 26px;max-height:75vh;overflow-y:auto;text-align:left">
+    <div style="font-size:15px;font-weight:900;color:#A78BFA;margin-bottom:12px">📄 Descargo de responsabilidad</div>
+    <div style="font-size:13px;color:#CBD5E1;line-height:1.6;margin-bottom:20px">
+      Esta herramienta te da acceso a información de servicio para el desempeño de tu función de Interventor,
+      usando los datos ya publicados por la empresa (Gráfico e Informe de Intervención). Es una ayuda para tu
+      trabajo diario — úsala con el mismo criterio profesional de siempre y con respeto hacia los datos de
+      tus compañeros. Ante cualquier duda sobre un servicio, el documento oficial publicado por la empresa
+      es siempre el que manda. Al aceptar, confirmas que accedes con tu propia matrícula de interventor.
+    </div>
+    <button id="btnCerrarDescargoInterventor" style="width:100%;background:linear-gradient(135deg,#7C3AED,#A78BFA);
+      border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;padding:14px;cursor:pointer">
+      Entendido
+    </button>
   </div>
 </div>
 
@@ -4745,6 +4819,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarHorarioGeneralAdmin()">🗑 Eliminar Horario General</button>
     </div>
 
+    <!-- NUEVO — Accesos del Buscador de Compañeros (tripulación):
+         quién ha entrado, con qué matrícula/nombre y cuándo. Antes
+         solo se podía ver entrando a Supabase directamente. -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico">🔍</div>
+        <div>
+          <div class="admin-card-tit">Accesos del Buscador de Compañeros</div>
+          <div class="admin-card-sub">Quién ha entrado al Buscador de tripulación, con qué matrícula y cuándo.</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAceptacionesDescargoAdmin()">🔄 Actualizar lista</button>
+      <div class="estado-archivo sin-archivo" id="estadoAceptacionesDescargo">Toca "Actualizar lista" para ver los accesos.</div>
+      <div id="listaAceptacionesDescargo" style="margin-top:8px"></div>
+    </div>
+
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">🔀</div>
@@ -4770,6 +4860,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="m-save" style="width:100%;margin-top:6px" onclick="subirIntervencionGlobalAdmin()">Publicar Intervención</button>
       <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarIntervencionAdmin()">🗑 Eliminar Intervención</button>
+    </div>
+
+    <!-- NUEVO — Accesos de Interventor: quién ha entrado, con qué
+         matrícula/nombre y cuándo. Se rellena sola cada vez que
+         alguien pasa el Acceso de Interventor del Portal de Perfil. -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico">🕵️</div>
+        <div>
+          <div class="admin-card-tit">Accesos de Interventor</div>
+          <div class="admin-card-sub">Quién ha entrado como Interventor, con qué matrícula y cuándo.</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAccesosInterventorAdmin()">🔄 Actualizar lista</button>
+      <div class="estado-archivo sin-archivo" id="estadoAccesosInterventor">Toca "Actualizar lista" para ver los accesos.</div>
+      <div id="listaAccesosInterventor" style="margin-top:8px"></div>
     </div>
 
     <div class="admin-card">
@@ -16849,6 +16955,65 @@ async function eliminarIntervencionAdmin(){
   toast('🗑 Intervención eliminada');
 }
 
+// NUEVO — Accesos del Buscador de Compañeros (tripulación): igual que
+// cargarAccesosInterventorAdmin(), pero leyendo aceptaciones_descargo
+// (la tabla que ya rellenaba validarAccesoBuscador() al aceptar el
+// descargo). Antes solo se podía consultar entrando directamente a
+// Supabase — ahora se ve también desde el propio Panel de Admin.
+async function cargarAceptacionesDescargoAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elLista = document.getElementById('listaAceptacionesDescargo');
+  var elEstado = document.getElementById('estadoAceptacionesDescargo');
+  if(elEstado) elEstado.textContent = 'Cargando...';
+  var resp = await sbAdmin.from('aceptaciones_descargo').select('*').order('fecha_hora', { ascending:false }).limit(50);
+  if(resp.error){
+    if(elEstado) elEstado.textContent = 'Error al cargar: ' + resp.error.message;
+    return;
+  }
+  var filas = resp.data || [];
+  if(elEstado) elEstado.textContent = filas.length ? (filas.length+' acceso(s) más reciente(s)') : 'Todavía no ha entrado nadie al Buscador de Compañeros.';
+  if(!elLista) return;
+  elLista.innerHTML = '';
+  filas.forEach(function(fila){
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--div);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12px';
+    var fecha = fila.fecha_hora ? new Date(fila.fecha_hora).toLocaleString('es-ES') : '';
+    div.innerHTML = '<span><b>'+(fila.nombre || '(sin nombre)')+'</b> · '+fila.matricula+'</span>'
+      + '<span style="color:var(--tx3)">'+fecha+'</span>';
+    elLista.appendChild(div);
+  });
+}
+
+// NUEVO — Accesos de Interventor: lista, para el admin, de cada
+// matrícula que ha entrado como Interventor (Portal de Perfil →
+// Acceso de Interventor), con nombre y fecha/hora. Lee la tabla
+// accesos_interventor (ver SQL de creación entregado aparte), que se
+// rellena en validarMatriculaInterventor() cada vez que alguien pasa
+// la comprobación de matrícula + descargo.
+async function cargarAccesosInterventorAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elLista = document.getElementById('listaAccesosInterventor');
+  var elEstado = document.getElementById('estadoAccesosInterventor');
+  if(elEstado) elEstado.textContent = 'Cargando...';
+  var resp = await sbAdmin.from('accesos_interventor').select('*').order('fecha_hora', { ascending:false }).limit(50);
+  if(resp.error){
+    if(elEstado) elEstado.textContent = 'Error al cargar: ' + resp.error.message;
+    return;
+  }
+  var filas = resp.data || [];
+  if(elEstado) elEstado.textContent = filas.length ? (filas.length+' acceso(s) más reciente(s)') : 'Todavía no ha entrado ningún interventor.';
+  if(!elLista) return;
+  elLista.innerHTML = '';
+  filas.forEach(function(fila){
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--div);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12px';
+    var fecha = fila.fecha_hora ? new Date(fila.fecha_hora).toLocaleString('es-ES') : '';
+    div.innerHTML = '<span><b>'+(fila.nombre || '(sin nombre)')+'</b> · '+fila.matricula+'</span>'
+      + '<span style="color:var(--tx3)">'+fecha+'</span>';
+    elLista.appendChild(div);
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════
    MI HORARIO PERSONAL EN LA NUBE — módulo aditivo, independiente
    de config_global (que es la que comparten todos los compañeros).
@@ -17658,7 +17823,58 @@ window.cargarDatosParaInterventor = async function(){
   }catch(errIntervencionFatal){
     console.warn('Fallo al cargar Intervención para el Portal de Interventor:', errIntervencionFatal);
   }
+  // NUEVO — revalidación silenciosa de la matrícula de interventor
+  // contra el Informe de agentes (sección Intervención del admin —
+  // el PDF "Gráfico + Informe", NO el Horario General de
+  // tripulación) que se acaba de sincronizar arriba en
+  // INTERVENTOR_SERVICES. Ese Informe se renueva cada pocos días,
+  // así que si la matrícula ya validada en este dispositivo ha
+  // dejado de aparecer en el más reciente, se cierra el acceso y se
+  // vuelve a pedir — en vez de dejar entrar con una matrícula
+  // desactualizada.
+  var matriculaGuardada = localStorage.getItem('interventorMatriculaValidada');
+  if(matriculaGuardada && INTERVENTOR_SERVICES.length){
+    var sigueValida = INTERVENTOR_SERVICES.some(function(servicio){
+      return (servicio.data||[]).some(function(agente){ return String(agente[0]).trim() === matriculaGuardada; });
+    });
+    if(!sigueValida && typeof window.__cerrarSesionInterventorPorMatriculaInvalida === 'function'){
+      window.__cerrarSesionInterventorPorMatriculaInvalida();
+    }
+  }
   return ok;
+};
+
+// NUEVO — Acceso de Interventor (Portal de Perfil): comprueba una
+// matrícula contra el Informe de agentes ya publicado en el segmento
+// de Intervención del admin ("Interventor (Gráfico + Informe)" —
+// mismo PDF con columnas Matrícula/Agente/turnos que sube el admin,
+// NO el Horario General de tripulación). Se expone a window por el
+// mismo motivo que cargarDatosParaInterventor: el Portal de Perfil
+// vive en su propio bloque aislado, al final del documento, y no ve
+// INTERVENTOR_SERVICES/cargarIntervencionGlobalDesdeAdmin
+// directamente.
+window.validarMatriculaInterventorContraInforme = async function(matricula){
+  var ok = await cargarIntervencionGlobalDesdeAdmin();
+  if(!ok){
+    return { valida:false, motivo: (typeof _diagIntervencion !== 'undefined' && _diagIntervencion) || 'No se pudo cargar el Informe de Intervención.' };
+  }
+  if(!INTERVENTOR_SERVICES.length){
+    return { valida:false, motivo: 'El Informe de Intervención está publicado pero no contiene ningún agente.' };
+  }
+  var agenteEncontrado = null;
+  INTERVENTOR_SERVICES.some(function(servicio){
+    return (servicio.data||[]).some(function(agente){
+      if(String(agente[0]).trim() === String(matricula).trim()){
+        agenteEncontrado = agente;
+        return true;
+      }
+      return false;
+    });
+  });
+  if(!agenteEncontrado){
+    return { valida:false, motivo: 'Esa matrícula no aparece en el Informe de Intervención publicado.' };
+  }
+  return { valida:true, motivo:null, nombre: agenteEncontrado[1] };
 };
 
 // NUEVO — para el "con quién viajas" automático en Turnos del mes
@@ -17687,25 +17903,44 @@ window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
 // y reutiliza EXACTAMENTE el mismo pipeline que ya usaba el
 // formulario manual (pdfToLines → parseGraficoTurnos/parseAgentsTable
 // → construirDiasDesdeCruce), sin tocar ninguna de esas funciones.
+// NUEVO — _diagIntervencion guarda el último motivo de fallo en
+// texto plano, para poder mostrarlo en el Acceso de Interventor
+// (Portal de Perfil) sin depender de toast(), que puede quedar
+// tapado detrás de esa pantalla.
+var _diagIntervencion = null;
 async function cargarIntervencionGlobalDesdeAdmin(){
+  _diagIntervencion = null;
   try{
     if(typeof sbAdmin === 'undefined'){
+      _diagIntervencion = 'Supabase no está disponible en este navegador.';
       toast('⚠️ Intervención: Supabase no está disponible en este navegador');
       return false;
     }
     var resp = await sbAdmin.from('config_global').select('*').eq('tipo','grafico_intervencion').single();
     if(resp.error){
+      _diagIntervencion = 'Error al consultar config_global: '+resp.error.message;
       toast('⚠️ Intervención: '+resp.error.message);
       return false;
     }
     if(!resp.data || !resp.data.url_archivo || !resp.data.url_archivo_informe){
+      _diagIntervencion = 'El admin aún no ha publicado el Gráfico+Informe de Intervención (falta la fila o alguno de los dos archivos).';
       toast('⚠️ Intervención: el admin aún no ha publicado el Gráfico+Informe');
       return false;
     }
     var d = resp.data;
 
-    // Evita volver a procesar si ya está cargado este mismo servicio.
-    if(INTERVENTOR_SERVICES.some(function(s){ return s.name === d.nombre_servicio; })){
+    // FIX — antes se evitaba reprocesar comparando SOLO
+    // d.nombre_servicio: si el admin resubía un Informe nuevo
+    // reutilizando el mismo nombre de servicio (lo habitual en una
+    // publicación semanal), la app se quedaba para siempre con la
+    // copia vieja en caché y nunca veía las matrículas nuevas — el
+    // Acceso de Interventor podía rechazar a alguien que SÍ estaba
+    // en el Informe recién publicado. Ahora se compara también
+    // fecha_subida: incluso con el mismo nombre, una subida más
+    // reciente sí se vuelve a descargar y parsear.
+    var idxServicioExistente = INTERVENTOR_SERVICES.findIndex(function(s){ return s.name === d.nombre_servicio; });
+    var yaActualizado = idxServicioExistente !== -1 && INTERVENTOR_SERVICES[idxServicioExistente].fechaSubida === d.fecha_subida;
+    if(yaActualizado){
       toast('ℹ️ Intervención «'+d.nombre_servicio+'» ya estaba cargada');
       return true;
     }
@@ -17724,6 +17959,7 @@ async function cargarIntervencionGlobalDesdeAdmin(){
     var respGrafico = await fetch(d.url_archivo);
     var respInforme = await fetch(d.url_archivo_informe);
     if(!respGrafico.ok || !respInforme.ok){
+      _diagIntervencion = 'No se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+').';
       toast('⚠️ Intervención: no se pudo descargar el Gráfico ('+respGrafico.status+') o el Informe ('+respInforme.status+')');
       return false;
     }
@@ -17737,21 +17973,33 @@ async function cargarIntervencionGlobalDesdeAdmin(){
     var agentsData = parseAgentsTable(informeLines, d.fecha_inicio);
 
     if(!agentsData){
+      _diagIntervencion = 'No se reconoció la tabla de fechas del Informe (revisa que el PDF tenga cabecera con fechas tipo "01 S").';
       toast('⚠️ Intervención: no se reconoció la tabla de fechas del Informe');
       return false;
     }
     if(Object.keys(turnosData).length === 0){
+      _diagIntervencion = 'No se encontraron trenes en el Gráfico.';
       toast('⚠️ Intervención: no se encontraron trenes en el Gráfico');
       return false;
     }
 
     var diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
-    INTERVENTOR_SERVICES.push({ name: d.nombre_servicio, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData });
+    var nuevoServicio = { name: d.nombre_servicio, isoDates: agentsData.isoDates, data: diasPorAgente, turnos: turnosData, fechaSubida: d.fecha_subida };
+    // FIX — si ya existía un servicio con este nombre (versión vieja),
+    // se REEMPLAZA en el mismo sitio en vez de añadir uno duplicado;
+    // así INTERVENTOR_SERVICES nunca arrastra una copia desactualizada
+    // que pudiera seguir "validando" una matrícula ya retirada.
+    if(idxServicioExistente !== -1){
+      INTERVENTOR_SERVICES[idxServicioExistente] = nuevoServicio;
+    } else {
+      INTERVENTOR_SERVICES.push(nuevoServicio);
+    }
     atGuardarInterventor();
     if(elEstado) elEstado.textContent = 'Intervención sincronizada: «'+d.nombre_servicio+'»';
     toast('✅ Intervención sincronizada: '+diasPorAgente.length+' agentes cruzados');
     return true;
   }catch(e){
+    _diagIntervencion = 'Excepción: '+(e && e.message ? e.message : String(e));
     toast('⚠️ Error Intervención: '+(e&&e.message?e.message:e));
     return false;
   }
@@ -19489,6 +19737,7 @@ clearBtn.addEventListener('click', ()=>{
     if(el) el.style.display = 'flex';
     document.body.classList.add('modo-interventor');
     _marcarUsuarioComoInterventor();
+    actualizarSaludoInterventor();
     // FIX — antes se llamaba directamente a cargarHorarioGlobalDesdeAdmin()
     // y activateBase(), pero esas funciones viven DENTRO de un módulo
     // de código aislado (el mismo que usa el Buscador de Compañeros) y
@@ -19507,6 +19756,39 @@ clearBtn.addEventListener('click', ()=>{
     document.body.classList.remove('modo-interventor');
   }
 
+  // ── NUEVO: Saludo personalizado ("Hola, <Nombre> — Buenos días/
+  // tardes/noches") en la cabecera del Portal de Interventor, usando
+  // el nombre que devolvió el Informe de Intervención al validar la
+  // matrícula (ver validarMatriculaInterventor, más abajo). Si por lo
+  // que sea no hay nombre guardado todavía (primera carga con esta
+  // versión, matrícula validada antes de este cambio, etc.), se deja
+  // el título de siempre ("Portal de Interventor") sin romper nada.
+  function saludoSegunHora(){
+    var h = new Date().getHours();
+    if(h >= 6 && h < 13) return '☀️ Buenos días';
+    if(h >= 13 && h < 20) return '🌇 Buenas tardes';
+    return '🌙 Buenas noches';
+  }
+  // El Informe guarda "Apellidos, Nombre" en mayúsculas (mismo
+  // formato que la columna "Agente" del PDF) — para el saludo se usa
+  // solo el nombre de pila, con mayúscula inicial, en vez del texto
+  // completo en mayúsculas.
+  function nombrePilaDesdeAgente(nombreCompleto){
+    if(!nombreCompleto) return '';
+    var partes = String(nombreCompleto).split(',');
+    var pila = (partes.length > 1 ? partes[1] : partes[0]).trim().toLowerCase();
+    if(!pila) return '';
+    return pila.replace(/(^|\s)([a-záéíóúñ])/g, function(_, sp, c){ return sp + c.toUpperCase(); });
+  }
+  function actualizarSaludoInterventor(){
+    var tit = document.getElementById('interventorHdrTitulo');
+    var sub = document.getElementById('interventorHdrSub');
+    var nombreGuardado = localStorage.getItem('interventorNombreValidado');
+    var pila = nombrePilaDesdeAgente(nombreGuardado);
+    if(tit) tit.textContent = pila ? ('Hola, '+pila+' 👋') : 'Portal de Interventor';
+    if(sub) sub.textContent = pila ? (saludoSegunHora()+' · TrenTurnos v5') : 'TrenTurnos v5';
+  }
+
   // FIX — el Buscador de Compañeros normal exige tener una "Estación
   // Base" configurada (Ajustes → Perfil), algo que un interventor
   // nunca rellena porque no es de tripulación. Sin esta marca, el
@@ -19522,20 +19804,144 @@ clearBtn.addEventListener('click', ()=>{
     }
   }
 
+  // ── NUEVO: Acceso de Interventor (matrícula + descargo) ──
+  function mostrarAccesoInterventor(msgError){
+    var el = document.getElementById('portal-interventor-acceso');
+    if(el) el.style.display = 'flex';
+    var input = document.getElementById('accesoMatriculaInterventorInput');
+    var msg = document.getElementById('accesoInterventorMsg');
+    var check = document.getElementById('accesoAceptoDescargoInterventor');
+    var lbl = document.getElementById('lblAceptoDescargoInterventor');
+    var modal = document.getElementById('interventorDescargoModal');
+    if(input) input.value = '';
+    if(msg) msg.innerHTML = msgError ? '<span style="color:#FCA5A5">'+msgError+'</span>' : '';
+    // Cada vez que se abre esta pantalla se vuelve a exigir abrir el
+    // descargo: la casilla arranca deshabilitada y sin marcar.
+    if(check){ check.checked = false; check.disabled = true; }
+    if(lbl) lbl.style.opacity = '.5';
+    if(modal) modal.style.display = 'none';
+  }
+  function ocultarAccesoInterventor(){
+    var el = document.getElementById('portal-interventor-acceso');
+    if(el) el.style.display = 'none';
+  }
+
+  // Con solo abrir el descargo (no hace falta leerlo entero) se
+  // habilita la casilla de aceptación.
+  function abrirDescargoInterventor(){
+    var modal = document.getElementById('interventorDescargoModal');
+    if(modal) modal.style.display = 'flex';
+  }
+  function cerrarDescargoInterventor(){
+    var modal = document.getElementById('interventorDescargoModal');
+    if(modal) modal.style.display = 'none';
+    var check = document.getElementById('accesoAceptoDescargoInterventor');
+    var lbl = document.getElementById('lblAceptoDescargoInterventor');
+    if(check) check.disabled = false;
+    if(lbl) lbl.style.opacity = '1';
+  }
+
+  // Comprueba la matrícula escrita contra el Informe de agentes de
+  // Intervención ya publicado (validarMatriculaInterventorContraInforme,
+  // expuesta más arriba en el archivo, dentro del módulo del
+  // Buscador de Compañeros). Solo si aparece se guarda la elección de
+  // perfil y se entra a la pantalla de Interventor.
+  async function validarMatriculaInterventor(){
+    var input = document.getElementById('accesoMatriculaInterventorInput');
+    var msg = document.getElementById('accesoInterventorMsg');
+    var btn = document.getElementById('btnContinuarAccesoInterventor');
+    var checkDescargo = document.getElementById('accesoAceptoDescargoInterventor');
+    var matricula = input ? input.value.trim() : '';
+
+    if(!matricula){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Escribe tu número de matrícula.</span>';
+      return;
+    }
+    if(!checkDescargo || !checkDescargo.checked){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Abre el descargo de responsabilidad y marca la casilla para continuar.</span>';
+      return;
+    }
+    if(typeof validarMatriculaInterventorContraInforme !== 'function'){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.</span>';
+      return;
+    }
+
+    var textoOriginal = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Comprobando...'; }
+    var resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
+    try{
+      resultado = await validarMatriculaInterventorContraInforme(matricula);
+    }catch(e){
+      resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
+    }
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+
+    if(!resultado || !resultado.valida){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en el Informe de Intervención publicado.')+'</span>';
+      return;
+    }
+
+    // NUEVO — Registro del acceso (matrícula + nombre + fecha/hora)
+    // en la tabla dedicada accesos_interventor, para que el admin
+    // pueda ver en su panel quién ha entrado como Interventor y
+    // cuándo (ver cargarAccesosInterventorAdmin(), en el Panel de
+    // Administrador). El interventor no ve nada de esto — solo queda
+    // registrado para uso interno del admin.
+    if(typeof sbAdmin !== 'undefined'){
+      sbAdmin.from('accesos_interventor').insert({
+        matricula: matricula,
+        nombre: resultado.nombre || null,
+        fecha_hora: new Date().toISOString()
+      }).then(function(){}).catch(function(){});
+    }
+
+    localStorage.setItem('interventorMatriculaValidada', matricula);
+    localStorage.setItem('interventorNombreValidado', resultado.nombre || '');
+    localStorage.setItem('perfilPortalTrenTurnos', 'interventor');
+    ocultarAccesoInterventor();
+    mostrarPantallaInterventor();
+  }
+
+  // NUEVO — Expuesta a window: cargarDatosParaInterventor() (módulo
+  // del Buscador de Compañeros, fuera de este bloque) la llama si la
+  // matrícula guardada deja de aparecer en el Informe de Intervención
+  // más reciente — por ejemplo tras la actualización semanal del
+  // admin.
+  window.__cerrarSesionInterventorPorMatriculaInvalida = function(){
+    localStorage.removeItem('interventorMatriculaValidada');
+    localStorage.removeItem('interventorNombreValidado');
+    localStorage.removeItem('perfilPortalTrenTurnos');
+    if(typeof usuarioActual !== 'undefined') usuarioActual = null;
+    ocultarPantallaInterventor();
+    mostrarAccesoInterventor('Tu matrícula ya no aparece en el Informe de Intervención actualizado. Vuelve a comprobarla.');
+  };
+
   function elegirTripulante(){
     localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
     ocultarPortal();
     ocultarPantallaInterventor();
   }
+  // MODIFICADO — ya no se entra directo al elegir "Interventor": ahora
+  // primero se pide su matrícula y se comprueba contra el Horario
+  // General publicado (ver mostrarAccesoInterventor /
+  // validarMatriculaInterventor, arriba). Solo si la comprobación pasa
+  // se guarda 'perfilPortalTrenTurnos'='interventor' y se entra.
   function elegirInterventor(){
-    localStorage.setItem('perfilPortalTrenTurnos', 'interventor');
     ocultarPortal();
-    mostrarPantallaInterventor();
+    mostrarAccesoInterventor();
   }
   function cambiarPerfil(){
     localStorage.removeItem('perfilPortalTrenTurnos');
+    // NUEVO — al cambiar de perfil se olvida también la matrícula de
+    // interventor ya validada, para que la próxima vez que se elija
+    // "Interventor" se compruebe de nuevo contra el listado más
+    // reciente (evita que una matrícula dada de baja siga entrando
+    // solo porque quedó guardada en este dispositivo).
+    localStorage.removeItem('interventorMatriculaValidada');
+    localStorage.removeItem('interventorNombreValidado');
     if(typeof usuarioActual !== 'undefined') usuarioActual = null;
     ocultarPantallaInterventor();
+    ocultarAccesoInterventor();
     mostrarPortal();
   }
 
@@ -19548,6 +19954,23 @@ clearBtn.addEventListener('click', ()=>{
     if(btnI) btnI.addEventListener('click', elegirInterventor);
     if(btnC1) btnC1.addEventListener('click', cambiarPerfil);
     if(btnC2) btnC2.addEventListener('click', cambiarPerfil);
+
+    // NUEVO — Acceso de Interventor (matrícula + descargo)
+    var btnValidar = document.getElementById('btnContinuarAccesoInterventor');
+    var btnVolver = document.getElementById('btnVolverAccesoInterventor');
+    var inputMat = document.getElementById('accesoMatriculaInterventorInput');
+    var btnVerDescargo = document.getElementById('btnVerDescargoInterventor');
+    var btnCerrarDescargo = document.getElementById('btnCerrarDescargoInterventor');
+    if(btnValidar) btnValidar.addEventListener('click', validarMatriculaInterventor);
+    if(btnVolver) btnVolver.addEventListener('click', function(){
+      ocultarAccesoInterventor();
+      mostrarPortal();
+    });
+    if(inputMat) inputMat.addEventListener('keydown', function(e){
+      if(e.key === 'Enter') validarMatriculaInterventor();
+    });
+    if(btnVerDescargo) btnVerDescargo.addEventListener('click', abrirDescargoInterventor);
+    if(btnCerrarDescargo) btnCerrarDescargo.addEventListener('click', cerrarDescargoInterventor);
   }
 
   // FIX — antes el Portal de Perfil decidía cuándo aparecer con SU
@@ -19566,7 +19989,18 @@ clearBtn.addEventListener('click', ()=>{
     _yaSeReviso = true;
     var elegido = localStorage.getItem('perfilPortalTrenTurnos');
     if(elegido === 'interventor'){
-      mostrarPantallaInterventor();
+      // NUEVO — solo se entra directo si esta matrícula ya quedó
+      // validada antes en este dispositivo (localStorage). Si no —
+      // primera vez con esta versión, o la matrícula fue invalidada
+      // por cargarDatosParaInterventor() al detectar que ya no
+      // figura en el Horario General más reciente — se vuelve a
+      // pedir en vez de entrar directo.
+      var matriculaGuardada = localStorage.getItem('interventorMatriculaValidada');
+      if(matriculaGuardada){
+        mostrarPantallaInterventor();
+      } else {
+        mostrarAccesoInterventor();
+      }
     } else if(elegido !== 'tripulante'){
       mostrarPortal();
     }
