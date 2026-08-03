@@ -19387,6 +19387,14 @@ function trainMatchesInterventor(inputNorm, storedRaw){
   const storedNorm = normTrainInterventor(storedRaw);
   if(storedNorm === inputNorm) return true;
   if(storedRaw.length > 4 && normTrainInterventor(storedRaw.slice(-4)) === inputNorm) return true;
+  // NUEVO — los trenes del Informe de Bilbao tienen 5 dígitos, pero
+  // basta con escribir los últimos 3 para reconocerlos (confirmado
+  // por el usuario). Antes solo se comprobaban los últimos 4 —
+  // funcionaba con estos trenes de casualidad porque su 4º dígito
+  // desde el final siempre era "0" (10174 → últimos 4 "0174" → sin
+  // el cero, "174"), pero no de forma fiable con cualquier número.
+  // Ahora se comprueban también los últimos 3 de forma explícita.
+  if(storedRaw.length > 3 && normTrainInterventor(storedRaw.slice(-3)) === inputNorm) return true;
   return false;
 }
 function buscarInterventor(rawTrain, fechaDate){
