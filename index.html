@@ -12372,18 +12372,42 @@ function calcularTotalDiaMin(t, incluirIda, incluirVuelta){
   var total = 0;
   var tieneIda = incluirIda && t.hF && t.hL;
   var tieneVuelta = incluirVuelta && t.hF2 && t.hL2;
+  var tieneContinuidad = !!(incluirIda && t.continuidad && t.continuidad.length);
+
   if(tieneIda) total += calcMins(t.hF, t.hL);
   if(tieneVuelta) total += calcMins(t.hF2, t.hL2);
-  if(tieneIda && tieneVuelta){
+
+  // FIX — el hueco "directo" entre IDA y VUELTA (t.hL → t.hF2) solo
+  // tiene sentido cuando NO hay tramos de continuidad entre medio.
+  // Si los hay (como un CONT.2), ese mismo intervalo de tiempo YA
+  // queda representado por la duración + escala de cada tramo de
+  // continuidad (más abajo) — sumar también el hueco completo aquí
+  // duplicaba por entero esas horas. Esto es lo que producía totales
+  // imposibles de más de 24h en un solo día.
+  if(tieneIda && tieneVuelta && !tieneContinuidad){
     var hueco = calcMins(t.hL, t.hF2);
     if(hueco>0) total += hueco;
   }
-  if(incluirIda && t.continuidad && t.continuidad.length){
+
+  if(tieneContinuidad){
+    var horaFinUltimoTramo = t.hL; // arranca justo al final de la IDA
     t.continuidad.forEach(function(c){
-      if(c.horaInicio && c.horaFin) total += calcMins(c.horaInicio, c.horaFin);
+      if(c.horaInicio && c.horaFin){
+        total += calcMins(c.horaInicio, c.horaFin);
+        horaFinUltimoTramo = c.horaFin;
+      }
       if(c.escalaMin!=null && c.escalaMin>0) total += c.escalaMin;
     });
+    // FIX — el hueco entre el ÚLTIMO tramo de continuidad y la VUELTA
+    // (si la hay) antes no se contaba en ningún sitio. Ahora se suma
+    // solo ESTE tramo final del hueco, no el hueco completo desde la
+    // IDA como hacía antes.
+    if(tieneVuelta && horaFinUltimoTramo){
+      var huecoFinal = calcMins(horaFinUltimoTramo, t.hF2);
+      if(huecoFinal>0) total += huecoFinal;
+    }
   }
+
   if(incluirVuelta && t.continuidadVuelta && t.continuidadVuelta.length){
     t.continuidadVuelta.forEach(function(c){
       if(c.horaInicio && c.horaFin) total += calcMins(c.horaInicio, c.horaFin);
