@@ -17507,11 +17507,32 @@ async function guardarHorarioEnNube(){
   // pluses, alarmas... — todo lo de Ajustes. Así, al recuperar desde
   // otro dispositivo, no solo vuelve el calendario: vuelve también
   // quién eres y cómo tienes todo configurado.
+  // NUEVO — antes solo se guardaban el calendario (TV), el horario
+  // individual y el perfil (AJ). Ahora se guarda TAMBIÉN todo lo
+  // demás que vive en este dispositivo y que no es solo "el
+  // calendario": Servicios Frecuentes (las estaciones/trenes ya
+  // guardados para autocompletar), Agenda de Compañeros, el Sistema
+  // Horario Compañero, los turnos secundarios (TV2), los contadores
+  // de uso de Art.51/52 (para que el límite mensual/anual también
+  // viaje entre dispositivos) y el registro de correos de HTDL ya
+  // enviados. Absolutamente todo lo que hay guardado en este
+  // dispositivo relacionado con tu horario personal.
+  var extras = {
+    sf: SF,
+    agenda: AGENDA,
+    compData: COMP_DATA,
+    tv2: TV2,
+    art5152Dias: ART5152_DIAS,
+    art5152Uso: ART5152_USO,
+    art5152UsoAnual: ART5152_USO_ANUAL,
+    htdlCorreos: JSON.parse(localStorage.getItem('htdl_correos')||'{}')
+  };
   var payload = {
     user_id: usuarioActual.matricula || usuarioActual.id,
     tv_json: TV,
     horarios_json: {index: indice, meses: meses},
     perfil_json: AJ,
+    extras_json: extras,
     actualizado: new Date().toISOString()
   };
   var resp = await sbAdmin.from('datos_personales').upsert(payload);
@@ -17567,6 +17588,22 @@ async function cargarHorarioDesdeNube(){
     Object.assign(AJ, d.perfil_json);
     localStorage.setItem('aj5', JSON.stringify(AJ));
     huboPerfilRestaurado = true;
+  }
+
+  // NUEVO — restaura también Servicios Frecuentes, Agenda de
+  // Compañeros, Sistema Horario Compañero, turnos secundarios (TV2),
+  // contadores de Art.51/52 y correos de HTDL ya enviados — todo lo
+  // que se guardó de más arriba en guardarHorarioEnNube().
+  if(d.extras_json){
+    var ex = d.extras_json;
+    if(ex.sf){ SF = ex.sf; localStorage.setItem('sf5', JSON.stringify(SF)); }
+    if(ex.agenda){ AGENDA = ex.agenda; localStorage.setItem('agenda5', JSON.stringify(AGENDA)); }
+    if(ex.compData){ COMP_DATA = ex.compData; localStorage.setItem('comp5', JSON.stringify(COMP_DATA)); }
+    if(ex.tv2){ TV2 = ex.tv2; localStorage.setItem('tv2_extra', JSON.stringify(TV2)); }
+    if(ex.art5152Dias){ ART5152_DIAS = ex.art5152Dias; localStorage.setItem('art5152_dias', JSON.stringify(ART5152_DIAS)); }
+    if(ex.art5152Uso){ ART5152_USO = ex.art5152Uso; localStorage.setItem('art5152_uso', JSON.stringify(ART5152_USO)); }
+    if(ex.art5152UsoAnual){ ART5152_USO_ANUAL = ex.art5152UsoAnual; localStorage.setItem('art5152_uso_anual', JSON.stringify(ART5152_USO_ANUAL)); }
+    if(ex.htdlCorreos){ localStorage.setItem('htdl_correos', JSON.stringify(ex.htdlCorreos)); }
   }
 
   closeOv('ov-cargar-nube');
