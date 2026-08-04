@@ -12028,6 +12028,7 @@ function renderStats(){
           var partes=[];
           if(d.hIda>0) partes.push(d.hIda.toFixed(2)+'h ida');
           if(d.hEscala>0) partes.push(d.hEscala.toFixed(2)+'h escala');
+          if(d.hContinuidad>0) partes.push(d.hContinuidad.toFixed(2)+'h continuidad');
           if(d.hVuelta>0) partes.push(d.hVuelta.toFixed(2)+'h vuelta');
           if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
           var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
@@ -12857,10 +12858,40 @@ function calculateEarnings(ks){
           }
         }
         var hRetT2=Math.round(minRetT2/60*100)/100;
-        // Escala entre ida y vuelta del mismo día: se suma al total
-        // computable de la jornada HTDL, junto con ida y vuelta.
-        var hEscalaHTDL = (!esPernoctaHTDL && t.hL && t.hF2) ? Math.round(calcMins(t.hL,t.hF2)/60*100)/100 : 0;
-        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hV)*100)/100;
+        // FIX — antes 'hEscalaHTDL' se calculaba como el hueco COMPLETO
+        // entre el fin de la ida (t.hL) y el inicio de la vuelta
+        // (t.hF2), sin tener en cuenta que puede haber un tramo de
+        // Continuidad (p.ej. un CONT.2) trabajándose en medio de ese
+        // hueco. Esas horas de trabajo real quedaban etiquetadas como
+        // "escala" en el desglose que se le muestra a la persona —
+        // aunque el TOTAL en € siempre fue correcto (toda la jornada
+        // HTDL se paga igual, esté repartida como esté), el desglose
+        // mostrado era engañoso: parecía que había 8h de espera cuando
+        // en realidad casi todo era trabajo.
+        // Ahora se separan en dos cifras: los minutos de continuidad
+        // REALMENTE trabajados (hContinuidadHTDL) y la escala REAL —
+        // solo el hueco antes del primer tramo de continuidad + el
+        // hueco entre el último tramo de continuidad y la vuelta.
+        var minContinuidadHTDL = 0;
+        var minEscalaHTDL = 0;
+        var finIdaRealHTDL = t.hL;
+        if(!esPernoctaHTDL && t.continuidad && t.continuidad.length){
+          t.continuidad.forEach(function(c){
+            if(c.horaInicio && c.horaFin) minContinuidadHTDL += calcMins(c.horaInicio, c.horaFin);
+            if(c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
+            if(c.horaFin) finIdaRealHTDL = c.horaFin;
+          });
+        }
+        if(!esPernoctaHTDL && finIdaRealHTDL && t.hF2){
+          var huecoFinalHTDL = calcMins(finIdaRealHTDL, t.hF2);
+          if(huecoFinalHTDL>0) minEscalaHTDL += huecoFinalHTDL;
+        }
+        var hContinuidadHTDL = Math.round(minContinuidadHTDL/60*100)/100;
+        var hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100;
+        // El total computable NO cambia: hEscalaHTDL (antes) ==
+        // hEscalaHTDL (ahora) + hContinuidadHTDL (ahora) — solo se
+        // reparte en dos etiquetas en vez de una sola.
+        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
@@ -12871,6 +12902,7 @@ function calculateEarnings(ks){
           esPernocta:esPernoctaHTDL,
           hIda:hI,
           hEscala:hEscalaHTDL,
+          hContinuidad:hContinuidadHTDL,
           hVuelta:hV,
           hRetT2:hRetT2,
           minRetT2:minRetT2,
