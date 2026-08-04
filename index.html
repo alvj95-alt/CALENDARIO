@@ -6161,12 +6161,40 @@ function secArt5152Flow(){
   } else if(comp==='dinero'){
     // NUEVO: mismo criterio que el cálculo real de guardarTurno() —
     // Ida y vuelta → Ida + Escala + Vuelta. Pernocta → solo trenes.
-    var hEscalaPrev = (!esPernocta && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
-    var hTotalPrev  = esPernocta ? hTotal : Math.round((hIda+hEscalaPrev+hVuelta)*100)/100;
+    // FIX — misma corrección que en guardarTurno(): separar el
+    // trabajo real de continuidad (ida y vuelta) de la escala real,
+    // para que esta vista previa coincida con lo que de verdad se va
+    // a guardar (antes, con continuidad de por medio, la vista previa
+    // ya salía mal desde antes de guardar).
+    var minContinuidadPrev = 0, minEscalaPrevCalc = 0, finIdaRealPrev = F.hL;
+    if(!esPernocta && F.continuidad && F.continuidad.length){
+      F.continuidad.forEach(function(c){
+        if(c.horaInicio && c.horaFin) minContinuidadPrev += calcMins(c.horaInicio, c.horaFin);
+        if(c.escalaMin!=null && c.escalaMin>0) minEscalaPrevCalc += c.escalaMin;
+        if(c.horaFin) finIdaRealPrev = c.horaFin;
+      });
+    }
+    if(!esPernocta && finIdaRealPrev && F.hF2){
+      var huecoFinalPrev = calcMins(finIdaRealPrev, F.hF2);
+      if(huecoFinalPrev>0) minEscalaPrevCalc += huecoFinalPrev;
+    }
+    var minContinuidadVueltaPrev = 0;
+    if(!esPernocta && F.continuidadVuelta && F.continuidadVuelta.length){
+      F.continuidadVuelta.forEach(function(c){
+        if(c.horaInicio && c.horaFin) minContinuidadVueltaPrev += calcMins(c.horaInicio, c.horaFin);
+        if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaPrev += c.escalaMin;
+      });
+    }
+    var hEscalaPrev = Math.round(minEscalaPrevCalc/60*100)/100;
+    var hContinuidadPrev = Math.round(minContinuidadPrev/60*100)/100;
+    var hContinuidadVueltaPrev = Math.round(minContinuidadVueltaPrev/60*100)/100;
+    var hTotalPrev  = esPernocta ? hTotal : Math.round((hIda+hEscalaPrev+hContinuidadPrev+hVuelta+hContinuidadVueltaPrev)*100)/100;
     if(hTotalPrev>0){
       h += '<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>';
       if(!esPernocta && hEscalaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas escala</span><span class="cr-v">'+hEscalaPrev+' h</span></div>';
+      if(!esPernocta && hContinuidadPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad</span><span class="cr-v">'+hContinuidadPrev+' h</span></div>';
       if(hVuelta>0) h += '<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>';
+      if(!esPernocta && hContinuidadVueltaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad vuelta</span><span class="cr-v">'+hContinuidadVueltaPrev+' h</span></div>';
       h += '<div class="cr-row"><span class="cr-l"><strong>Total horas</strong></span><span class="cr-v"><strong>'+hTotalPrev+' h</strong></span></div>'
         +'<div class="cr-row"><span class="cr-l">Tarifa Art. 51/52</span><span class="cr-v">'+monto.toFixed(2)+' €/h</span></div>'
         +(base>0?'<div class="cr-row"><span class="cr-l">Valor base</span><span class="cr-v">+'+base.toFixed(2)+' €</span></div>':'')
@@ -6612,7 +6640,7 @@ if(typeof calculateEarnings === 'function'){
         extraHTDL += importeVivo;
         var lbl1 = _keyAFechaLbl(k);
         extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:esPernoctaArtLive,
-          hIda:0, hEscala:t.hEscala||0, hVuelta:0, hRetT2:hRetT2Art, minRetT2:minRetT2Art,
+          hIda:0, hEscala:t.hEscala||0, hContinuidad:t.hContinuidad||0, hVuelta:0, hContinuidadVuelta:t.hContinuidadVuelta||0, hRetT2:hRetT2Art, minRetT2:minRetT2Art,
           hTotal:horasVivasArt, importe:importeVivo, art5152:true});
         extraLbl.push(t.numTren?lbl1+' #'+t.numTren+' (Art.51/52)':lbl1+' (Art.51/52)');
       } else if(t.compensacion==='mix' && t.mixDinero && t.mixDinero.horas){
@@ -10839,11 +10867,28 @@ function guardarTurno(){
     var hVuelta=F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
     d.horas=Math.round((hIda+hVuelta)*100)/100;
 
+    // FIX — antes solo se miraban las horas de ida/vuelta principal
+    // para decidir si el turno "tiene nocturnidad activa". Si la ida y
+    // la vuelta eran de día pero un tramo de Continuidad (p.ej. un
+    // CONT.2) caía dentro del horario nocturno, d.nocturno quedaba en
+    // false y esa nocturnidad NUNCA se calculaba — ni con el arreglo
+    // de más abajo en calculateEarnings(), porque ese cálculo solo se
+    // ejecuta cuando t.nocturno es true.
+    var algunaContinuidadNocturna = false;
+    [F.continuidad, F.continuidadVuelta].forEach(function(arr){
+      if(!arr || !arr.length) return;
+      arr.forEach(function(c){
+        if((c.horaInicio && esHoraNocturna(c.horaInicio)) || (c.horaFin && esHoraNocturna(c.horaFin))){
+          algunaContinuidadNocturna = true;
+        }
+      });
+    });
     d.nocturno = !!(
       (F.hF && esHoraNocturna(F.hF)) ||
       (F.hL && esHoraNocturna(F.hL)) ||
       (F.hF2 && esHoraNocturna(F.hF2)) ||
-      (F.hL2 && esHoraNocturna(F.hL2))
+      (F.hL2 && esHoraNocturna(F.hL2)) ||
+      algunaContinuidadNocturna
     );
     d.plusIntlAuto = F.plusIntlAuto || false;
 
@@ -10897,8 +10942,35 @@ function guardarTurno(){
       // Misma regla que en calculateEarnings(): mismo día → suma ida +
       // escala + vuelta; pernocta → se suman ida (día 1) y vuelta (día 2/3).
       var esPernoctaImp = (F.modo==='pernocta'||F.modo==='pernocta3');
-      var hEscalaImp = (!esPernoctaImp && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
-      var horasComputablesHTDL = esPernoctaImp ? d.horas : Math.round((hIda+hEscalaImp+hVuelta)*100)/100;
+      // FIX — mismo problema que ya se arregló en calculateEarnings():
+      // el hueco se calculaba directamente entre F.hL y F.hF2 sin
+      // tener en cuenta tramos de Continuidad (ida y/o vuelta)
+      // trabajándose en medio. d.importe es lo que queda GUARDADO en
+      // el turno — si había continuidad de vuelta, ese dinero real
+      // faltaba del importe guardado, no solo del desglose.
+      var minContinuidadImp = 0, minEscalaImp = 0, finIdaRealImp = F.hL;
+      if(!esPernoctaImp && F.continuidad && F.continuidad.length){
+        F.continuidad.forEach(function(c){
+          if(c.horaInicio && c.horaFin) minContinuidadImp += calcMins(c.horaInicio, c.horaFin);
+          if(c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
+          if(c.horaFin) finIdaRealImp = c.horaFin;
+        });
+      }
+      if(!esPernoctaImp && finIdaRealImp && F.hF2){
+        var huecoFinalImp = calcMins(finIdaRealImp, F.hF2);
+        if(huecoFinalImp>0) minEscalaImp += huecoFinalImp;
+      }
+      var minContinuidadVueltaImp = 0;
+      if(!esPernoctaImp && F.continuidadVuelta && F.continuidadVuelta.length){
+        F.continuidadVuelta.forEach(function(c){
+          if(c.horaInicio && c.horaFin) minContinuidadVueltaImp += calcMins(c.horaInicio, c.horaFin);
+          if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaImp += c.escalaMin;
+        });
+      }
+      var hEscalaImp = Math.round(minEscalaImp/60*100)/100;
+      var hContinuidadImp = Math.round(minContinuidadImp/60*100)/100;
+      var hContinuidadVueltaImp = Math.round(minContinuidadVueltaImp/60*100)/100;
+      var horasComputablesHTDL = esPernoctaImp ? d.horas : Math.round((hIda+hEscalaImp+hContinuidadImp+hVuelta+hContinuidadVueltaImp)*100)/100;
       var hFparaTasa = esPernoctaImp ? F.hF : F.hF2;
       var hLparaTasa = esPernoctaImp ? F.hL : F.hL2;
       d.importe=calcImp(horasComputablesHTDL,hFparaTasa,hLparaTasa,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
@@ -11053,10 +11125,44 @@ function guardarTurno(){
       // Ida y vuelta el mismo día → Ida + Escala + Vuelta.
       // Pernocta → SOLO tiempo efectivo en los trenes (ida + vuelta),
       // la escala/descanso fuera de base queda excluida a propósito.
-      var hEscalaArt = (!esPernoctaArt && F.hL && F.hF2) ? Math.round(calcMins(F.hL,F.hF2)/60*100)/100 : 0;
-      var horasCompArt = esPernoctaArt ? d.horas : Math.round((hIda+hEscalaArt+hVuelta)*100)/100;
+      // FIX — mismo problema que ya se arregló en HTDL: antes se
+      // calculaba 'hEscalaArt' como el hueco COMPLETO entre F.hL y
+      // F.hF2, sin tener en cuenta que puede haber tramos de
+      // Continuidad (ida y/o vuelta) trabajándose en medio. En Art.51/52
+      // eso no solo mal-etiquetaba el desglose — el dinero en sí salía
+      // mal si había continuidad de vuelta, porque esa parte no se
+      // contaba en ningún sitio. Ahora se separan igual que en HTDL:
+      // trabajo real de continuidad (ida y vuelta) aparte de la
+      // escala real.
+      var minContinuidadArt = 0;
+      var minEscalaArt = 0;
+      var finIdaRealArt = F.hL;
+      if(!esPernoctaArt && F.continuidad && F.continuidad.length){
+        F.continuidad.forEach(function(c){
+          if(c.horaInicio && c.horaFin) minContinuidadArt += calcMins(c.horaInicio, c.horaFin);
+          if(c.escalaMin!=null && c.escalaMin>0) minEscalaArt += c.escalaMin;
+          if(c.horaFin) finIdaRealArt = c.horaFin;
+        });
+      }
+      if(!esPernoctaArt && finIdaRealArt && F.hF2){
+        var huecoFinalArt = calcMins(finIdaRealArt, F.hF2);
+        if(huecoFinalArt>0) minEscalaArt += huecoFinalArt;
+      }
+      var minContinuidadVueltaArt = 0;
+      if(!esPernoctaArt && F.continuidadVuelta && F.continuidadVuelta.length){
+        F.continuidadVuelta.forEach(function(c){
+          if(c.horaInicio && c.horaFin) minContinuidadVueltaArt += calcMins(c.horaInicio, c.horaFin);
+          if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaArt += c.escalaMin;
+        });
+      }
+      var hEscalaArt = Math.round(minEscalaArt/60*100)/100;
+      var hContinuidadArt = Math.round(minContinuidadArt/60*100)/100;
+      var hContinuidadVueltaArt = Math.round(minContinuidadVueltaArt/60*100)/100;
+      var horasCompArt = esPernoctaArt ? d.horas : Math.round((hIda+hEscalaArt+hContinuidadArt+hVuelta+hContinuidadVueltaArt)*100)/100;
       d.horasEfectivas = horasCompArt;
       d.hEscala = hEscalaArt;
+      d.hContinuidad = hContinuidadArt;
+      d.hContinuidadVuelta = hContinuidadVueltaArt;
       d.importe = Math.round((horasCompArt*montoArt + baseArt)*100)/100;
       // DEBUG TEMPORAL — quítalo en cuanto confirmes el diagnóstico.
       console.log('[Art51/52] Resultado final → horas efectivas:', horasCompArt,
@@ -12030,6 +12136,7 @@ function renderStats(){
           if(d.hEscala>0) partes.push(d.hEscala.toFixed(2)+'h escala');
           if(d.hContinuidad>0) partes.push(d.hContinuidad.toFixed(2)+'h continuidad');
           if(d.hVuelta>0) partes.push(d.hVuelta.toFixed(2)+'h vuelta');
+          if(d.hContinuidadVuelta>0) partes.push(d.hContinuidadVuelta.toFixed(2)+'h continuidad vuelta');
           if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
           var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
           des+='<div class="cs-r cs-r-sub">'
@@ -12817,7 +12924,21 @@ function calculateEarnings(ks){
     if(t.tipo==='ordinario'){tHr+=h;
       if(t.nocturno&&h>0){
         var nOrd1=cn(t.hF,t.hL), nOrd2=cn(t.hF2,t.hL2);
-        var nOrd=nOrd1+nOrd2;
+        // FIX — la nocturnidad de los tramos de Continuidad (ida y
+        // vuelta) no se calculaba en absoluto: solo se miraban el
+        // tramo principal de ida (t.hF-t.hL) y el de vuelta
+        // (t.hF2-t.hL2). Si un CONT.2 caía dentro del horario
+        // nocturno (22:00-06:00), esa nocturnidad real se perdía por
+        // completo — no es una etiqueta mal puesta, es dinero real
+        // que faltaba.
+        var nOrdCont = 0;
+        [t.continuidad, t.continuidadVuelta].forEach(function(arr){
+          if(!arr || !arr.length) return;
+          arr.forEach(function(c){
+            if(c.horaInicio && c.horaFin) nOrdCont += cn(c.horaInicio, c.horaFin);
+          });
+        });
+        var nOrd=nOrd1+nOrd2+nOrdCont;
         if(nOrd>0){
           tN+=nOrd*NOC;
           dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nOrd,importe:Math.round(nOrd*NOC*100)/100});
@@ -12888,10 +13009,25 @@ function calculateEarnings(ks){
         }
         var hContinuidadHTDL = Math.round(minContinuidadHTDL/60*100)/100;
         var hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100;
-        // El total computable NO cambia: hEscalaHTDL (antes) ==
-        // hEscalaHTDL (ahora) + hContinuidadHTDL (ahora) — solo se
-        // reparte en dos etiquetas en vez de una sola.
-        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV)*100)/100;
+        // FIX — mismo problema que la continuidad de la IDA, pero más
+        // grave: la continuidad de la VUELTA (t.continuidadVuelta, p.
+        // ej. un CONT. después del tramo principal de vuelta) no se
+        // estaba contando EN ABSOLUTO en el dinero de HTDL — ni como
+        // "continuidad" ni como "escala" ni de ninguna forma. Esas
+        // horas trabajadas de verdad se perdían del total en €, no
+        // solo de la etiqueta. Se suman aquí exactamente igual que la
+        // continuidad de la ida: duración de cada tramo de
+        // continuidadVuelta + su escalaMin (el hueco antes de cada uno,
+        // que empieza justo al terminar t.hL2).
+        var minContinuidadVueltaHTDL = 0;
+        if(!esPernoctaHTDL && t.continuidadVuelta && t.continuidadVuelta.length){
+          t.continuidadVuelta.forEach(function(c){
+            if(c.horaInicio && c.horaFin) minContinuidadVueltaHTDL += calcMins(c.horaInicio, c.horaFin);
+            if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaHTDL += c.escalaMin;
+          });
+        }
+        var hContinuidadVueltaHTDL = Math.round(minContinuidadVueltaHTDL/60*100)/100;
+        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
@@ -12903,6 +13039,7 @@ function calculateEarnings(ks){
           hIda:hI,
           hEscala:hEscalaHTDL,
           hContinuidad:hContinuidadHTDL,
+          hContinuidadVuelta:hContinuidadVueltaHTDL,
           hVuelta:hV,
           hRetT2:hRetT2,
           minRetT2:minRetT2,
@@ -12911,7 +13048,17 @@ function calculateEarnings(ks){
         });
       }
       var nTrab1=cn(t.hF,t.hL), nTrab2=cn(t.hF2,t.hL2);
-      var nTrab=nTrab1+nTrab2;
+      // FIX — mismo problema que en jornada ordinaria: la nocturnidad
+      // de los tramos de Continuidad no se calculaba. Se suma aquí
+      // igual, para HTDL.
+      var nTrabCont = 0;
+      [t.continuidad, t.continuidadVuelta].forEach(function(arr){
+        if(!arr || !arr.length) return;
+        arr.forEach(function(c){
+          if(c.horaInicio && c.horaFin) nTrabCont += cn(c.horaInicio, c.horaFin);
+        });
+      });
+      var nTrab=nTrab1+nTrab2+nTrabCont;
       if(nTrab>0&&t.nocturno){
         tN+=nTrab*NOC;
         dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nTrab,importe:Math.round(nTrab*NOC*100)/100});
