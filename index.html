@@ -179,6 +179,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dc-out{color:var(--tx3);opacity:.28}
 /* Hoy: anillo naranja */
 .dc-hoy{border-color:var(--nar)!important;color:var(--nar3)!important;font-weight:800}
+
+/* NUEVO — Sistema Horario Compañero: badge azul con el turno del
+   compañero, superpuesto en la celda, y modo "solo compañero" que
+   atenúa (no oculta del todo, para no perder los badges de retraso/
+   parking) el contenido propio del día cuando vistaMode==='comp'. */
+.dc-comp-badge{
+  position:absolute;top:1px;right:1px;
+  font-size:6px;line-height:1;white-space:nowrap;max-width:calc(100% - 4px);
+  overflow:hidden;text-overflow:ellipsis;
+  background:rgba(37,99,235,.9);color:#fff;
+  border-radius:3px;padding:1px 3px;font-weight:900;letter-spacing:.1px;
+}
+.cal-modo-comp-solo .dc > span:first-of-type{opacity:.35}
+.cal-modo-comp-solo .dc-ico{opacity:.35}
+
+/* NUEVO — comparativa lado a lado dentro del Buscador de Compañeros
+   (Tú vs la persona buscada), independiente del Calendario. */
+.comp-cmp-head,.comp-cmp-row{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px;align-items:center;padding:4px 2px}
+.comp-cmp-head{font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--div);padding-bottom:6px;margin-bottom:2px}
+.comp-cmp-row{font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)}
+.comp-cmp-row:nth-child(odd){background:rgba(255,255,255,.02)}
+.comp-cmp-day{font-weight:800;color:var(--tx3);text-align:center}
+.comp-cmp-mio{color:#93c5fd}
+.comp-cmp-suyo{color:#6ee7b7}
 /* Seleccionado: fill azul */
 .dc-sel{background:var(--acc)!important;color:#fff!important;border-color:var(--acc)!important;font-weight:800!important}
 /* Tipos */
@@ -2713,6 +2737,82 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- NUEVO — ACCESO DE TRIPULANTE (Portal de Perfil). Antes "Tripulante"
+     entraba directo sin preguntar nada; ahora pide la matrícula, la
+     busca en TODOS los Horarios Generales publicados a la vez (cada
+     sede tiene sus propias matrículas), y si la encuentra rellena
+     sola el nombre y la Estación Base en Ajustes — así solo hace
+     falta entrar en Ajustes para cambiar el nombre a mano o ajustar
+     los montos a pagar, no para lo básico. Mismo patrón visual que
+     el acceso de Interventor, sin descargo (no hace falta para
+     tripulación). -->
+<div id="portal-tripulante-acceso" style="display:none;position:fixed;inset:0;z-index:9999;
+  background:#07111F;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:360px;text-align:center">
+    <div style="font-size:44px;margin-bottom:6px">🪪</div>
+    <div style="font-size:18px;font-weight:900;color:#3B82F6;margin-bottom:2px">Tu matrícula</div>
+    <div style="font-size:12px;color:#94A3B8;margin-bottom:22px;line-height:1.5">
+      Búscate una vez y ya no hace falta volver a escribir nombre ni sede — se rellenan solos.
+    </div>
+
+    <input type="text" id="accesoMatriculaTripulanteInput" placeholder="Ej. 1234567" inputmode="numeric" autocomplete="off"
+      style="width:100%;background:#132236;border:2px solid #2563EB;border-radius:12px;color:#F8FAFC;
+      font-size:15px;font-weight:700;padding:14px 16px;text-align:center;letter-spacing:.5px;margin-bottom:10px;outline:none">
+
+    <div id="accesoTripulanteMsg" style="min-height:18px;font-size:12px;margin-bottom:10px;line-height:1.4"></div>
+
+    <!-- NUEVO — checkbox discreto con las condiciones como ENLACE
+         dentro de la misma frase (a propósito distinto del botón
+         grande "📄 Ver descargo" del Interventor) — el pop-up con el
+         texto completo se abre solo si se toca el enlace, sin
+         ensuciar esta pantalla con texto largo. -->
+    <label id="lblAceptoDescargoTripulante" style="display:flex;align-items:flex-start;gap:9px;margin:0 0 14px;
+      cursor:pointer;font-size:12px;color:#94A3B8;line-height:1.5;text-align:left">
+      <input type="checkbox" id="accesoAceptoDescargoTripulante"
+        style="width:17px;height:17px;flex-shrink:0;margin-top:1px;accent-color:#2563EB">
+      He leído y acepto las <span id="btnVerDescargoTripulante" style="color:#3B82F6;text-decoration:underline;font-weight:700">condiciones de uso</span>
+    </label>
+
+    <button id="btnContinuarAccesoTripulante" style="width:100%;background:linear-gradient(135deg,#2563EB,#3B82F6);
+      border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;padding:14px;cursor:pointer;margin-bottom:8px">
+      Continuar
+    </button>
+    <button id="btnSaltarAccesoTripulante" style="width:100%;background:transparent;border:none;
+      color:#94A3B8;font-size:12px;font-weight:700;padding:8px;cursor:pointer">
+      No la tengo a mano, rellenar a mano en Ajustes
+    </button>
+    <button id="btnVolverAccesoTripulante" style="width:100%;background:transparent;border:none;
+      color:#64748B;font-size:11px;font-weight:700;padding:4px;cursor:pointer">
+      ‹ Volver
+    </button>
+  </div>
+</div>
+
+<!-- NUEVO — Pop-up con el texto completo de las condiciones de uso
+     para Tripulante — mismo patrón que interventorDescargoModal, pero
+     con su propio id y texto (aquí no hace falta obligar a abrirlo
+     para habilitar la casilla, ya que el checkbox no empieza
+     deshabilitado — puede leerlo si quiere, sin ser un requisito
+     aparte del propio checkbox). -->
+<div id="tripulanteDescargoModal" style="display:none;position:fixed;inset:0;z-index:10001;
+  background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center">
+  <div style="width:100%;max-width:420px;background:#132236;border-radius:20px 20px 0 0;
+    padding:22px 20px 26px;max-height:75vh;overflow-y:auto;text-align:left">
+    <div style="font-size:15px;font-weight:900;color:#3B82F6;margin-bottom:12px">📄 Condiciones de uso</div>
+    <div style="font-size:13px;color:#CBD5E1;line-height:1.6;margin-bottom:20px">
+      Esta app es una herramienta personal de apoyo para llevar tus turnos, horas y compensaciones — no sustituye
+      al Cómputo Oficial que publica la empresa, que es siempre el documento que manda ante cualquier duda o
+      reclamación. Al aceptar, confirmas que entras con tu propia matrícula, que los datos que registres son
+      responsabilidad tuya, y que el Buscador de Compañeros solo debe usarse para fines profesionales legítimos,
+      con el mismo respeto hacia los datos de tus compañeros que esperarías para los tuyos.
+    </div>
+    <button id="btnCerrarDescargoTripulante" style="width:100%;background:linear-gradient(135deg,#2563EB,#3B82F6);
+      border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;padding:14px;cursor:pointer">
+      Entendido
+    </button>
+  </div>
+</div>
+
 <!-- Portal de Interventor — pantalla propia y simple, distinta de
      todo lo demás. De momento un punto de partida en blanco: aquí
      se irá construyendo lo que necesite el interventor, sin mezclar
@@ -2865,7 +2965,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div class="hdr">
   <div class="hdr-top">
     <div>
-      <div class="hdr-titulo" id="hdr-nom">Mis Turnos</div>
+      <!-- NUEVO — se oculta el nombre completo grande de aquí: ya
+           queda cubierto por el saludo de abajo ("Hola, [nombre]") y
+           por la insignia de rol+matrícula, que sí se mantiene. -->
+      <div class="hdr-titulo" id="hdr-nom" style="display:none">Mis Turnos</div>
       <div class="hdr-pill pill-t" id="hdr-rol">🚆 TRIPULANTE</div>
     </div>
     <div class="hdr-btns">
@@ -2880,6 +2983,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 <!-- BODY -->
 <div class="body">
+
+  <!-- NUEVO — Saludo personal según la hora del día, con el nombre de
+       Ajustes (si está puesto). Se actualiza con actualizarSaludo(). -->
+  <div id="saludo-personal" style="padding:10px 14px 0;font-size:15px;font-weight:700;color:var(--tx2)"></div>
 
   <!-- TURNO DE HOY — ahora en formato acordeón (clic para expandir/colapsar) -->
   <div class="hoy-acc" id="hoyAcc">
@@ -2907,6 +3014,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <button id="vista-mio"   class="vista-btn act" onclick="setVistaMode('mio')">📅 Mis turnos</button>
         <button id="vista-comp"  class="vista-btn"     onclick="setVistaMode('comp')">👤 Compañero</button>
         <button id="vista-ambos" class="vista-btn"     onclick="setVistaMode('ambos')">⚖ Comparar</button>
+        <button id="vista-quitar-comp" class="vista-btn" onclick="quitarCompanero()" title="Quitar compañero" style="flex:0;padding:0 8px;color:var(--tx3)">✕</button>
       </div>
       <div class="mn-hoy" onclick="irHoy()">Hoy</div>
       <button class="mn-btn" onclick="chM(1)" title="Mes siguiente">›</button>
@@ -3022,10 +3130,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="aj-nombre-ico">✍️</div>
             <input class="aj-nombre-inp" id="aj-nom" placeholder="Nombre completo…" autocomplete="off">
           </div>
+          <!-- NUEVO — nombre para el saludo de la pantalla principal
+               ("Hola, [esto], buenos días"). Se rellena solo con el
+               nombre de pila calculado a partir del Nombre completo
+               de arriba (como placeholder, sin forzar nada) — si la
+               persona prefiere que le salude de otra forma, escribe
+               aquí lo que quiera y eso es lo que se usa. -->
+          <div class="aj-nombre-wrap" style="margin-bottom:10px">
+            <div class="aj-nombre-ico">👋</div>
+            <input class="aj-nombre-inp" id="aj-nombre-saludo" placeholder="Cómo te saludamos (ej. Alejandro)…" autocomplete="off">
+          </div>
           <div class="aj-nombre-wrap" style="margin-bottom:10px">
             <div class="aj-nombre-ico">🪪</div>
             <input class="aj-nombre-inp" id="aj-mat" placeholder="Número de matrícula…" autocomplete="off"
-              style="font-variant-numeric:tabular-nums">
+              style="font-variant-numeric:tabular-nums" onblur="autoRellenarNombrePorMatricula()">
           </div>
 
           <div class="aj-roles">
@@ -4878,6 +4996,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="listaAccesosInterventor" style="margin-top:8px"></div>
     </div>
 
+    <!-- NUEVO — Accesos de Tripulante: igual que Interventor, pero
+         para quien entra por el otro botón del Portal de Perfil.
+         Solo aparece una fila por matrícula (la primera vez que
+         entra), no cada vez que abre la app. -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico">🚂</div>
+        <div>
+          <div class="admin-card-tit">Accesos de Tripulante</div>
+          <div class="admin-card-sub">Quién ha entrado como Tripulante (primera vez por matrícula), con nombre, sede y cuándo.</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAccesosTripulanteAdmin()">🔄 Actualizar lista</button>
+      <div class="estado-archivo sin-archivo" id="estadoAccesosTripulante">Toca "Actualizar lista" para ver los accesos.</div>
+      <div id="listaAccesosTripulante" style="margin-top:8px"></div>
+    </div>
+
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">☁️</div>
@@ -5329,6 +5464,38 @@ var listaNovedades = [
   }
 ];
 
+// NUEVO — saludo personal según la hora del día, con el primer nombre
+// de Ajustes si está puesto (si no, un saludo genérico). Se llama al
+// arrancar y cada vez que se actualiza el reloj de la cabecera (cada
+// 15s), así el saludo cambia solo de "buenos días" a "buenas tardes"
+// sin que la persona tenga que recargar la app.
+// NUEVO — extrae el nombre de pila de un nombre guardado como
+// "APELLIDOS ,NOMBRE" (formato del Horario General, ej. "ALVARADO
+// RODRIGUEZ ,JOSE ALEJANDRO") — antes se cogía la primera palabra del
+// texto completo, que con este formato daba el APELLIDO ("ALVARADO"),
+// no el nombre real. Si no hay coma (alguien escribió su nombre a
+// mano, "normal"), se coge la primera palabra tal cual, como antes.
+function _primerNombreDesde(nombreCompleto){
+  if(!nombreCompleto) return '';
+  var texto = String(nombreCompleto).trim();
+  var partes = texto.split(',');
+  var pila = (partes.length > 1 ? partes[1] : partes[0]).trim().split(/\s+/)[0] || '';
+  if(!pila) return '';
+  return pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase();
+}
+
+function actualizarSaludo(){
+  var el = document.getElementById('saludo-personal');
+  if(!el) return;
+  var hora = new Date().getHours();
+  var momento = (hora>=6 && hora<12) ? 'buenos días' : (hora>=12 && hora<20) ? 'buenas tardes' : 'buenas noches';
+  // NUEVO — si la persona puso un nombre propio para el saludo
+  // (AJ.nombrePila, editable en Ajustes), se usa ese tal cual; si no,
+  // se calcula solo a partir del nombre completo.
+  var primerNombre = (AJ.nombrePila && AJ.nombrePila.trim()) || _primerNombreDesde(AJ.nombre);
+  el.textContent = 'Hola' + (primerNombre ? ', '+primerNombre : '') + ', '+momento;
+}
+
 function init(){
   // Limpiar claves de versiones anteriores (ya no necesarias)
   ['tv3','tv4','aj3','aj4'].forEach(function(k){localStorage.removeItem(k);});
@@ -5340,8 +5507,9 @@ function init(){
   // los elimina.
   migrarRetrasosPernocta();
 
-  setInterval(function(){var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());},15000);
+  setInterval(function(){var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());actualizarSaludo();},15000);
   var n=new Date();document.getElementById('sbt').textContent=pad(n.getHours())+':'+pad(n.getMinutes());
+  actualizarSaludo();
   loadAjUI();
   renderCal();
   renderStats();
@@ -7516,6 +7684,7 @@ function renderSlide(gridId, fecha){
     if(t&&t.tipo==='art5152'&&t.modoArt5152==='reserva') cls+=' dc-art5152-reserva-pendiente';
     var c=document.createElement('div');
     c.className=cls;
+    c.dataset.k=k; // NUEVO — permite identificar la celda por fecha desde fuera (vista Compañero/Comparar)
     c.style.position='relative';
     var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
     var retBadge=tieneRetraso2?'<span style="position:absolute;top:1px;right:1px;font-size:8px;line-height:1">!</span>':'';
@@ -7619,6 +7788,12 @@ function renderSlide(gridId, fecha){
   // Una sola operación de DOM: vaciar + insertar todo de golpe
   grid.innerHTML='';
   grid.appendChild(frag);
+
+  // NUEVO — Sistema Horario Compañero: si hay datos de un compañero
+  // importados y el modo de vista no es 'mio', añade un overlay con
+  // su turno en cada celda de este mes. Puramente aditivo — no toca
+  // nada de la construcción de celdas de arriba.
+  aplicarVistaCompanero(grid, y, m);
 }
 
 function abrirTipoDesdeCard(){
@@ -8396,13 +8571,30 @@ function renderDiaArea(){
   var wd=(dt.getDay()+6)%7;
   var fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
 
+  // NUEVO — Sistema Horario Compañero: si hay un compañero importado
+  // (solo posible siendo admin, ver importarComoCompanero) y el modo
+  // de vista no es 'mio', se calcula aquí su turno de este mismo día
+  // para poder mostrarlo en el detalle — tanto si tú tienes turno
+  // propio ese día como si no (antes, si no tenías turno propio, la
+  // función terminaba antes de llegar aquí y nunca se mostraba nada
+  // del compañero).
+  var companeroTexto = null;
+  if(typeof vistaMode!=='undefined' && vistaMode!=='mio' && typeof COMP_DATA!=='undefined' && COMP_DATA && COMP_DATA.days){
+    companeroTexto = COMP_DATA.days[String(d)] || null;
+  }
+  var companeroHtml = companeroTexto
+    ? '<div class="ibox" style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);margin-top:10px">'
+      +'<span class="ibox-i">👤</span><span><b>'+(COMP_DATA.name||'Compañero')+'</b>: '+companeroTexto+'</span></div>'
+    : '';
+
   if(!t){
     area.innerHTML='<div class="dc-vacia" onclick="abrirTipo()">'
       +'<div class="dcv-ico">📋</div>'
       +'<div class="dcv-fecha">'+fstr+'</div>'
       +'<div class="dcv-hint">Sin turno asignado</div>'
       +'<button class="dcv-btn" onclick="abrirTipoDesdeCard()">➕ Agregar turno</button>'
-      +'</div>';
+      +'</div>'
+      + companeroHtml;
     return;
   }
 
@@ -8724,6 +8916,11 @@ function renderDiaArea(){
       : '')
     +'</div></div>';
   if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
+  // NUEVO — Sistema Horario Compañero: si hay texto de compañero para
+  // este día, se añade al final del detalle (no reemplaza nada tuyo,
+  // solo se añade debajo) — así el modo "Comparar" muestra los dos
+  // turnos juntos en la misma tarjeta.
+  if(companeroHtml) area.insertAdjacentHTML('beforeend', companeroHtml);
   // NUEVO — "con quién viajas": rellena automáticamente, bajo demanda
   // (solo el día que se está viendo, no todo el mes de golpe), los
   // huecos de compañeros que acaban de pintarse en este detalle.
@@ -11679,7 +11876,13 @@ function selEst(e){
     renderFormBody();
     return;
   }
-  if(estField==='base'){AJ.base=e;var bv=document.getElementById('aj-base-v');bv.textContent=e;bv.className='aj-base-val';closeOv('ov-est');return;}
+  if(estField==='base'){AJ.base=e;var bv=document.getElementById('aj-base-v');bv.textContent=e;bv.className='aj-base-val';closeOv('ov-est');
+    // NUEVO — si la matrícula ya estaba puesta ANTES de fijar la
+    // Estación Base (orden natural al rellenar el formulario de
+    // arriba a abajo), reintenta el autocompletado del nombre ahora
+    // que ya se sabe qué sede mirar.
+    if(typeof autoRellenarNombrePorMatricula==='function') autoRellenarNombrePorMatricula();
+    return;}
   F[estField]=e;
   var hayI=[F.sal,F.lle,F.sal2,F.lle2].filter(Boolean).some(function(x){return ESTACIONES_INTERNACIONALES.has(x);});
   var antI=F.plusIntlAuto;F.plusIntlAuto=hayI;
@@ -11944,7 +12147,72 @@ function loadAjUI(){
     if(aLbl){ aLbl.textContent=AJ.alarmas.activas?'Activadas':'Desactivadas';
               aLbl.style.color=AJ.alarmas.activas?'var(--green2)':'var(--tx3)';}
   }
+// NUEVO — al escribir la matrícula en Ajustes y salir del campo, si
+// el nombre está vacío, se busca esa matrícula en el Horario General
+// ya publicado (el mismo que usa el Buscador de Compañeros) y se
+// rellena el nombre completo automáticamente — útil sobre todo para
+// que los correos (HTDL, Art.51/52, etc.) salgan siempre con el
+// nombre completo tal como consta oficialmente, sin tener que
+// escribirlo dos veces. Si ya hay un nombre puesto, no se pisa: se
+// asume que la persona lo quiso así a propósito.
+async function autoRellenarNombrePorMatricula(){
+  var matInput = document.getElementById('aj-mat');
+  var nomInput = document.getElementById('aj-nom');
+  if(!matInput || !nomInput) return;
+  var matricula = matInput.value.trim();
+  if(!matricula) return;
+  if(nomInput.value.trim()){
+    return; // ya hay un nombre puesto, no se pisa
+  }
+  try{
+    // FIX — antes, si algo impedía encontrar el nombre (sin Estación
+    // Base configurada, sin conexión, matrícula no encontrada...), la
+    // función simplemente no hacía nada y no había forma de saber por
+    // qué. Ahora cada caso avisa con un mensaje claro.
+    if(!AJ.base){
+      toast('⚠️ Configura primero tu Estación Base más abajo, para poder buscar tu nombre');
+      return;
+    }
+    if(typeof BASES==='undefined' || !BASES.global || !BASES.global.data || !BASES.global.data.length){
+      if(typeof cargarHorarioGlobalDesdeAdmin==='function'){
+        toast('🔍 Buscando tu nombre en el Horario General...');
+        var ok = await cargarHorarioGlobalDesdeAdmin();
+        if(!ok){
+          toast('⚠️ No se pudo cargar el Horario General de tu sede todavía (puede que el admin no lo haya publicado, o falte conexión).');
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+    if(typeof BASES==='undefined' || !BASES.global || !BASES.global.data || !BASES.global.data.length){
+      toast('⚠️ No hay Horario General cargado para tu sede todavía.');
+      return;
+    }
+    var encontrado = BASES.global.data.find(function(e){ return String(e[0]).trim()===matricula; });
+    if(encontrado && encontrado[1]){
+      nomInput.value = encontrado[1];
+      toast('✍️ Nombre completado automáticamente: '+encontrado[1]);
+    } else {
+      toast('⚠️ Esa matrícula no aparece en el Horario General de tu sede. Escribe tu nombre a mano.');
+    }
+  }catch(e){
+    console.log('No se pudo autocompletar el nombre por matrícula:', e);
+    toast('⚠️ Error buscando tu nombre: ' + (e && e.message ? e.message : String(e)));
+  }
+}
+
   document.getElementById('aj-nom').value=AJ.nombre||'';
+  var elSaludoInp = document.getElementById('aj-nombre-saludo');
+  if(elSaludoInp){
+    elSaludoInp.value = AJ.nombrePila || '';
+    // Si no hay nada guardado a mano, se sugiere el nombre de pila
+    // calculado a partir del nombre completo, como placeholder —
+    // se ve gris, no se guarda hasta que la persona lo confirme o
+    // escriba el suyo propio.
+    var sugerido = (typeof _primerNombreDesde==='function') ? _primerNombreDesde(AJ.nombre) : '';
+    if(sugerido) elSaludoInp.placeholder = 'Cómo te saludamos (sugerido: '+sugerido+')';
+  }
   document.getElementById('aj-mat').value=AJ.matricula||'';
   document.getElementById('aj-vh').value=AJ.vh||12.5;
   document.getElementById('aj-noc').value=AJ.nocturnidad||1.80;
@@ -12020,11 +12288,14 @@ function _sedeUsuarioActual(){
 
 function saveAj(){
   AJ.nombre=document.getElementById('aj-nom').value.trim()||'Mis Turnos';
+  var elSaludoInpSave = document.getElementById('aj-nombre-saludo');
+  AJ.nombrePila = elSaludoInpSave ? elSaludoInpSave.value.trim() : '';
   AJ.matricula=document.getElementById('aj-mat').value.trim()||'';
   AJ.vh=parseFloat(document.getElementById('aj-vh').value)||12.5;
   AJ.nocturnidad=parseFloat(document.getElementById('aj-noc').value)||1.80;
   localStorage.setItem('aj5',JSON.stringify(AJ));
   updHeader();toast('✅ Ajustes guardados');
+  actualizarSaludo();
 }
 function updHeader(){
   document.getElementById('hdr-nom').textContent=AJ.nombre||'Mis Turnos';
@@ -13343,6 +13614,76 @@ function setVistaMode(mode) {
   var active = document.getElementById('vista-' + mode);
   if (active) active.classList.add('act');
   renderCal();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — SISTEMA HORARIO COMPAÑERO (terminado).
+   COMP_DATA = {id, name, days:{"1":"turno...", ...}, anio, mes}
+   Se importa desde el Buscador de Compañeros (ver
+   importarComoCompanero() en el módulo del portal) — reutiliza los
+   mismos datos ya extraídos del PDF de Horario General, sin pedir
+   ningún archivo nuevo.
+═══════════════════════════════════════════════════════════ */
+
+// Pinta el turno del compañero en cada celda del mes que se está
+// viendo, SOLO si ese mes/año coincide con el mes que se importó
+// (COMP_DATA.anio/mes). Puramente aditivo sobre el grid ya construido
+// por renderSlide() — no modifica ninguna clase ni dato existente de
+// las celdas, solo añade un elemento visual encima.
+function aplicarVistaCompanero(grid, y, m){
+  if(vistaMode==='mio') return;
+  if(!COMP_DATA || !COMP_DATA.days || !Object.keys(COMP_DATA.days).length) return;
+  // FIX — antes solo se pintaba si el año/mes que se estaba viendo
+  // coincidía EXACTO con un mes fijado a mano al importar (estaba
+  // fijado a "agosto"). Si veías el calendario en cualquier otro mes,
+  // o el PDF cargado era de otro mes, el overlay no aparecía nunca y
+  // no había ningún aviso — era la causa real de "no se ve nada".
+  // Ahora se muestra siempre que haya un compañero importado,
+  // coincidiendo solo por número de día (1-31), sin depender de
+  // adivinar a qué año/mes concreto pertenece el PDF.
+
+  if(vistaMode==='comp') grid.classList.add('cal-modo-comp-solo'); else grid.classList.remove('cal-modo-comp-solo');
+
+  var celdas = grid.querySelectorAll('[data-k]');
+  celdas.forEach(function(c){
+    var k = c.dataset.k;
+    var d = parseInt(k.split('-')[2], 10);
+    var texto = COMP_DATA.days[String(d)] || '';
+    if(!texto) return;
+    var corto = texto.length>9 ? texto.slice(0,8)+'…' : texto;
+    var badge = document.createElement('span');
+    badge.className = 'dc-comp-badge';
+    badge.title = COMP_DATA.name+': '+texto;
+    badge.textContent = corto;
+    c.appendChild(badge);
+  });
+}
+
+// Se llama desde el botón "👤 Ver su horario junto al mío" del perfil
+// de un compañero en el Buscador. `entry` es la misma tupla que ya
+// usa renderProfile(): [id, name, days, sede, ...].
+//
+// LIMITACIÓN CONOCIDA: el Horario General publicado no incluye el
+// año/mes exacto de forma fiable en todos los casos — el resto del
+// Buscador (weekdayForDay/buscarInterventor) ya asume "agosto 2026"
+// para esta misma tanda de PDFs, así que se usa el mismo supuesto
+// aquí para que ambas partes coincidan. Si el mes real cambia, este
+// valor habrá que actualizarlo (o, mejor, sacarlo del propio PDF —
+// pendiente para una mejora futura, no bloquea esta función).
+function importarComoCompanero(id, name, days){
+  COMP_DATA = {id:id, name:name, days:days};
+  saveComp();
+  toast('👤 '+name+' importado como Compañero — mira el Calendario');
+  renderVistaToggle();
+  setVistaMode('ambos');
+}
+
+function quitarCompanero(){
+  COMP_DATA = {};
+  saveComp();
+  renderVistaToggle();
+  setVistaMode('mio');
+  toast('Compañero quitado del Calendario');
 }
 
 // ── Render toggle bar ────────────────────────────────────────
@@ -17460,6 +17801,36 @@ async function cargarAccesosInterventorAdmin(){
   });
 }
 
+// NUEVO — Accesos de Tripulante: mismo patrón que
+// cargarAccesosInterventorAdmin(), leyendo accesos_tripulante (ver
+// SQL de creación entregado aparte). Se rellena en
+// validarMatriculaTripulanteYEntrar() (módulo del Portal de Perfil),
+// una sola vez por matrícula (matricula es la clave primaria de la
+// tabla). Se muestra también la sede, que aquí sí se conoce.
+async function cargarAccesosTripulanteAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elLista = document.getElementById('listaAccesosTripulante');
+  var elEstado = document.getElementById('estadoAccesosTripulante');
+  if(elEstado) elEstado.textContent = 'Cargando...';
+  var resp = await sbAdmin.from('accesos_tripulante').select('*').order('fecha_hora', { ascending:false }).limit(100);
+  if(resp.error){
+    if(elEstado) elEstado.textContent = 'Error al cargar: ' + resp.error.message;
+    return;
+  }
+  var filas = resp.data || [];
+  if(elEstado) elEstado.textContent = filas.length ? (filas.length+' tripulante(s) registrado(s)') : 'Todavía no ha entrado ningún tripulante por este paso nuevo.';
+  if(!elLista) return;
+  elLista.innerHTML = '';
+  filas.forEach(function(fila){
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--div);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12px';
+    var fecha = fila.fecha_hora ? new Date(fila.fecha_hora).toLocaleString('es-ES') : '';
+    div.innerHTML = '<span><b>'+(fila.nombre || '(sin nombre)')+'</b> · '+fila.matricula+' · '+(fila.sede||'—')+'</span>'
+      + '<span style="color:var(--tx3)">'+fecha+'</span>';
+    elLista.appendChild(div);
+  });
+}
+
 /* ═══════════════════════════════════════════════════════════
    MI HORARIO PERSONAL EN LA NUBE — módulo aditivo, independiente
    de config_global (que es la que comparten todos los compañeros).
@@ -18367,6 +18738,99 @@ window.validarMatriculaInterventorContraInforme = async function(matricula){
     return { valida:false, motivo: 'Esa matrícula no aparece en el Informe de Intervención publicado.' };
   }
   return { valida:true, motivo:null, nombre: agenteEncontrado[1] };
+};
+
+// NUEVO — Acceso de Tripulante (Portal de Perfil): busca una
+// matrícula en TODOS los Horarios Generales publicados A LA VEZ (cada
+// sede es un PDF distinto — Barcelona, Madrid, Valencia...), parando
+// en cuanto la encuentra en cualquiera de ellas. Devuelve tanto el
+// nombre completo como la sede a la que pertenece esa matrícula, para
+// poder rellenar Ajustes (nombre + Estación Base) sin que la persona
+// tenga que elegir nada a mano. Reutiliza el mismo parser en
+// producción (parsePageWords) y el mismo patrón rápido en paralelo ya
+// probado para crear cuentas (Promise.any + salida temprana por
+// página) — no toca ninguna de esas funciones, solo las reutiliza.
+async function _buscarFilaMatriculaEnPdf(buf, matricula){
+  await asegurarPdfWorkerSeguro();
+  var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  var numPages = pdf.numPages;
+  var leftover = [];
+  for(var pi=1; pi<=numPages; pi++){
+    try{
+      var page = await pdf.getPage(pi);
+      var viewport = page.getViewport({scale:1});
+      var pageHeight = viewport.height;
+      var content = await page.getTextContent();
+      var words = [];
+      for(var wi=0; wi<content.items.length; wi++){
+        var item = content.items[wi];
+        var str = (item.str||'').trim();
+        if(!str) continue;
+        var x0 = item.transform[4];
+        var top = pageHeight - item.transform[5];
+        var parts = str.split(/\s+/).filter(Boolean);
+        if(parts.length<=1){
+          words.push({text: str, x0: x0, top: top, pagina: pi});
+        } else {
+          var w = item.width || 0;
+          (function(parts, x0, w, top, pi){
+            parts.forEach(function(p, idx){
+              words.push({text: p, x0: x0 + (w*idx/parts.length), top: top, pagina: pi});
+            });
+          })(parts, x0, w, top, pi);
+        }
+      }
+      var parsed = parsePageWords(words, leftover, pi);
+      leftover = parsed.leftover || [];
+      var match = parsed.find(function(e){ return String(e[0]).trim()===matricula; });
+      if(match) return match; // [id, nombre, dias]
+    }catch(errPag){
+      console.log('Búsqueda de tripulante: no se pudo leer la página '+pi+' de '+numPages+', se continúa.', errPag);
+      leftover = [];
+    }
+  }
+  return null;
+}
+
+async function _buscarFilaMatriculaEnArchivo(fila, matricula){
+  var archivoResp = await fetch(fila.url_archivo);
+  if(!archivoResp.ok) return null;
+  var nombreArchivo = fila.nombre_archivo || '';
+  if(/\.xlsx$/i.test(nombreArchivo)){
+    var buf = await archivoResp.arrayBuffer();
+    var datos = parseHorarioGeneralXLSX(buf);
+    return datos.find(function(e){ return String(e[0]).trim()===matricula; }) || null;
+  }
+  if(/\.csv$/i.test(nombreArchivo)){
+    var texto = await archivoResp.text();
+    var datosCsv = parseHorarioGeneralCSV(texto);
+    return datosCsv.find(function(e){ return String(e[0]).trim()===matricula; }) || null;
+  }
+  var bufPdf = await archivoResp.arrayBuffer();
+  return await _buscarFilaMatriculaEnPdf(bufPdf, matricula);
+}
+
+window.buscarTripulanteEnTodasLasSedes = async function(matricula){
+  if(typeof sbAdmin==='undefined') return { valida:false, motivo:'No se pudo conectar para comprobar la matrícula.' };
+  var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
+  if(resp.error || !resp.data || !resp.data.length){
+    return { valida:false, motivo:'No hay ningún Horario General publicado todavía.' };
+  }
+  var filasConArchivo = resp.data.filter(function(f){ return f.url_archivo; });
+  if(!filasConArchivo.length) return { valida:false, motivo:'No hay ningún Horario General publicado todavía.' };
+
+  var promesas = filasConArchivo.map(function(fila){
+    return _buscarFilaMatriculaEnArchivo(fila, matricula).then(function(match){
+      if(match) return { nombre: match[1], sede: fila.sede || fila.tipo.replace('horario_general_','') };
+      return Promise.reject(new Error('no está en esta sede'));
+    });
+  });
+  try{
+    var resultado = await Promise.any(promesas);
+    return { valida:true, nombre: resultado.nombre, sede: resultado.sede };
+  }catch(e){
+    return { valida:false, motivo:'Esa matrícula no aparece en ningún Horario General publicado todavía.' };
+  }
 };
 
 // NUEVO — para el "con quién viajas" automático en Turnos del mes
@@ -19509,6 +19973,47 @@ function findCompanions(day, selfId, selfName, selfCell){
   }
   return out;
 }
+
+// NUEVO — GENERAL (para cualquier persona, no solo el admin): muestra
+// mi horario y el de la persona buscada, lado a lado, día a día,
+// directamente dentro del propio Buscador — sin tocar el Calendario
+// ni COMP_DATA ni TV. Se busca "mi" fila dentro del mismo Horario
+// General ya cargado (activeBase.data), comparando por matrícula
+// (AJ.matricula, configurada en Ajustes → Perfil).
+function compararAquiEnBuscador(id, name, days){
+  const zone = document.getElementById('compararAquiZone');
+  if(!zone) return;
+  const miMatricula = (typeof AJ!=='undefined' && AJ.matricula) ? String(AJ.matricula).trim() : '';
+  if(!miMatricula){
+    zone.innerHTML = `<div class="hint-empty">Configura tu matrícula en Ajustes → Perfil para poder comparar.</div>`;
+    return;
+  }
+  const miEntry = activeBase.data.find(e => String(e[0]).trim()===miMatricula);
+  if(!miEntry){
+    zone.innerHTML = `<div class="hint-empty">No te encuentro en el Horario General de ${activeBase.label} con la matrícula ${miMatricula} — puede que no estés en esta sede, o que tu matrícula en Ajustes no coincida con la del PDF.</div>`;
+    return;
+  }
+  const misDias = miEntry[2];
+  let filas = '';
+  for(let d=1; d<=31; d++){
+    const miCelda = misDias[String(d)] || '—';
+    const suCelda = days[String(d)] || '—';
+    filas += `<div class="comp-cmp-row">
+      <div class="comp-cmp-day">${d}</div>
+      <div class="comp-cmp-mio">${miCelda}</div>
+      <div class="comp-cmp-suyo">${suCelda}</div>
+    </div>`;
+  }
+  const primerNombre = name.split(',')[0];
+  zone.innerHTML = `<div class="comp-wrap" style="margin-top:6px">
+    <div class="comp-hdr"><span class="ct">Tú vs ${name}</span></div>
+    <div class="comp-cmp-head">
+      <div></div><div>Tú</div><div>${primerNombre}</div>
+    </div>
+    ${filas}
+  </div>`;
+  zone.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 // ═══ ACORDEONES APILADOS (nombre / tren) ═══
 document.querySelectorAll('.acc-head').forEach(head=>{
   head.addEventListener('click', ()=>{
@@ -19882,12 +20387,21 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
         <span class="p-leg"><span class="dot dot-dop"></span>DOP</span>
         <span class="p-leg"><span class="dot dot-oth"></span>Otros</span>
       </div>
+      <button id="btnCompararAqui" style="width:100%;margin:4px 0 8px;padding:10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:#6ee7b7;font-size:12px;font-weight:700;cursor:pointer">📊 Comparar mi horario con el suyo aquí</button>
+      <div id="compararAquiZone"></div>
+      ${(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin')
+        ? `<button id="btnImportarComp" style="width:100%;margin:4px 0 10px;padding:10px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:10px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío en el Calendario</button>`
+        : ''}
       <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día en la línea de tiempo para ver con quién compartes ese turno.</div>
       <div class="timeline">${items}</div>
       <div id="compZone"></div>
     </div>
   `;
   document.getElementById('backBtn').addEventListener('click', ()=>{ doSearch(); });
+  var btnImpComp = document.getElementById('btnImportarComp');
+  if(btnImpComp) btnImpComp.addEventListener('click', ()=>{ importarComoCompanero(id, name, days); });
+  var btnCompararAqui = document.getElementById('btnCompararAqui');
+  if(btnCompararAqui) btnCompararAqui.addEventListener('click', ()=>{ compararAquiEnBuscador(id, name, days); });
   viewEl.querySelectorAll('.tl-item').forEach(item=>{
     item.addEventListener('click', ()=>{
       const d = parseInt(item.dataset.day, 10);
@@ -20505,9 +21019,110 @@ clearBtn.addEventListener('click', ()=>{
   };
 
   function elegirTripulante(){
-    localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
+    // NUEVO — si ya hay sesión de admin activa en este dispositivo,
+    // su identidad ya quedó demostrada con email+contraseña (más
+    // fuerte que una matrícula) — entra directo, sin matrícula ni
+    // descargo, igual que ya se hace en otras partes de la app para
+    // el admin.
+    if(typeof perfilAdminActual !== 'undefined' && perfilAdminActual && perfilAdminActual.rol === 'admin'){
+      localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
+      ocultarPortal();
+      ocultarPantallaInterventor();
+      return;
+    }
     ocultarPortal();
+    mostrarAccesoTripulante();
+  }
+  function mostrarAccesoTripulante(motivo){
+    var el = document.getElementById('portal-tripulante-acceso');
+    if(el) el.style.display = 'flex';
+    var msg = document.getElementById('accesoTripulanteMsg');
+    if(msg) msg.innerHTML = motivo ? '<span style="color:#FCA5A5">'+motivo+'</span>' : '';
+  }
+  function ocultarAccesoTripulante(){
+    var el = document.getElementById('portal-tripulante-acceso');
+    if(el) el.style.display = 'none';
+  }
+  // Entra como tripulante SIN rellenar nada — la persona podrá poner
+  // su nombre/matrícula/sede a mano en Ajustes, como funcionaba antes
+  // de este cambio. Es la vía de escape si no tiene la matrícula a
+  // mano ahora mismo, o si prefiere no buscarla.
+  function saltarAccesoTripulante(){
+    localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
+    ocultarAccesoTripulante();
     ocultarPantallaInterventor();
+  }
+  async function validarMatriculaTripulanteYEntrar(){
+    var input = document.getElementById('accesoMatriculaTripulanteInput');
+    var msg = document.getElementById('accesoTripulanteMsg');
+    var btn = document.getElementById('btnContinuarAccesoTripulante');
+    var checkDescargo = document.getElementById('accesoAceptoDescargoTripulante');
+    var matricula = input ? input.value.trim() : '';
+    if(!matricula){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Escribe tu número de matrícula.</span>';
+      return;
+    }
+    if(!checkDescargo || !checkDescargo.checked){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Marca la casilla de las condiciones de uso para continuar.</span>';
+      return;
+    }
+    if(typeof buscarTripulanteEnTodasLasSedes !== 'function'){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.</span>';
+      return;
+    }
+    var textoOriginal = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Buscando en todas las sedes...'; }
+    var resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
+    try{
+      resultado = await buscarTripulanteEnTodasLasSedes(matricula);
+    }catch(e){
+      resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
+    }
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+
+    if(!resultado || !resultado.valida){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en ningún Horario General publicado.')+'</span>';
+      return;
+    }
+
+    // Encontrada: se rellenan AJ.nombre/AJ.matricula/AJ.base solas —
+    // a partir de aquí ya no hace falta entrar en Ajustes para nada
+    // de esto (solo para cambiar el nombre a mano o los montos a
+    // pagar, si algún día hace falta).
+    if(typeof AJ !== 'undefined'){
+      AJ.nombre = resultado.nombre || AJ.nombre;
+      AJ.matricula = matricula;
+      AJ.base = resultado.sede || AJ.base;
+      try{ localStorage.setItem('aj5', JSON.stringify(AJ)); }catch(e){}
+    }
+    // NUEVO — deja la MISMA marca que ya usa el Buscador de
+    // Compañeros para saber que esta matrícula ya aceptó el
+    // descargo — así, al entrar luego al Buscador, no se le vuelve a
+    // preguntar nada (ni matrícula ni condiciones), porque ya quedó
+    // resuelto aquí, en el primer acceso a la app.
+    try{ localStorage.setItem('descargoAceptado_matricula', matricula); }catch(e){}
+
+    // NUEVO — Registro del acceso (matrícula + nombre + sede + fecha)
+    // en la tabla dedicada accesos_tripulante, para que el admin
+    // pueda ver en su panel quién usa la app como Tripulante — igual
+    // que ya existe para Interventor. Solo la PRIMERA vez por
+    // matrícula (matricula es la clave primaria de la tabla): si ya
+    // existe, el error de clave duplicada se ignora a propósito, sin
+    // molestar a la persona con ningún aviso.
+    if(typeof sbAdmin !== 'undefined'){
+      sbAdmin.from('accesos_tripulante').insert({
+        matricula: matricula,
+        nombre: resultado.nombre || null,
+        sede: resultado.sede || null,
+        fecha_hora: new Date().toISOString()
+      }).then(function(){}).catch(function(){});
+    }
+
+    localStorage.setItem('perfilPortalTrenTurnos', 'tripulante');
+    ocultarAccesoTripulante();
+    ocultarPantallaInterventor();
+    if(typeof toast==='function') toast('✅ ¡Hola '+(resultado.nombre||'')+'! Sede: '+(resultado.sede||'—'));
+    if(typeof actualizarSaludo==='function') actualizarSaludo();
   }
   // MODIFICADO — ya no se entra directo al elegir "Interventor": ahora
   // primero se pide su matrícula y se comprueba contra el Horario
@@ -20515,6 +21130,15 @@ clearBtn.addEventListener('click', ()=>{
   // validarMatriculaInterventor, arriba). Solo si la comprobación pasa
   // se guarda 'perfilPortalTrenTurnos'='interventor' y se entra.
   function elegirInterventor(){
+    // NUEVO — mismo bypass que en elegirTripulante(): el admin ya
+    // demostró quién es con su email+contraseña, no necesita pasar
+    // por la matrícula de interventor.
+    if(typeof perfilAdminActual !== 'undefined' && perfilAdminActual && perfilAdminActual.rol === 'admin'){
+      localStorage.setItem('perfilPortalTrenTurnos', 'interventor');
+      ocultarPortal();
+      mostrarPantallaInterventor();
+      return;
+    }
     ocultarPortal();
     mostrarAccesoInterventor();
   }
@@ -20559,6 +21183,31 @@ clearBtn.addEventListener('click', ()=>{
     });
     if(btnVerDescargo) btnVerDescargo.addEventListener('click', abrirDescargoInterventor);
     if(btnCerrarDescargo) btnCerrarDescargo.addEventListener('click', cerrarDescargoInterventor);
+
+    // NUEVO — Acceso de Tripulante (matrícula, sin descargo)
+    var btnValidarT = document.getElementById('btnContinuarAccesoTripulante');
+    var btnSaltarT = document.getElementById('btnSaltarAccesoTripulante');
+    var btnVolverT = document.getElementById('btnVolverAccesoTripulante');
+    var inputMatT = document.getElementById('accesoMatriculaTripulanteInput');
+    if(btnValidarT) btnValidarT.addEventListener('click', validarMatriculaTripulanteYEntrar);
+    if(btnSaltarT) btnSaltarT.addEventListener('click', saltarAccesoTripulante);
+    if(btnVolverT) btnVolverT.addEventListener('click', function(){
+      ocultarAccesoTripulante();
+      mostrarPortal();
+    });
+    if(inputMatT) inputMatT.addEventListener('keydown', function(e){
+      if(e.key === 'Enter') validarMatriculaTripulanteYEntrar();
+    });
+    var btnVerDescargoT = document.getElementById('btnVerDescargoTripulante');
+    var btnCerrarDescargoT = document.getElementById('btnCerrarDescargoTripulante');
+    if(btnVerDescargoT) btnVerDescargoT.addEventListener('click', function(){
+      var m = document.getElementById('tripulanteDescargoModal');
+      if(m) m.style.display = 'flex';
+    });
+    if(btnCerrarDescargoT) btnCerrarDescargoT.addEventListener('click', function(){
+      var m = document.getElementById('tripulanteDescargoModal');
+      if(m) m.style.display = 'none';
+    });
   }
 
   // FIX — antes el Portal de Perfil decidía cuándo aparecer con SU
