@@ -19821,7 +19821,17 @@ const SHIFT_WHITELIST = new Set(['DO','F','R','LD','CP','DOP','B','EX','PP','FE'
 function isShiftCode(text){
   if(text.includes(':') || text.includes(',')) return false;
   if(/^[0-9]/.test(text)) return true;
-  return SHIFT_WHITELIST.has(text);
+  if(SHIFT_WHITELIST.has(text)) return true;
+  // FIX — un código de turno partido en 2 líneas a veces continúa en
+  // la segunda con una letra (ej. "4121T1D" arriba, "H-622" debajo,
+  // en el PDF real de Madrid) — antes se rechazaba por no empezar con
+  // un número, y esa segunda línea se perdía sin más, dejando el
+  // código incompleto ("4121T1D" en vez de "4121T1DH-622"). Ahora se
+  // acepta si contiene algún dígito Y no es un fragmento de ruta/
+  // estación puro (looksLikeStationCode ya distingue eso, ej.
+  // "BSN-ATO" sigue rechazándose correctamente).
+  if(/[0-9]/.test(text) && !looksLikeStationCode(text)) return true;
+  return false;
 }
 function getDayColumns(words){
   const cands = words.filter(w => /^[0-9]{1,2}$/.test(w.text) && w.top>=50 && w.top<=65);
