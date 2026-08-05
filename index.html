@@ -1304,6 +1304,25 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   display:none; /* el header propio de la tarjeta se oculta — el acordeón ya muestra título e icono */
 }
 
+/* NUEVO — Acordeón para las tarjetas "Accesos de..." del Panel de
+   Admin (Buscador de Compañeros / Interventor / Tripulante).
+   Autocontenido, no depende de .aj-acc-* (Ajustes) para evitar
+   cualquier interferencia entre pantallas — mismo criterio que ya se
+   siguió con "Turnos del mes". Mismo aspecto visual que .aj-acc-*. */
+.adm-acc-item{
+  border-radius:16px;overflow:hidden;margin-bottom:14px;
+  background:var(--s1);border:1px solid var(--div);transition:border-color .2s;
+}
+.adm-acc-item.adm-acc-open{border-color:rgba(99,102,241,.35)}
+.adm-acc-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;user-select:none;transition:background .15s}
+.adm-acc-hdr:active{background:var(--s2)}
+.adm-acc-hdr-arr{font-size:16px;color:var(--tx3);transition:transform .25s cubic-bezier(.4,0,.2,1);flex-shrink:0}
+.adm-acc-item.adm-acc-open .adm-acc-hdr-arr{transform:rotate(90deg);color:var(--acc)}
+.adm-acc-body{max-height:0;overflow:hidden;transition:max-height .32s cubic-bezier(.4,0,.2,1)}
+.adm-acc-item.adm-acc-open .adm-acc-body{max-height:2000px}
+.adm-acc-body .admin-card{border:none;border-radius:0;box-shadow:none;margin:0}
+.adm-acc-body .admin-card-hdr{display:none}
+
 /* ── ACORDEÓN: TURNO DE HOY ── */
 .hoy-acc{
   margin:8px 10px 0;
@@ -4940,6 +4959,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <!-- NUEVO — Accesos del Buscador de Compañeros (tripulación):
          quién ha entrado, con qué matrícula/nombre y cuándo. Antes
          solo se podía ver entrando a Supabase directamente. -->
+    <div class="adm-acc-item" id="adm-acc-buscador">
+      <div class="adm-acc-hdr" onclick="toggleAdmAcc('adm-acc-buscador')">
+        <span style="font-size:19px">🔍</span>
+        <span style="flex:1;font-size:13px;font-weight:700;color:var(--tx)">Accesos del Buscador de Compañeros</span>
+        <span class="adm-acc-hdr-arr">›</span>
+      </div>
+      <div class="adm-acc-body">
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">🔍</div>
@@ -4951,6 +4977,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAceptacionesDescargoAdmin()">🔄 Actualizar lista</button>
       <div class="estado-archivo sin-archivo" id="estadoAceptacionesDescargo">Toca "Actualizar lista" para ver los accesos.</div>
       <div id="listaAceptacionesDescargo" style="margin-top:8px"></div>
+    </div>
+      </div>
     </div>
 
     <div class="admin-card">
@@ -4983,6 +5011,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <!-- NUEVO — Accesos de Interventor: quién ha entrado, con qué
          matrícula/nombre y cuándo. Se rellena sola cada vez que
          alguien pasa el Acceso de Interventor del Portal de Perfil. -->
+    <div class="adm-acc-item" id="adm-acc-interventor">
+      <div class="adm-acc-hdr" onclick="toggleAdmAcc('adm-acc-interventor')">
+        <span style="font-size:19px">🕵️</span>
+        <span style="flex:1;font-size:13px;font-weight:700;color:var(--tx)">Accesos de Interventor</span>
+        <span class="adm-acc-hdr-arr">›</span>
+      </div>
+      <div class="adm-acc-body">
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">🕵️</div>
@@ -4995,11 +5030,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="estado-archivo sin-archivo" id="estadoAccesosInterventor">Toca "Actualizar lista" para ver los accesos.</div>
       <div id="listaAccesosInterventor" style="margin-top:8px"></div>
     </div>
+      </div>
+    </div>
 
     <!-- NUEVO — Accesos de Tripulante: igual que Interventor, pero
          para quien entra por el otro botón del Portal de Perfil.
          Solo aparece una fila por matrícula (la primera vez que
          entra), no cada vez que abre la app. -->
+    <div class="adm-acc-item" id="adm-acc-tripulante">
+      <div class="adm-acc-hdr" onclick="toggleAdmAcc('adm-acc-tripulante')">
+        <span style="font-size:19px">🚂</span>
+        <span style="flex:1;font-size:13px;font-weight:700;color:var(--tx)">Accesos de Tripulante</span>
+        <span class="adm-acc-hdr-arr">›</span>
+      </div>
+      <div class="adm-acc-body">
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">🚂</div>
@@ -5011,6 +5055,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAccesosTripulanteAdmin()">🔄 Actualizar lista</button>
       <div class="estado-archivo sin-archivo" id="estadoAccesosTripulante">Toca "Actualizar lista" para ver los accesos.</div>
       <div id="listaAccesosTripulante" style="margin-top:8px"></div>
+    </div>
+      </div>
     </div>
 
     <div class="admin-card">
@@ -14621,8 +14667,22 @@ function toggleAjAcc(id){
     if(todos[ii].id !== id) todos[ii].classList.remove('aj-acc-open');
   }
   // Toggle del bloque pulsado
-  if(yaAbierto) el.classList.remove('aj-acc-open');
-  else el.classList.add('aj-acc-open');
+  if(yaAbierto) el.classList.remove('aj-acc-open');  else el.classList.add('aj-acc-open');
+}
+
+// NUEVO — Acordeón independiente para las tarjetas "Accesos de..."
+// del Panel de Admin. Mismo comportamiento que toggleAjAcc() (solo
+// uno abierto a la vez), pero sobre .adm-acc-item, para no
+// interferir con el acordeón de Ajustes.
+function toggleAdmAcc(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var yaAbierto = el.classList.contains('adm-acc-open');
+  var todos = document.querySelectorAll('.adm-acc-item');
+  for(var ii=0; ii<todos.length; ii++){
+    if(todos[ii].id !== id) todos[ii].classList.remove('adm-acc-open');
+  }
+  if(yaAbierto) el.classList.remove('adm-acc-open'); else el.classList.add('adm-acc-open');
 }
 /* ═══════════════════════════════════════════════════════════ */
 
