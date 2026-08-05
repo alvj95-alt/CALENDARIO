@@ -18464,17 +18464,30 @@ async function cargarHorarioGlobalDesdeAdmin(){
       if(!respTodas.data || !respTodas.data.length){ _diagHorarioGeneral = 'Consulta (admin) sin filas: no hay ninguna fila con tipo LIKE horario_general_%'; return false; }
       var datosFusionados = [];
       var fechaMasReciente = null;
+      // NUEVO — antes, si el PDF de una sede fallaba al leerse (0
+      // empleados, por el motivo que fuera), esa sede simplemente se
+      // saltaba EN SILENCIO — el resultado seguía llamándose "Todas
+      // las sedes (admin)" aunque, en la práctica, esa sede no
+      // hubiera entrado. Ahora se lleva la cuenta de cuántos
+      // empleados se leyeron de CADA sede, y si alguna se queda en 0,
+      // se avisa explícitamente en el propio label — para que un
+      // fallo de lectura ya no se confunda con "esa sede de verdad no
+      // tiene a nadie en ese tren ese día".
+      var resumenPorSede = [];
       for(var i=0; i<respTodas.data.length; i++){
         var filaSede = respTodas.data[i];
-        if(!filaSede.url_archivo) continue;
+        var sedeLbl = filaSede.sede || filaSede.tipo.replace('horario_general_','');
+        if(!filaSede.url_archivo){ resumenPorSede.push(sedeLbl+':sin archivo'); continue; }
         var datosSede = await _descargarYParsearHorario(filaSede);
         if(datosSede && datosSede.length){
           // Se etiqueta cada empleado con su sede real, añadiéndola
           // como 4º elemento de la tupla [id, nombre, dias, sede] —
           // no rompe nada existente, que solo usa los 3 primeros.
-          var sedeLbl = filaSede.sede || filaSede.tipo.replace('horario_general_','');
           datosSede.forEach(function(emp){ emp[3] = sedeLbl; });
           datosFusionados = datosFusionados.concat(datosSede);
+          resumenPorSede.push(sedeLbl+':'+datosSede.length);
+        } else {
+          resumenPorSede.push(sedeLbl+':⚠️0 empleados');
         }
         var fechaFila = new Date(filaSede.fecha_subida);
         if(!fechaMasReciente || fechaFila>fechaMasReciente) fechaMasReciente = fechaFila;
@@ -18482,7 +18495,9 @@ async function cargarHorarioGlobalDesdeAdmin(){
       if(!datosFusionados.length){ _diagHorarioGeneral = 'Filas encontradas ('+respTodas.data.length+'), pero 0 empleados tras parsear todas'; return false; }
       BASES.global.data = datosFusionados;
       BASES.global.month = fechaMasReciente ? fechaMasReciente.toLocaleDateString('es-ES') : '—';
-      BASES.global.label = 'Horario General · Todas las sedes (admin)';
+      var huboFallo = resumenPorSede.some(function(r){ return r.indexOf('⚠️')!==-1 || r.indexOf('sin archivo')!==-1; });
+      BASES.global.label = 'Horario General · Todas las sedes (admin)' + (huboFallo ? ' — ⚠️ revisar: '+resumenPorSede.join(', ') : '');
+      console.log('Horario General (admin, todas las sedes) — empleados por sede:', resumenPorSede.join(' | '));
       return true;
     }
 
