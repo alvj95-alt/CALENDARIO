@@ -18833,14 +18833,32 @@ window.buscarTripulanteEnTodasLasSedes = async function(matricula){
   }
 };
 
+// NUEVO — recuerda con qué "modo" se cargaron los datos la última vez
+// (todas las sedes, si eres admin/interventor; o una sola sede, si
+// eres tripulante normal) — para saber cuándo hay que recargar.
+var _ultimoModoCargaHorarioGeneral = null;
+
 // NUEVO — para el "con quién viajas" automático en Turnos del mes
 // (Horario individual). Reutiliza activeBase/cellContainsTrain ya
 // existentes, sin duplicar esa lógica. Se expone a window por el
 // mismo motivo de siempre: ese panel vive fuera de este módulo.
 window.asegurarHorarioGeneralCargado = async function(){
-  if(activeBase && activeBase.data) return true;
+  // FIX — antes, en cuanto activeBase.data se cargaba UNA vez (por
+  // ejemplo, como tripulante normal de una sola sede, ANTES de
+  // iniciar sesión de admin o entrar como interventor), esos datos se
+  // quedaban en caché para siempre — aunque luego la persona pasara a
+  // ser admin/interventor, "con quién viajas" seguía buscando solo en
+  // esa única sede de antes. Ahora se comprueba si el modo (todas las
+  // sedes vs. una sola) cambió desde la última carga, y si cambió, se
+  // vuelve a pedir todo de cero.
+  var esAdminOInterventorAhora = !!(perfilAdminActual && perfilAdminActual.rol==='admin') || !!(usuarioActual && usuarioActual.esInterventor);
+  var modoEsperado = esAdminOInterventorAhora ? 'todas-las-sedes' : ('sede:'+_sedeUsuarioActual());
+  if(activeBase && activeBase.data && _ultimoModoCargaHorarioGeneral === modoEsperado) return true;
   var ok = await cargarHorarioGlobalDesdeAdmin();
-  if(ok) activateBase('global');
+  if(ok){
+    activateBase('global');
+    _ultimoModoCargaHorarioGeneral = modoEsperado;
+  }
   return !!(activeBase && activeBase.data);
 };
 window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
