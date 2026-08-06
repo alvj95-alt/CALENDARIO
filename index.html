@@ -3627,7 +3627,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div class="bnav">
   <button class="bni on" id="nav-cal" onclick="goP('cal')"><div class="bi">📅</div><div class="bl">CALENDARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-horario" onclick="goP('horario')"><div class="bi">🗂️</div><div class="bl">HORARIO</div><div class="bd"></div></button>
-  <button class="bni" id="nav-companeros" onclick="abrirAccesoBuscadorCompaneros()"><div class="bi">👥</div><div class="bl">COMPAÑEROS</div><div class="bd"></div></button>
+  <button class="bni" id="nav-companeros" onclick="goP('companeros')"><div class="bi">👥</div><div class="bl">COMPAÑEROS</div><div class="bd"></div></button>
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
 </div>
@@ -18686,9 +18686,10 @@ window.abrirAccesoBuscadorCompaneros = function(){
     // previas integradas, ciertos navegadores/webviews) puede quedar
     // bloqueado sin mostrarse — dando la sensación de que el botón
     // "no hace nada" cuando en realidad sí se estaba ejecutando, solo
-    // que el aviso nunca llegaba a verse. Ahora se navega igualmente
-    // a la pestaña y se muestra el aviso ahí mismo, siempre visible.
-    goP('companeros');
+    // que el aviso nunca llegaba a verse. Ahora se muestra el aviso
+    // directamente en la propia pestaña (a la que goP() ya nos trajo
+    // antes de llamar a esta función — NO hay que volver a llamar a
+    // goP() aquí, o se entra en un bucle infinito entre las dos).
     var statusElSinBase = document.getElementById('estadoHorarioGlobalBuscador');
     if(statusElSinBase){
       statusElSinBase.innerHTML = '⚠️ Antes de usar el Buscador de Compañeros, configura tu Estación Base.'
@@ -18700,7 +18701,6 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // (email+contraseña, o su propia validación de matrícula) — no
   // hace falta pedirles otra vez matrícula ni descargo aquí.
   if(esAdminActivo || esInterventorActivo){
-    goP('companeros');
     abrirBuscadorConHorarioGlobal();
     return;
   }
@@ -18709,7 +18709,6 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // falta volver a escribirla aquí. Solo aplica a cuentas de matrícula
   // (usuarioActual.matricula), no al admin (que entra por otra vía).
   if(usuarioActual && usuarioActual.matricula){
-    goP('companeros');
     abrirBuscadorConHorarioGlobal();
     return;
   }
@@ -18717,7 +18716,6 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // dispositivo, no se le vuelve a preguntar: se entra directo.
   var matriculaGuardada = localStorage.getItem('descargoAceptado_matricula');
   if(matriculaGuardada){
-    goP('companeros');
     abrirBuscadorConHorarioGlobal();
     return;
   }
