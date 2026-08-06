@@ -2184,9 +2184,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   opacity:.92;
 }
 
-/* ══════════ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ══════════ */
-#ov-buscador{align-items:stretch}
-#ov-buscador .at-shell{width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+/* ══════════ APP TURNO · PESTAÑA COMPAÑEROS (antes módulo emergente) ══════════ */
+#p-companeros .at-shell{width:100%;height:100%;background:transparent;display:flex;flex-direction:column;overflow:hidden}
 
 
 .at-hdr{padding:16px 18px 14px;border-bottom:1px solid var(--div);flex-shrink:0}
@@ -3595,7 +3594,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div style="padding:0 10px">
   <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
   <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
-  <button id="btnBuscadorCompaneros" class="upload-btn" style="margin-top:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="abrirAccesoBuscadorCompaneros()">🚆 Buscador de Compañeros</button>
   <!-- NUEVO — reinicia la elección Tripulante/Interventor del Portal
        de Perfil, por si alguien se equivocó al elegir o presta el
        móvil a otra persona. -->
@@ -3629,6 +3627,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div class="bnav">
   <button class="bni on" id="nav-cal" onclick="goP('cal')"><div class="bi">📅</div><div class="bl">CALENDARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-horario" onclick="goP('horario')"><div class="bi">🗂️</div><div class="bl">HORARIO</div><div class="bd"></div></button>
+  <button class="bni" id="nav-companeros" onclick="abrirAccesoBuscadorCompaneros()"><div class="bi">👥</div><div class="bl">COMPAÑEROS</div><div class="bd"></div></button>
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
 </div>
@@ -4554,8 +4553,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- NUEVO — OV: ACCESO SEGURO AL BUSCADOR DE COMPAÑEROS.
      Requisito: matrícula validada contra el Horario General ya
      cargado + aceptación del descargo de responsabilidades. Solo
-     tras validar ambas cosas se abre el buscador real (sin tocar
-     ov-buscador ni su lógica interna). -->
+     tras validar ambas cosas se abre la pestaña Compañeros real
+     (sin tocar p-companeros ni su lógica interna). -->
 <div class="ov" id="ov-acceso-buscador" onclick="if(event.target===this)closeOv('ov-acceso-buscador')">
   <div class="sh" onclick="event.stopPropagation()">
     <div class="sh-hdr">
@@ -4588,17 +4587,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- ═══ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ═══ -->
-<div class="ov" id="ov-buscador">
+<div class="panel" id="p-companeros">
 <div class="at-shell">
 
-  <div class="at-hdr">
-    <div class="at-hdr-top">
-      <div>
-        <div class="at-hdr-titulo" id="hdrTitulo">App Turno</div>
-        <div class="at-hdr-pill at-pill-t" id="hdrPill">🔍 SELECCIONA UNA BASE</div>
-      </div>
-      <div class="at-hdr-btns" id="hdrBtns"><button class="at-hbtn" onclick="closeOv('ov-buscador')" title="Cerrar">✕</button></div>
+  <div style="padding:16px 14px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--tx)" id="hdrTitulo">👥 Compañeros</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px" id="hdrPill">Busca a un compañero por nombre o por tren</div>
     </div>
+    <div id="hdrBtns"></div>
   </div>
 
   <div class="at-body">
@@ -4801,14 +4798,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
 
     <!-- NUEVO — Nota informativa sobre la disponibilidad de los
-         datos de Interventor, redactada en tono profesional. -->
-    <div style="margin:0 16px 14px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:12px;padding:14px 15px;font-size:12px;color:var(--tx2);line-height:1.65">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">
-        <span>ℹ️</span><span>Sobre los datos de Interventor</span>
+         datos de Interventor, ahora en acordeón (colapsada por
+         defecto) para que no ocupe toda la pantalla al entrar. -->
+    <div class="adm-acc-item" id="acc-nota-interventor" style="margin:0 16px 14px">
+      <div class="adm-acc-hdr" onclick="toggleAdmAcc('acc-nota-interventor')" style="padding:12px 15px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:12px">
+        <span>ℹ️</span>
+        <span style="flex:1;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">Sobre los datos de Interventor</span>
+        <span class="adm-acc-hdr-arr">›</span>
       </div>
-      La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
-      <br><br>
-      Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
+      <div class="adm-acc-body">
+        <div style="padding:12px 15px 2px;font-size:12px;color:var(--tx2);line-height:1.65">
+          La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
+          <br><br>
+          Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
+        </div>
+      </div>
     </div>
 
     <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
@@ -8547,6 +8551,85 @@ function compartirOFallback(blob, tramos, mensajePersonalizado){
   }
 }
 
+// NUEVO — Sistema Horario Compañero (rediseño): vista de SOLO LECTURA
+// para los modos "Compañero" y "Comparar". Nunca modifica nada, no
+// tiene ningún botón de editar/añadir turno. Reutiliza COMP_DATA (el
+// compañero, ya extraído del Horario General) y TV[k] (tu propio
+// turno real, para "Comparar"), presentados con el mismo formato de
+// tarjeta sencilla — pero claramente marcados como orientativos/
+// bloqueados. El modo "Mis turnos" nunca llama a esto.
+function _renderVistaSoloLecturaCompanero(d, k, t, fstr){
+  var partes = [];
+  partes.push('<div style="padding:2px 4px 10px;font-size:13px;color:var(--tx2);font-weight:700">'+fstr+'</div>');
+
+  if(vistaMode==='ambos'){
+    partes.push(_tarjetaOrientativaPropia(t));
+  }
+
+  // NUEVO — mismo motivo que en aplicarVistaCompanero(): si el
+  // PDF importado es de otro mes distinto al que se está viendo, no
+  // se muestra el turno del compañero (evita mostrar el día 5 de un
+  // mes cuando el PDF cargado es de otro mes distinto).
+  var _kParts = k.split('-').map(Number);
+  var mesMostrado = _kParts[1]-1, anioMostrado = _kParts[0];
+  var mesNoCoincide = (COMP_DATA.anio!=null && COMP_DATA.mes!=null) && (COMP_DATA.anio!==anioMostrado || COMP_DATA.mes!==mesMostrado);
+
+  if(mesNoCoincide){
+    partes.push('<div class="ibox" style="margin-top:10px;opacity:.7"><span class="ibox-i">📅</span><span>El horario importado de '+(COMP_DATA.name||'este compañero')+' es de otro mes — no se muestra aquí para evitar confusiones.</span></div>');
+    return partes.join('');
+  }
+
+  var codigo = (COMP_DATA.days && COMP_DATA.days[String(d)]) || '';
+  if(codigo){
+    var ci = (COMP_DATA.horasCI||{})[d] || '';
+    var co = (COMP_DATA.horasCO||{})[d] || '';
+    var ruta = (COMP_DATA.rutaPorDia||{})[d] || '';
+    partes.push(_tarjetaOrientativaCompanero(COMP_DATA.name, codigo, ci, co, ruta));
+  } else {
+    partes.push('<div class="ibox" style="margin-top:10px;opacity:.7"><span class="ibox-i">👤</span><span>'+(COMP_DATA.name||'Compañero')+' no tiene turno registrado este día (según el Horario General).</span></div>');
+  }
+
+  return partes.join('');
+}
+
+// Tarjeta de solo lectura para TU PROPIO turno, usada solo en modo
+// "Comparar" — muestra los mismos datos reales de TV[k], pero sin
+// ningún botón de acción (para editar, hay que volver a "Mis turnos").
+function _tarjetaOrientativaPropia(t){
+  if(!t) return '<div class="ibox" style="margin-bottom:10px;background:rgba(37,99,235,.06);border:1px solid rgba(37,99,235,.25);border-radius:12px;padding:12px"><span class="ibox-i">📋</span><span>Sin turno propio registrado este día.</span></div>';
+  var ti = (typeof TIPO_INFO!=='undefined' && TIPO_INFO[t.tipo]) ? TIPO_INFO[t.tipo] : {ico:'❓', lbl:t.tipo||''};
+  var horas = (t.hF && t.hL) ? (t.hF+' → '+t.hL) : '';
+  var ruta = (t.sal && t.lle) ? (t.sal+' → '+t.lle) : '';
+  return '<div style="margin-bottom:10px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);border-radius:12px;padding:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<span style="font-size:11px;font-weight:800;color:#93c5fd;text-transform:uppercase;letter-spacing:.3px">👤 Tú</span>'
+    + (t.numTren ? '<span style="font-size:11px;color:var(--tx3)">🚆 Tren '+t.numTren+'</span>' : '')
+    + '</div>'
+    + (horas ? '<div style="font-size:14px;font-weight:700;color:var(--tx);margin-top:5px">'+horas+'</div>' : '<div style="font-size:12px;color:var(--tx2);margin-top:5px">'+(ti.lbl||'')+'</div>')
+    + (ruta ? '<div style="font-size:11px;color:var(--tx2);margin-top:2px">'+ruta+'</div>' : '')
+    + '<div style="font-size:9px;color:var(--tx3);margin-top:8px;font-style:italic">Vista de solo lectura — para modificar, cambia a "Mis turnos"</div>'
+    + '</div>';
+}
+
+// Tarjeta de solo lectura para el turno del COMPAÑERO — datos
+// orientativos extraídos del Horario General (código de turno tal
+// cual, ruta aproximada, hora de toma/deje si se pudieron leer).
+function _tarjetaOrientativaCompanero(nombre, codigo, ci, co, ruta){
+  var trenMatch = codigo.match(/([0-9]{2,5})/);
+  var tren = trenMatch ? trenMatch[1] : '';
+  var rutaFmt = ruta ? ruta.split(/\s+/).join(' · ') : '';
+  return '<div style="margin-bottom:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<span style="font-size:11px;font-weight:800;color:#6ee7b7;text-transform:uppercase;letter-spacing:.3px">👤 '+(nombre||'Compañero')+'</span>'
+    + (tren ? '<span style="font-size:11px;color:var(--tx3)">🚆 Tren '+tren+'</span>' : '')
+    + '</div>'
+    + '<div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:5px">'+codigo+'</div>'
+    + ((ci||co) ? '<div style="font-size:12px;color:var(--tx2);margin-top:3px">'+(ci||'—')+' → '+(co||'—')+'</div>' : '')
+    + (rutaFmt ? '<div style="font-size:11px;color:var(--tx2);margin-top:2px">'+rutaFmt+'</div>' : '')
+    + '<div style="font-size:9px;color:var(--tx3);margin-top:8px;font-style:italic">Información orientativa — no editable</div>'
+    + '</div>';
+}
+
 function renderDiaArea(){
   // MÓDULO MULTI-TURNO: si hay extras, delegamos en renderDiaAreaMulti
   if(selDay && selDay.k && TV2[selDay.k] && TV2[selDay.k].length > 0){
@@ -8571,21 +8654,17 @@ function renderDiaArea(){
   var wd=(dt.getDay()+6)%7;
   var fstr=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
 
-  // NUEVO — Sistema Horario Compañero: si hay un compañero importado
-  // (solo posible siendo admin, ver importarComoCompanero) y el modo
-  // de vista no es 'mio', se calcula aquí su turno de este mismo día
-  // para poder mostrarlo en el detalle — tanto si tú tienes turno
-  // propio ese día como si no (antes, si no tenías turno propio, la
-  // función terminaba antes de llegar aquí y nunca se mostraba nada
-  // del compañero).
-  var companeroTexto = null;
+  // NUEVO — Sistema Horario Compañero, REDISEÑADO: cuando el modo de
+  // vista no es 'mio' (Compañero/Comparar), este día se muestra por
+  // un camino COMPLETAMENTE APARTE — tarjetas de solo lectura, con
+  // el mismo aspecto que una tarjeta de turno normal, pero SIN
+  // ningún botón de editar/añadir (bloqueado a propósito). El modo
+  // 'Mis turnos' nunca entra aquí — sigue exactamente el camino de
+  // siempre, sin ningún cambio de apariencia ni de comportamiento.
   if(typeof vistaMode!=='undefined' && vistaMode!=='mio' && typeof COMP_DATA!=='undefined' && COMP_DATA && COMP_DATA.days){
-    companeroTexto = COMP_DATA.days[String(d)] || null;
+    area.innerHTML = _renderVistaSoloLecturaCompanero(d, k, t, fstr);
+    return;
   }
-  var companeroHtml = companeroTexto
-    ? '<div class="ibox" style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.3);margin-top:10px">'
-      +'<span class="ibox-i">👤</span><span><b>'+(COMP_DATA.name||'Compañero')+'</b>: '+companeroTexto+'</span></div>'
-    : '';
 
   if(!t){
     area.innerHTML='<div class="dc-vacia" onclick="abrirTipo()">'
@@ -8593,8 +8672,7 @@ function renderDiaArea(){
       +'<div class="dcv-fecha">'+fstr+'</div>'
       +'<div class="dcv-hint">Sin turno asignado</div>'
       +'<button class="dcv-btn" onclick="abrirTipoDesdeCard()">➕ Agregar turno</button>'
-      +'</div>'
-      + companeroHtml;
+      +'</div>';
     return;
   }
 
@@ -8916,11 +8994,6 @@ function renderDiaArea(){
       : '')
     +'</div></div>';
   if(selDay) setTimeout(function(){renderTV2DiaCard(selDay.k);},10);
-  // NUEVO — Sistema Horario Compañero: si hay texto de compañero para
-  // este día, se añade al final del detalle (no reemplaza nada tuyo,
-  // solo se añade debajo) — así el modo "Comparar" muestra los dos
-  // turnos juntos en la misma tarjeta.
-  if(companeroHtml) area.insertAdjacentHTML('beforeend', companeroHtml);
   // NUEVO — "con quién viajas": rellena automáticamente, bajo demanda
   // (solo el día que se está viendo, no todo el mes de golpe), los
   // huecos de compañeros que acaban de pintarse en este detalle.
@@ -12869,11 +12942,13 @@ function closeOv(id){
   },140);
 }
 function goP(n){
-  ['cal','horario','stats','ajustes'].forEach(function(p){
-    document.getElementById('p-'+p).className='panel'+(p===n?' on':'');
-    document.getElementById('nav-'+p).className='bni'+(p===n?' on':'');
+  ['cal','horario','stats','ajustes','companeros'].forEach(function(p){
+    var elPanel = document.getElementById(p==='companeros' ? 'p-companeros' : 'p-'+p);
+    var elNav = document.getElementById('nav-'+p);
+    if(elPanel) elPanel.className='panel'+(p===n?' on':'');
+    if(elNav) elNav.className='bni'+(p===n?' on':'');
   });
-  var ap=document.getElementById('p-'+n);
+  var ap=document.getElementById(n==='companeros' ? 'p-companeros' : 'p-'+n);
   if(ap){ap.classList.remove('anim-in');void ap.offsetWidth;ap.classList.add('anim-in');}
   // SINCRONIZACIÓN: al entrar en Stats, alinear su mes con el del calendario
   if(n==='stats'){
@@ -12883,6 +12958,11 @@ function goP(n){
   if(n==='ajustes')loadAjUI();
   // NUEVO: refrescar la lista individual de meses al entrar en Horario
   if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
+  // NUEVO — al entrar en la pestaña Compañeros, dispara la misma
+  // comprobación/carga que antes hacía el botón dentro de Horario
+  // (matrícula ya validada → entra directo; si no, pide matrícula+
+  // descargo la primera vez). No repite la carga si ya está activa.
+  if(n==='companeros' && typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
 }
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2500);}
 // Cerrar overlays al tocar fuera
@@ -13631,16 +13711,24 @@ function setVistaMode(mode) {
 // por renderSlide() — no modifica ninguna clase ni dato existente de
 // las celdas, solo añade un elemento visual encima.
 function aplicarVistaCompanero(grid, y, m){
+  // FIX — antes, al volver a "Mis turnos", la función se salía aquí
+  // mismo sin quitar la clase que atenúa la celda — si venías de
+  // "Compañero", esa apariencia se quedaba "pegada" aunque ya
+  // estuvieras en Mis turnos. Ahora se limpia siempre primero, así
+  // Mis turnos vuelve a verse exactamente como antes de esta función.
+  grid.classList.remove('cal-modo-comp-solo');
   if(vistaMode==='mio') return;
   if(!COMP_DATA || !COMP_DATA.days || !Object.keys(COMP_DATA.days).length) return;
-  // FIX — antes solo se pintaba si el año/mes que se estaba viendo
-  // coincidía EXACTO con un mes fijado a mano al importar (estaba
-  // fijado a "agosto"). Si veías el calendario en cualquier otro mes,
-  // o el PDF cargado era de otro mes, el overlay no aparecía nunca y
-  // no había ningún aviso — era la causa real de "no se ve nada".
-  // Ahora se muestra siempre que haya un compañero importado,
-  // coincidiendo solo por número de día (1-31), sin depender de
-  // adivinar a qué año/mes concreto pertenece el PDF.
+  // FIX — versión anterior (fijar el mes a mano) se rompía en cuanto
+  // cambiaba el PDF. La versión de después (no comprobar nada) traía
+  // turnos del compañero a CUALQUIER mes que se mirase, incluso meses
+  // donde ese PDF ni siquiera está cargado — el fallo que se acaba de
+  // reportar. Ahora se usa el mes/año REAL, leído de la cabecera del
+  // propio PDF al importar (COMP_DATA.anio/mes) — solo se pinta si
+  // coincide con el mes que se está viendo. Si no se pudo leer el mes
+  // del PDF (caso raro), se sigue mostrando como antes, avisando ya
+  // en el momento de importar (ver importarComoCompanero).
+  if(COMP_DATA.anio!=null && COMP_DATA.mes!=null && (COMP_DATA.anio!==y || COMP_DATA.mes!==m)) return;
 
   if(vistaMode==='comp') grid.classList.add('cal-modo-comp-solo'); else grid.classList.remove('cal-modo-comp-solo');
 
@@ -13670,10 +13758,27 @@ function aplicarVistaCompanero(grid, y, m){
 // aquí para que ambas partes coincidan. Si el mes real cambia, este
 // valor habrá que actualizarlo (o, mejor, sacarlo del propio PDF —
 // pendiente para una mejora futura, no bloquea esta función).
-function importarComoCompanero(id, name, days){
-  COMP_DATA = {id:id, name:name, days:days};
+function importarComoCompanero(id, name, days, horasCI, horasCO, rutaPorDia){
+  // NUEVO — se guarda también el mes/año REAL del PDF (leído de su
+  // propia cabecera, ej. "AGOSTO 2026" — ver extraerMesAnioPDF), para
+  // que el compañero solo se muestre en el mes que de verdad
+  // corresponde. Antes esto o se adivinaba a mano (frágil, se rompía
+  // si el PDF cambiaba de mes) o no se comprobaba en absoluto (por
+  // eso aparecían turnos en meses donde ese PDF ni siquiera estaba
+  // cargado — el fallo que se acaba de corregir).
+  var mesAnioReal = (typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio) ? BASES.global.mesAnio : null;
+  COMP_DATA = {
+    id:id, name:name, days:days,
+    horasCI:horasCI||{}, horasCO:horasCO||{}, rutaPorDia:rutaPorDia||{},
+    anio: mesAnioReal ? mesAnioReal.anio : null,
+    mes: mesAnioReal ? mesAnioReal.mes : null
+  };
   saveComp();
-  toast('👤 '+name+' importado como Compañero — mira el Calendario');
+  if(!mesAnioReal){
+    toast('⚠️ '+name+' importado, pero no se pudo leer el mes del PDF — puede que se muestre en más meses de los que debería.');
+  } else {
+    toast('👤 '+name+' importado como Compañero — mira el Calendario');
+  }
   renderVistaToggle();
   setVistaMode('ambos');
 }
@@ -18474,6 +18579,7 @@ async function cargarHorarioGlobalDesdeAdmin(){
       // fallo de lectura ya no se confunda con "esa sede de verdad no
       // tiene a nadie en ese tren ese día".
       var resumenPorSede = [];
+      var mesAnioGlobal = null;
       for(var i=0; i<respTodas.data.length; i++){
         var filaSede = respTodas.data[i];
         var sedeLbl = filaSede.sede || filaSede.tipo.replace('horario_general_','');
@@ -18484,6 +18590,12 @@ async function cargarHorarioGlobalDesdeAdmin(){
           // como 4º elemento de la tupla [id, nombre, dias, sede] —
           // no rompe nada existente, que solo usa los 3 primeros.
           datosSede.forEach(function(emp){ emp[3] = sedeLbl; });
+          // NUEVO — captura el mes/año real leído de la cabecera de
+          // ESTA sede, antes de fusionar (.concat() crea un array
+          // nuevo y perdería esta propiedad). Se usa el primero que
+          // se encuentre — todas las sedes de una misma publicación
+          // deberían coincidir en el mes.
+          if(!mesAnioGlobal && datosSede.mesAnio) mesAnioGlobal = datosSede.mesAnio;
           datosFusionados = datosFusionados.concat(datosSede);
           resumenPorSede.push(sedeLbl+':'+datosSede.length);
         } else {
@@ -18495,9 +18607,10 @@ async function cargarHorarioGlobalDesdeAdmin(){
       if(!datosFusionados.length){ _diagHorarioGeneral = 'Filas encontradas ('+respTodas.data.length+'), pero 0 empleados tras parsear todas'; return false; }
       BASES.global.data = datosFusionados;
       BASES.global.month = fechaMasReciente ? fechaMasReciente.toLocaleDateString('es-ES') : '—';
+      BASES.global.mesAnio = mesAnioGlobal;
       var huboFallo = resumenPorSede.some(function(r){ return r.indexOf('⚠️')!==-1 || r.indexOf('sin archivo')!==-1; });
       BASES.global.label = 'Horario General · Todas las sedes (admin)' + (huboFallo ? ' — ⚠️ revisar: '+resumenPorSede.join(', ') : '');
-      console.log('Horario General (admin, todas las sedes) — empleados por sede:', resumenPorSede.join(' | '));
+      console.log('Horario General (admin, todas las sedes) — empleados por sede:', resumenPorSede.join(' | '), '| mes/año detectado:', mesAnioGlobal);
       return true;
     }
 
@@ -18520,6 +18633,7 @@ async function cargarHorarioGlobalDesdeAdmin(){
     if(!datos || !datos.length){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila y URL encontradas, pero 0 empleados tras descargar/parsear el archivo'; return false; }
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
+    BASES.global.mesAnio = datos.mesAnio || null;
     BASES.global.label = 'Horario General · '+(resp.data.sede||miSede);
     return true;
   }catch(e){
@@ -18568,7 +18682,26 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // que el admin (ver validarAccesoInterventor()).
   var esInterventorActivo = !!(usuarioActual && usuarioActual.esInterventor);
   if(!esAdminActivo && !esInterventorActivo && !_sedeUsuarioActual()){
-    alert('Antes de usar el Buscador de Compañeros, configura tu Estación Base en Ajustes → Perfil.');
+    // FIX — antes esto usaba alert(), que en algunos contextos (vistas
+    // previas integradas, ciertos navegadores/webviews) puede quedar
+    // bloqueado sin mostrarse — dando la sensación de que el botón
+    // "no hace nada" cuando en realidad sí se estaba ejecutando, solo
+    // que el aviso nunca llegaba a verse. Ahora se navega igualmente
+    // a la pestaña y se muestra el aviso ahí mismo, siempre visible.
+    goP('companeros');
+    var statusElSinBase = document.getElementById('estadoHorarioGlobalBuscador');
+    if(statusElSinBase){
+      statusElSinBase.innerHTML = '⚠️ Antes de usar el Buscador de Compañeros, configura tu Estación Base.'
+        + '<br><button onclick="goP(\'ajustes\')" style="margin-top:8px;padding:8px 14px;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.4);border-radius:8px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">⚙️ Ir a Ajustes</button>';
+    }
+    return;
+  }
+  // NUEVO — admin e interventor ya demostraron quién son por otra vía
+  // (email+contraseña, o su propia validación de matrícula) — no
+  // hace falta pedirles otra vez matrícula ni descargo aquí.
+  if(esAdminActivo || esInterventorActivo){
+    goP('companeros');
+    abrirBuscadorConHorarioGlobal();
     return;
   }
   // NUEVO — si ya hay sesión iniciada con matrícula+PIN, esa matrícula
@@ -18576,6 +18709,7 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // falta volver a escribirla aquí. Solo aplica a cuentas de matrícula
   // (usuarioActual.matricula), no al admin (que entra por otra vía).
   if(usuarioActual && usuarioActual.matricula){
+    goP('companeros');
     abrirBuscadorConHorarioGlobal();
     return;
   }
@@ -18583,6 +18717,7 @@ window.abrirAccesoBuscadorCompaneros = function(){
   // dispositivo, no se le vuelve a preguntar: se entra directo.
   var matriculaGuardada = localStorage.getItem('descargoAceptado_matricula');
   if(matriculaGuardada){
+    goP('companeros');
     abrirBuscadorConHorarioGlobal();
     return;
   }
@@ -18651,20 +18786,40 @@ window.validarAccesoBuscador = async function(){
 
   msg.innerHTML = '<div class="msg-ok">✅ Matrícula verificada.</div>';
   closeOv('ov-acceso-buscador');
+  goP('companeros');
   abrirBuscadorConHorarioGlobal();
 };
 
 window.abrirBuscadorConHorarioGlobal = async function(){
-  openOv('ov-buscador');
+  // NUEVO — antes esto abría un overlay aparte (openOv('ov-buscador')).
+  // Ahora "Compañeros" es una pestaña normal, ya visible en cuanto se
+  // entra por goP('companeros') — no hace falta abrir nada más aquí.
   var statusEl = document.getElementById('estadoHorarioGlobalBuscador');
   if(statusEl) statusEl.textContent = 'Buscando el horario publicado...';
 
-  var ok = await cargarHorarioGlobalDesdeAdmin();
-  if(ok){
-    activateBase('global');
-  } else if(statusEl){
-    statusEl.textContent = 'Todavía no hay ningún horario publicado por el administrador. Vuelve a intentarlo más tarde.'
-      + (_diagHorarioGeneral ? (' [Diagnóstico: '+_diagHorarioGeneral+']') : '');
+  // FIX — antes, si algo fallaba de forma inesperada aquí (una
+  // excepción que ni el propio try/catch interno de
+  // cargarHorarioGlobalDesdeAdmin() capturase, o la llamada se
+  // quedaba pendiente sin resolver nunca), la pantalla se quedaba
+  // congelada para siempre en "Sincronizando...", sin ningún aviso ni
+  // forma de reintentar — la persona no podía hacer nada salvo cerrar
+  // la app. Ahora todo el bloque está blindado con try/catch, y si
+  // falla, aparece un botón para reintentar sin salir de la pestaña.
+  try{
+    var ok = await cargarHorarioGlobalDesdeAdmin();
+    if(ok){
+      activateBase('global');
+    } else if(statusEl){
+      statusEl.innerHTML = 'Todavía no hay ningún horario publicado por el administrador, o hubo un problema al cargarlo.'
+        + (_diagHorarioGeneral ? (' [Diagnóstico: '+_diagHorarioGeneral+']') : '')
+        + '<br><button onclick="abrirBuscadorConHorarioGlobal()" style="margin-top:8px;padding:8px 14px;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.4);border-radius:8px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">🔄 Reintentar</button>';
+    }
+  }catch(errHorarioFatal){
+    console.log('Fallo crítico cargando el Horario General:', errHorarioFatal);
+    if(statusEl){
+      statusEl.innerHTML = 'Ocurrió un error inesperado cargando el horario: '+(errHorarioFatal&&errHorarioFatal.message?errHorarioFatal.message:String(errHorarioFatal))
+        + '<br><button onclick="abrirBuscadorConHorarioGlobal()" style="margin-top:8px;padding:8px 14px;background:rgba(37,99,235,.15);border:1px solid rgba(37,99,235,.4);border-radius:8px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">🔄 Reintentar</button>';
+    }
   }
 
   // NUEVO — Intervención: se descarga y se cruza en segundo plano,
@@ -19645,7 +19800,7 @@ function activateBase(key){
   activeBase = BASES[key];
   document.getElementById('hdrTitulo').textContent = activeBase.label;
   document.getElementById('hdrPill').textContent = '📍 ' + (activeBase.month || 'BASE ACTIVA');
-  document.getElementById('hdrBtns').innerHTML = '<button class="at-hbtn" id="switchBaseBtn" title="Cambiar de base">⇄</button><button class="at-hbtn" onclick="closeOv(\'ov-buscador\')" title="Cerrar">✕</button>';
+  document.getElementById('hdrBtns').innerHTML = '<button class="at-hbtn" id="switchBaseBtn" title="Cambiar de base">⇄</button>';
   document.getElementById('switchBaseBtn').addEventListener('click', ()=>{
     activeBaseKey = null; activeBase = null;
     qInput.value=''; clearBtn.style.display='none';
@@ -19671,12 +19826,26 @@ function activateBase(key){
 // para poder reutilizarlo también con el Horario General descargado
 // desde el Panel de Admin. Mismo código exacto, solo separado del
 // manejo de la barra de progreso para que sea reutilizable.
+// NUEVO — lee el mes/año real desde la cabecera de la página 1 del
+// PDF (ej. "AGOSTO 2026", siempre arriba del todo, antes de la fila
+// de días). Con esto ya no hace falta ni fijar el mes a mano ni
+// renunciar a comprobarlo — se lee del propio documento.
+const MESES_PDF_NUM = {ENERO:0,FEBRERO:1,MARZO:2,ABRIL:3,MAYO:4,JUNIO:5,JULIO:6,AGOSTO:7,SEPTIEMBRE:8,OCTUBRE:9,NOVIEMBRE:10,DICIEMBRE:11};
+function extraerMesAnioPDF(rawWordsPagina1){
+  const cabecera = rawWordsPagina1.filter(w => w.top < 45);
+  const mesWord = cabecera.find(w => MESES_PDF_NUM.hasOwnProperty(w.text.toUpperCase()));
+  const anioWord = cabecera.find(w => /^20[0-9]{2}$/.test(w.text));
+  if(mesWord && anioWord) return { mes: MESES_PDF_NUM[mesWord.text.toUpperCase()], anio: parseInt(anioWord.text,10) };
+  return null;
+}
+
 async function parsearBufferPdfHorario(buf, onProgress){
   await asegurarPdfWorkerSeguro();
   const pdf = await pdfjsLib.getDocument({data: buf}).promise;
   const numPages = pdf.numPages;
   const empleados = [];
   var paginasConError = [];
+  var mesAnioDetectado = null;
   // FIX — el bloque de un empleado puede quedar cortado justo entre
   // dos páginas (turno/ID/nombre en una, "Horas.../Jor." con los
   // números en la siguiente). 'leftover' guarda ese trozo suelto de
@@ -19713,6 +19882,7 @@ async function parsearBufferPdfHorario(buf, onProgress){
           });
         }
       }
+      if(pi===1) mesAnioDetectado = extraerMesAnioPDF(words);
       const parsed = parsePageWords(words, leftover, pi);
       leftover = parsed.leftover || [];
       empleados.push(...parsed);
@@ -19726,6 +19896,7 @@ async function parsearBufferPdfHorario(buf, onProgress){
   if(paginasConError.length){
     console.log('Horario General: '+paginasConError.length+' página(s) no se pudieron leer: '+paginasConError.join(', ')+'. El resto del documento se procesó con normalidad.');
   }
+  empleados.mesAnio = mesAnioDetectado;
   return empleados;
 }
 // FIX — mismo motivo que parseHorarioGeneralCSV/XLSX: subirArchivoGlobalAdmin()
@@ -19860,6 +20031,37 @@ function splitRepeatedTurnoCode(text){
 // "Prorr.") por su segunda palabra de etiqueta (x0<25, única por
 // fila) y devuelve el primer valor numérico (hh:mm o NN,NN) que
 // aparece en esa misma línea, antes de la zona de días.
+// NUEVO — divide un "blob" de ruta fusionado (varios días pegados sin
+// espacio, ej. "BSN-CARCAR-BSNBSN-SVQ") en sus tramos "origen-destino"
+// individuales, usando los códigos de estación conocidos. Igual que
+// splitRepeatedTurnoCode pero para la fila de ruta — probado contra
+// el PDF real (funciona bien, con el mismo margen de imprecisión ya
+// conocido en los empalmes entre días, siempre en modo orientativo).
+function splitRouteBlob(text){
+  var out = [];
+  var rest = text;
+  var guard = 0;
+  while(rest.length > 0 && guard < 20){
+    guard++;
+    var matched = false;
+    for(var nCodes = 5; nCodes >= 2 && !matched; nCodes--){
+      var re = new RegExp('^((?:[A-Z]{2,4}-){' + (nCodes-1) + '}[A-Z]{2,4})');
+      var m = rest.match(re);
+      if(m){
+        var partes = m[1].split('-');
+        if(partes.every(function(p){ return STATION_CODES.has(p); })){
+          out.push(m[1]);
+          rest = rest.slice(m[1].length);
+          matched = true;
+        }
+      }
+    }
+    if(!matched) break;
+  }
+  if(rest.length>0) out.push(rest);
+  return out;
+}
+
 function extractSummaryValue(bwords, subLabel){
   const anchor = bwords.find(w => w.x0<25 && w.text===subLabel);
   if(!anchor) return '';
@@ -19946,6 +20148,44 @@ function parsePageWords(rawWords, leftoverIn, pageNum){
       const items = dayData[day].sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
       daysFinal[day] = items.map(x=>x[2]).join('');
     }
+
+    // NUEVO — hora de toma (CI) y hora de deje (CO) por día, y ruta
+    // (estación origen-destino) por día — para el Sistema Horario
+    // Compañero, en modo orientativo. Reutiliza el mismo reparto por
+    // columna de día que ya usan los códigos de turno de arriba.
+    const nearestDay = (x0) => {
+      let bestIdx = 0, bestDiff = Infinity;
+      daycols.forEach((cx, idx)=>{ const d = Math.abs(x0-cx); if(d<bestDiff){bestDiff=d; bestIdx=idx;} });
+      return bestIdx+1;
+    };
+    const ciAnchor = bwords.find(w => w.x0<100 && w.text==='CI');
+    const coAnchor = bwords.find(w => w.x0<100 && w.text==='CO');
+    const horasCI = {}, horasCO = {};
+    if(ciAnchor){
+      bwords.filter(w => Math.abs(w.top-ciAnchor.top)<=2.5 && w.x0>=100 && /^[0-9]{1,2}:[0-9]{2}$/.test(w.text))
+        .forEach(w => { horasCI[nearestDay(w.x0)] = w.text; });
+    }
+    if(coAnchor){
+      bwords.filter(w => Math.abs(w.top-coAnchor.top)<=2.5 && w.x0>=100 && /^[0-9]{1,2}:[0-9]{2}$/.test(w.text))
+        .forEach(w => { horasCO[nearestDay(w.x0)] = w.text; });
+    }
+    const rutaWords = bwords.filter(w => w.x0>=100 && w.top<nameLimitTop && looksLikeStationCode(w.text));
+    const rutaTmp = {};
+    rutaWords.forEach(w=>{
+      const partes = splitRouteBlob(w.text.toUpperCase());
+      const dayInicio = nearestDay(w.x0);
+      partes.forEach((p, k)=>{
+        const day = dayInicio + k;
+        if(day > daycols.length) return;
+        (rutaTmp[day] = rutaTmp[day] || []).push([w.top, w.x0 + k*colWidth, p]);
+      });
+    });
+    const rutaPorDia = {};
+    for(const day in rutaTmp){
+      const items = rutaTmp[day].sort((a,b)=> a[0]-b[0] || a[1]-b[1]);
+      rutaPorDia[day] = items.map(x=>x[2]).join(' ');
+    }
+
     // NUEVO — resumen de horas del mes + página del PDF donde
     // aparece, para mostrarlos junto al nombre en el Buscador (igual
     // que ya aparecía en la maqueta de verificación).
@@ -19958,7 +20198,10 @@ function parsePageWords(rawWords, leftoverIn, pageNum){
     // índice 3 se deja libre a propósito: cargarHorarioGlobalDesdeAdmin()
     // lo usa para anotar la sede cuando el admin fusiona varias sedes
     // (emp[3] = sedeLbl) — no lo tocamos para no romper esa función.
-    out.push([empId, name, daysFinal, undefined, horasTotales, horasEF, horasPR, jorProrr, pagina]);
+    // Índices 9/10/11 (horasCI/horasCO/rutaPorDia) son NUEVOS — se
+    // añaden al final para no romper ningún código existente que ya
+    // lea esta tupla por posición (0-8).
+    out.push([empId, name, daysFinal, undefined, horasTotales, horasEF, horasPR, jorProrr, pagina, horasCI, horasCO, rutaPorDia]);
   }
   // sobrante: todo lo que quedó después del último "Jor." de este
   // bloque combinado — se traslada, desplazado bien al negativo, a
@@ -20235,9 +20478,10 @@ document.getElementById('trGoBtn').addEventListener('click', async ()=>{
   btn.textContent = 'Buscando...';
   try{
     const matches = [];
-    for(const [id, name, days] of activeBase.data){
+    for(const entryTren of activeBase.data){
+      const [id, name, days] = entryTren;
       const cell = days[String(selectedTrainDay)];
-      if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+      if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell, entry: entryTren});
     }
     const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda);
     renderTrain(raw, selectedTrainDay, matches, interventorMatches);
@@ -20309,13 +20553,17 @@ function renderTrain(trainNum, day, matches, interventorMatches){
       </div>
     </div>`;
   });
-  matches.forEach((m)=>{
-    filas += `<div class="pcard">
-      <div class="pcard-av">${initials(m.name)}</div>
-      <div class="pcard-info">
-        <div class="pcard-name">${m.name}</div>
-        <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+  matches.forEach((m, mIdx)=>{
+    var esAdminTren = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+    filas += `<div class="pcard" style="flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="pcard-av">${initials(m.name)}</div>
+        <div class="pcard-info">
+          <div class="pcard-name">${m.name}</div>
+          <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+        </div>
       </div>
+      ${esAdminTren ? `<button class="btn-import-comp-tren" data-midx="${mIdx}" style="margin-top:8px;padding:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:8px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío</button>` : ''}
     </div>`;
   });
   const partes = [];
@@ -20325,6 +20573,16 @@ function renderTrain(trainNum, day, matches, interventorMatches){
     <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
     <div class="comp-list">${filas}</div>
   </div>`;
+  trainView.querySelectorAll('.btn-import-comp-tren').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var mIdx = parseInt(btn.dataset.midx, 10);
+      var m = matches[mIdx];
+      if(!m || !m.entry) return;
+      var entry = m.entry;
+      // entry = [id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina, horasCI, horasCO, rutaPorDia]
+      importarComoCompanero(entry[0], entry[1], entry[2], entry[9], entry[10], entry[11]);
+    });
+  });
   };
   mostrarConAnimacionTren(trainView, _render);
 }
@@ -20376,7 +20634,7 @@ function renderList(matches, query){
 }
 
 const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
-function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina]){
+function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina, horasCI, horasCO, rutaPorDia]){
   let items = '';
   for(let d=1; d<=31; d++){
     const cell = days[String(d)] || '';
@@ -20442,7 +20700,7 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
   `;
   document.getElementById('backBtn').addEventListener('click', ()=>{ doSearch(); });
   var btnImpComp = document.getElementById('btnImportarComp');
-  if(btnImpComp) btnImpComp.addEventListener('click', ()=>{ importarComoCompanero(id, name, days); });
+  if(btnImpComp) btnImpComp.addEventListener('click', ()=>{ importarComoCompanero(id, name, days, horasCI, horasCO, rutaPorDia); });
   var btnCompararAqui = document.getElementById('btnCompararAqui');
   if(btnCompararAqui) btnCompararAqui.addEventListener('click', ()=>{ compararAquiEnBuscador(id, name, days); });
   viewEl.querySelectorAll('.tl-item').forEach(item=>{
@@ -20839,9 +21097,10 @@ clearBtn.addEventListener('click', ()=>{
     btn.textContent = 'Buscando...';
     try{
       const matches = [];
-      for(const [id, name, days] of activeBase.data){
+      for(const entryTren2 of activeBase.data){
+        const [id, name, days] = entryTren2;
         const cell = days[String(selectedTrainDay2)];
-        if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell});
+        if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell, entry: entryTren2});
       }
       const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda2);
       renderTrain2(raw, selectedTrainDay2, matches, interventorMatches);
