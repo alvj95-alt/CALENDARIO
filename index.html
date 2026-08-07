@@ -3621,241 +3621,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
-<!-- ═══ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ═══ -->
-<div class="panel" id="p-companeros">
-<div class="at-shell">
-
-  <div style="padding:16px 14px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-    <div>
-      <div style="font-size:20px;font-weight:900;color:var(--tx)" id="hdrTitulo">👥 Compañeros</div>
-      <div style="font-size:12px;color:var(--tx2);margin-top:2px" id="hdrPill">Busca a un compañero por nombre o por tren</div>
-    </div>
-    <div id="hdrBtns"></div>
-  </div>
-
-  <div class="at-body">
-
-    <!-- ═══ PANEL 1: SELECTOR DE BASE ═══ -->
-    <div class="at-panel on" id="panel-select">
-      <div class="sel-wrap">
-        <div class="sel-intro">
-          <div class="sel-ico">🗂️</div>
-          <div class="sel-tit">Horario General</div>
-          <div class="sel-sub">El horario lo publica el administrador — se sincroniza solo, no hace falta que subas nada.</div>
-        </div>
-
-        <!-- NUEVO — Estado de la carga del Horario General publicado
-             por el Panel de Admin. Sustituye a la selección manual de
-             Barcelona/Madrid para el usuario normal. -->
-        <div class="base-card" style="cursor:default">
-          <div class="base-ico b-bcn">📡</div>
-          <div class="base-info">
-            <div class="base-name">Sincronizando</div>
-            <div class="base-meta" id="estadoHorarioGlobalBuscador">Buscando el horario publicado...</div>
-          </div>
-        </div>
-
-        <!-- NUEVO — Estado de la Intervención publicada por el admin. -->
-        <div class="base-card" style="cursor:default">
-          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
-          <div class="base-info">
-            <div class="base-name">Intervención</div>
-            <div class="base-meta" id="estadoIntervencionBuscador">Sincronizando...</div>
-          </div>
-        </div>
-
-        <div class="base-card" id="card-barcelona" style="display:none">
-          <div class="base-ico b-bcn">🚆</div>
-          <div class="base-info">
-            <div class="base-name">Barcelona</div>
-            <div class="base-meta" id="meta-barcelona">Aún sin plantilla cargada</div>
-          </div>
-          <button class="base-del-btn" id="del-barcelona" title="Eliminar PDF" style="display:none">🗑</button>
-          <div class="base-badge badge-pend" id="badge-barcelona">SUBIR PDF</div>
-          <div class="base-arr">›</div>
-        </div>
-        <div class="upload-form" id="form-barcelona" style="display:none">
-          <label>Sube el PDF de turnos de Barcelona</label>
-          <div class="filepick" id="filepick-barcelona">
-            <div class="fp-ico">📄</div>
-            <div class="fp-txt">Toca para elegir el archivo PDF</div>
-            <div class="fp-name" id="fpname-barcelona"></div>
-          </div>
-          <input type="file" id="file-barcelona" style="display:none">
-          <div class="upload-btns">
-            <button class="ubtn ubtn-cancel" id="cancel-barcelona">Cancelar</button>
-            <button class="ubtn ubtn-go" id="go-barcelona" disabled>Procesar PDF</button>
-          </div>
-        </div>
-
-        <div class="base-card" id="card-madrid" style="display:none">
-          <div class="base-ico b-mad">🚆</div>
-          <div class="base-info">
-            <div class="base-name">Madrid</div>
-            <div class="base-meta" id="meta-madrid">Aún sin plantilla cargada</div>
-          </div>
-          <button class="base-del-btn" id="del-madrid" title="Eliminar PDF" style="display:none">🗑</button>
-          <div class="base-badge badge-pend" id="badge-madrid">SUBIR PDF</div>
-          <div class="base-arr">›</div>
-        </div>
-        <div class="upload-form" id="form-madrid" style="display:none">
-          <label>Sube el PDF de turnos de Madrid</label>
-          <div class="filepick" id="filepick-madrid">
-            <div class="fp-ico">📄</div>
-            <div class="fp-txt">Toca para elegir el archivo PDF</div>
-            <div class="fp-name" id="fpname-madrid"></div>
-          </div>
-          <input type="file" id="file-madrid" style="display:none">
-          <div class="upload-btns">
-            <button class="ubtn ubtn-cancel" id="cancel-madrid">Cancelar</button>
-            <button class="ubtn ubtn-go" id="go-madrid" disabled>Procesar PDF</button>
-          </div>
-        </div>
-
-        <div class="base-card" id="card-interventor" style="display:none">
-          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
-          <div class="base-info">
-            <div class="base-name">Interventor (Gráfico + Informe)</div>
-            <div class="base-meta" id="meta-interventor">Aún sin PDFs cargados</div>
-          </div>
-          <button class="base-del-btn" id="del-interventor" title="Eliminar todo" style="display:none">🗑</button>
-          <div class="base-badge badge-pend" id="badge-interventor">SUBIR PDFs</div>
-          <div class="base-arr">›</div>
-        </div>
-        <div class="upload-form" id="form-interventor" style="display:none">
-          <label>Nombre del servicio (p. ej. SC Nordeste, Valencia, Madrid…)</label>
-          <input type="text" id="name-interventor" placeholder="Nombre del servicio">
-          <label>Fecha del primer día de columna del Informe</label>
-          <div class="cal-tren-panel" id="calInterventorInicio"></div>
-          <label style="margin-top:10px">PDF · Gráfico de Intervención (GL)</label>
-          <label id="reuseGraficoLabel" style="display:none;align-items:center;gap:7px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--tx2);margin-bottom:8px">
-            <input type="checkbox" id="reuseGraficoCheck" style="width:auto;accent-color:var(--nar)">
-            Usar el mismo gráfico que la última vez (<span id="reuseGraficoNombre"></span>)
-          </label>
-          <div class="filepick" id="filepick-interventor-grafico">
-            <div class="fp-ico">📄</div>
-            <div class="fp-txt">Toca para elegir el PDF del gráfico</div>
-            <div class="fp-name" id="fpname-interventor-grafico"></div>
-          </div>
-          <input type="file" id="file-interventor-grafico" style="display:none">
-          <label>PDF · Servicio Previsto / Informe de agentes</label>
-          <div class="filepick" id="filepick-interventor-informe">
-            <div class="fp-ico">📄</div>
-            <div class="fp-txt">Toca para elegir el PDF del informe</div>
-            <div class="fp-name" id="fpname-interventor-informe"></div>
-          </div>
-          <input type="file" id="file-interventor-informe" style="display:none">
-          <div class="upload-btns">
-            <button class="ubtn ubtn-cancel" id="cancel-interventor">Cancelar</button>
-            <button class="ubtn ubtn-go" id="go-interventor" disabled>Procesar PDFs</button>
-          </div>
-          <div id="interventorServiceList" style="margin-top:12px"></div>
-        </div>
-
-        <div class="base-card" id="card-new" style="display:none">
-          <div class="base-ico b-new">＋</div>
-          <div class="base-info">
-            <div class="base-name">Subir otra base (PDF)</div>
-            <div class="base-meta">Para cualquier base que no esté en la lista</div>
-          </div>
-          <div class="base-arr">›</div>
-        </div>
-        <div class="upload-form" id="form-new" style="display:none">
-          <label>Nombre de la base</label>
-          <input type="text" id="name-new" placeholder="p. ej. Valencia, Sevilla…">
-          <label>Archivo PDF de turnos</label>
-          <div class="filepick" id="filepick-new">
-            <div class="fp-ico">📄</div>
-            <div class="fp-txt">Toca para elegir el archivo PDF</div>
-            <div class="fp-name" id="fpname-new"></div>
-          </div>
-          <input type="file" id="file-new" style="display:none">
-          <div class="upload-btns">
-            <button class="ubtn ubtn-cancel" id="cancel-new">Cancelar</button>
-            <button class="ubtn ubtn-go" id="go-new" disabled>Procesar PDF</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ PANEL 2: PROGRESO DE CARGA ═══ -->
-    <div class="at-panel" id="panel-progress">
-      <div class="progress-wrap">
-        <div class="spinner"></div>
-        <div class="progress-txt" id="progressTxt">Analizando PDF…</div>
-        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-        <div class="progress-err" id="progressErr" style="display:none"></div>
-      </div>
-    </div>
-
-    <!-- ═══ PANEL 3: BUSCADOR + PERFIL ═══ -->
-    <div class="at-panel" id="panel-app">
-
-      <div class="acc-section open" id="acc-nombre">
-        <div class="acc-head" data-acc="nombre">
-          <div class="acc-ico">👤</div>
-          <div class="acc-title">Buscar por nombre</div>
-          <div class="acc-chev">›</div>
-        </div>
-        <div class="acc-body">
-          <div class="acc-body-inner">
-            <div class="srch-wrap">
-              <div class="srch">
-                <span class="srch-ico">👤</span>
-                <input type="text" id="q" placeholder="Escribe un nombre..." autocomplete="off">
-                <button class="srch-clear" id="clearBtn">✕</button>
-              </div>
-            </div>
-            <div id="view"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="acc-section" id="acc-tren">
-        <div class="acc-head" data-acc="tren">
-          <div class="acc-ico at-tren">🚄</div>
-          <div class="acc-title">Buscar por tren</div>
-          <div class="acc-chev">›</div>
-        </div>
-        <div class="acc-body">
-          <div class="acc-body-inner">
-        <div class="srch" style="margin-bottom:10px">
-          <span class="srch-ico">🚆</span>
-          <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
-        </div>
-        <div class="cal-tren-panel" id="calTrenPanel"></div>
-        <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
-        <div id="trainView"></div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- NUEVO — Nota informativa sobre la disponibilidad de los
-         datos de Interventor, ahora en acordeón (colapsada por
-         defecto) para que no ocupe toda la pantalla al entrar. -->
-    <div class="adm-acc-item" id="acc-nota-interventor" style="margin:0 16px 14px">
-      <div class="adm-acc-hdr" onclick="toggleAdmAcc('acc-nota-interventor')" style="padding:12px 15px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:12px">
-        <span>ℹ️</span>
-        <span style="flex:1;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">Sobre los datos de Interventor</span>
-        <span class="adm-acc-hdr-arr">›</span>
-      </div>
-      <div class="adm-acc-body">
-        <div style="padding:12px 15px 2px;font-size:12px;color:var(--tx2);line-height:1.65">
-          La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
-          <br><br>
-          Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
-        </div>
-      </div>
-    </div>
-
-    <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
-  </div>
-</div>
-
-</div>
-
 </div><!-- /body -->
 
 <!-- BOTTOM NAV -->
@@ -4821,6 +4586,240 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- ═══ APP TURNO · BUSCADOR DE COMPAÑEROS (módulo añadido) ═══ -->
+<div class="panel" id="p-companeros">
+<div class="at-shell">
+
+  <div style="padding:16px 14px 4px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div>
+      <div style="font-size:20px;font-weight:900;color:var(--tx)" id="hdrTitulo">👥 Compañeros</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:2px" id="hdrPill">Busca a un compañero por nombre o por tren</div>
+    </div>
+    <div id="hdrBtns"></div>
+  </div>
+
+  <div class="at-body">
+
+    <!-- ═══ PANEL 1: SELECTOR DE BASE ═══ -->
+    <div class="at-panel on" id="panel-select">
+      <div class="sel-wrap">
+        <div class="sel-intro">
+          <div class="sel-ico">🗂️</div>
+          <div class="sel-tit">Horario General</div>
+          <div class="sel-sub">El horario lo publica el administrador — se sincroniza solo, no hace falta que subas nada.</div>
+        </div>
+
+        <!-- NUEVO — Estado de la carga del Horario General publicado
+             por el Panel de Admin. Sustituye a la selección manual de
+             Barcelona/Madrid para el usuario normal. -->
+        <div class="base-card" style="cursor:default">
+          <div class="base-ico b-bcn">📡</div>
+          <div class="base-info">
+            <div class="base-name">Sincronizando</div>
+            <div class="base-meta" id="estadoHorarioGlobalBuscador">Buscando el horario publicado...</div>
+          </div>
+        </div>
+
+        <!-- NUEVO — Estado de la Intervención publicada por el admin. -->
+        <div class="base-card" style="cursor:default">
+          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
+          <div class="base-info">
+            <div class="base-name">Intervención</div>
+            <div class="base-meta" id="estadoIntervencionBuscador">Sincronizando...</div>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-barcelona" style="display:none">
+          <div class="base-ico b-bcn">🚆</div>
+          <div class="base-info">
+            <div class="base-name">Barcelona</div>
+            <div class="base-meta" id="meta-barcelona">Aún sin plantilla cargada</div>
+          </div>
+          <button class="base-del-btn" id="del-barcelona" title="Eliminar PDF" style="display:none">🗑</button>
+          <div class="base-badge badge-pend" id="badge-barcelona">SUBIR PDF</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-barcelona" style="display:none">
+          <label>Sube el PDF de turnos de Barcelona</label>
+          <div class="filepick" id="filepick-barcelona">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-barcelona"></div>
+          </div>
+          <input type="file" id="file-barcelona" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-barcelona">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-barcelona" disabled>Procesar PDF</button>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-madrid" style="display:none">
+          <div class="base-ico b-mad">🚆</div>
+          <div class="base-info">
+            <div class="base-name">Madrid</div>
+            <div class="base-meta" id="meta-madrid">Aún sin plantilla cargada</div>
+          </div>
+          <button class="base-del-btn" id="del-madrid" title="Eliminar PDF" style="display:none">🗑</button>
+          <div class="base-badge badge-pend" id="badge-madrid">SUBIR PDF</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-madrid" style="display:none">
+          <label>Sube el PDF de turnos de Madrid</label>
+          <div class="filepick" id="filepick-madrid">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-madrid"></div>
+          </div>
+          <input type="file" id="file-madrid" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-madrid">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-madrid" disabled>Procesar PDF</button>
+          </div>
+        </div>
+
+        <div class="base-card" id="card-interventor" style="display:none">
+          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
+          <div class="base-info">
+            <div class="base-name">Interventor (Gráfico + Informe)</div>
+            <div class="base-meta" id="meta-interventor">Aún sin PDFs cargados</div>
+          </div>
+          <button class="base-del-btn" id="del-interventor" title="Eliminar todo" style="display:none">🗑</button>
+          <div class="base-badge badge-pend" id="badge-interventor">SUBIR PDFs</div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-interventor" style="display:none">
+          <label>Nombre del servicio (p. ej. SC Nordeste, Valencia, Madrid…)</label>
+          <input type="text" id="name-interventor" placeholder="Nombre del servicio">
+          <label>Fecha del primer día de columna del Informe</label>
+          <div class="cal-tren-panel" id="calInterventorInicio"></div>
+          <label style="margin-top:10px">PDF · Gráfico de Intervención (GL)</label>
+          <label id="reuseGraficoLabel" style="display:none;align-items:center;gap:7px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--tx2);margin-bottom:8px">
+            <input type="checkbox" id="reuseGraficoCheck" style="width:auto;accent-color:var(--nar)">
+            Usar el mismo gráfico que la última vez (<span id="reuseGraficoNombre"></span>)
+          </label>
+          <div class="filepick" id="filepick-interventor-grafico">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el PDF del gráfico</div>
+            <div class="fp-name" id="fpname-interventor-grafico"></div>
+          </div>
+          <input type="file" id="file-interventor-grafico" style="display:none">
+          <label>PDF · Servicio Previsto / Informe de agentes</label>
+          <div class="filepick" id="filepick-interventor-informe">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el PDF del informe</div>
+            <div class="fp-name" id="fpname-interventor-informe"></div>
+          </div>
+          <input type="file" id="file-interventor-informe" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-interventor">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-interventor" disabled>Procesar PDFs</button>
+          </div>
+          <div id="interventorServiceList" style="margin-top:12px"></div>
+        </div>
+
+        <div class="base-card" id="card-new" style="display:none">
+          <div class="base-ico b-new">＋</div>
+          <div class="base-info">
+            <div class="base-name">Subir otra base (PDF)</div>
+            <div class="base-meta">Para cualquier base que no esté en la lista</div>
+          </div>
+          <div class="base-arr">›</div>
+        </div>
+        <div class="upload-form" id="form-new" style="display:none">
+          <label>Nombre de la base</label>
+          <input type="text" id="name-new" placeholder="p. ej. Valencia, Sevilla…">
+          <label>Archivo PDF de turnos</label>
+          <div class="filepick" id="filepick-new">
+            <div class="fp-ico">📄</div>
+            <div class="fp-txt">Toca para elegir el archivo PDF</div>
+            <div class="fp-name" id="fpname-new"></div>
+          </div>
+          <input type="file" id="file-new" style="display:none">
+          <div class="upload-btns">
+            <button class="ubtn ubtn-cancel" id="cancel-new">Cancelar</button>
+            <button class="ubtn ubtn-go" id="go-new" disabled>Procesar PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 2: PROGRESO DE CARGA ═══ -->
+    <div class="at-panel" id="panel-progress">
+      <div class="progress-wrap">
+        <div class="spinner"></div>
+        <div class="progress-txt" id="progressTxt">Analizando PDF…</div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-err" id="progressErr" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 3: BUSCADOR + PERFIL ═══ -->
+    <div class="at-panel" id="panel-app">
+
+      <div class="acc-section open" id="acc-nombre">
+        <div class="acc-head" data-acc="nombre">
+          <div class="acc-ico">👤</div>
+          <div class="acc-title">Buscar por nombre</div>
+          <div class="acc-chev">›</div>
+        </div>
+        <div class="acc-body">
+          <div class="acc-body-inner">
+            <div class="srch-wrap">
+              <div class="srch">
+                <span class="srch-ico">👤</span>
+                <input type="text" id="q" placeholder="Escribe un nombre..." autocomplete="off">
+                <button class="srch-clear" id="clearBtn">✕</button>
+              </div>
+            </div>
+            <div id="view"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="acc-section" id="acc-tren">
+        <div class="acc-head" data-acc="tren">
+          <div class="acc-ico at-tren">🚄</div>
+          <div class="acc-title">Buscar por tren</div>
+          <div class="acc-chev">›</div>
+        </div>
+        <div class="acc-body">
+          <div class="acc-body-inner">
+        <div class="srch" style="margin-bottom:10px">
+          <span class="srch-ico">🚆</span>
+          <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+        </div>
+        <div class="cal-tren-panel" id="calTrenPanel"></div>
+        <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
+        <div id="trainView"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- NUEVO — Nota informativa sobre la disponibilidad de los
+         datos de Interventor, ahora en acordeón (colapsada por
+         defecto) para que no ocupe toda la pantalla al entrar. -->
+    <div class="adm-acc-item" id="acc-nota-interventor" style="margin:0 16px 14px">
+      <div class="adm-acc-hdr" onclick="toggleAdmAcc('acc-nota-interventor')" style="padding:12px 15px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:12px">
+        <span>ℹ️</span>
+        <span style="flex:1;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">Sobre los datos de Interventor</span>
+        <span class="adm-acc-hdr-arr">›</span>
+      </div>
+      <div class="adm-acc-body">
+        <div style="padding:12px 15px 2px;font-size:12px;color:var(--tx2);line-height:1.65">
+          La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
+          <br><br>
+          Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
+        </div>
+      </div>
+    </div>
+
+    <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
+  </div>
+</div>
+
+</div>
 
 <!-- NUEVO — OV: ACCESO DE ADMINISTRADOR (código de un solo uso por
      email, verificado contra Supabase — nunca una contraseña fija
@@ -13379,7 +13378,50 @@ function calculateEarnings(ks){
           });
         }
         var hContinuidadVueltaHTDL = Math.round(minContinuidadVueltaHTDL/60*100)/100;
-        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL)*100)/100;
+        // NUEVO — TURNOS ADICIONALES (TV2) EN DÍA HTDL: no existen días
+        // mixtos. Si el turno principal del día es HTDL ('trabajado'),
+        // cualquier turno adicional guardado ese mismo día (aunque su
+        // propio tipo sea 'ordinario') pasa a formar parte del MISMO
+        // bloque económico HTDL — se paga puerta a puerta, desde la
+        // toma del turno principal hasta el deje del último turno
+        // adicional, incluyendo el hueco entre ambos (igual que ya se
+        // hace con la escala interna ida-vuelta de un mismo turno).
+        // Solo aplica al caso "ida y vuelta el mismo día" (no pernocta,
+        // que ya se paga como bloque cerrado con 'h'). Los turnos
+        // adicionales no soportan Continuidad ni Retrasos en esta
+        // versión, así que solo se suman sus tramos ida/vuelta propios
+        // y los huecos de escala — sin tocar minRetT2, que sigue
+        // atado exclusivamente al turno principal.
+        var minExtraHTDL = 0;
+        if(!esPernoctaHTDL && TV2[k] && TV2[k].length){
+          var finVueltaRealHTDL = t.hL2 || finIdaRealHTDL;
+          if(t.continuidadVuelta && t.continuidadVuelta.length){
+            var ultimoCV = t.continuidadVuelta[t.continuidadVuelta.length-1];
+            if(ultimoCV && ultimoCV.horaFin) finVueltaRealHTDL = ultimoCV.horaFin;
+          }
+          var bloquesExtraHTDL = TV2[k].slice().sort(function(a,b){
+            return (a&&a.hF?_horasToMin(a.hF):0) - (b&&b.hF?_horasToMin(b.hF):0);
+          });
+          var cursorFinHTDL = finVueltaRealHTDL;
+          bloquesExtraHTDL.forEach(function(ex){
+            if(!ex || !ex.hF) return;
+            if(cursorFinHTDL){
+              var huecoEntreTurnosHTDL = calcMins(cursorFinHTDL, ex.hF);
+              if(huecoEntreTurnosHTDL>0) minEscalaHTDL += huecoEntreTurnosHTDL;
+            }
+            var minIdaEx = (ex.hF&&ex.hL) ? calcMins(ex.hF, ex.hL) : 0;
+            var minVueltaEx = (ex.hF2&&ex.hL2) ? calcMins(ex.hF2, ex.hL2) : 0;
+            if(ex.hL && ex.hF2){
+              var minEscalaInternaEx = calcMins(ex.hL, ex.hF2);
+              if(minEscalaInternaEx>0) minEscalaHTDL += minEscalaInternaEx;
+            }
+            minExtraHTDL += minIdaEx + minVueltaEx;
+            cursorFinHTDL = (ex.hF2&&ex.hL2) ? ex.hL2 : (ex.hL || cursorFinHTDL);
+          });
+          hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100; // recalculado con los huecos añadidos
+        }
+        var hExtraHTDL = Math.round(minExtraHTDL/60*100)/100;
+        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL+hExtraHTDL)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
@@ -13395,6 +13437,7 @@ function calculateEarnings(ks){
           hVuelta:hV,
           hRetT2:hRetT2,
           minRetT2:minRetT2,
+          hExtra:hExtraHTDL,
           hTotal:hTotalHTDL,
           importe:Math.round(hTotalHTDL*HTDL*100)/100
         });
