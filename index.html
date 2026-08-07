@@ -7921,7 +7921,7 @@ function chM(dir){
    "Turnos del mes" (acordeón) vía renderAcordeon(), que ya
    incluye todos esos campos sin cambios.
 ═══════════════════════════════════════════════════════════ */
-function renderizarPopUpSimplificado(t, esDiaVuelta){
+function renderizarPopUpSimplificado(t, esDiaVuelta, ocultarTotalDia){
   var h = '';
 
   // ── Determinar qué día del itinerario estamos viendo ──
@@ -7981,7 +7981,7 @@ function renderizarPopUpSimplificado(t, esDiaVuelta){
   // día concreto (mostrarIda/mostrarVuelta, ya calculados arriba),
   // para no mezclar horas del día 1 con las del día 2.
   var totalDiaMin = calcularTotalDiaMin(t, mostrarIda, mostrarVuelta);
-  if(totalDiaMin > 0){
+  if(totalDiaMin > 0 && !ocultarTotalDia){
     h += '<div class="tv-total-dia" style="display:flex;align-items:center;justify-content:space-between;'
       +'background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.25);border-radius:10px;'
       +'padding:9px 13px;margin-bottom:8px">'
@@ -14349,6 +14349,83 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
    Se llama desde renderDiaArea cuando el modal está abierto
    y hay más de un turno en el día.
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — renderAccordionTurno(turno, k, esExtra, idxExtra, abiertoPorDefecto)
+   Pinta UN turno del día como sección de acordeón (mismo componente
+   visual .acc-section/.acc-head/.acc-body que ya usa el Buscador de
+   Compañeros), con la cabecera de siempre (icono, etiqueta, editar/
+   eliminar) y el CUERPO reutilizando renderizarPopUpSimplificado —
+   así el multi-turno se ve exactamente igual que un día normal
+   (cajas de tramo con borde) y también dispara la búsqueda de
+   compañeros de viaje, que antes no aparecía aquí.
+   El toggle de abrir/cerrar es un onclick inline autocontenido (no
+   depende del listener delegado que solo engancha los .acc-head
+   presentes en el DOM al cargar la página).
+═══════════════════════════════════════════════════════════ */
+function renderAccordionTurno(turno, k, esExtra, idxExtra, abiertoPorDefecto){
+  if(!turno) return '';
+  var t  = turno;
+  var ti = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo||'Turno', col:'var(--tx2)'};
+
+  var editBtn = '<button onclick="event.stopPropagation();'
+    + (esExtra ? "editarTurnoExtra('"+k+"',"+idxExtra+")" : 'editarTurno()')
+    + '" style="background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);'
+    + 'border-radius:7px;color:var(--acc2);font-size:10px;padding:3px 8px;cursor:pointer">✏️</button>';
+  var delBtn = '<button onclick="event.stopPropagation();'
+    + (esExtra ? "eliminarTurnoExtra('"+k+"',"+idxExtra+")" : 'pedirEliminar()')
+    + '" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);'
+    + 'border-radius:7px;color:#f87171;font-size:10px;padding:3px 8px;cursor:pointer">🗑</button>';
+
+  var header = '<div class="acc-head" style="cursor:pointer" '
+    + 'onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+    + '<div class="acc-ico" style="background:transparent;font-size:20px">'+ti.ico+'</div>'
+    + '<div style="flex:1;min-width:0">'
+    + '<div style="font-size:9px;font-weight:800;letter-spacing:.6px;color:'+(esExtra?'var(--acc)':'var(--tx3)')+'">'
+    + (esExtra ? 'TURNO ADICIONAL '+(idxExtra+1) : 'TURNO PRINCIPAL')
+    + '</div>'
+    + '<div style="font-size:14px;font-weight:800;color:'+ti.col+'">'+ti.lbl
+    + (t.hF ? ' · '+t.hF+(t.hL2?'–'+t.hL2:(t.hL?'–'+t.hL:'')) : '')
+    + '</div>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:5px">'+editBtn+delBtn
+    + '<div class="acc-chev">›</div></div>'
+    + '</div>';
+
+  var cuerpo = '';
+  // Banner de Referencia Informativa (turno intercambiado) — se
+  // mantiene tal cual existía antes en renderTarjetaTurno, ya que
+  // renderizarPopUpSimplificado no conoce este caso especial.
+  if(t.turno_referencia_externa){
+    var tipoServicioLbl = {idaVuelta:'Ida y Vuelta', pernocta2:'Pernocta 2 días', pernocta3:'Pernocta 3 días'}[t.tipoServicio] || '';
+    cuerpo += '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;'
+      + 'border-bottom:1px solid var(--div);margin-bottom:8px">'
+      + '<span style="font-size:14px">📎</span>'
+      + '<span style="font-size:11px;font-weight:800;color:var(--amber2)">'
+      + 'Referencia Informativa'+(t.companeroNombre?' — '+t.companeroNombre:'')+': No computa para horas'
+      + '</span></div>';
+    if(t.avisoDesajuste){
+      cuerpo += '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;'
+        + 'border-bottom:1px solid var(--div);margin-bottom:8px">'
+        + '<span style="font-size:14px">⚠️</span>'
+        + '<span style="font-size:10px;font-weight:800;color:var(--red2)">'
+        + 'Aviso de Desajuste — el tipo de servicio no coincide con tu jornada habitual'
+        + '</span></div>';
+    }
+  }
+  cuerpo += renderizarPopUpSimplificado(t, false, true);
+  if(t.notas && t.notas.trim()){
+    cuerpo += '<div style="margin-top:8px;padding:8px 0;border-top:1px solid var(--div);'
+      + 'font-size:11px;color:var(--acc)"><b style="color:var(--tx3);font-size:9px;'
+      + 'letter-spacing:.4px">NOTA</b><br>'+t.notas.trim()+'</div>';
+  }
+
+  return '<div class="acc-section'+(abiertoPorDefecto?' open':'')+'" '
+    + 'style="margin:0 0 8px;'+(esExtra?'border-color:rgba(99,102,241,.35)':'')+'">'
+    + header
+    + '<div class="acc-body"><div class="acc-body-inner" style="padding:10px 14px">'+cuerpo+'</div></div>'
+    + '</div>';
+}
+
 function renderDiaAreaMulti(){
   if(!selDay) return;
   var k   = selDay.k;
@@ -14374,15 +14451,35 @@ function renderDiaAreaMulti(){
     + all.length+' turno'+(all.length>1?'s registrados':' registrado')+'</div>'
     + '</div>';
 
-  // Contenedor con scroll para N tarjetas
+  // Contenedor con scroll
   html += '<div style="overflow-y:auto;max-height:65vh;padding:10px 10px 0">';
 
-  // Tarjeta principal (índice 0 = TV[k])
-  html += renderTarjetaTurno(all[0], k, false, -1);
+  // NUEVO — TOTAL DEL DÍA COMBINADO: un único total arriba de los
+  // acordeones (no uno repetido por turno), calculado con la misma
+  // función que ya usan Stats (calcularJornadaDiaria) para que el
+  // número mostrado aquí sea siempre coherente con el que se paga/
+  // cuenta — incluye ambos turnos, sus escalas internas y el hueco
+  // entre turno 1 y turno 2, tal como corresponde a un día HTDL.
+  var jornadaCombo = calcularJornadaDiaria(all, k);
+  var totalComboMin = jornadaCombo.efectivasMin + jornadaCombo.presenciaMin;
+  if(totalComboMin > 0){
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;'
+      +'background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.25);border-radius:10px;'
+      +'padding:9px 13px;margin-bottom:10px">'
+      +'<span style="font-size:11px;font-weight:800;color:var(--acc2)">⏱ TOTAL DEL DÍA</span>'
+      +'<span style="font-size:15px;font-weight:900;color:var(--tx);font-variant-numeric:tabular-nums">'
+      +Math.floor(totalComboMin/60)+'h '+pad(totalComboMin%60)+'m</span>'
+      +'</div>';
+  }
 
-  // Tarjetas extras (índice 1+ = TV2[k][i])
-  for(var ii=1; ii<all.length; ii++){
-    html += renderTarjetaTurno(all[ii], k, true, ii-1);
+  // NUEVO — acordeones: cada turno del día (principal + adicionales)
+  // se pinta con el MISMO contenido que el modal de un solo turno
+  // (renderizarPopUpSimplificado: cajas de tramo con borde + "Viajas
+  // con"), colapsado por defecto salvo el primero, en vez de la
+  // tarjeta plana anterior — resuelve que faltaran compañeros y que
+  // el aspecto no coincidiera con el de un día normal.
+  for(var ii=0; ii<all.length; ii++){
+    html += renderAccordionTurno(all[ii], k, ii>0, ii-1, ii===0);
   }
 
   html += '</div>';
@@ -14403,14 +14500,11 @@ function renderDiaAreaMulti(){
 
   area.innerHTML = html;
 
-  // Reasignar handler de eliminar en extras (después de renderizar)
-  var extras = TV2[k] || [];
-  for(var jj=0; jj<extras.length; jj++){
-    (function(idx2, kk){
-      var btn = area.querySelector('[onclick*="eliminarTurnoExtra(\\\''+kk+'\\\','+idx2+')"]');
-      // Los buttons usan onclick inline — ya están correctamente asignados
-    })(jj, k);
-  }
+  // NUEVO — rellenar "Viajas con" en cada acordeón, igual que ya
+  // hace renderDiaArea() para el camino de un solo turno. Antes esta
+  // llamada no existía aquí, por eso los compañeros nunca aparecían
+  // en un día con varios turnos.
+  rellenarCompanerosAutomaticos(area);
 }
 /* ═══════════════════════════════════════════════════════════ */
 
