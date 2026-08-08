@@ -3099,6 +3099,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="role-card"></div>
       <div class="sg" id="sg"></div>
       <div id="cs-box"></div>
+      <div id="a5152-stats-box"></div>
+      <div id="cs-noc-box"></div>
+      <div id="cs-pluses-box"></div>
+      <div id="htdl-dias-stats-box"></div>
+      <div id="cs-info-adicional-box"></div>
+      <div id="cs-total-pagar-box"></div>
     </div>
   </div>
 
@@ -6870,6 +6876,14 @@ if(typeof calculateEarnings === 'function'){
         extraLbl.push(t.numTren?lbl2+' #'+t.numTren+' (Mix Art.51/52)':lbl2+' (Mix Art.51/52)');
       }
     });
+    // NUEVO — se exponen por separado, ANTES de fusionar, para poder
+    // mostrar Art.51/52 como línea propia en Stats sin tocar cómo se
+    // suman e.totalHTDL/e.totalBruto (siguen incluyendo ambos, igual
+    // que siempre, para no romper nada que ya lea esos campos).
+    e.totalHTDLPuro = e.totalHTDL;
+    e.diasHTDLPuroDetail = (e.diasHTDLdetail||[]).slice();
+    e.totalArt5152Dinero = extraHTDL>0 ? Math.round(extraHTDL*100)/100 : 0;
+    e.diasArt5152Detail = extraDetalle;
     if(extraHTDL>0){
       extraHTDL = Math.round(extraHTDL*100)/100;
       e.totalHTDL  = Math.round((e.totalHTDL + extraHTDL)*100)/100;
@@ -7009,42 +7023,45 @@ function mostrarDetalleArt5152(k){
 }
 
 function _renderArt5152Stats(){
-  var csBox = document.getElementById('cs-box');
-  if(!csBox) return;
   var box = document.getElementById('a5152-stats-box');
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'a5152-stats-box';
-    csBox.insertAdjacentElement('afterend', box);
-  }
+  if(!box) return;
 
   var y=statsM.getFullYear(), m=statsM.getMonth()+1;
   var pref = y+'-'+pad(m);
   var diasRecibidos = ART5152_DIAS[pref] || 0;
   var usosMes = ART5152_USO[pref] || 0;
 
-  // NOTA: el importe en dinero (Dinero puro y la porción Dinero de Mix)
-  // YA se suma dentro del total "HTDL" de arriba (ver wrapper de
-  // calculateEarnings) — no se repite aquí para no duplicar la cifra.
+  // NUEVO — el importe en dinero (Dinero puro y la porción Dinero de
+  // Mix) SÍ se muestra aquí ahora, reutilizando calcImporteArt5152Vivo()
+  // ya existente (la misma que ya usan el popup de día y el acordeón
+  // "Turnos del mes"). Sigue sumándose también dentro de "HTDL" en el
+  // total del mes — mostrarlo aquí es solo para verlo desglosado, no
+  // se duplica el dinero real, solo la cifra visible.
   var registros = [];
+  var totalDinero = 0;
   Object.keys(TV).filter(function(k){return k.startsWith(pref);}).forEach(function(k){
     var t = TV[k];
-    if(t && t.tipo==='art5152') registros.push({k:k, t:t});
+    if(t && t.tipo==='art5152'){
+      registros.push({k:k, t:t});
+      if(t.compensacion==='dinero') totalDinero += calcImporteArt5152Vivo(t, false);
+      else if(t.compensacion==='mix') totalDinero += calcImporteArt5152Vivo(t, true);
+    }
   });
+  totalDinero = Math.round(totalDinero*100)/100;
 
   if(!diasRecibidos && !usosMes && !registros.length){
     box.innerHTML = '';
     return;
   }
 
-  var _cab = registros.length
-    ? registros.length+' turno'+(registros.length!==1?'s':'')
-    : (diasRecibidos>0 ? '+'+diasRecibidos+' día(s)' : '');
-  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+  var _cab = totalDinero>0
+    ? totalDinero.toFixed(2)+' €'
+    : (registros.length ? registros.length+' turno'+(registros.length!==1?'s':'') : '');
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
     +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
     +'<div class="acc-ico" style="background:transparent;font-size:18px">⚖️</div>'
     +'<div class="acc-title">Artículo 51 y 52</div>'
-    +'<div style="font-size:12px;font-weight:700;color:var(--acc3);margin-right:6px">'+_cab+'</div>'
+    +'<div style="font-size:13px;font-weight:800;color:'+(totalDinero>0?'var(--green2)':'var(--acc3)')+';margin-right:6px">'+_cab+'</div>'
     +'<div class="acc-chev">›</div></div>'
     +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
   if(usosMes>0){
@@ -7055,7 +7072,8 @@ function _renderArt5152Stats(){
     var lbl = _keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
     var val;
     if(r.t.compensacion==='mix'){
-      val = '🔀 Dinero + '+r.t.mixDias.diasGenerados+' día(s)';
+      var _impMix = calcImporteArt5152Vivo(r.t, true);
+      val = '🔀 '+_impMix.toFixed(2)+' € + '+r.t.mixDias.diasGenerados+' día(s)';
       // NUEVO — aviso (sin mover nada) si un retraso posterior haría
       // que el lado "días" pasara a tener más horas que el lado
       // "dinero". Ver _art5152MixAvisoRetraso().
@@ -7066,7 +7084,7 @@ function _renderArt5152Stats(){
     } else if(r.t.compensacion==='dias'){
       val = '+'+r.t.diasGenerados+' día(s) → '+r.t.mesDestino;
     } else {
-      val = 'Dinero';
+      val = calcImporteArt5152Vivo(r.t, false).toFixed(2)+' €';
     }
     // FIX: antes llamaba a verDetallesEnHistorial(k), que depende del
     // acordeón "Turnos del mes" del calendario — si STATS estaba
@@ -7077,7 +7095,7 @@ function _renderArt5152Stats(){
     html += '<div class="cs-r" style="padding-left:12px;align-items:center">'
       +'<span class="cl" style="font-size:10px">'+lbl+'</span>'
       +'<span style="display:flex;align-items:center;gap:6px">'
-      +'<span class="cv" style="font-size:10px;color:'+(r.t.compensacion==='dias'?'var(--cyan2)':'var(--acc3)')+'">'+val+'</span>'
+      +'<span class="cv" style="font-size:10px;color:'+(r.t.compensacion==='dias'?'var(--cyan2)':'var(--green2)')+'">'+val+'</span>'
       +'<button onclick="mostrarDetalleArt5152(\''+r.k+'\')" '
       +'style="background:var(--s2);border:1px solid var(--div);border-radius:6px;color:var(--acc2);'
       +'font-size:9px;font-weight:700;padding:2px 7px;cursor:pointer">Ver detalle</button>'
@@ -12523,24 +12541,31 @@ function renderStats(){
       +'<span class="cv '+(colClass||'')+'">'+val+'</span></div>'
       +dT(dias||[])+'</div>';
   };
-  var des='';
+  var des='', desNoc='', desPlus='', desInfo='', desTotal='';
   if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
-    var _subtotalComp = Math.round(((e.totalHTDL||0)+(e.totalNoc||0))*100)/100;
+    // NUEVO — HTDL como acordeón propio (antes vivía junto a
+    // Nocturnidad bajo "Compensación económica"). Usa totalHTDLPuro
+    // (sin Art.51/52 mezclado) y diasHTDLPuroDetail, expuestos por
+    // el wrapper de Art.51/52 — así esta cifra es solo la de HTDL,
+    // sin duplicar ni esconder el dinero de Art.51/52, que ahora
+    // tiene su propio acordeón (#a5152-stats-box).
+    var _totalHTDLSolo = e.totalHTDLPuro!=null ? e.totalHTDLPuro : e.totalHTDL;
+    var _diasHTDLSolo = e.diasHTDLPuroDetail || e.diasHTDLdetail;
     des+='<div class="acc-section open" style="margin:0 0 10px;background:var(--s2)">'
       +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-      +'<div class="acc-ico" style="background:transparent;font-size:18px">💼</div>'
-      +'<div class="acc-title">Compensación económica</div>'
+      +'<div class="acc-ico" style="background:transparent;font-size:18px">⏱</div>'
+      +'<div class="acc-title">HTDL</div>'
       +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'
-      +(_subtotalComp>0?_subtotalComp.toFixed(2)+' €':'En nómina')+'</div>'
+      +(_totalHTDLSolo>0?_totalHTDLSolo.toFixed(2)+' €':(e.totalHoras>0?'En nómina':''))+'</div>'
       +'<div class="acc-chev">›</div></div>'
       +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
-    if(e.totalHTDL>0){
+    if(_totalHTDLSolo>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
-        e.totalHTDL.toFixed(2)+' €','cv-info',e.diasHTDL);
+        _totalHTDLSolo.toFixed(2)+' €','cv-info',e.diasHTDL);
       // Desglose por día HTDL: mismo día → ida + escala + vuelta; pernocta → ida+vuelta
-      if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
-        e.diasHTDLdetail.forEach(function(d){
+      if(_diasHTDLSolo&&_diasHTDLSolo.length){
+        _diasHTDLSolo.forEach(function(d){
           // NUEVO — pernocta con fecha de vuelta conocida: ida y vuelta
           // van en líneas separadas, cada una con su fecha real, más
           // una línea de total combinando ambas fechas.
@@ -12580,10 +12605,10 @@ function renderStats(){
     }
     else if(e.totalHoras>0)
       des+='<div class="cs-r"><span class="cl cv-muted">⏱ Horas ordinarias ('+e.totalHoras.toFixed(1)+'h)</span><span class="cv cv-muted">En nómina</span></div>';
-    // NUEVO — "Impacto Económico por Enlaces" como línea propia e
-    // INDEPENDIENTE (no forma parte del if/else-if de arriba).
-    // e.totalHTDL ya incluye este importe (no se duplica el dinero);
-    // esto es solo para que se vea desglosado, tal como se pidió.
+    // "Impacto Económico por Enlaces" se queda dentro de HTDL — es
+    // parte del mismo cómputo de HTDL, no de Art.51/52 ni Nocturnidad.
+    // e.totalHTDLPuro ya incluye este importe (no se duplica el
+    // dinero); esto es solo para que se vea desglosado.
     if(e.impactoEnlacesImporte>0){
       des+=row('🔗 Impacto Económico por Enlaces ('+e.impactoEnlacesHoras.toFixed(2)+'h)',
         e.impactoEnlacesImporte.toFixed(2)+' €','cv-warn',[]);
@@ -12593,43 +12618,58 @@ function renderStats(){
           +'<span class="cv cv-warn">'+d.horas.toFixed(2)+'h · '+d.importe.toFixed(2)+' €</span></div>';
       });
     }
+    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (HTDL)
+    des+='</div>';
+
+    // NUEVO — Nocturnidad, acordeón propio (#cs-noc-box), separado de
+    // HTDL. Mismo cálculo/desglose de siempre, solo en su propio
+    // contenedor.
     if(e.totalNoc>0){
-      des+=row('🌙 Nocturnidad',e.totalNoc.toFixed(2)+' €','cv-warn',[]);
-      // Desglose detallado por día — acordeón
+      desNoc='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+        +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+        +'<div class="acc-ico" style="background:transparent;font-size:18px">🌙</div>'
+        +'<div class="acc-title">Nocturnidad</div>'
+        +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+e.totalNoc.toFixed(2)+' €</div>'
+        +'<div class="acc-chev">›</div></div>'
+        +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
       if(e.diasNocDetail&&e.diasNocDetail.length){
         e.diasNocDetail.forEach(function(d){
           if(typeof d!=='object') return;
-          des+='<div class="cs-r cs-r-sub" style="flex-direction:column;gap:1px">';
-          des+='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">';
-          des+='<span class="cl">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
-          des+='<span class="cv cv-muted">'+d.hNoc.toFixed(2)+'h · <span class="cv-warn" style="font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
-          des+='</div>';
-          // Detalle horario de los tramos nocturnos
+          desNoc+='<div class="cs-r cs-r-sub" style="flex-direction:column;gap:1px">';
+          desNoc+='<div style="display:flex;justify-content:space-between;align-items:center;width:100%">';
+          desNoc+='<span class="cl">🌙 '+d.lbl+(d.tren?' · #'+d.tren:'')+'</span>';
+          desNoc+='<span class="cv cv-muted">'+d.hNoc.toFixed(2)+'h · <span class="cv-warn" style="font-weight:800">'+d.importe.toFixed(2)+'€</span></span>';
+          desNoc+='</div>';
           var tramosTxt=[];
           if(d.hF1&&d.hL1) tramosTxt.push(d.hF1+' → '+d.hL1);
           if(d.hF2&&d.hL2) tramosTxt.push(d.hF2+' → '+d.hL2);
           if(tramosTxt.length){
-            des+='<div class="cs-sub-detail">'+tramosTxt.join(' · ')+'</div>';
+            desNoc+='<div class="cs-sub-detail">'+tramosTxt.join(' · ')+'</div>';
           }
-          des+='</div>';
+          desNoc+='</div>';
         });
       }
+      desNoc+='</div></div></div>';
     }
-    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Compensación económica)
+
+    // Pluses — acordeón propio (#cs-pluses-box), renombrado (ya no
+    // dice "y compensación en días": esa línea era confusa porque no
+    // tenía nada que ver con dinero — se movió al acordeón "Días de
+    // descanso (compensación)").
     var _subtotalPlus = Math.round(((e.totalAct||0)+(e.totalJT||0)+(e.totalIntl||0))*100)/100;
-    des+='<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
-      +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-      +'<div class="acc-ico" style="background:transparent;font-size:18px">✅</div>'
-      +'<div class="acc-title">Pluses y compensación en días</div>'
-      +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'
-      +(_subtotalPlus>0?_subtotalPlus.toFixed(2)+' €':'—')+'</div>'
-      +'<div class="acc-chev">›</div></div>'
-      +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
-    if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','cv-pos',e.diasAct);
-    if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','cv-pos',e.diasJT);
-    if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','cv-cyan',e.diasIntl);
-    if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv cv-info">'+ct.comp+' días</span></div>';
-    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Pluses)
+    if(_subtotalPlus>0){
+      desPlus='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+        +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+        +'<div class="acc-ico" style="background:transparent;font-size:18px">✅</div>'
+        +'<div class="acc-title">Pluses</div>'
+        +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+_subtotalPlus.toFixed(2)+' €</div>'
+        +'<div class="acc-chev">›</div></div>'
+        +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
+      if(e.totalAct>0)  desPlus+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','cv-pos',e.diasAct);
+      if(e.totalJT>0)   desPlus+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','cv-pos',e.diasJT);
+      if(e.totalIntl>0) desPlus+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','cv-cyan',e.diasIntl);
+      desPlus+='</div></div></div>';
+    }
 
     // NUEVO — se adelantan estos dos cálculos (antes vivían más abajo,
     // dentro del cuerpo) para poder mostrar el conteo total de avisos
@@ -12656,72 +12696,81 @@ function renderStats(){
       }
     });
     var _totalAvisos = (e.retrasos?e.retrasos.length:0) + notasMes.length + parkingMes.length;
-    des+='<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
-      +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-      +'<div class="acc-ico" style="background:transparent;font-size:18px">📋</div>'
-      +'<div class="acc-title">Información adicional del mes</div>'
-      +'<div style="font-size:12px;font-weight:700;color:'+(_totalAvisos>0?'var(--red2)':'var(--tx3)')+';margin-right:6px">'
-      +(_totalAvisos>0?_totalAvisos+' aviso'+(_totalAvisos>1?'s':''):'Sin avisos')+'</div>'
-      +'<div class="acc-chev">›</div></div>'
-      +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
-    // Retrasos del mes
-    if(e.retrasos&&e.retrasos.length){
-      des+='<div class="cr-div" style="margin:4px 0"></div>'
-        +'<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">⚠️ Retrasos del mes</span>'
-        +'<span class="cv cv-warn">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
-      e.retrasos.forEach(function(r){
-        // MÓDULO C: Impacto económico SI/NO según tramo y tipo compensación
-        var impacta=r.esHTDL&&r.tramo===2;
-        var impEco=impacta?Math.round((r.minutos/60)*e.HTDL*100)/100:0;
-        des+='<div class="cs-r cs-r-sub" style="flex-wrap:wrap">';
-        des+='<span class="cl">';
-        des+=r.fecha+(r.tren||r.numTren?' · #'+(r.tren||r.numTren):'')+(r.tramo>0?' · T'+r.tramo:'')+'</span>';
-        des+='<span class="cv cv-warn">+'+r.minutos+'min';
-        if(impacta) des+=' · <strong class="cv-pos">+'+impEco.toFixed(2)+'€ HTDL</strong>';
-        else        des+=' · <span class="cv-muted">informativo</span>';
-        des+='</span></div>';
-      });
+    if(_totalAvisos>0){
+      desInfo='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+        +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+        +'<div class="acc-ico" style="background:transparent;font-size:18px">📋</div>'
+        +'<div class="acc-title">Información adicional del mes</div>'
+        +'<div style="font-size:12px;font-weight:700;color:var(--red2);margin-right:6px">'
+        +_totalAvisos+' aviso'+(_totalAvisos>1?'s':'')+'</div>'
+        +'<div class="acc-chev">›</div></div>'
+        +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
+      // Retrasos del mes
+      if(e.retrasos&&e.retrasos.length){
+        desInfo+='<div class="cr-div" style="margin:4px 0"></div>'
+          +'<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">⚠️ Retrasos del mes</span>'
+          +'<span class="cv cv-warn">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
+        e.retrasos.forEach(function(r){
+          // MÓDULO C: Impacto económico SI/NO según tramo y tipo compensación
+          var impacta=r.esHTDL&&r.tramo===2;
+          var impEco=impacta?Math.round((r.minutos/60)*e.HTDL*100)/100:0;
+          desInfo+='<div class="cs-r cs-r-sub" style="flex-wrap:wrap">';
+          desInfo+='<span class="cl">';
+          desInfo+=r.fecha+(r.tren||r.numTren?' · #'+(r.tren||r.numTren):'')+(r.tramo>0?' · T'+r.tramo:'')+'</span>';
+          desInfo+='<span class="cv cv-warn">+'+r.minutos+'min';
+          if(impacta) desInfo+=' · <strong class="cv-pos">+'+impEco.toFixed(2)+'€ HTDL</strong>';
+          else        desInfo+=' · <span class="cv-muted">informativo</span>';
+          desInfo+='</span></div>';
+        });
+      }
+      // NOTAS DEL MES — muestra turnos que tienen nota escrita
+      // (notasMes ya se calculó arriba, antes de la cabecera del acordeón)
+      if(notasMes.length){
+        desInfo+='<div class="cr-div" style="margin:4px 0"></div>';
+        desInfo+='<div class="cs-r"><span class="cl cv-accent" style="font-weight:800">📝 Notas del mes</span>'
+          +'<span class="cv cv-accent">'+notasMes.length+' turno'+(notasMes.length>1?'s':'')+'</span></div>';
+        notasMes.forEach(function(n){
+          desInfo+='<div class="cs-r cs-r-sub" style="flex-direction:column;align-items:flex-start;gap:2px">'
+            +'<span class="cl">'+n.tipo+' '+n.lbl+'</span>'
+            +'<span class="cs-sub-detail" style="padding-left:0;color:var(--tx2)">'+n.nota+'</span>'
+            +'</div>';
+        });
+      }
+      // TURNOS PARKING DEL MES — (parkingMes ya se calculó arriba)
+      if(parkingMes.length){
+        desInfo+='<div class="cr-div" style="margin:4px 0"></div>';
+        desInfo+='<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🚗 Turnos Parking del mes</span>'
+          +'<span class="cv cv-warn">'+parkingMes.length+' turno'+(parkingMes.length>1?'s':'')+'</span></div>';
+        parkingMes.forEach(function(p){
+          desInfo+='<div class="cs-r cs-r-sub">'
+            +'<span class="cl">🚗 '+p.lbl+(p.tren?' · Tren #'+p.tren:'')+'</span>'
+            +'<span class="cv cv-warn">'+p.motivo+'</span>'
+            +'</div>';
+        });
+      }
+      desInfo+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Información adicional)
     }
-    // NOTAS DEL MES — muestra turnos que tienen nota escrita
-    // (notasMes ya se calculó arriba, antes de la cabecera del acordeón)
-    if(notasMes.length){
-      des+='<div class="cr-div" style="margin:4px 0"></div>';
-      des+='<div class="cs-r"><span class="cl cv-accent" style="font-weight:800">📝 Notas del mes</span>'
-        +'<span class="cv cv-accent">'+notasMes.length+' turno'+(notasMes.length>1?'s':'')+'</span></div>';
-      notasMes.forEach(function(n){
-        des+='<div class="cs-r cs-r-sub" style="flex-direction:column;align-items:flex-start;gap:2px">'
-          +'<span class="cl">'+n.tipo+' '+n.lbl+'</span>'
-          +'<span class="cs-sub-detail" style="padding-left:0;color:var(--tx2)">'+n.nota+'</span>'
-          +'</div>';
-      });
-    }
-    // TURNOS PARKING DEL MES — (parkingMes ya se calculó arriba)
-    if(parkingMes.length){
-      des+='<div class="cr-div" style="margin:4px 0"></div>';
-      des+='<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🚗 Turnos Parking del mes</span>'
-        +'<span class="cv cv-warn">'+parkingMes.length+' turno'+(parkingMes.length>1?'s':'')+'</span></div>';
-      parkingMes.forEach(function(p){
-        des+='<div class="cs-r cs-r-sub">'
-          +'<span class="cl">🚗 '+p.lbl+(p.tren?' · Tren #'+p.tren:'')+'</span>'
-          +'<span class="cv cv-warn">'+p.motivo+'</span>'
-          +'</div>';
-      });
-    }
-    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Información adicional)
+
     // ACTUALIZADO — bloque final destacado "Total a Pagar (Mes
-    // Vencido)". Sigue usando exactamente el mismo e.totalBruto de
-    // siempre (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin
-    // tocar) — solo cambia la presentación visual, no la suma.
+    // Vencido)", ahora en su propio contenedor fijo (#cs-total-pagar-box)
+    // que va DESPUÉS de todo lo demás (HTDL, Art.51/52, Nocturnidad,
+    // Pluses, Días de descanso, Información adicional), como se pidió.
+    // Sigue usando exactamente el mismo e.totalBruto de siempre
+    // (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin tocar)
+    // — solo cambia dónde y cuándo se pinta, no la suma.
     if(e.totalBruto>0){
-      des+='<div class="tas-total-final">'
+      desTotal='<div class="tas-total-final">'
         +'<div class="tas-total-final-lbl">💰 Total a Pagar (Mes Vencido)</div>'
         +'<div class="tas-total-final-val">'+e.totalBruto.toFixed(2)+' €</div>'
         +'<div class="tas-total-final-sub">Suma de HTDL, Art.51/52, enlaces, nocturnidad y pluses del mes</div>'
         +'</div>';
     }
-    des+='</div>';
-    cs.innerHTML=des;
-  } else cs.innerHTML='';
+  }
+  cs.innerHTML=des;
+  document.getElementById('cs-noc-box').innerHTML=desNoc;
+  document.getElementById('cs-pluses-box').innerHTML=desPlus;
+  document.getElementById('cs-info-adicional-box').innerHTML=desInfo;
+  document.getElementById('cs-total-pagar-box').innerHTML=desTotal;
 
   // La Auditoría de Horas usa el mismo mes visible que Estadísticas
   // (statsM). Si el panel está cerrado, renderAuditoriaHoras() no hace
@@ -16300,14 +16349,8 @@ function descargarComputoExcelPorCategorias(){
    Solo lectura: no crea ni modifica ningún TV[k].
 ═══════════════════════════════════════════════════════════ */
 function _renderHtdlDiasStats(){
-  var csBox = document.getElementById('cs-box');
-  if(!csBox) return;
   var box = document.getElementById('htdl-dias-stats-box');
-  if(!box){
-    box = document.createElement('div');
-    box.id = 'htdl-dias-stats-box';
-    csBox.insertAdjacentElement('afterend', box);
-  }
+  if(!box) return;
 
   var y=statsM.getFullYear(), m=statsM.getMonth()+1;
   var pref = y+'-'+pad(m);
@@ -16339,17 +16382,31 @@ function _renderHtdlDiasStats(){
     if(t && t.comp==='dias' && t.diasComp && t.diasComp.length) solicitados.push({k:k, t:t});
   });
 
-  if(!recibidos.length && !solicitados.length){ box.innerHTML=''; return; }
+  // NUEVO — días marcados como 'comp' (día de descanso ya disfrutado
+  // por una compensación) este mes. Antes vivía como línea suelta
+  // dentro de "Pluses" con la etiqueta ambigua "Días compensación";
+  // se fusiona aquí porque es el mismo concepto (días, no dinero).
+  var diasCompDisfrutados = 0;
+  Object.keys(TV).filter(function(k){return k.startsWith(pref);}).forEach(function(k){
+    if(TV[k] && TV[k].tipo==='comp') diasCompDisfrutados++;
+  });
 
-  var _cabHD = (recibidos.length+solicitados.length)+' día'+((recibidos.length+solicitados.length)!==1?'s':'');
-  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+  if(!recibidos.length && !solicitados.length && !diasCompDisfrutados){ box.innerHTML=''; return; }
+
+  var _totalDias = recibidos.length+solicitados.length+diasCompDisfrutados;
+  var _cabHD = _totalDias+' día'+(_totalDias!==1?'s':'');
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
     +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
     +'<div class="acc-ico" style="background:transparent;font-size:18px">📅</div>'
-    +'<div class="acc-title">HTDL — Compensación en días</div>'
+    +'<div class="acc-title">Días de descanso (compensación)</div>'
     +'<div style="font-size:12px;font-weight:700;color:var(--cyan2);margin-right:6px">'+_cabHD+'</div>'
     +'<div class="acc-chev">›</div></div>'
     +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
 
+  if(diasCompDisfrutados>0){
+    html += '<div class="cs-r"><span class="cl">📅 Días de descanso disfrutados este mes</span>'
+      +'<span class="cv" style="color:var(--cyan2)">'+diasCompDisfrutados+' día'+(diasCompDisfrutados!==1?'s':'')+'</span></div>';
+  }
   if(solicitados.length){
     html += '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:4px">SOLICITADOS ESTE MES → CAEN EL MES SIGUIENTE</div>';
     solicitados.forEach(function(r){
