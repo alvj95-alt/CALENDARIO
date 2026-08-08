@@ -13844,6 +13844,29 @@ function quitarCompanero(){
    Clave localStorage: 'tv2_extra'
 ══════════════════════════════════════════════════════════ */
 var TV2 = JSON.parse(localStorage.getItem('tv2_extra') || '{}');
+// NUEVO — MIGRACIÓN: no existen turnos mixtos el mismo día. Si algún
+// turno adicional quedó guardado con un tipo distinto al del turno
+// principal (p.ej. adicional 'ordinario' en un día 'trabajado'/HTDL o
+// 'art5152'), se corrige aquí una sola vez y se persiste — no es solo
+// un cambio de apariencia, el dato guardado pasa a ser el correcto.
+// Solo toca el campo 'tipo'; ningún otro dato del turno se modifica.
+(function _normalizarTiposTV2(){
+  var huboCambios = false;
+  for(var kk in TV2){
+    if(!TV2.hasOwnProperty(kk)) continue;
+    var principal = TV[kk];
+    if(!principal || !principal.tipo) continue;
+    var lista = TV2[kk];
+    if(!lista || !lista.length) continue;
+    for(var ii=0; ii<lista.length; ii++){
+      if(lista[ii] && lista[ii].tipo !== principal.tipo){
+        lista[ii].tipo = principal.tipo;
+        huboCambios = true;
+      }
+    }
+  }
+  if(huboCambios) localStorage.setItem('tv2_extra', JSON.stringify(TV2));
+})();
 var _tv2_guardando = false;
 var _tv2_editando_idx = null; // null = turno nuevo · número = índice de TV2[k] que se está editando
 
@@ -13863,7 +13886,11 @@ function getTurnosDia(k){
 function guardarTurnoExtra(){
   if(!selDay) return;
   _tv2_guardando = true;
-  resetF('ordinario');
+  // NUEVO — el adicional hereda el tipo del turno principal del día
+  // desde el momento de abrir el formulario (antes siempre forzaba
+  // 'ordinario', que era la causa real de los turnos mixtos).
+  var tipoPrincipalDia = (TV[selDay.k] && TV[selDay.k].tipo) ? TV[selDay.k].tipo : 'ordinario';
+  resetF(tipoPrincipalDia);
   abrirForm(false);
 }
 
@@ -13887,8 +13914,13 @@ function guardarTurnoEnTV2(){
   var kk = selDay.k;
   var hI = (F.hF&&F.hL) ? Math.round(calcMins(F.hF,F.hL)/60*100)/100 : 0;
   var hV = (F.hF2&&F.hL2) ? Math.round(calcMins(F.hF2,F.hL2)/60*100)/100 : 0;
+  // NUEVO — el turno adicional SIEMPRE hereda el tipo del turno
+  // principal del día (no existen turnos mixtos: HTDL con HTDL,
+  // ordinario con ordinario, Art.51/52 con Art.51/52). Se ignora
+  // F.tipo aquí a propósito, por si alguna vez llegara distinto.
+  var tipoHeredado = (TV[kk] && TV[kk].tipo) ? TV[kk].tipo : (F.tipo || 'ordinario');
   var dd = {
-    tipo: F.tipo, linea: F.linea,
+    tipo: tipoHeredado, linea: F.linea,
     sal: F.sal, lle: F.lle, hF: F.hF, hL: F.hL,
     sal2: F.sal2, lle2: F.lle2, hF2: F.hF2, hL2: F.hL2,
     modo: F.modo||'ida',
@@ -14362,10 +14394,17 @@ function renderTarjetaTurno(turno, k, esExtra, idxExtra){
    depende del listener delegado que solo engancha los .acc-head
    presentes en el DOM al cargar la página).
 ═══════════════════════════════════════════════════════════ */
-function renderAccordionTurno(turno, k, esExtra, idxExtra, abiertoPorDefecto){
+function renderAccordionTurno(turno, k, esExtra, idxExtra, abiertoPorDefecto, tipoHTDLDia){
   if(!turno) return '';
   var t  = turno;
   var ti = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo||'Turno', col:'var(--tx2)'};
+  // Si el día es HTDL/Art.51-52 (turno principal) y este es un turno
+  // adicional guardado con otro tipo (p.ej. 'ordinario'), se muestra
+  // con el mismo icono/etiqueta/color que el principal — visualmente
+  // ya no existen turnos mixtos, aunque el dato guardado no cambie.
+  if(esExtra && tipoHTDLDia && t.tipo!==tipoHTDLDia && TIPO_INFO[tipoHTDLDia]){
+    ti = TIPO_INFO[tipoHTDLDia];
+  }
 
   var editBtn = '<button onclick="event.stopPropagation();'
     + (esExtra ? "editarTurnoExtra('"+k+"',"+idxExtra+")" : 'editarTurno()')
@@ -14462,6 +14501,12 @@ function renderDiaAreaMulti(){
   // entre turno 1 y turno 2, tal como corresponde a un día HTDL.
   var jornadaCombo = calcularJornadaDiaria(all, k);
   var totalComboMin = jornadaCombo.efectivasMin + jornadaCombo.presenciaMin;
+  // NUEVO — si el turno principal es HTDL/Art.51-52, el día entero lo
+  // es (no existen turnos mixtos): se propaga a los acordeones para
+  // que los adicionales se VEAN también como HTDL, aunque su propio
+  // campo 'tipo' guardado siga siendo 'ordinario' (el dinero ya los
+  // trata como HTDL desde el fix anterior; esto es solo apariencia).
+  var tipoHTDLDia = (all[0] && (all[0].tipo==='trabajado' || all[0].tipo==='art5152')) ? all[0].tipo : null;
   if(totalComboMin > 0){
     html += '<div style="display:flex;align-items:center;justify-content:space-between;'
       +'background:rgba(59,127,255,.08);border:1px solid rgba(59,127,255,.25);border-radius:10px;'
@@ -14479,7 +14524,7 @@ function renderDiaAreaMulti(){
   // tarjeta plana anterior — resuelve que faltaran compañeros y que
   // el aspecto no coincidiera con el de un día normal.
   for(var ii=0; ii<all.length; ii++){
-    html += renderAccordionTurno(all[ii], k, ii>0, ii-1, ii===0);
+    html += renderAccordionTurno(all[ii], k, ii>0, ii-1, ii===0, tipoHTDLDia);
   }
 
   html += '</div>';
