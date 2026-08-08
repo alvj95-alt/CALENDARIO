@@ -11158,6 +11158,21 @@ function guardarTurno(){
 
   var d={tipo:t};
 
+  // FIX — al guardar una edición de un día 'baja' (p.ej. solo tocar un
+  // plus o escribir una nota), 'd' se construía desde cero y jamás
+  // recuperaba turnoPisado/simple/diaIndiceBaja/primeraBajaAnio del
+  // TV[k] ya existente — se perdían en cada guardado, y por eso
+  // "Quitar Baja Laboral" dejaba de tener nada que recuperar aunque el
+  // botón siguiera visible. Se preservan aquí explícitamente, ya que
+  // el formulario de baja nunca deja tocar estos campos.
+  if(t==='baja'){
+    var _bajaExistente = TV[k] || {};
+    d.simple = true;
+    d.turnoPisado = _bajaExistente.turnoPisado || null;
+    if(_bajaExistente.diaIndiceBaja!=null) d.diaIndiceBaja = _bajaExistente.diaIndiceBaja;
+    if(_bajaExistente.primeraBajaAnio!==undefined) d.primeraBajaAnio = _bajaExistente.primeraBajaAnio;
+  }
+
   if(t==='ordinario'||t==='trabajado'||t==='art5152'){
     d.linea=F.linea;d.sal=F.sal;d.lle=F.lle;d.hF=F.hF;d.hL=F.hL;
     d.modo=F.modo||'ida';
