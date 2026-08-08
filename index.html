@@ -8827,13 +8827,13 @@ function renderDiaArea(){
     if(t.tipo==='art5152'){
       if(t.compensacion==='dinero' && t.importe){
         body += '<div class="ac-imp" style="margin-top:6px"><span class="al">💶 Art. 51/52 — Dinero</span>'
-          +'<span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+          +'<span class="ar">'+calcImporteArt5152Vivo(t,false).toFixed(2)+' €</span></div>';
       } else if(t.compensacion==='dias' && t.diasGenerados){
         body += '<div class="ac-row" style="margin-top:6px"><span class="ak">📅 Art. 51/52 — Días</span>'
           +'<span class="av" style="color:var(--cyan2);font-weight:800">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
       } else if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
         body += '<div class="ac-imp" style="margin-top:6px"><span class="al">🔀 Mix — Dinero ('+_keyAFechaLbl(t.mixDinero.dia)+')</span>'
-          +'<span class="ar">'+t.mixDinero.importe.toFixed(2)+' €</span></div>'
+          +'<span class="ar">'+calcImporteArt5152Vivo(t,true).toFixed(2)+' €</span></div>'
           +'<div class="ac-row"><span class="ak">🔀 Mix — Días ('+_keyAFechaLbl(t.mixDias.dia)+')</span>'
           +'<span class="av" style="color:var(--cyan2);font-weight:800">+'+t.mixDias.diasGenerados+' → '+t.mixDias.mesDestino+'</span></div>';
       }
@@ -9136,10 +9136,10 @@ function renderAcordeon(){
     // NUEVO — FIX: resumen de compensación Art. 51/52 (campo propio
     // t.compensacion, distinto de t.comp de HTDL — por eso no aparecía).
     if(t.tipo==='art5152'){
-      if(t.compensacion==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">⚖️ Art.51/52 — Dinero</span><span class="ar">'+t.importe.toFixed(2)+' €</span></div>';
+      if(t.compensacion==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">⚖️ Art.51/52 — Dinero</span><span class="ar">'+calcImporteArt5152Vivo(t,false).toFixed(2)+' €</span></div>';
       if(t.compensacion==='dias'&&t.diasGenerados)det+='<div class="ac-row"><span class="ak">⚖️ Art.51/52 — Días</span><span class="av" style="color:var(--cyan2)">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
       if(t.compensacion==='mix'&&t.mixDinero&&t.mixDias){
-        det+='<div class="ac-imp"><span class="al">🔀 Mix — Dinero</span><span class="ar">'+t.mixDinero.importe.toFixed(2)+' €</span></div>';
+        det+='<div class="ac-imp"><span class="al">🔀 Mix — Dinero</span><span class="ar">'+calcImporteArt5152Vivo(t,true).toFixed(2)+' €</span></div>';
         det+='<div class="ac-row"><span class="ak">🔀 Mix — Días</span><span class="av" style="color:var(--cyan2)">+'+t.mixDias.diasGenerados+' → '+t.mixDias.mesDestino+'</span></div>';
       }
     }
@@ -12946,6 +12946,26 @@ function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
   var pJ = plusJT       ? parseFloat(p.jt||0)           : 0;
   var pI = plusIntlAuto ? parseFloat(p.internacional||0) : 0;
   return Math.round((horas*tasa+pA+pJ+pI)*100)/100;
+}
+
+// NUEVO — recalcula EN VIVO el importe de Art.51/52 (rama 'dinero' o
+// 'mix'), con la tarifa/base/pluses ACTUALES de Ajustes, a partir de
+// las horas ya guardadas (esas sí son un hecho fijo). Mismo criterio
+// que ya usan calculateEarnings() y mostrarDetalleArt5152() — este
+// helper solo lo centraliza para reutilizarlo también en las vistas
+// resumidas (popup de día y acordeón "Turnos del mes") que hasta
+// ahora mostraban el € congelado del momento de guardar. No toca
+// ningún dato guardado, solo cambia de dónde saca el número a MOSTRAR.
+function calcImporteArt5152Vivo(t, esMix){
+  if(!t || t.tipo!=='art5152') return 0;
+  var monto = parseFloat(AJ.art5152Monto)||0;
+  var base  = parseFloat(AJ.art5152ValorBase)||0;
+  var horas = esMix ? ((t.mixDinero&&t.mixDinero.horas)||0) : (t.horasEfectivas||0);
+  var p     = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var pAct  = t.plusAct      ? parseFloat(p.activacion||0)    : 0;
+  var pJT   = t.plusJT       ? parseFloat(p.jt||0)            : 0;
+  var pIntl = t.plusIntlAuto ? parseFloat(p.internacional||0) : 0;
+  return Math.round((horas*monto+base+pAct+pJT+pIntl)*100)/100;
 }
 
 function esHoraNocturna(h){var hr=parseInt(h.split(':')[0]);return hr>=22||hr<6;}
