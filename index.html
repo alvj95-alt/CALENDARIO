@@ -142,6 +142,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 /* ── PANELS ── */
 .panel{display:none;flex-direction:column;padding-bottom:72px}
+#p-companeros.panel{flex:1;min-height:0}
 .panel.on{display:flex}
 
 /* ── MES NAV — minimalista ── */
@@ -291,7 +292,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dct-del:hover{background:rgba(239,68,68,.28)}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:68px;background:var(--s1);
+.bnav{position:absolute;bottom:0;left:0;right:0;height:68px;background:var(--s1);
       border-top:1px solid var(--div);display:flex;align-items:flex-start;padding-top:9px;z-index:40;flex-shrink:0;
       padding-bottom:calc(20px + env(safe-area-inset-bottom));height:calc(68px + env(safe-area-inset-bottom))}
 .bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--tx2);transition:color .18s;padding:2px}
@@ -6290,6 +6291,13 @@ function secArt5152Flow(){
   var hVuelta = F.hF2&&F.hL2?Math.round(calcMins(F.hF2,F.hL2)/60*100)/100:0;
   var hTotal  = Math.round((hIda+hVuelta)*100)/100;
   var nDias   = esPernocta ? 4 : 2;
+  // NUEVO — Pluses (mismo origen de datos y mismas variables que ya
+  // usa secDescFlow() para HTDL): Activación/JT son manuales (toggle
+  // del usuario), Internacional es automático según la línea.
+  var pArt51    = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var pActArt   = F.plusAct      ? parseFloat(pArt51.activacion||0)    : 0;
+  var pJTArt    = F.plusJT       ? parseFloat(pArt51.jt||0)            : 0;
+  var pIntlArt  = F.plusIntlAuto ? parseFloat(pArt51.internacional||0) : 0;
 
   var h = '<div class="fsec" style="border-top:1px solid var(--div)">'
     +'<div class="fsec-lbl">Compensación — Artículo 51 y 52</div>'
@@ -6314,12 +6322,15 @@ function secArt5152Flow(){
   if(comp==='mix' && esPernocta){
     if(hIda>0 && hVuelta>0){
       var mix = calcularMix(hIda, hVuelta, selDay.k, _diaSiguienteKey(selDay.k));
-      var importeMix = Math.round((mix.horasDinero*monto+base)*100)/100;
+      var importeMix = Math.round((mix.horasDinero*monto+base+pActArt+pJTArt+pIntlArt)*100)/100;
       h += '<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>'
         +'<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>'
         +'<div class="cr-div"></div>'
         +'<div class="cr-row"><span class="cr-l">💶 Tramo a Dinero ('+mix.horasDinero+'h)</span>'
         +'<span class="cr-v" style="color:var(--green2)">'+importeMix.toFixed(2)+' €</span></div>'
+        +(pActArt>0?'<div class="cr-row"><span class="cr-l">Plus Activación</span><span class="cr-v">+'+pActArt.toFixed(2)+' €</span></div>':'')
+        +(pJTArt>0?'<div class="cr-row"><span class="cr-l">Plus JT</span><span class="cr-v">+'+pJTArt.toFixed(2)+' €</span></div>':'')
+        +(pIntlArt>0?'<div class="cr-row"><span class="cr-l">Plus Internacional</span><span class="cr-v">+'+pIntlArt.toFixed(2)+' €</span></div>':'')
         +'<div class="cr-row"><span class="cr-l">📅 Tramo a Días</span>'
         +'<span class="cr-v" style="color:var(--cyan2)">+'+mix.diasGenerados+' día(s)</span></div>'
         +'<div style="font-size:9px;color:var(--tx3);margin-top:4px">📧 Al guardar se abrirá un correo automático para Programación.</div>'
@@ -6331,6 +6342,28 @@ function secArt5152Flow(){
       h += '<div style="font-size:10px;color:var(--tx3)">⚠️ Completa ambos tramos (ida y vuelta) para calcular el Mix</div>';
     }
   } else if(comp==='dinero'){
+    // NUEVO — Toggles de pluses manuales (mismo componente plusToggle()
+    // que ya usa HTDL, sin duplicar el helper).
+    h += '<div style="margin-bottom:10px">'
+      + '<div style="font-size:8px;font-weight:800;letter-spacing:1px;color:var(--tx3);'
+      + 'margin-bottom:7px;text-transform:uppercase">Pluses activos este viaje</div>';
+    h += plusToggle('plusAct', F.plusAct, 'Plus Activación',
+      parseFloat(pArt51.activacion||0), '€ fijo × viaje',
+      'togglePlus(\'plusAct\')');
+    h += plusToggle('plusJT', F.plusJT, 'Plus JT',
+      parseFloat(pArt51.jt||0), '€ fijo × viaje',
+      'togglePlus(\'plusJT\')');
+    if(F.plusIntlAuto){
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;'
+        + 'background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.3);'
+        + 'border-radius:9px;margin-bottom:6px">'
+        + '<span style="font-size:13px">🌍</span>'
+        + '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--cyan2)">Plus Internacional</div>'
+        + '<div style="font-size:9px;color:var(--tx3)">Activado automáticamente · línea Internacional</div></div>'
+        + '<span style="font-size:12px;font-weight:800;color:var(--cyan2)">+'+parseFloat(pArt51.internacional||0).toFixed(2)+' €</span>'
+        + '</div>';
+    }
+    h += '</div>';
     // NUEVO: mismo criterio que el cálculo real de guardarTurno() —
     // Ida y vuelta → Ida + Escala + Vuelta. Pernocta → solo trenes.
     // FIX — misma corrección que en guardarTurno(): separar el
@@ -6370,8 +6403,11 @@ function secArt5152Flow(){
       h += '<div class="cr-row"><span class="cr-l"><strong>Total horas</strong></span><span class="cr-v"><strong>'+hTotalPrev+' h</strong></span></div>'
         +'<div class="cr-row"><span class="cr-l">Tarifa Art. 51/52</span><span class="cr-v">'+monto.toFixed(2)+' €/h</span></div>'
         +(base>0?'<div class="cr-row"><span class="cr-l">Valor base</span><span class="cr-v">+'+base.toFixed(2)+' €</span></div>':'')
+        +(pActArt>0?'<div class="cr-row"><span class="cr-l">Plus Activación</span><span class="cr-v">+'+pActArt.toFixed(2)+' €</span></div>':'')
+        +(pJTArt>0?'<div class="cr-row"><span class="cr-l">Plus JT</span><span class="cr-v">+'+pJTArt.toFixed(2)+' €</span></div>':'')
+        +(pIntlArt>0?'<div class="cr-row"><span class="cr-l">Plus Internacional</span><span class="cr-v">+'+pIntlArt.toFixed(2)+' €</span></div>':'')
         +'<div class="cr-div"></div>'
-        +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span><span class="cr-tv">'+Math.round((hTotalPrev*monto+base)*100)/100+' €</span></div>'
+        +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span><span class="cr-tv">'+Math.round((hTotalPrev*monto+base+pActArt+pJTArt+pIntlArt)*100)/100+' €</span></div>'
         +(esPernocta?'<div style="font-size:9px;color:var(--tx3);margin-top:4px">Pernocta: solo tiempo efectivo en tren (sin escala/descanso).</div>':'');
     } else {
       h += '<div style="font-size:10px;color:var(--tx3)">⚠️ Completa los tramos para ver el cálculo</div>';
@@ -6780,6 +6816,9 @@ if(typeof calculateEarnings === 'function'){
     // (horas × monto + base) es exactamente la misma de siempre.
     var montoArtActual = parseFloat(AJ.art5152Monto)||0;
     var baseArtActual = parseFloat(AJ.art5152ValorBase)||0;
+    // NUEVO — pluses recalculados en vivo con la tarifa ACTUAL de
+    // Ajustes, igual que montoArtActual/baseArtActual de arriba.
+    var pArt51Live = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
     var extraHTDL = 0, extraDetalle = [], extraLbl = [];
     ks.forEach(function(k){
       var t = TV[k];
@@ -6805,10 +6844,14 @@ if(typeof calculateEarnings === 'function'){
         }
       }
       var hRetT2Art = Math.round(minRetT2Art/60*100)/100;
+      var pActArtLive  = t.plusAct      ? parseFloat(pArt51Live.activacion||0)    : 0;
+      var pJTArtLive   = t.plusJT       ? parseFloat(pArt51Live.jt||0)            : 0;
+      var pIntlArtLive = t.plusIntlAuto ? parseFloat(pArt51Live.internacional||0) : 0;
+      var pTotalArtLive = pActArtLive + pJTArtLive + pIntlArtLive;
 
       if(t.compensacion==='dinero' && t.horasEfectivas){
         var horasVivasArt = Math.round((t.horasEfectivas + hRetT2Art)*100)/100;
-        var importeVivo = Math.round((horasVivasArt*montoArtActual + baseArtActual)*100)/100;
+        var importeVivo = Math.round((horasVivasArt*montoArtActual + baseArtActual + pTotalArtLive)*100)/100;
         extraHTDL += importeVivo;
         var lbl1 = _keyAFechaLbl(k);
         extraDetalle.push({lbl:lbl1, tren:t.numTren||'', esPernocta:esPernoctaArtLive,
@@ -6817,7 +6860,7 @@ if(typeof calculateEarnings === 'function'){
         extraLbl.push(t.numTren?lbl1+' #'+t.numTren+' (Art.51/52)':lbl1+' (Art.51/52)');
       } else if(t.compensacion==='mix' && t.mixDinero && t.mixDinero.horas){
         var horasMixVivasArt = Math.round((t.mixDinero.horas + hRetT2Art)*100)/100;
-        var importeMixVivo = Math.round((horasMixVivasArt*montoArtActual + baseArtActual)*100)/100;
+        var importeMixVivo = Math.round((horasMixVivasArt*montoArtActual + baseArtActual + pTotalArtLive)*100)/100;
         extraHTDL += importeMixVivo;
         var lbl2 = _keyAFechaLbl(t.mixDinero.dia);
         extraDetalle.push({lbl:lbl2, tren:t.numTren||'', esPernocta:true,
@@ -6880,6 +6923,12 @@ function mostrarDetalleArt5152(k){
   // tarifa ACTUAL de Ajustes, no con la que hubiera cuando se guardó.
   var montoArtDetalle = parseFloat(AJ.art5152Monto)||0;
   var baseArtDetalle = parseFloat(AJ.art5152ValorBase)||0;
+  // NUEVO — pluses recalculados en vivo, mismo criterio que arriba.
+  var pArt51Detalle    = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+  var pActArtDetalle   = t.plusAct      ? parseFloat(pArt51Detalle.activacion||0)    : 0;
+  var pJTArtDetalle    = t.plusJT       ? parseFloat(pArt51Detalle.jt||0)            : 0;
+  var pIntlArtDetalle  = t.plusIntlAuto ? parseFloat(pArt51Detalle.internacional||0) : 0;
+  var pTotalArtDetalle = pActArtDetalle + pJTArtDetalle + pIntlArtDetalle;
 
   // FIX — Retraso del tramo de vuelta (T2), en vivo, mismo criterio
   // que en el TAS (calculateEarnings): T1 es informativo, T2 suma.
@@ -6898,10 +6947,13 @@ function mostrarDetalleArt5152(k){
 
   if(t.compensacion==='mix' && t.mixDinero && t.mixDias){
     var horasMixDetalle = Math.round(((t.mixDinero.horas||0) + hRetT2Detalle)*100)/100;
-    var importeMixDetalle = Math.round((horasMixDetalle*montoArtDetalle + baseArtDetalle)*100)/100;
+    var importeMixDetalle = Math.round((horasMixDetalle*montoArtDetalle + baseArtDetalle + pTotalArtDetalle)*100)/100;
     html += '<div class="cs-t">🔀 Compensación Mix</div>';
     html += fila('Tramo mayor horas', _keyAFechaLbl(t.mixDinero.dia)+' · '+t.mixDinero.horas+' h', 'var(--acc3)');
     if(hRetT2Detalle>0) html += fila('Retraso tramo vuelta', '+'+hRetT2Detalle+' h', 'var(--amber2)');
+    if(pActArtDetalle>0) html += fila('Plus Activación', '+'+pActArtDetalle.toFixed(2)+' €', 'var(--green2)');
+    if(pJTArtDetalle>0) html += fila('Plus JT', '+'+pJTArtDetalle.toFixed(2)+' €', 'var(--green2)');
+    if(pIntlArtDetalle>0) html += fila('Plus Internacional', '+'+pIntlArtDetalle.toFixed(2)+' €', 'var(--green2)');
     html += fila('Compensación económica', importeMixDetalle.toFixed(2)+' €', 'var(--green2)');
     html += fila('Tramo menor horas', _keyAFechaLbl(t.mixDias.dia)+' · '+t.mixDias.horas+' h', 'var(--acc3)');
     html += fila('Días de descanso', '+'+t.mixDias.diasGenerados+' día(s) → '+t.mixDias.mesDestino, 'var(--cyan2)');
@@ -6924,10 +6976,13 @@ function mostrarDetalleArt5152(k){
     }
   } else if(t.compensacion==='dinero'){
     var horasDineroDetalle = Math.round(((t.horasEfectivas||0) + hRetT2Detalle)*100)/100;
-    var importeDineroDetalle = Math.round((horasDineroDetalle*montoArtDetalle + baseArtDetalle)*100)/100;
+    var importeDineroDetalle = Math.round((horasDineroDetalle*montoArtDetalle + baseArtDetalle + pTotalArtDetalle)*100)/100;
     html += '<div class="cs-t">💶 Compensación económica</div>';
     html += fila('Horas efectivas', (t.horasEfectivas||0)+' h', 'var(--acc3)');
     if(hRetT2Detalle>0) html += fila('Retraso tramo vuelta', '+'+hRetT2Detalle+' h', 'var(--amber2)');
+    if(pActArtDetalle>0) html += fila('Plus Activación', '+'+pActArtDetalle.toFixed(2)+' €', 'var(--green2)');
+    if(pJTArtDetalle>0) html += fila('Plus JT', '+'+pJTArtDetalle.toFixed(2)+' €', 'var(--green2)');
+    if(pIntlArtDetalle>0) html += fila('Plus Internacional', '+'+pIntlArtDetalle.toFixed(2)+' €', 'var(--green2)');
     html += fila('Importe', importeDineroDetalle.toFixed(2)+' €', 'var(--green2)');
   } else if(t.compensacion==='dias'){
     html += '<div class="cs-t">📅 Días de descanso</div>';
@@ -11320,16 +11375,21 @@ function guardarTurno(){
     var esPernoctaArt = (F.modo==='pernocta'||F.modo==='pernocta3');
     var montoArt = parseFloat(AJ.art5152Monto)||0;
     var baseArt  = parseFloat(AJ.art5152ValorBase)||0;
-    // DEBUG TEMPORAL — quítalo en cuanto confirmes el diagnóstico.
-    console.log('[Art51/52] AJ.art5152Monto (crudo):', AJ.art5152Monto,
-      '| montoArt (usado en el cálculo):', montoArt,
-      '| baseArt:', baseArt, '| compensación elegida:', compArt);
+    // NUEVO — se guardan plusAct/plusJT (antes nunca se persistían
+    // para Art.51/52, por eso el dinero final nunca los reflejaba).
+    // Mismo origen de datos que HTDL (AJ.pluses/PLUS_DEF).
+    d.plusAct = F.plusAct||false;
+    d.plusJT  = F.plusJT||false;
+    var pArt51Save   = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
+    var pActArtSave  = F.plusAct      ? parseFloat(pArt51Save.activacion||0)    : 0;
+    var pJTArtSave   = F.plusJT       ? parseFloat(pArt51Save.jt||0)            : 0;
+    var pIntlArtSave = F.plusIntlAuto ? parseFloat(pArt51Save.internacional||0) : 0;
     var mesOrigenArt = k.slice(0,7);
 
     if(compArt==='mix' && esPernoctaArt){
       var kVueltaArt = d.diaSiguiente || _diaSiguienteKey(k);
       var mixR = calcularMix(hIda, hVuelta, k, kVueltaArt);
-      d.mixDinero = {dia:mixR.diaDinero, horas:mixR.horasDinero, importe:Math.round((mixR.horasDinero*montoArt+baseArt)*100)/100};
+      d.mixDinero = {dia:mixR.diaDinero, horas:mixR.horasDinero, importe:Math.round((mixR.horasDinero*montoArt+baseArt+pActArtSave+pJTArtSave+pIntlArtSave)*100)/100};
       d.mixDias   = {dia:mixR.diaDias,  horas:mixR.horasDias,  diasGenerados:mixR.diasGenerados, mesDestino:_art5152MesSiguiente(k)};
       // FIX: usar los días concretos elegidos en el mini-calendario
       // (mismo patrón que la rama 'dias' de arriba) en vez de solo
@@ -11433,19 +11493,7 @@ function guardarTurno(){
       d.hEscala = hEscalaArt;
       d.hContinuidad = hContinuidadArt;
       d.hContinuidadVuelta = hContinuidadVueltaArt;
-      d.importe = Math.round((horasCompArt*montoArt + baseArt)*100)/100;
-      // DEBUG TEMPORAL — quítalo en cuanto confirmes el diagnóstico.
-      console.log('[Art51/52] Resultado final → horas efectivas:', horasCompArt,
-        '× montoArt:', montoArt, '+ baseArt:', baseArt,
-        '= d.importe guardado:', d.importe, '€');
-      // DEBUG TEMPORAL VISIBLE EN PANTALLA (para móvil, sin consola):
-      // aparece 1.6s después del toast normal de guardado, para que
-      // te dé tiempo a leerlo. Quítalo también cuando ya no lo necesites.
-      (function(hDebug, mDebug, bDebug, impDebug){
-        setTimeout(function(){
-          toast('💶 Art.51/52: '+hDebug.toFixed(2)+'h × '+mDebug.toFixed(2)+'€/h + '+bDebug.toFixed(2)+'€ = '+impDebug.toFixed(2)+'€');
-        }, 1700);
-      })(horasCompArt, montoArt, baseArt, d.importe);
+      d.importe = Math.round((horasCompArt*montoArt + baseArt + pActArtSave + pJTArtSave + pIntlArtSave)*100)/100;
     }
 
     // El contador de "una vez al mes" y el de "3 veces al año" SOLO se
