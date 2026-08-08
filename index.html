@@ -15823,6 +15823,9 @@ function renderComparativaComputoExcel(){
   // para poder comparar día a día más abajo.
   var nocPorLbl={};
   (eMes.diasNocDetail||[]).forEach(function(d){ nocPorLbl[d.lbl]=(nocPorLbl[d.lbl]||0)+Math.round((d.hNoc||0)*60); });
+  // NUEVO — recoge la fila completa de CADA día (no solo los que
+  // tienen diferencia), para la exportación de "Comparativa completa".
+  var comparativaCompleta = [];
 
   Object.keys(datos.porDia).sort().forEach(function(k){
     var ex=datos.porDia[k];
@@ -15883,11 +15886,27 @@ function renderComparativaComputoExcel(){
     if(Math.abs(ex.HTDL-appHTDL)>UMBRAL_MIN) diffs.push({c:'HTDL',ex:ex.HTDL,app:appHTDL});
     if(ex.JT!==appJT) diffs.push({c:'Plus JT',ex:ex.JT,app:appJT,esConteo:true});
     if(diffs.length) discrepancias.push({fecha:pad(dd)+'/'+pad(m), diffs:diffs, trenExcel:ex.TrenExcel||'', trenApp:_trenesAppDelDia(k)});
+
+    // NUEVO — fila COMPLETA de este día (haya o no diferencia), para
+    // poder exportar la comparativa entera además de solo las
+    // diferencias. Reutiliza los mismos valores ya calculados arriba
+    // (ex.*/app*), no se recalcula nada distinto.
+    comparativaCompleta.push({
+      fecha:pad(dd)+'/'+pad(m),
+      HEExcel:ex.HE, HEApp:appHE,
+      HPExcel:ex.HP, HPApp:appHP,
+      NoctExcel:ex.Noct, NoctApp:appNoct,
+      HTDLExcel:ex.HTDL, HTDLApp:appHTDL,
+      JTExcel:ex.JT, JTApp:appJT,
+      Rebase:ex.Rebase||0, Traslados:ex.Trasl||0, PlusTraslado:ex.PlusTrasl||0,
+      TiempoTransporte:ex.TpTrans||0, PlusInterrupcion:ex.PlusInter||0,
+      trenExcel:ex.TrenExcel||'', trenApp:_trenesAppDelDia(k)
+    });
   });
 
   // Guardado para que el selector de categoría y los botones de
   // descarga puedan usarlo sin tener que recalcular nada.
-  _computoExcelDatosActual = {discrepancias:discrepancias, porDia:datos.porDia, y:y, m:m, mesLbl:datos.mesLbl};
+  _computoExcelDatosActual = {discrepancias:discrepancias, porDia:datos.porDia, comparativaCompleta:comparativaCompleta, y:y, m:m, mesLbl:datos.mesLbl};
 
   var filaTotal=function(lbl,cKey){
     var ex=totalExcel[cKey], ap=totalApp[cKey];
@@ -16054,6 +16073,26 @@ function _renderSeccionDiferenciasComputoExcel(){
   cont.innerHTML = html;
 }
 
+function _filasComparativaCompleta(){
+  if(!_computoExcelDatosActual) return [];
+  return _computoExcelDatosActual.comparativaCompleta.map(function(f){
+    return {
+      Fecha: f.fecha,
+      'H.E. Excel': _minAHHMM(f.HEExcel), 'H.E. App': _minAHHMM(f.HEApp),
+      'H.P. Excel': _minAHHMM(f.HPExcel), 'H.P. App': _minAHHMM(f.HPApp),
+      'Noct. Excel': _minAHHMM(f.NoctExcel), 'Noct. App': _minAHHMM(f.NoctApp),
+      'HTDL Excel': _minAHHMM(f.HTDLExcel), 'HTDL App': _minAHHMM(f.HTDLApp),
+      'Plus JT Excel': f.JTExcel, 'Plus JT App': f.JTApp,
+      'Rebase (Excel)': _minAHHMM(f.Rebase),
+      'Traslados (Excel)': _minAHHMM(f.Traslados),
+      'Plus Traslado (Excel)': _minAHHMM(f.PlusTraslado),
+      'Tiempo Transporte (Excel)': f.TiempoTransporte,
+      'Plus Interrupción (Excel)': f.PlusInterrupcion,
+      'Tren Excel': f.trenExcel, 'Tren App': f.trenApp
+    };
+  });
+}
+
 // Filas listas para exportar (mismo formato para pantalla y Excel —
 // una sola fuente de verdad, regla de oro).
 function _filasParaExportComputoExcel(catId){
@@ -16138,6 +16177,29 @@ function descargarComputoExcelPorCategorias(){
   if(typeof XLSX==='undefined'){ alert('No se pudo cargar el lector/escritor de Excel. Comprueba tu conexión.'); return; }
   var wb = XLSX.utils.book_new();
   var huboAlguna = false;
+
+  // NUEVO — hoja 1: Comparativa completa (TODOS los días del mes,
+  // tengan o no diferencia), Excel vs App lado a lado.
+  var filasCompleta = _filasComparativaCompleta();
+  if(filasCompleta.length){
+    huboAlguna = true;
+    var wsCompleta = XLSX.utils.json_to_sheet(filasCompleta);
+    wsCompleta['!cols'] = _anchoColumnasAuto(filasCompleta);
+    XLSX.utils.book_append_sheet(wb, wsCompleta, 'Comparativa completa');
+  }
+
+  // NUEVO — hoja 2: resumen de Días con diferencia (todas las
+  // categorías juntas), igual que ya se veía en pantalla con el
+  // filtro "Todas las diferencias".
+  var filasDiff = _filasParaExportComputoExcel('todas');
+  if(filasDiff.length){
+    huboAlguna = true;
+    var wsDiff = XLSX.utils.json_to_sheet(filasDiff);
+    wsDiff['!cols'] = _anchoColumnasAuto(filasDiff);
+    XLSX.utils.book_append_sheet(wb, wsDiff, 'Dias con diferencia');
+  }
+
+  // Hojas 3+: una por categoría (ya existía, sin cambios).
   COMPUTO_EXCEL_CATEGORIAS.forEach(function(cat){
     if(cat.id==='todas') return;
     var filas = _filasParaExportComputoExcel(cat.id);
