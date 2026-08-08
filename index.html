@@ -7037,7 +7037,16 @@ function _renderArt5152Stats(){
     return;
   }
 
-  var html = '<div class="cs-box"><div class="cs-t">⚖️ Artículo 51 y 52</div>';
+  var _cab = registros.length
+    ? registros.length+' turno'+(registros.length!==1?'s':'')
+    : (diasRecibidos>0 ? '+'+diasRecibidos+' día(s)' : '');
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+    +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+    +'<div class="acc-ico" style="background:transparent;font-size:18px">⚖️</div>'
+    +'<div class="acc-title">Artículo 51 y 52</div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--acc3);margin-right:6px">'+_cab+'</div>'
+    +'<div class="acc-chev">›</div></div>'
+    +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
   if(usosMes>0){
     html += '<div class="cs-r"><span class="cl">Usos este mes (Dinero/Días)</span>'
       +'<span class="cv" style="color:'+(usosMes>1?'var(--amber2)':'var(--tx2)')+'">'+usosMes+' / 1</span></div>';
@@ -7079,7 +7088,7 @@ function _renderArt5152Stats(){
       +'<div class="cs-r"><span class="cl" style="font-weight:800">📅 Días recibidos este mes</span>'
       +'<span class="cv" style="color:var(--cyan2);font-weight:900">+'+diasRecibidos+' día(s)</span></div>';
   }
-  html += '</div>';
+  html += '</div></div></div>';
   box.innerHTML = html;
 }
 
@@ -12517,7 +12526,15 @@ function renderStats(){
   var des='';
   if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
     des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
-    des+='<div class="tas-section"><div class="tas-section-tit">💼 Compensación económica</div>';
+    var _subtotalComp = Math.round(((e.totalHTDL||0)+(e.totalNoc||0))*100)/100;
+    des+='<div class="acc-section open" style="margin:0 0 10px;background:var(--s2)">'
+      +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+      +'<div class="acc-ico" style="background:transparent;font-size:18px">💼</div>'
+      +'<div class="acc-title">Compensación económica</div>'
+      +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'
+      +(_subtotalComp>0?_subtotalComp.toFixed(2)+' €':'En nómina')+'</div>'
+      +'<div class="acc-chev">›</div></div>'
+      +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
     if(e.totalHTDL>0){
       des+=row('⏱ HTDL ('+e.horasHTDL.toFixed(2)+'h × '+e.HTDL.toFixed(2)+'€)',
         e.totalHTDL.toFixed(2)+' €','cv-info',e.diasHTDL);
@@ -12598,14 +12615,55 @@ function renderStats(){
         });
       }
     }
-    des+='</div>'; // cierre .tas-section Compensación económica
-    des+='<div class="tas-section"><div class="tas-section-tit">✅ Pluses y compensación en días</div>';
+    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Compensación económica)
+    var _subtotalPlus = Math.round(((e.totalAct||0)+(e.totalJT||0)+(e.totalIntl||0))*100)/100;
+    des+='<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
+      +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+      +'<div class="acc-ico" style="background:transparent;font-size:18px">✅</div>'
+      +'<div class="acc-title">Pluses y compensación en días</div>'
+      +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'
+      +(_subtotalPlus>0?_subtotalPlus.toFixed(2)+' €':'—')+'</div>'
+      +'<div class="acc-chev">›</div></div>'
+      +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
     if(e.totalAct>0)  des+=row('✅ Plus Activación (×'+e.diasAct.length+')',e.totalAct.toFixed(2)+' €','cv-pos',e.diasAct);
     if(e.totalJT>0)   des+=row('✅ Plus JT (×'+e.diasJT.length+')',e.totalJT.toFixed(2)+' €','cv-pos',e.diasJT);
     if(e.totalIntl>0) des+=row('🌍 Plus Internacional (×'+e.diasIntl.length+')',e.totalIntl.toFixed(2)+' €','cv-cyan',e.diasIntl);
     if(ct.comp>0) des+='<div class="cs-r"><span class="cl">📅 Días compensación</span><span class="cv cv-info">'+ct.comp+' días</span></div>';
-    des+='</div>'; // cierre .tas-section Pluses
-    des+='<div class="tas-section"><div class="tas-section-tit">📋 Información adicional del mes</div>';
+    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Pluses)
+
+    // NUEVO — se adelantan estos dos cálculos (antes vivían más abajo,
+    // dentro del cuerpo) para poder mostrar el conteo total de avisos
+    // en la cabecera del acordeón "Información adicional" antes de
+    // imprimir su contenido. Es el mismo cálculo exacto, solo movido.
+    var notasMes=[];
+    ks.forEach(function(k){
+      var t=TV[k];
+      if(t&&t.notas&&t.notas.trim().length>0){
+        var _kn=k.split('-');var dN2=parseInt(_kn[2])+' '+MESES_C[parseInt(_kn[1])-1];
+        notasMes.push({lbl:dN2, tipo:(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'📋'), nota:t.notas.trim()});
+      }
+    });
+    var parkingMes=[];
+    ks.forEach(function(k){
+      var t=TV[k];
+      if(t && esTurnoParking(t)){
+        var _kp=k.split('-');var dP=parseInt(_kp[2])+' '+MESES_C[parseInt(_kp[1])-1];
+        var ci=t.hF, co=t.hL2||t.hL;
+        var motivo=[];
+        if(ci && parseInt(ci.split(':')[0])<6) motivo.push('entra '+ci);
+        if(co && (parseInt(co.split(':')[0])>23 || (parseInt(co.split(':')[0])===23 && parseInt(co.split(':')[1])>=30))) motivo.push('llega '+co);
+        parkingMes.push({lbl:dP, tren:t.numTren||t.numTrenVuelta||'', motivo:motivo.join(' · ')});
+      }
+    });
+    var _totalAvisos = (e.retrasos?e.retrasos.length:0) + notasMes.length + parkingMes.length;
+    des+='<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
+      +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+      +'<div class="acc-ico" style="background:transparent;font-size:18px">📋</div>'
+      +'<div class="acc-title">Información adicional del mes</div>'
+      +'<div style="font-size:12px;font-weight:700;color:'+(_totalAvisos>0?'var(--red2)':'var(--tx3)')+';margin-right:6px">'
+      +(_totalAvisos>0?_totalAvisos+' aviso'+(_totalAvisos>1?'s':''):'Sin avisos')+'</div>'
+      +'<div class="acc-chev">›</div></div>'
+      +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
     // Retrasos del mes
     if(e.retrasos&&e.retrasos.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>'
@@ -12625,14 +12683,7 @@ function renderStats(){
       });
     }
     // NOTAS DEL MES — muestra turnos que tienen nota escrita
-    var notasMes=[];
-    ks.forEach(function(k){
-      var t=TV[k];
-      if(t&&t.notas&&t.notas.trim().length>0){
-        var _kn=k.split('-');var dN2=parseInt(_kn[2])+' '+MESES_C[parseInt(_kn[1])-1];
-        notasMes.push({lbl:dN2, tipo:(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'📋'), nota:t.notas.trim()});
-      }
-    });
+    // (notasMes ya se calculó arriba, antes de la cabecera del acordeón)
     if(notasMes.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>';
       des+='<div class="cs-r"><span class="cl cv-accent" style="font-weight:800">📝 Notas del mes</span>'
@@ -12644,21 +12695,7 @@ function renderStats(){
           +'</div>';
       });
     }
-    // TURNOS PARKING DEL MES — muestra qué tren y por qué se clasificó así
-    // (CI antes de las 06:00 o CO a partir de las 23:30). Reutiliza
-    // esTurnoParking() ya existente, solo lectura, no altera ningún turno.
-    var parkingMes=[];
-    ks.forEach(function(k){
-      var t=TV[k];
-      if(t && esTurnoParking(t)){
-        var _kp=k.split('-');var dP=parseInt(_kp[2])+' '+MESES_C[parseInt(_kp[1])-1];
-        var ci=t.hF, co=t.hL2||t.hL;
-        var motivo=[];
-        if(ci && parseInt(ci.split(':')[0])<6) motivo.push('entra '+ci);
-        if(co && (parseInt(co.split(':')[0])>23 || (parseInt(co.split(':')[0])===23 && parseInt(co.split(':')[1])>=30))) motivo.push('llega '+co);
-        parkingMes.push({lbl:dP, tren:t.numTren||t.numTrenVuelta||'', motivo:motivo.join(' · ')});
-      }
-    });
+    // TURNOS PARKING DEL MES — (parkingMes ya se calculó arriba)
     if(parkingMes.length){
       des+='<div class="cr-div" style="margin:4px 0"></div>';
       des+='<div class="cs-r"><span class="cl cv-warn" style="font-weight:800">🚗 Turnos Parking del mes</span>'
@@ -12670,7 +12707,7 @@ function renderStats(){
           +'</div>';
       });
     }
-    des+='</div>'; // cierre .tas-section Información adicional
+    des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (Información adicional)
     // ACTUALIZADO — bloque final destacado "Total a Pagar (Mes
     // Vencido)". Sigue usando exactamente el mismo e.totalBruto de
     // siempre (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin
@@ -16304,7 +16341,14 @@ function _renderHtdlDiasStats(){
 
   if(!recibidos.length && !solicitados.length){ box.innerHTML=''; return; }
 
-  var html = '<div class="cs-box"><div class="cs-t">📅 HTDL — Compensación en días</div>';
+  var _cabHD = (recibidos.length+solicitados.length)+' día'+((recibidos.length+solicitados.length)!==1?'s':'');
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+    +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+    +'<div class="acc-ico" style="background:transparent;font-size:18px">📅</div>'
+    +'<div class="acc-title">HTDL — Compensación en días</div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--cyan2);margin-right:6px">'+_cabHD+'</div>'
+    +'<div class="acc-chev">›</div></div>'
+    +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
 
   if(solicitados.length){
     html += '<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);margin-bottom:4px">SOLICITADOS ESTE MES → CAEN EL MES SIGUIENTE</div>';
@@ -16326,7 +16370,7 @@ function _renderHtdlDiasStats(){
     });
   }
 
-  html += '</div>';
+  html += '</div></div></div>';
   box.innerHTML = html;
 }
 
