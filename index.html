@@ -12523,6 +12523,27 @@ function renderStats(){
       // Desglose por día HTDL: mismo día → ida + escala + vuelta; pernocta → ida+vuelta
       if(e.diasHTDLdetail&&e.diasHTDLdetail.length){
         e.diasHTDLdetail.forEach(function(d){
+          // NUEVO — pernocta con fecha de vuelta conocida: ida y vuelta
+          // van en líneas separadas, cada una con su fecha real, más
+          // una línea de total combinando ambas fechas.
+          if(d.esPernocta && d.lblVuelta){
+            if(d.hIda>0){
+              des+='<div class="cs-r cs-r-sub">'
+                +'<span class="cl">🚂 IDA · '+d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
+                +'<span class="cv cv-info">'+d.hIda.toFixed(2)+'h</span></div>';
+            }
+            var hVueltaTotal = Math.round((d.hVuelta+d.hRetT2)*100)/100;
+            if(hVueltaTotal>0){
+              des+='<div class="cs-r cs-r-sub">'
+                +'<span class="cl">↩ VUELTA · '+d.lblVuelta+'</span>'
+                +'<span class="cv cv-info">'+hVueltaTotal.toFixed(2)+'h'
+                +(d.hRetT2>0?' (incl. +'+d.hRetT2.toFixed(2)+'h retraso)':'')+'</span></div>';
+            }
+            des+='<div class="cs-r cs-r-sub" style="opacity:.85">'
+              +'<span class="cl"><strong>Total '+d.lbl+' + '+d.lblVuelta+'</strong></span>'
+              +'<span class="cv cv-info"><strong>'+d.hTotal.toFixed(2)+'h</strong></span></div>';
+            return;
+          }
           var partes=[];
           if(d.hIda>0) partes.push(d.hIda.toFixed(2)+'h ida');
           if(d.hEscala>0) partes.push(d.hEscala.toFixed(2)+'h escala');
@@ -13496,6 +13517,18 @@ function calculateEarnings(ks){
         // Guardar detalle: fecha, tren, horas desglosadas
         dHTDL.push({
           lbl:dL,
+          // NUEVO — fecha real de la VUELTA cuando es pernocta (el
+          // tramo de vuelta ocurre físicamente al día siguiente — o
+          // dos días después en pernocta de 3 días — no el mismo día
+          // que la ida). Solo se rellena en pernocta; en HTDL del
+          // mismo día, ida y vuelta comparten fecha y no hace falta.
+          lblVuelta: (function(){
+            if(!esPernoctaHTDL) return null;
+            var kVta = _diaSiguienteKey(k);
+            if(t.modo==='pernocta3') kVta = _diaSiguienteKey(kVta);
+            var pV = kVta.split('-');
+            return parseInt(pV[2])+' '+MESES_C[parseInt(pV[1])-1];
+          })(),
           tren:t.numTren||'',
           esPernocta:esPernoctaHTDL,
           hIda:hI,
