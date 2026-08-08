@@ -11702,6 +11702,13 @@ function quitarBajaLaboral(k){
   if(!confirm('¿Quitar la baja laboral de este día y recuperar el turno que tenía antes?')) return;
   TV[k] = t.turnoPisado;
   saveTV();
+  // FIX — selDay.t es una COPIA en memoria del turno que usa el popup
+  // del día (renderDiaArea, editarTurno...) para pintar y editar. Se
+  // actualizaba TV[k] pero no esta copia, así que tras quitar la baja
+  // el popup seguía "viendo" la baja vieja y Editar no dejaba tocar
+  // nada. Se refresca aquí, solo si el popup abierto es el de este
+  // mismo día.
+  if(selDay && selDay.k===k) selDay.t = TV[k];
   if(typeof verificarDescansosMes==='function') ALERTAS_DESCANSO = verificarDescansosMes();
   renderCal();
   renderStats();
