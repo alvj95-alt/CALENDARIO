@@ -18252,7 +18252,12 @@ async function guardarHorarioEnNube(){
     art5152Dias: ART5152_DIAS,
     art5152Uso: ART5152_USO,
     art5152UsoAnual: ART5152_USO_ANUAL,
-    htdlCorreos: JSON.parse(localStorage.getItem('htdl_correos')||'{}')
+    htdlCorreos: JSON.parse(localStorage.getItem('htdl_correos')||'{}'),
+    // NUEVO — Cómputo Oficial (Excel): antes vivía SOLO en este
+    // dispositivo (computoExcelPorMes en localStorage), así que al
+    // cambiar de móvil se perdía la comparativa ya subida. Se guarda
+    // el mismo objeto que ya usa _computoExcelPorMes (uno por mes).
+    computoExcel: _computoExcelPorMes
   };
   var payload = {
     user_id: usuarioActual.matricula || usuarioActual.id,
@@ -18331,6 +18336,8 @@ async function cargarHorarioDesdeNube(){
     if(ex.art5152Uso){ ART5152_USO = ex.art5152Uso; localStorage.setItem('art5152_uso', JSON.stringify(ART5152_USO)); }
     if(ex.art5152UsoAnual){ ART5152_USO_ANUAL = ex.art5152UsoAnual; localStorage.setItem('art5152_uso_anual', JSON.stringify(ART5152_USO_ANUAL)); }
     if(ex.htdlCorreos){ localStorage.setItem('htdl_correos', JSON.stringify(ex.htdlCorreos)); }
+    // NUEVO — restaura el Cómputo Oficial (Excel) igual que el resto.
+    if(ex.computoExcel){ _computoExcelPorMes = ex.computoExcel; _guardarComputoExcelPorMes(); }
   }
 
   closeOv('ov-cargar-nube');
