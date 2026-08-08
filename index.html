@@ -7057,7 +7057,7 @@ function _renderArt5152Stats(){
   var _cab = totalDinero>0
     ? totalDinero.toFixed(2)+' €'
     : (registros.length ? registros.length+' turno'+(registros.length!==1?'s':'') : '');
-  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
     +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
     +'<div class="acc-ico" style="background:transparent;font-size:18px">⚖️</div>'
     +'<div class="acc-title">Artículo 51 y 52</div>'
@@ -12543,7 +12543,7 @@ function renderStats(){
   };
   var des='', desNoc='', desPlus='', desInfo='', desTotal='';
   if(e.totalHoras>0||e.totalBruto>0||ct.comp>0){
-    des='<div class="cs-box"><div class="cs-t">Desglose económico del mes</div>';
+    des='';
     // NUEVO — HTDL como acordeón propio (antes vivía junto a
     // Nocturnidad bajo "Compensación económica"). Usa totalHTDLPuro
     // (sin Art.51/52 mezclado) y diasHTDLPuroDetail, expuestos por
@@ -12552,7 +12552,7 @@ function renderStats(){
     // tiene su propio acordeón (#a5152-stats-box).
     var _totalHTDLSolo = e.totalHTDLPuro!=null ? e.totalHTDLPuro : e.totalHTDL;
     var _diasHTDLSolo = e.diasHTDLPuroDetail || e.diasHTDLdetail;
-    des+='<div class="acc-section open" style="margin:0 0 10px;background:var(--s2)">'
+    des+='<div class="acc-section open" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
       +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
       +'<div class="acc-ico" style="background:transparent;font-size:18px">⏱</div>'
       +'<div class="acc-title">HTDL</div>'
@@ -12619,7 +12619,6 @@ function renderStats(){
       });
     }
     des+='</div></div></div>'; // cierre acc-body-inner + acc-body + acc-section (HTDL)
-    des+='</div>';
 
     // NUEVO — Nocturnidad, acordeón propio (#cs-noc-box), separado de
     // HTDL. Mismo cálculo/desglose de siempre, solo en su propio
@@ -16395,7 +16394,7 @@ function _renderHtdlDiasStats(){
 
   var _totalDias = recibidos.length+solicitados.length+diasCompDisfrutados;
   var _cabHD = _totalDias+' día'+(_totalDias!==1?'s':'');
-  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s2)">'
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
     +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
     +'<div class="acc-ico" style="background:transparent;font-size:18px">📅</div>'
     +'<div class="acc-title">Días de descanso (compensación)</div>'
