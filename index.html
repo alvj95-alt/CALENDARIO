@@ -2976,6 +2976,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
+      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="toggleFeatureBuscarInterventorNombre()" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔍</button>
       <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
@@ -3855,26 +3856,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
         </div>
       </div>
-    </div>
-
-    <!-- NUEVO — Interruptor ADMIN: Búsqueda de Interventor por
-         nombre. Oculto por defecto (solo se revela por JS si eres
-         admin — ver _mostrarToggleFeatureBuscarInterventorNombre()).
-         Guarda su estado en Supabase (config_global), así que afecta
-         a TODOS los compañeros, no solo a este dispositivo. -->
-    <div id="admToggleBuscarInterventorNombre" style="display:none;margin:0 16px 14px;padding:12px 15px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.3);border-radius:12px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:16px">🔍</span>
-        <div style="flex:1">
-          <div style="font-weight:800;color:#C4B5FD;font-size:12px">Búsqueda de Interventor por nombre</div>
-          <div id="estadoFeatureBuscarInterventorNombre" style="font-size:10px;color:var(--tx3);margin-top:2px">Cargando estado...</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button onclick="activarBusquedaInterventorPorNombreGlobal()" style="flex:1;padding:9px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:9px;color:#6EE7B7;font-size:11px;font-weight:700;cursor:pointer">✅ Activar para todos</button>
-        <button onclick="desactivarBusquedaInterventorPorNombreGlobal()" style="flex:1;padding:9px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;color:#FCA5A5;font-size:11px;font-weight:700;cursor:pointer">🚫 Desactivar</button>
-      </div>
-      <div style="font-size:9px;color:var(--tx3);margin-top:8px;line-height:1.4">Como admin, tú siempre puedes usarla — esto solo controla si el resto de compañeros también la ve.</div>
     </div>
 
     <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
@@ -17932,6 +17913,9 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
   var btnAdmin = document.getElementById('hbtn-admin');
   if(perfilAdminActual.rol === 'admin'){
     if(btnAdmin) btnAdmin.classList.add('es-admin');
+    // NUEVO — muestra/actualiza el botón de Búsqueda de Interventor
+    // por nombre en la cabecera en cuanto se confirma la sesión admin.
+    if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
     // NUEVO — recolorea toda la app mientras dure la sesión de admin,
     // tanto en un login explícito como en una recarga con sesión ya
     // persistida (así nunca se te olvida que sigues siendo admin,
@@ -21025,9 +21009,9 @@ function mostrarConAnimacionTren(contenedor, renderFn){
 // mostrando con su nombre normal, sin tocar.
 // NUEVO — FEATURE FLAG GLOBAL: Buscar Interventor por nombre.
 // Por defecto está desactivado para todos salvo el admin. El admin
-// puede activarlo globalmente (para todos los compañeros) desde el
-// Panel Admin — ver activarBusquedaInterventorPorNombreGlobal() /
-// desactivarBusquedaInterventorPorNombreGlobal(). Se guarda en
+// puede activarlo/desactivarlo globalmente (para todos los
+// compañeros) tocando el icono 🔍 de la cabecera — ver
+// toggleFeatureBuscarInterventorNombre(). Se guarda en
 // config_global (misma tabla que ya usa Horario General/Intervención)
 // como una fila-marcador: si existe, está activado; si no existe,
 // está desactivado. Así no hace falta ninguna columna nueva.
@@ -21035,60 +21019,73 @@ var FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
 async function _cargarFeatureBuscarInterventorNombre(){
   try{
     var resp = await sbAdmin.from('config_global').select('tipo').eq('tipo','feature_buscar_interventor_nombre').maybeSingle();
+    if(resp && resp.error) console.log('[FeatureBuscarInterventorNombre] error al leer estado:', resp.error);
     FEATURE_BUSCAR_INTERVENTOR_NOMBRE = !!(resp && resp.data);
   }catch(e){
+    console.log('[FeatureBuscarInterventorNombre] excepción al leer estado:', e);
     FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
   }
-  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
-  if(badgeEl){
-    badgeEl.textContent = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? 'Activado para todos' : 'Desactivado (solo admin)';
-    badgeEl.style.color = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? '#6EE7B7' : '#94A3B8';
+  _actualizarBotonFeatureBuscarInterventorNombre();
+  // NUEVO — el botón solo se revela para el admin; el resto de
+  // compañeros nunca lo ven (sigue con display:none).
+  var btn = document.getElementById('hbtn-toggle-interv-nombre');
+  if(btn && perfilAdminActual && perfilAdminActual.rol==='admin'){
+    btn.style.display = 'flex';
   }
-  // NUEVO — el interruptor solo se revela para el admin; el resto de
-  // compañeros nunca ven esta tarjeta (sigue con display:none).
-  var toggleCard = document.getElementById('admToggleBuscarInterventorNombre');
-  if(toggleCard && perfilAdminActual && perfilAdminActual.rol==='admin'){
-    toggleCard.style.display = 'block';
+}
+function _actualizarBotonFeatureBuscarInterventorNombre(){
+  var btn = document.getElementById('hbtn-toggle-interv-nombre');
+  if(!btn) return;
+  if(FEATURE_BUSCAR_INTERVENTOR_NOMBRE){
+    btn.style.background = 'rgba(16,185,129,.18)';
+    btn.style.color = '#6EE7B7';
+    btn.title = 'Búsqueda de Interventor por nombre: ACTIVADA para todos (toca para desactivar)';
+  } else {
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.title = 'Búsqueda de Interventor por nombre: desactivada para el resto (toca para activar)';
   }
 }
 function _puedeBuscarInterventorPorNombre(){
   var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
   return esAdminActivo || FEATURE_BUSCAR_INTERVENTOR_NOMBRE===true;
 }
-// NUEVO — Activa/desactiva GLOBALMENTE (para todos los compañeros) la
-// búsqueda de Interventor por nombre. Solo el admin puede llamarlas
-// (mismo guard que el resto de acciones del Panel Admin). Usa
-// config_global como fila-marcador: existe = activado.
-async function activarBusquedaInterventorPorNombreGlobal(){
+// NUEVO — un solo botón que alterna el estado (antes eran dos
+// botones separados). Solo el admin puede llamarla (mismo guard que
+// el resto de acciones del Panel Admin).
+async function toggleFeatureBuscarInterventorNombre(){
   if(!perfilAdminActual || perfilAdminActual.rol!=='admin') return;
-  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
-  if(badgeEl) badgeEl.textContent = 'Activando...';
-  var resp = await sbAdmin.from('config_global').upsert({
-    tipo: 'feature_buscar_interventor_nombre',
-    nombre_archivo: 'on',
-    fecha_subida: new Date().toISOString(),
-    subido_por: perfilAdminActual.id
-  });
-  if(resp.error){
-    if(badgeEl){ badgeEl.textContent = 'Error al activar: '+resp.error.message; badgeEl.style.color = '#FCA5A5'; }
-    return;
+  var btn = document.getElementById('hbtn-toggle-interv-nombre');
+  if(btn) btn.style.opacity='.5';
+  try{
+    if(FEATURE_BUSCAR_INTERVENTOR_NOMBRE){
+      var respDel = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
+      if(respDel.error){ console.log('[FeatureBuscarInterventorNombre] error al desactivar:', respDel.error); toast('❌ No se pudo desactivar: '+respDel.error.message); return; }
+      FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
+      toast('🚫 Búsqueda de Interventor por nombre desactivada para el resto');
+    } else {
+      // NUEVO — se incluye url_archivo (placeholder, no es un
+      // archivo real) porque esa columna probablemente sea
+      // obligatoria en config_global — sin ella el guardado podía
+      // estar fallando en silencio.
+      var respIns = await sbAdmin.from('config_global').upsert({
+        tipo: 'feature_buscar_interventor_nombre',
+        nombre_archivo: 'feature_flag_on',
+        url_archivo: 'feature_flag',
+        fecha_subida: new Date().toISOString(),
+        subido_por: perfilAdminActual.id
+      });
+      if(respIns.error){ console.log('[FeatureBuscarInterventorNombre] error al activar:', respIns.error); toast('❌ No se pudo activar: '+respIns.error.message); return; }
+      FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
+      toast('✅ Búsqueda de Interventor por nombre activada para todos');
+    }
+  }catch(eToggle){
+    console.log('[FeatureBuscarInterventorNombre] excepción al alternar:', eToggle);
+    toast('❌ Error inesperado: '+(eToggle&&eToggle.message?eToggle.message:String(eToggle)));
+  }finally{
+    if(btn) btn.style.opacity='1';
+    _actualizarBotonFeatureBuscarInterventorNombre();
   }
-  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
-  if(badgeEl){ badgeEl.textContent = 'Activado para todos'; badgeEl.style.color = '#6EE7B7'; }
-  toast('✅ Búsqueda de Interventor por nombre activada para todos');
-}
-async function desactivarBusquedaInterventorPorNombreGlobal(){
-  if(!perfilAdminActual || perfilAdminActual.rol!=='admin') return;
-  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
-  if(badgeEl) badgeEl.textContent = 'Desactivando...';
-  var resp = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
-  if(resp.error){
-    if(badgeEl){ badgeEl.textContent = 'Error al desactivar: '+resp.error.message; badgeEl.style.color = '#FCA5A5'; }
-    return;
-  }
-  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
-  if(badgeEl){ badgeEl.textContent = 'Desactivado (solo admin)'; badgeEl.style.color = '#94A3B8'; }
-  toast('🚫 Búsqueda de Interventor por nombre desactivada para el resto');
 }
 
 // NUEVO — Perfil de Interventor encontrado por nombre: lista sus
