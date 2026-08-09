@@ -21056,7 +21056,11 @@ function _puedeBuscarInterventorPorNombre(){
 // botones separados). Solo el admin puede llamarla (mismo guard que
 // el resto de acciones del Panel Admin).
 async function toggleFeatureBuscarInterventorNombre(){
-  if(!perfilAdminActual || perfilAdminActual.rol!=='admin') return;
+  console.log('[FeatureBuscarInterventorNombre] toggle pulsado. perfilAdminActual:', perfilAdminActual);
+  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
+    toast('⚠️ No se detecta tu sesión de admin activa — vuelve a iniciar sesión');
+    return;
+  }
   var btn = document.getElementById('hbtn-toggle-interv-nombre');
   if(btn) btn.style.opacity='.5';
   try{
