@@ -21301,6 +21301,7 @@ function renderList(matches, query, interventorMatches){
         <div class="pcard-info">
           <span class="pcard-name-full">${ofuscarNombreInterventor(im.name)}</span>
           <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${im.servicio}</div>
+          ${im.notaSolape ? `<div style="font-size:9px;color:var(--tx3);margin-top:2px;font-weight:600">⚠️ ${im.notaSolape}</div>` : ''}
         </div>
         <div class="pcard-arr">›</div>
       </div>`;
@@ -21514,13 +21515,27 @@ function doSearch(){
   // busqueda por tren.
   let interventorNameMatches = [];
   if(_puedeBuscarInterventorPorNombre() && typeof INTERVENTOR_SERVICES!=='undefined'){
+    // NUEVO — solo cuentan los archivos que realmente cubren HOY (la
+    // fecha real del sistema, no una fecha que se esté navegando en
+    // la app). Se comprueba mirando si hoy existe como día real
+    // dentro de los datos del propio interventor en ese archivo —
+    // no el nombre del servicio, que es solo una etiqueta escrita a
+    // mano al subirlo y podría ser ambigua o estar mal puesta.
+    const hoyKeyInterv = key(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
     INTERVENTOR_SERVICES.forEach(function(servicio){
       servicio.data.forEach(function(entry){
         const id2=entry[0], name2=entry[1], dias2=entry[2];
-        if(name2 && name2.toUpperCase().includes(q)){
+        if(name2 && name2.toUpperCase().includes(q) && dias2 && dias2[hoyKeyInterv]){
           interventorNameMatches.push({id:id2, name:name2, dias:dias2, servicio:servicio.name});
         }
       });
+    });
+    // NUEVO — si el mismo nombre coincide vigente hoy en más de un
+    // archivo/servicio, se muestran todos, cada uno con una nota
+    // indicando en qué otros servicios también aparece hoy.
+    interventorNameMatches.forEach(function(m, i){
+      const otros = interventorNameMatches.filter(function(m2, j){ return j!==i && m2.name===m.name; });
+      m.notaSolape = otros.length ? ('También vigente hoy en: '+otros.map(function(o){return o.servicio;}).join(', ')) : '';
     });
     interventorNameMatches = interventorNameMatches.slice(0, 20);
   }
