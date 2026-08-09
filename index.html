@@ -21079,7 +21079,7 @@ function _puedeBuscarInterventorPorNombre(){
 // su propia comprobación y su propia escritura, sin depender de
 // ningún estado previo. Actualizan el texto del panel y el icono de
 // la cabecera al terminar.
-async function _panelActivarBusquedaInterventorNombre(){
+window._panelActivarBusquedaInterventorNombre = async function(){
   var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
   if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
     alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
@@ -21103,7 +21103,7 @@ async function _panelActivarBusquedaInterventorNombre(){
   if(typeof _actualizarBotonFeatureBuscarInterventorNombre==='function') _actualizarBotonFeatureBuscarInterventorNombre();
   alert('✅ Activado para todos los compañeros');
 }
-async function _panelDesactivarBusquedaInterventorNombre(){
+window._panelDesactivarBusquedaInterventorNombre = async function(){
   var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
   if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
     alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
