@@ -19127,6 +19127,12 @@ async function cargarHorarioGlobalDesdeAdmin(){
     if(!resp.data.url_archivo){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila encontrada pero sin url_archivo'; return false; }
     var datos = await _descargarYParsearHorario(resp.data);
     if(!datos || !datos.length){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila y URL encontradas, pero 0 empleados tras descargar/parsear el archivo'; return false; }
+    // NUEVO — se etiqueta también aquí la sede de cada empleado
+    // (4º elemento de la tupla), igual que ya hace la fusión admin —
+    // así se puede mostrar "de qué base es" en los resultados aunque
+    // el usuario no sea admin (aunque él solo vea su propia sede).
+    var sedeUnica = resp.data.sede || miSede;
+    datos.forEach(function(emp){ emp[3] = sedeUnica; });
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
     BASES.global.mesAnio = datos.mesAnio || null;
@@ -20746,14 +20752,14 @@ function findCompanions(day, selfId, selfName, selfCell){
   const selfTokens = trainTokens(selfCell);
   if(selfTokens.size===0) return [];
   const out = [];
-  for(const [id, name, days] of activeBase.data){
+  for(const [id, name, days, sede] of activeBase.data){
     if(id===selfId && name===selfName) continue;
     const cell = days[String(day)];
     if(!cell) continue;
     const tokens = trainTokens(cell);
     let shared = false;
     for(const t of selfTokens){ if(tokens.has(t)){ shared = true; break; } }
-    if(shared) out.push({id, name, cell});
+    if(shared) out.push({id, name, cell, sede});
   }
   return out;
 }
@@ -21258,7 +21264,7 @@ function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, iso
       <div class="pcard-av">${initials(c.name)}</div>
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
-        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -21298,12 +21304,13 @@ function renderTrain(trainNum, day, matches, interventorMatches){
   });
   matches.forEach((m, mIdx)=>{
     var esAdminTren = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+    var sedeReal = (m.entry && m.entry[3]) ? m.entry[3] : activeBase.label;
     filas += `<div class="pcard" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="pcard-av">${initials(m.name)}</div>
         <div class="pcard-info">
           <div class="pcard-name">${m.name}</div>
-          <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+          <div class="pcard-id">TRIPULACIÓN · ${sedeReal}${m.id ? ' · ID '+m.id : ''}</div>
         </div>
       </div>
       ${esAdminTren ? `<button class="btn-import-comp-tren" data-midx="${mIdx}" style="margin-top:8px;padding:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:8px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío</button>` : ''}
@@ -21377,12 +21384,12 @@ function renderList(matches, query, interventorMatches){
   if(matches.length){
     if(interventorMatches.length) html += '<div class="list-section-lbl">COMPAÑEROS</div>';
     html += '<div class="list">';
-    for(const [id, name] of matches){
+    for(const [id, name, , sede] of matches){
       html += `<div class="pcard perfil-companero" data-id="${id}" data-name="${encodeURIComponent(name)}">
         <img class="pcard-avatar-img" src="${AVATAR_PLACEHOLDER}" alt="">
         <div class="pcard-info">
           <span class="pcard-name-full">${name}</span>
-          ${id ? `<div class="pcard-id">ID ${id}</div>` : ''}
+          ${id ? `<div class="pcard-id">ID ${id}${sede ? ' · '+sede : ''}</div>` : ''}
         </div>
         <div class="pcard-arr">›</div>
       </div>`;
@@ -21558,7 +21565,7 @@ function renderCompanions(day, id, name, cell){
       <div class="pcard-av">${initials(c.name)}</div>
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
-        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -21803,7 +21810,7 @@ function renderCompanions(day, id, name, cell){
       <div class="pcard-av">${initials(c.name)}</div>
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
-        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
