@@ -2976,7 +2976,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
-      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="toggleFeatureBuscarInterventorNombre()" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔒</button>
+      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="try{toggleFeatureBuscarInterventorNombre();}catch(eBtnInterv){alert('ERROR: '+eBtnInterv.message);}" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔒</button>
       <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
@@ -4924,6 +4924,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div style="padding:0 16px">
       <button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:6px" onclick="cerrarSesionAdmin()">🚪 Cerrar sesión de administrador</button>
       <div class="msg-info" style="margin:0 0 10px">Ciérrala cuando termines de revisar o subir algo: mientras la sesión esté activa, cualquier acción de este panel (guardar, publicar, eliminar) queda habilitada. Cerrándola evitas guardar algo por error sin querer.</div>
+    </div>
+
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico" style="background:rgba(124,58,237,.15);color:#C4B5FD">🔍</div>
+        <div>
+          <div class="admin-card-tit">Búsqueda de Interventor por nombre</div>
+          <div class="admin-card-sub" id="estadoFeatureBuscarInterventorNombrePanel">Comprobando estado...</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;padding:10px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:9px;color:#6EE7B7;font-size:12px;font-weight:700;cursor:pointer" onclick="try{_panelActivarBusquedaInterventorNombre();}catch(eA){alert('ERROR activar: '+eA.message);}">✅ Activar para todos</button>
+        <button style="flex:1;padding:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;color:#FCA5A5;font-size:12px;font-weight:700;cursor:pointer" onclick="try{_panelDesactivarBusquedaInterventorNombre();}catch(eD){alert('ERROR desactivar: '+eD.message);}">🚫 Desactivar</button>
+      </div>
     </div>
 
     <div class="admin-card">
@@ -17852,6 +17866,7 @@ function abrirAccesoAdmin(){
     document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
     openOv('ov-panel-admin');
     refrescarEstadoArchivosAdmin();
+    if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
     return;
   }
   // SIMPLIFICADO — se quita del todo el paso de "Mi cuenta en la
@@ -21026,6 +21041,10 @@ async function _cargarFeatureBuscarInterventorNombre(){
     FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
   }
   _actualizarBotonFeatureBuscarInterventorNombre();
+  var elPanelInit = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
+  if(elPanelInit){
+    elPanelInit.textContent = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? 'Activado para todos' : 'Desactivado (solo admin lo ve)';
+  }
   // NUEVO — el botón solo se revela para el admin; el resto de
   // compañeros nunca lo ven (sigue con display:none).
   var btn = document.getElementById('hbtn-toggle-interv-nombre');
@@ -21055,6 +21074,54 @@ function _puedeBuscarInterventorPorNombre(){
 // NUEVO — un solo botón que alterna el estado (antes eran dos
 // botones separados). Solo el admin puede llamarla (mismo guard que
 // el resto de acciones del Panel Admin).
+// NUEVO — versiones SIMPLES Y AUTOCONTENIDAS para el Panel Admin
+// (más fiables de depurar que el icono de cabecera): cada botón hace
+// su propia comprobación y su propia escritura, sin depender de
+// ningún estado previo. Actualizan el texto del panel y el icono de
+// la cabecera al terminar.
+async function _panelActivarBusquedaInterventorNombre(){
+  var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
+  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
+    alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
+    return;
+  }
+  if(elPanel) elPanel.textContent = 'Activando...';
+  var resp = await sbAdmin.from('config_global').upsert({
+    tipo: 'feature_buscar_interventor_nombre',
+    nombre_archivo: 'feature_flag_on',
+    url_archivo: 'feature_flag',
+    fecha_subida: new Date().toISOString(),
+    subido_por: perfilAdminActual.id
+  });
+  if(resp.error){
+    alert('No se pudo activar: '+resp.error.message);
+    if(elPanel) elPanel.textContent = 'Error: '+resp.error.message;
+    return;
+  }
+  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
+  if(elPanel) elPanel.textContent = 'Activado para todos';
+  if(typeof _actualizarBotonFeatureBuscarInterventorNombre==='function') _actualizarBotonFeatureBuscarInterventorNombre();
+  alert('✅ Activado para todos los compañeros');
+}
+async function _panelDesactivarBusquedaInterventorNombre(){
+  var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
+  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
+    alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
+    return;
+  }
+  if(elPanel) elPanel.textContent = 'Desactivando...';
+  var resp = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
+  if(resp.error){
+    alert('No se pudo desactivar: '+resp.error.message);
+    if(elPanel) elPanel.textContent = 'Error: '+resp.error.message;
+    return;
+  }
+  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
+  if(elPanel) elPanel.textContent = 'Desactivado (solo admin lo ve)';
+  if(typeof _actualizarBotonFeatureBuscarInterventorNombre==='function') _actualizarBotonFeatureBuscarInterventorNombre();
+  alert('🚫 Desactivado para el resto de compañeros');
+}
+
 async function toggleFeatureBuscarInterventorNombre(){
   console.log('[FeatureBuscarInterventorNombre] toggle pulsado. perfilAdminActual:', perfilAdminActual);
   if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
