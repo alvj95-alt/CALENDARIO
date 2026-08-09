@@ -2443,6 +2443,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 /* ── RESULT LIST (contact-style) ── */
 .list{padding:6px 16px 16px}
+.list-section-lbl{padding:10px 16px 4px;font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3)}
 .pcard{display:flex;align-items:center;gap:11px;padding:12px 13px;
        background:var(--s2);border-radius:12px;border:1px solid var(--div);
        margin-bottom:8px;cursor:pointer;transition:all .15s;user-select:none}
@@ -3854,6 +3855,26 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
         </div>
       </div>
+    </div>
+
+    <!-- NUEVO — Interruptor ADMIN: Búsqueda de Interventor por
+         nombre. Oculto por defecto (solo se revela por JS si eres
+         admin — ver _mostrarToggleFeatureBuscarInterventorNombre()).
+         Guarda su estado en Supabase (config_global), así que afecta
+         a TODOS los compañeros, no solo a este dispositivo. -->
+    <div id="admToggleBuscarInterventorNombre" style="display:none;margin:0 16px 14px;padding:12px 15px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.3);border-radius:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:16px">🔍</span>
+        <div style="flex:1">
+          <div style="font-weight:800;color:#C4B5FD;font-size:12px">Búsqueda de Interventor por nombre</div>
+          <div id="estadoFeatureBuscarInterventorNombre" style="font-size:10px;color:var(--tx3);margin-top:2px">Cargando estado...</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="activarBusquedaInterventorPorNombreGlobal()" style="flex:1;padding:9px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:9px;color:#6EE7B7;font-size:11px;font-weight:700;cursor:pointer">✅ Activar para todos</button>
+        <button onclick="desactivarBusquedaInterventorPorNombreGlobal()" style="flex:1;padding:9px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;color:#FCA5A5;font-size:11px;font-weight:700;cursor:pointer">🚫 Desactivar</button>
+      </div>
+      <div style="font-size:9px;color:var(--tx3);margin-top:8px;line-height:1.4">Como admin, tú siempre puedes usarla — esto solo controla si el resto de compañeros también la ve.</div>
     </div>
 
     <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
@@ -19265,6 +19286,10 @@ window.validarAccesoBuscador = async function(){
 };
 
 window.abrirBuscadorConHorarioGlobal = async function(){
+  // NUEVO — se dispara en segundo plano, sin esperar; si falla, el
+  // buscador sigue funcionando igual, solo que sin la búsqueda de
+  // interventor por nombre (que ya está desactivada por defecto).
+  if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
   // NUEVO — antes esto abría un overlay aparte (openOv('ov-buscador')).
   // Ahora "Compañeros" es una pestaña normal, ya visible en cuanto se
   // entra por goP('companeros') — no hace falta abrir nada más aquí.
@@ -20998,6 +21023,114 @@ function mostrarConAnimacionTren(contenedor, renderFn){
 // ofuscado: las letras A/E se sustituyen por 4/3. Solo afecta a la
 // tarjeta de Interventor — la tripulación/compañeros se sigue
 // mostrando con su nombre normal, sin tocar.
+// NUEVO — FEATURE FLAG GLOBAL: Buscar Interventor por nombre.
+// Por defecto está desactivado para todos salvo el admin. El admin
+// puede activarlo globalmente (para todos los compañeros) desde el
+// Panel Admin — ver activarBusquedaInterventorPorNombreGlobal() /
+// desactivarBusquedaInterventorPorNombreGlobal(). Se guarda en
+// config_global (misma tabla que ya usa Horario General/Intervención)
+// como una fila-marcador: si existe, está activado; si no existe,
+// está desactivado. Así no hace falta ninguna columna nueva.
+var FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
+async function _cargarFeatureBuscarInterventorNombre(){
+  try{
+    var resp = await sbAdmin.from('config_global').select('tipo').eq('tipo','feature_buscar_interventor_nombre').maybeSingle();
+    FEATURE_BUSCAR_INTERVENTOR_NOMBRE = !!(resp && resp.data);
+  }catch(e){
+    FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
+  }
+  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
+  if(badgeEl){
+    badgeEl.textContent = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? 'Activado para todos' : 'Desactivado (solo admin)';
+    badgeEl.style.color = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? '#6EE7B7' : '#94A3B8';
+  }
+  // NUEVO — el interruptor solo se revela para el admin; el resto de
+  // compañeros nunca ven esta tarjeta (sigue con display:none).
+  var toggleCard = document.getElementById('admToggleBuscarInterventorNombre');
+  if(toggleCard && perfilAdminActual && perfilAdminActual.rol==='admin'){
+    toggleCard.style.display = 'block';
+  }
+}
+function _puedeBuscarInterventorPorNombre(){
+  var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
+  return esAdminActivo || FEATURE_BUSCAR_INTERVENTOR_NOMBRE===true;
+}
+// NUEVO — Activa/desactiva GLOBALMENTE (para todos los compañeros) la
+// búsqueda de Interventor por nombre. Solo el admin puede llamarlas
+// (mismo guard que el resto de acciones del Panel Admin). Usa
+// config_global como fila-marcador: existe = activado.
+async function activarBusquedaInterventorPorNombreGlobal(){
+  if(!perfilAdminActual || perfilAdminActual.rol!=='admin') return;
+  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
+  if(badgeEl) badgeEl.textContent = 'Activando...';
+  var resp = await sbAdmin.from('config_global').upsert({
+    tipo: 'feature_buscar_interventor_nombre',
+    nombre_archivo: 'on',
+    fecha_subida: new Date().toISOString(),
+    subido_por: perfilAdminActual.id
+  });
+  if(resp.error){
+    if(badgeEl){ badgeEl.textContent = 'Error al activar: '+resp.error.message; badgeEl.style.color = '#FCA5A5'; }
+    return;
+  }
+  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
+  if(badgeEl){ badgeEl.textContent = 'Activado para todos'; badgeEl.style.color = '#6EE7B7'; }
+  toast('✅ Búsqueda de Interventor por nombre activada para todos');
+}
+async function desactivarBusquedaInterventorPorNombreGlobal(){
+  if(!perfilAdminActual || perfilAdminActual.rol!=='admin') return;
+  var badgeEl = document.getElementById('estadoFeatureBuscarInterventorNombre');
+  if(badgeEl) badgeEl.textContent = 'Desactivando...';
+  var resp = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
+  if(resp.error){
+    if(badgeEl){ badgeEl.textContent = 'Error al desactivar: '+resp.error.message; badgeEl.style.color = '#FCA5A5'; }
+    return;
+  }
+  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
+  if(badgeEl){ badgeEl.textContent = 'Desactivado (solo admin)'; badgeEl.style.color = '#94A3B8'; }
+  toast('🚫 Búsqueda de Interventor por nombre desactivada para el resto');
+}
+
+// NUEVO — Perfil de Interventor encontrado por nombre: lista sus
+// días/trenes asignados (mismo objeto 'dias' que ya usa
+// buscarInterventor()), con el mismo patrón visual y botón "Volver"
+// que ya usa el perfil de compañero (renderProfile), para que se
+// sienta parte de la misma pantalla.
+function renderPerfilInterventor(id, name, dias, servicioNombre){
+  const fechas = Object.keys(dias||{}).filter(function(k){ return dias[k] && dias[k].trim(); }).sort();
+  const items = fechas.map(function(iso){
+    const p = iso.split('-');
+    const fechaLbl = p[2]+'/'+p[1]+'/'+p[0];
+    return `<div class="tl-item">
+      <div class="tl-rail">
+        <div class="tl-node"><span class="tnum">${p[2]}</span></div>
+        <div class="tl-line"></div>
+      </div>
+      <div class="tl-card">
+        <div class="tl-card-top">
+          <span class="tl-tag" style="background:rgba(249,115,22,.15);color:var(--nar2)">${fechaLbl}</span>
+        </div>
+        <div class="tl-val">${dias[iso]}</div>
+      </div>
+    </div>`;
+  }).join('');
+  viewEl.innerHTML = `
+    <div class="profile">
+      <button class="p-back" id="backBtnInterv">‹ Volver a la búsqueda</button>
+      <div class="p-head">
+        <div class="p-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+        <div>
+          <div class="p-name">${ofuscarNombreInterventor(name)}</div>
+          <div class="p-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${servicioNombre}</div>
+        </div>
+      </div>
+      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Días y trenes en los que aparece asignado este servicio.</div>
+      <div class="timeline">${items || '<div class="hint-empty">Sin días asignados encontrados.</div>'}</div>
+    </div>
+  `;
+  document.getElementById('backBtnInterv').addEventListener('click', ()=>{ doSearch(); });
+}
+
 function ofuscarNombreInterventor(nombre){
   if(!nombre) return nombre;
   return nombre.replace(/[AaEe]/g, function(letra){
@@ -21076,24 +21209,49 @@ function renderEmptyHint(){
   viewEl.innerHTML = `<div class="hint-empty">Escribe al menos <b>2 letras</b> del nombre de un compañero de <b>${activeBase ? activeBase.label : ''}</b> para ver su turno.</div>`;
 }
 
-function renderList(matches, query){
-  if(matches.length===0){
+function renderList(matches, query, interventorMatches){
+  interventorMatches = interventorMatches || [];
+  if(matches.length===0 && interventorMatches.length===0){
     viewEl.innerHTML = `<div class="hint-empty">Sin resultados para "<b>${query}</b>" en ${activeBase.label}.</div>`;
     return;
   }
   const _render = ()=>{
-  let html = '<div class="list">';
-  for(const [id, name] of matches){
-    html += `<div class="pcard perfil-companero" data-id="${id}" data-name="${encodeURIComponent(name)}">
-      <img class="pcard-avatar-img" src="${AVATAR_PLACEHOLDER}" alt="">
-      <div class="pcard-info">
-        <span class="pcard-name-full">${name}</span>
-        ${id ? `<div class="pcard-id">ID ${id}</div>` : ''}
-      </div>
-      <div class="pcard-arr">›</div>
-    </div>`;
+  let html = '';
+  // NUEVO — sección Interventores, solo si hay coincidencias (ya
+  // filtradas por permiso en doSearch — aquí solo se pintan). Mismo
+  // estilo naranja/pcard que ya usa el resultado de interventor por
+  // tren, para que se vea coherente con el resto de la app. El
+  // nombre se muestra OFUSCADO (ofuscarNombreInterventor), aunque la
+  // búsqueda se hizo contra el nombre real.
+  if(interventorMatches.length){
+    html += '<div class="list-section-lbl">INTERVENTORES</div><div class="list">';
+    for(const im of interventorMatches){
+      html += `<div class="pcard" data-interv-id="${im.id}" data-interv-name="${encodeURIComponent(im.name)}" data-interv-servicio="${encodeURIComponent(im.servicio)}" style="border-color:var(--nar);background:rgba(249,115,22,.08)">
+        <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
+        <div class="pcard-info">
+          <span class="pcard-name-full">${ofuscarNombreInterventor(im.name)}</span>
+          <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${im.servicio}</div>
+        </div>
+        <div class="pcard-arr">›</div>
+      </div>`;
+    }
+    html += '</div>';
   }
-  html += '</div>';
+  if(matches.length){
+    if(interventorMatches.length) html += '<div class="list-section-lbl">COMPAÑEROS</div>';
+    html += '<div class="list">';
+    for(const [id, name] of matches){
+      html += `<div class="pcard perfil-companero" data-id="${id}" data-name="${encodeURIComponent(name)}">
+        <img class="pcard-avatar-img" src="${AVATAR_PLACEHOLDER}" alt="">
+        <div class="pcard-info">
+          <span class="pcard-name-full">${name}</span>
+          ${id ? `<div class="pcard-id">ID ${id}</div>` : ''}
+        </div>
+        <div class="pcard-arr">›</div>
+      </div>`;
+    }
+    html += '</div>';
+  }
   viewEl.innerHTML = html;
   viewEl.querySelectorAll('.pcard[data-id]').forEach(card=>{
     card.addEventListener('click', ()=>{
@@ -21101,6 +21259,17 @@ function renderList(matches, query){
       const name = decodeURIComponent(card.dataset.name);
       const entry = activeBase.data.find(e => e[0]===id && e[1]===name);
       if(entry) renderProfile(entry);
+    });
+  });
+  // NUEVO — click en un resultado de interventor abre su perfil
+  // (días/trenes asignados), igual que un compañero abre su calendario.
+  viewEl.querySelectorAll('.pcard[data-interv-id]').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const id = card.dataset.intervId;
+      const name = decodeURIComponent(card.dataset.intervName);
+      const servicioNombre = decodeURIComponent(card.dataset.intervServicio);
+      const match = interventorMatches.find(m => String(m.id)===id && m.name===name);
+      if(match) renderPerfilInterventor(match.id, match.name, match.dias, servicioNombre);
     });
   });
   };
@@ -21267,7 +21436,25 @@ function doSearch(){
   clearBtn.style.display = q ? 'block' : 'none';
   if(q.length < 2){ renderEmptyHint(); return; }
   const matches = activeBase.data.filter(([id,name]) => name.toUpperCase().includes(q)).slice(0, 40);
-  renderList(matches, qInput.value.trim());
+  // NUEVO — busqueda de interventor por nombre, solo si esta
+  // permitida (admin siempre, el resto solo si el admin lo activo
+  // globalmente - ver _puedeBuscarInterventorPorNombre()). Se busca
+  // contra el nombre REAL guardado (nunca el ofuscado); el ofuscado
+  // solo se usa al pintar el resultado, igual que ya hace la
+  // busqueda por tren.
+  let interventorNameMatches = [];
+  if(_puedeBuscarInterventorPorNombre() && typeof INTERVENTOR_SERVICES!=='undefined'){
+    INTERVENTOR_SERVICES.forEach(function(servicio){
+      servicio.data.forEach(function(entry){
+        const id2=entry[0], name2=entry[1], dias2=entry[2];
+        if(name2 && name2.toUpperCase().includes(q)){
+          interventorNameMatches.push({id:id2, name:name2, dias:dias2, servicio:servicio.name});
+        }
+      });
+    });
+    interventorNameMatches = interventorNameMatches.slice(0, 20);
+  }
+  renderList(matches, qInput.value.trim(), interventorNameMatches);
 }
 
 qInput.addEventListener('input', doSearch);
