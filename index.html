@@ -21171,7 +21171,7 @@ function renderPerfilInterventor(id, name, dias, servicioNombre){
   const items = fechas.map(function(iso){
     const p = iso.split('-');
     const fechaLbl = p[2]+'/'+p[1]+'/'+p[0];
-    return `<div class="tl-item">
+    return `<div class="tl-item" data-iso="${iso}" data-daynum="${parseInt(p[2],10)}">
       <div class="tl-rail">
         <div class="tl-node"><span class="tnum">${p[2]}</span></div>
         <div class="tl-line"></div>
@@ -21179,6 +21179,7 @@ function renderPerfilInterventor(id, name, dias, servicioNombre){
       <div class="tl-card">
         <div class="tl-card-top">
           <span class="tl-tag" style="background:rgba(249,115,22,.15);color:var(--nar2)">${fechaLbl}</span>
+          <span class="tl-arr">›</span>
         </div>
         <div class="tl-val">${dias[iso]}</div>
       </div>
@@ -21194,11 +21195,76 @@ function renderPerfilInterventor(id, name, dias, servicioNombre){
           <div class="p-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${servicioNombre}</div>
         </div>
       </div>
-      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Días y trenes en los que aparece asignado este servicio.</div>
+      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día para ver con qué tripulación coincide (según tu base, o todas si eres admin).</div>
       <div class="timeline">${items || '<div class="hint-empty">Sin días asignados encontrados.</div>'}</div>
+      <div id="compZoneInterv"></div>
     </div>
   `;
   document.getElementById('backBtnInterv').addEventListener('click', ()=>{ doSearch(); });
+  // NUEVO — cruce interventor → tripulación, reutilizando
+  // findCompanions() SIN modificarla: se le pasa el id/nombre del
+  // interventor como "self" (nunca coincidirá con nadie de
+  // activeBase.data, así que no excluye a ningún compañero real) y
+  // el día de mes + celda de trenes de ese día concreto. La regla de
+  // bases (solo tu base, o todas si eres admin) sale gratis, porque
+  // activeBase.data ya viene filtrado así desde antes.
+  viewEl.querySelectorAll('.tl-item[data-iso]').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      const iso = item.dataset.iso;
+      const dayNum = parseInt(item.dataset.daynum, 10);
+      const cell = dias[iso] || '';
+      viewEl.querySelectorAll('.tl-item[data-iso]').forEach(r=>{
+        r.classList.remove('sel');
+        var arrEl = r.querySelector('.tl-arr');
+        if(arrEl) arrEl.textContent = '›';
+      });
+      item.classList.add('sel');
+      var arrThis = item.querySelector('.tl-arr');
+      if(arrThis) arrThis.textContent = '▾';
+      renderCompaneroDesdeInterventor(dayNum, id, name, cell, iso);
+      document.getElementById('compZoneInterv').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+}
+
+// NUEVO — muestra la tripulación que coincide con el interventor en
+// un tren+día concreto (dirección inversa a renderCompanions, que va
+// de compañero → interventor). Reutiliza findCompanions() tal cual.
+function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, isoLbl){
+  const zone = document.getElementById('compZoneInterv');
+  if(!zone) return;
+  const p = isoLbl.split('-');
+  const fechaLbl = p[2]+'/'+p[1]+'/'+p[0];
+  if(!cell || !cell.trim()){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${fechaLbl}</span></div>
+      <div class="comp-none">No hay tren registrado ese día para este interventor.</div>
+    </div>`;
+    return;
+  }
+  const companions = findCompanions(dayNum, intervId, intervName, cell);
+  if(companions.length===0){
+    zone.innerHTML = `<div class="comp-wrap">
+      <div class="comp-hdr"><span class="ct">${fechaLbl}</span><span class="cs">· ${cell}</span></div>
+      <div class="comp-none">Nadie de tu base coincide en ese tren ese día según la plantilla cargada.</div>
+    </div>`;
+    return;
+  }
+  let html = `<div class="comp-wrap">
+    <div class="comp-hdr"><span class="ct">${fechaLbl}</span><span class="cs">· ${companions.length} compañero(s) · ${cell}</span></div>
+    <div class="comp-list">`;
+  for(const c of companions){
+    html += `<div class="pcard" style="cursor:default">
+      <div class="pcard-av">${initials(c.name)}</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${c.name}</div>
+        ${c.id ? `<div class="pcard-id">ID ${c.id}</div>` : ''}
+        <div class="comp-cell">${c.cell}</div>
+      </div>
+    </div>`;
+  }
+  html += '</div></div>';
+  zone.innerHTML = html;
 }
 
 function ofuscarNombreInterventor(nombre){
