@@ -2976,7 +2976,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
-      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="toggleFeatureBuscarInterventorNombre()" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔍</button>
+      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="toggleFeatureBuscarInterventorNombre()" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔒</button>
       <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
@@ -21037,10 +21037,12 @@ function _actualizarBotonFeatureBuscarInterventorNombre(){
   var btn = document.getElementById('hbtn-toggle-interv-nombre');
   if(!btn) return;
   if(FEATURE_BUSCAR_INTERVENTOR_NOMBRE){
+    btn.textContent = '🔓';
     btn.style.background = 'rgba(16,185,129,.18)';
     btn.style.color = '#6EE7B7';
     btn.title = 'Búsqueda de Interventor por nombre: ACTIVADA para todos (toca para desactivar)';
   } else {
+    btn.textContent = '🔒';
     btn.style.background = '';
     btn.style.color = '';
     btn.title = 'Búsqueda de Interventor por nombre: desactivada para el resto (toca para activar)';
