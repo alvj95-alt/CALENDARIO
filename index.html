@@ -18520,6 +18520,20 @@ function _baseSlug(nombre){
     .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quita acentos
 }
 
+// NUEVO — nombre de archivo seguro para usar como parte de una clave
+// de Supabase Storage. Storage exige claves sin tildes/espacios/
+// caracteres especiales; el nombre original del PDF (el que ve la
+// persona en su explorador de archivos) casi nunca cumple eso — de
+// ahí el error "Invalid key" al subir un archivo como "Gráfico OCE
+// Valencia 28 julio 2026 sellado.pdf". Se usa SOLO para construir la
+// ruta de subida; el nombre visible en pantalla (nombre_archivo en la
+// fila de config_global) sigue siendo el original, sin tocar.
+function _nombreArchivoSeguro(nombre){
+  var s = String(nombre||'archivo').normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quita acentos
+  s = s.replace(/[^A-Za-z0-9._-]+/g, '_'); // todo lo demás (espacios, ñ, etc.) -> _
+  return s.replace(/_+/g, '_'); // colapsa varios _ seguidos en uno
+}
+
 async function subirArchivoGlobalAdmin(tipo, file){
   if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
   var elEstado = document.getElementById(tipo==='horario_general' ? 'estadoHorarioGeneral' : 'estadoGraficoIntervencion');
@@ -18609,7 +18623,7 @@ async function subirArchivoGlobalAdmin(tipo, file){
   }
 
   elEstado.textContent = 'Subiendo...';
-  var path = tipo + '/' + Date.now() + '_' + file.name;
+  var path = tipo + '/' + Date.now() + '_' + _nombreArchivoSeguro(file.name);
 
   // FIX — se sube el BUFFER ya leído (bufferParaSubir), nunca el
   // objeto `file` original una segunda vez. Si por lo que sea no se
@@ -18678,7 +18692,7 @@ async function subirIntervencionGlobalAdmin(){
   }
 
   elEstado.textContent = 'Subiendo Gráfico...';
-  var pathGrafico = 'grafico_intervencion/' + Date.now() + '_grafico_' + fGrafico.name;
+  var pathGrafico = 'grafico_intervencion/' + Date.now() + '_grafico_' + _nombreArchivoSeguro(fGrafico.name);
   var subidaGrafico = await sbAdmin.storage.from('admin-archivos').upload(pathGrafico, fGrafico, { upsert: true });
   if(subidaGrafico.error){
     elEstado.textContent = 'Error al subir el Gráfico: ' + subidaGrafico.error.message;
@@ -18686,7 +18700,7 @@ async function subirIntervencionGlobalAdmin(){
   }
 
   elEstado.textContent = 'Subiendo Informe...';
-  var pathInforme = 'grafico_intervencion/' + Date.now() + '_informe_' + fInforme.name;
+  var pathInforme = 'grafico_intervencion/' + Date.now() + '_informe_' + _nombreArchivoSeguro(fInforme.name);
   var subidaInforme = await sbAdmin.storage.from('admin-archivos').upload(pathInforme, fInforme, { upsert: true });
   if(subidaInforme.error){
     elEstado.textContent = 'Error al subir el Informe: ' + subidaInforme.error.message;
