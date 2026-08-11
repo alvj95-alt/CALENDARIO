@@ -5169,6 +5169,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <input type="file" id="fileIntervencionInforme" style="display:none" onchange="document.getElementById('txtIntervencionInforme').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Informe / Servicio Previsto'">
       <button class="m-save" style="width:100%;margin-top:6px" onclick="subirIntervencionGlobalAdmin()">Publicar Intervención</button>
       <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
+      <button class="dct-btn-sec" style="width:100%;margin-top:8px" onclick="diagnosticarIntervencionAdmin()">🔍 Diagnóstico: ver agentes detectados</button>
+      <div class="estado-archivo sin-archivo" id="estadoDiagIntervencion" style="display:none;white-space:pre-wrap;font-size:11px;text-align:left;max-height:260px;overflow-y:auto"></div>
       <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarIntervencionAdmin()">🗑 Eliminar Intervención</button>
     </div>
 
@@ -13864,10 +13866,20 @@ function calculateEarnings(ks){
         var minContinuidadHTDL = 0;
         var minEscalaHTDL = 0;
         var finIdaRealHTDL = t.hL;
-        if(!esPernoctaHTDL && t.continuidad && t.continuidad.length){
+        // FIX — en pernocta, los tramos de continuidad de la IDA
+        // (estés trabajando, en DH o lo que sea) SÍ deben pagarse
+        // completos, igual que en ida-y-vuelta el mismo día — lo
+        // único que no se paga en pernocta es la escala/hueco (el
+        // descanso nocturno real entre ida y vuelta). Antes esto
+        // estaba todo excluido en bloque para pernocta ("!esPernoctaHTDL"),
+        // así que la continuidad se perdía del dinero por completo.
+        // Ahora solo la escala (minEscalaHTDL) se sigue excluyendo en
+        // pernocta; la duración de cada tramo de continuidad se suma
+        // siempre.
+        if(t.continuidad && t.continuidad.length){
           t.continuidad.forEach(function(c){
             if(c.horaInicio && c.horaFin) minContinuidadHTDL += calcMins(c.horaInicio, c.horaFin);
-            if(c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
+            if(!esPernoctaHTDL && c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
             if(c.horaFin) finIdaRealHTDL = c.horaFin;
           });
         }
@@ -13885,13 +13897,14 @@ function calculateEarnings(ks){
         // horas trabajadas de verdad se perdían del total en €, no
         // solo de la etiqueta. Se suman aquí exactamente igual que la
         // continuidad de la ida: duración de cada tramo de
-        // continuidadVuelta + su escalaMin (el hueco antes de cada uno,
-        // que empieza justo al terminar t.hL2).
+        // continuidadVuelta siempre; su escalaMin (el hueco antes de
+        // cada uno) solo si NO es pernocta, por el mismo motivo de
+        // arriba.
         var minContinuidadVueltaHTDL = 0;
-        if(!esPernoctaHTDL && t.continuidadVuelta && t.continuidadVuelta.length){
+        if(t.continuidadVuelta && t.continuidadVuelta.length){
           t.continuidadVuelta.forEach(function(c){
             if(c.horaInicio && c.horaFin) minContinuidadVueltaHTDL += calcMins(c.horaInicio, c.horaFin);
-            if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaHTDL += c.escalaMin;
+            if(!esPernoctaHTDL && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaHTDL += c.escalaMin;
           });
         }
         var hContinuidadVueltaHTDL = Math.round(minContinuidadVueltaHTDL/60*100)/100;
@@ -13938,7 +13951,9 @@ function calculateEarnings(ks){
           hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100; // recalculado con los huecos añadidos
         }
         var hExtraHTDL = Math.round(minExtraHTDL/60*100)/100;
-        var hComputable = esPernoctaHTDL ? h : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL+hExtraHTDL)*100)/100;
+        var hComputable = esPernoctaHTDL
+          ? Math.round((h+hContinuidadHTDL+hContinuidadVueltaHTDL)*100)/100
+          : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL+hExtraHTDL)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
@@ -20209,6 +20224,44 @@ async function cargarIntervencionGlobalDesdeAdmin(){
 
   if(!huboExito && ultimoError) _diagIntervencion = ultimoError;
   return huboExito;
+}
+
+// NUEVO — Diagnóstico de Intervención (panel de admin): fuerza una
+// re-sincronización COMPLETA (vacía la caché en memoria antes, así
+// que siempre vuelve a descargar y volver a parsear los dos PDF,
+// nunca se queda con un resultado antiguo) y muestra, servicio a
+// servicio, cuántos agentes se detectaron y su identificador+nombre
+// — para poder ver de un vistazo si el parser leyó bien la tabla de
+// una sede nueva (p.ej. Valencia) sin tener que adivinar a ciegas.
+async function diagnosticarIntervencionAdmin(){
+  var el = document.getElementById('estadoDiagIntervencion');
+  if(!el) return;
+  el.style.display = 'block';
+  el.textContent = 'Sincronizando de nuevo (ignorando caché)...';
+  INTERVENTOR_SERVICES = []; // fuerza a re-descargar y re-parsear todo
+  var ok = await cargarIntervencionGlobalDesdeAdmin();
+  if(!ok){
+    el.textContent = '❌ ' + (_diagIntervencion || 'No se pudo sincronizar ninguna Intervención.');
+    return;
+  }
+  if(!INTERVENTOR_SERVICES.length){
+    el.textContent = '⚠️ Se sincronizó pero no hay ningún servicio de Intervención cargado.';
+    return;
+  }
+  var txt = '';
+  INTERVENTOR_SERVICES.forEach(function(s){
+    txt += '📋 «'+s.name+'» — '+s.data.length+' agente(s) detectado(s)\n';
+    if(!s.data.length){
+      txt += '   (0 agentes: la tabla no se reconoció — revisa el formato del Informe)\n';
+    } else {
+      s.data.slice(0, 8).forEach(function(a){
+        txt += '   · '+a[0]+' — '+a[1]+'\n';
+      });
+      if(s.data.length > 8) txt += '   ... y '+(s.data.length-8)+' más\n';
+    }
+    txt += '\n';
+  });
+  el.textContent = txt.trim();
 }
 
 function refreshBaseCards(){
