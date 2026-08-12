@@ -12882,21 +12882,28 @@ function renderStats(){
           // van en líneas separadas, cada una con su fecha real, más
           // una línea de total combinando ambas fechas.
           if(d.esPernocta && d.lblVuelta){
-            if(d.hIda>0){
+            if(d.hIda>0 || d.hContinuidad>0){
+              var partesIda=[];
+              if(d.hIda>0) partesIda.push(d.hIda.toFixed(2)+'h ida');
+              if(d.hContinuidad>0) partesIda.push(d.hContinuidad.toFixed(2)+'h continuidad');
+              var hIdaTotal = Math.round(((d.hIda||0)+(d.hContinuidad||0))*100)/100;
               des+='<div class="cs-r cs-r-sub">'
                 +'<span class="cl">🚂 IDA · '+d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
-                +'<span class="cv cv-info">'+d.hIda.toFixed(2)+'h</span></div>';
+                +'<span class="cv cv-info">'+partesIda.join(' + ')+(partesIda.length>1?' = '+hIdaTotal.toFixed(2)+'h':'')+'</span></div>';
             }
-            var hVueltaTotal = Math.round((d.hVuelta+d.hRetT2)*100)/100;
+            var hVueltaTotal = Math.round(((d.hVuelta||0)+(d.hContinuidadVuelta||0)+(d.hRetT2||0))*100)/100;
             if(hVueltaTotal>0){
+              var partesVuelta=[];
+              if(d.hVuelta>0) partesVuelta.push(d.hVuelta.toFixed(2)+'h vuelta');
+              if(d.hContinuidadVuelta>0) partesVuelta.push(d.hContinuidadVuelta.toFixed(2)+'h continuidad');
+              if(d.hRetT2>0) partesVuelta.push('+'+d.hRetT2.toFixed(2)+'h retraso');
               des+='<div class="cs-r cs-r-sub">'
                 +'<span class="cl">↩ VUELTA · '+d.lblVuelta+'</span>'
-                +'<span class="cv cv-info">'+hVueltaTotal.toFixed(2)+'h'
-                +(d.hRetT2>0?' (incl. +'+d.hRetT2.toFixed(2)+'h retraso)':'')+'</span></div>';
+                +'<span class="cv cv-info">'+partesVuelta.join(' + ')+(partesVuelta.length>1?' = '+hVueltaTotal.toFixed(2)+'h':'')+'</span></div>';
             }
             des+='<div class="cs-r cs-r-sub" style="opacity:.85">'
               +'<span class="cl"><strong>Total '+d.lbl+' + '+d.lblVuelta+'</strong></span>'
-              +'<span class="cv cv-info"><strong>'+d.hTotal.toFixed(2)+'h</strong></span></div>';
+              +'<span class="cv cv-info"><strong>'+d.hTotal.toFixed(2)+'h'+(d.importe>0?' · '+d.importe.toFixed(2)+' €':'')+'</strong></span></div>';
             return;
           }
           var partes=[];
@@ -12907,6 +12914,7 @@ function renderStats(){
           if(d.hContinuidadVuelta>0) partes.push(d.hContinuidadVuelta.toFixed(2)+'h continuidad vuelta');
           if(d.hRetT2>0) partes.push('+'+d.hRetT2.toFixed(2)+'h retraso');
           var detalleTxt = partes.length ? partes.join(' + ')+' = '+d.hTotal.toFixed(2)+'h' : d.hTotal.toFixed(2)+'h';
+          if(d.importe>0) detalleTxt += ' · '+d.importe.toFixed(2)+' €';
           des+='<div class="cs-r cs-r-sub">'
             +'<span class="cl">'
             +d.lbl+(d.tren?' · Tren #'+d.tren:'')+'</span>'
