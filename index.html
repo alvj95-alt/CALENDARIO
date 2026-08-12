@@ -13584,21 +13584,15 @@ function calcularJornadaDiaria(turnos, fecha){
       if(!esPernoctaTurno && finIdaReal && t.hF2){
         var huecoIdaVuelta = calcMins(finIdaReal, t.hF2);
         if(huecoIdaVuelta>0){
-          // FIX — en HTDL (t.tipo==='trabajado') la escala entre ida
-          // y vuelta del mismo día se paga en dinero junto con el
-          // resto del servicio (toma → deje completo): no se resta
-          // como Presencia, se suma a Efectivas — igual que ya hacía
-          // calculateEarnings() para el importe (ver hEscalaHTDL, la
-          // variable que ya separaba y sumaba este mismo tramo). En
-          // ordinario y Art.51/52 sigue siendo Presencia, sin cambios.
-          // FIX — Art.51/52 sigue el MISMO criterio que HTDL para la
-          // escala (confirmado por el propio guardado de Art.51/52 en
-          // guardarTurno(): "mismo criterio que HTDL" — ida y vuelta
-          // mismo día suma Ida+Escala+Vuelta; en pernocta la escala
-          // queda excluida). Antes solo miraba 'trabajado' y dejaba
-          // art5152 agrupado con ordinario por error.
-          if(t.tipo==='trabajado' || t.tipo==='art5152') efEste += huecoIdaVuelta;
-          else prEste += huecoIdaVuelta;
+          // FIX — a petición del usuario: para el CONTEO de horas
+          // (Efectivas/Presencia en Stats), HTDL/Art.51-52 cuentan
+          // exactamente igual que jornada ordinaria — la escala entre
+          // ida y vuelta es Presencia, no Efectivas, sea cual sea el
+          // tipo de turno. El DINERO sigue pagando el bloque completo
+          // igual que siempre (eso vive en calculateEarnings, con su
+          // propia variable hEscalaHTDL — no se toca aquí); esto es
+          // solo el desglose de horas que se muestra en Stats.
+          prEste += huecoIdaVuelta;
         }
       }
 
@@ -13640,13 +13634,13 @@ function calcularJornadaDiaria(turnos, fecha){
               efEste += durC;
             }
           }
-          // FIX — misma regla que la escala principal ida-vuelta:
-          // en HTDL la escala de un tramo de continuidad también se
-          // paga junto con el resto (suma a Efectivas); en ordinario
-          // y Art.51/52 sigue siendo Presencia.
+          // FIX — a petición del usuario: la escala de un tramo de
+          // continuidad también cuenta como Presencia en HTDL/
+          // Art.51-52 para el desglose de Stats, exactamente igual
+          // que en jornada ordinaria. El dinero (calculateEarnings)
+          // sigue sin tocarse.
           if(c.escalaMin!=null && c.escalaMin>0){
-            if(t.tipo==='trabajado' || t.tipo==='art5152') efEste += c.escalaMin;
-            else prEste += c.escalaMin;
+            prEste += c.escalaMin;
           }
         });
       });
@@ -20627,6 +20621,32 @@ function parseGraficoTurnos(lines){
     }
     return out;
   }
+  // NUEVO — Concreción horaria / Jornada reducida: algunos turnos
+  // llevan, pegada al final de su bloque, una línea con el nombre de
+  // la persona concreta que lo hace ("*TURNO NATALIA Y NAIMA -
+  // CONCRECIÓN HORARIA*", "*TURNO RICARDO - JORNADA REDUCIDA*"). Esa
+  // persona muchas veces NO tiene ese número de turno en el Informe
+  // (es un arreglo puntual), así que el cruce normal por número de
+  // turno no la encuentra. Aquí solo se EXTRAE el texto — no se toca
+  // en nada la lógica de trenes/daycode de arriba. Se descartan avisos
+  // que no son de este tipo (p.ej. "*MATERIAL VACÍO...*", "*VALENCIA*",
+  // "*INCIDENCIA DE MAÑANA*") porque no llevan "TURNO ... - CONCRECIÓN
+  // HORARIA/JORNADA REDUCIDA".
+  const concrecionAnnotationRe = /\*\s*TURNO\s+([^*]+?)\s*-\s*(CONCRECI[ÓO]N\s+HORARIA|JORNADA\s+REDUCIDA)\s*\*/i;
+  function extractConcrecionInRange(lo, hi){
+    const out = [];
+    for(let i=lo;i<hi;i++){
+      const m = concrecionAnnotationRe.exec(lines[i]);
+      if(!m) continue;
+      const nombresRaw = m[1].trim();
+      const tipo = /CONCRECI/i.test(m[2]) ? 'CONCRECION_HORARIA' : 'JORNADA_REDUCIDA';
+      const nombres = nombresRaw.split(/\s+Y\s+|\s*\/\s*|,\s*/i).map(s=>s.trim()).filter(Boolean);
+      if(nombres.length) out.push({nombres, tipo, texto: m[0]});
+    }
+    return out;
+  }
+  const concrecionMap = {};
+
   const groups = [];
   let pending = [];
   let pendingAnchor = null;
@@ -20641,6 +20661,14 @@ function parseGraficoTurnos(lines){
         recs.push(...extractTrainsInRange(slo, shi));
       }
       groups.push({turno: pendingAnchor, records: recs});
+      if(pendingAnchor){
+        const anns = [];
+        for(const [slo,shi] of pending) anns.push(...extractConcrecionInRange(slo, shi));
+        if(anns.length){
+          if(!concrecionMap[pendingAnchor]) concrecionMap[pendingAnchor] = [];
+          concrecionMap[pendingAnchor].push(...anns);
+        }
+      }
     }
     pending = [];
     pendingAnchor = null;
@@ -20705,6 +20733,13 @@ function parseGraficoTurnos(lines){
     const dupKey = JSON.stringify(item);
     if(!byTurno[r.turno].some(x=>JSON.stringify(x)===dupKey)) byTurno[r.turno].push(item);
   }
+  // NUEVO — concrecionMap se cuelga como propiedad NO enumerable, para
+  // que Object.keys(byTurno)/for-in (usados en varios sitios para
+  // contar "turnos con tren") sigan viendo exactamente los mismos
+  // turnos de siempre, sin este dato extra mezclado entre ellos.
+  try{
+    Object.defineProperty(byTurno, '__concrecionHoraria', { value: concrecionMap, enumerable: false, configurable: true });
+  }catch(e){ /* si por lo que sea falla, simplemente no habrá avisos de concreción — el resto sigue igual */ }
   return byTurno;
 }
 
@@ -21641,6 +21676,60 @@ function buscarInterventor(rawTrain, fechaDate){
   return out;
 }
 
+// NUEVO — Avisos de Concreción horaria / Jornada reducida (ver
+// parseGraficoTurnos → concrecionMap). Estos turnos suelen NO
+// aparecer con ese número en el Informe de la persona que realmente
+// lo hace (es un arreglo puntual), así que buscarInterventor() de
+// arriba no la encuentra por esa vía. Esta función es 100% aparte:
+// no toca buscarInterventor ni construirDiasDesdeCruce, solo añade
+// una segunda lista de "avisos" que se muestra por separado.
+function normNombreConcrecion(s){
+  return (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+}
+// Busca, dentro de los agentes YA cruzados de un servicio (servicio.data,
+// pares [matricula, nombre, dias]), alguno cuyo nombre completo contenga
+// TODAS las palabras del nombre anotado en el gráfico (en cualquier
+// orden — el Informe suele listar "APELLIDOS, NOMBRE"). Si ninguna
+// palabra coincide con nadie (p.ej. "RICARDO" no está en el Informe),
+// se devuelve null y ese aviso simplemente no se muestra — tal y como
+// se pidió.
+function _buscarAgenteInterventorPorNombreParcial(servicio, nombreTok){
+  const tokWords = normNombreConcrecion(nombreTok).split(/\s+/).filter(Boolean);
+  if(!tokWords.length) return null;
+  for(const [matricula, nombre] of servicio.data){
+    const nombreWords = normNombreConcrecion(nombre).replace(/,/g,' ').split(/\s+/).filter(Boolean);
+    if(tokWords.every(w => nombreWords.includes(w))) return {matricula, nombre};
+  }
+  return null;
+}
+const DOW_LETTER_CONCRECION = ['D','L','M','X','J','V','S'];
+function buscarInterventorConcrecion(rawTrain, fechaDate){
+  const out = [];
+  if(!fechaDate || INTERVENTOR_SERVICES.length===0) return out;
+  const inputNorm = normTrainInterventor(rawTrain);
+  const dow = DOW_LETTER_CONCRECION[fechaDate.getDay()];
+  for(const servicio of INTERVENTOR_SERVICES){
+    const turnosData = servicio.turnos;
+    if(!turnosData || !turnosData.__concrecionHoraria) continue;
+    for(const turno of Object.keys(turnosData.__concrecionHoraria)){
+      const legs = (turnosData[turno]||[]).filter(l=>{
+        const dc = l.daycode||'';
+        return dc === '' || dc.includes(dow);
+      });
+      const trainHit = legs.some(l => trainMatchesInterventor(inputNorm, l.train_raw));
+      if(!trainHit) continue;
+      for(const ann of turnosData.__concrecionHoraria[turno]){
+        for(const nombreTok of ann.nombres){
+          const agente = _buscarAgenteInterventorPorNombreParcial(servicio, nombreTok);
+          if(!agente) continue; // sin coincidencia en el Informe → no se muestra (pedido así)
+          out.push({id: agente.matricula, name: agente.nombre, tipo: ann.tipo, servicio: servicio.name, turno});
+        }
+      }
+    }
+  }
+  return out;
+}
+
 const trainView = document.getElementById('trainView');
 document.getElementById('trGoBtn').addEventListener('click', async ()=>{
   if(!activeBase){ return; }
@@ -21665,7 +21754,8 @@ document.getElementById('trGoBtn').addEventListener('click', async ()=>{
       if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell, entry: entryTren});
     }
     const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda);
-    renderTrain(raw, selectedTrainDay, matches, interventorMatches);
+    const concrecionMatches = buscarInterventorConcrecion(raw, fecha_seleccionada_busqueda);
+    renderTrain(raw, selectedTrainDay, matches, interventorMatches, concrecionMatches);
     // Misma duración que la animación de carga del resultado
     // (mostrarConAnimacionTren, ~380ms), para que "Buscando..." no
     // desaparezca antes de que el resultado esté realmente pintado.
@@ -21957,11 +22047,12 @@ function ofuscarNombreInterventor(nombre){
   });
 }
 
-function renderTrain(trainNum, day, matches, interventorMatches){
+function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatches){
   interventorMatches = interventorMatches || [];
+  concrecionMatches = concrecionMatches || [];
   const _render = ()=>{
   const wd = weekdayForDay(day);
-  const total = matches.length + interventorMatches.length;
+  const total = matches.length + interventorMatches.length + concrecionMatches.length;
   if(total===0){
     trainView.innerHTML = `<div class="train-scene">
       <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
@@ -21976,6 +22067,20 @@ function renderTrain(trainNum, day, matches, interventorMatches){
       <div class="pcard-info">
         <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
         <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
+      </div>
+    </div>`;
+  });
+  // NUEVO — avisos de Concreción horaria / Jornada reducida, en un
+  // bloque APARTE (distinto color) del cruce normal de arriba — puede
+  // repetir a la misma persona si además coincidió por la vía normal,
+  // a propósito: es un aviso, no una deduplicación.
+  concrecionMatches.forEach((m)=>{
+    const etiqueta = m.tipo === 'JORNADA_REDUCIDA' ? 'JORNADA REDUCIDA' : 'CONCRECIÓN HORARIA';
+    filas += `<div class="pcard" style="border-color:#a855f7;background:rgba(168,85,247,.08)">
+      <div class="pcard-av" style="background:rgba(168,85,247,.18);color:#c084fc">⚠️</div>
+      <div class="pcard-info">
+        <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
+        <div class="pcard-id" style="color:#c084fc;font-weight:700">AVISO · ${etiqueta} · ${m.servicio}</div>
       </div>
     </div>`;
   });
@@ -21995,6 +22100,7 @@ function renderTrain(trainNum, day, matches, interventorMatches){
   });
   const partes = [];
   if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+  if(concrecionMatches.length) partes.push(`${concrecionMatches.length} aviso(s)`);
   if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
   trainView.innerHTML = `<div class="train-scene">
     <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
@@ -22534,11 +22640,12 @@ clearBtn.addEventListener('click', ()=>{
 
   const trainView2 = document.getElementById('trainView2');
 
-  function renderTrain2(trainNum, day, matches, interventorMatches){
+  function renderTrain2(trainNum, day, matches, interventorMatches, concrecionMatches){
     interventorMatches = interventorMatches || [];
+    concrecionMatches = concrecionMatches || [];
     const _render = ()=>{
       const wd = weekdayForDay(day);
-      const total = matches.length + interventorMatches.length;
+      const total = matches.length + interventorMatches.length + concrecionMatches.length;
       if(total===0){
         trainView2.innerHTML = `<div class="train-scene">
           <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
@@ -22556,6 +22663,16 @@ clearBtn.addEventListener('click', ()=>{
           </div>
         </div>`;
       });
+      concrecionMatches.forEach((m)=>{
+        const etiqueta = m.tipo === 'JORNADA_REDUCIDA' ? 'JORNADA REDUCIDA' : 'CONCRECIÓN HORARIA';
+        filas += `<div class="pcard" style="border-color:#a855f7;background:rgba(168,85,247,.08)">
+          <div class="pcard-av" style="background:rgba(168,85,247,.18);color:#c084fc">⚠️</div>
+          <div class="pcard-info">
+            <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
+            <div class="pcard-id" style="color:#c084fc;font-weight:700">AVISO · ${etiqueta} · ${m.servicio}</div>
+          </div>
+        </div>`;
+      });
       matches.forEach((m)=>{
         filas += `<div class="pcard">
           <div class="pcard-av">${initials(m.name)}</div>
@@ -22567,6 +22684,7 @@ clearBtn.addEventListener('click', ()=>{
       });
       const partes = [];
       if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
+      if(concrecionMatches.length) partes.push(`${concrecionMatches.length} aviso(s)`);
       if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
       trainView2.innerHTML = `<div class="train-scene">
         <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
@@ -22599,7 +22717,8 @@ clearBtn.addEventListener('click', ()=>{
         if(cell && cellContainsTrain(cell, raw)) matches.push({id, name, cell, entry: entryTren2});
       }
       const interventorMatches = buscarInterventor(raw, fecha_seleccionada_busqueda2);
-      renderTrain2(raw, selectedTrainDay2, matches, interventorMatches);
+      const concrecionMatches = buscarInterventorConcrecion(raw, fecha_seleccionada_busqueda2);
+      renderTrain2(raw, selectedTrainDay2, matches, interventorMatches, concrecionMatches);
       await new Promise(resolve => setTimeout(resolve, 380));
     } finally {
       btn.disabled = false;
