@@ -20204,9 +20204,16 @@ async function cargarIntervencionGlobalDesdeAdmin(){
         continue;
       }
       if(Object.keys(turnosData).length === 0){
-        ultimoError = 'No se encontraron trenes en el Gráfico de «'+d.nombre_servicio+'».';
-        toast('⚠️ Intervención «'+d.nombre_servicio+'»: no se encontraron trenes en el Gráfico');
-        continue;
+        // FIX — antes esto CANCELABA el servicio entero (ni siquiera
+        // se cargaban los agentes del Informe), así que si el Gráfico
+        // no se reconocía, NADIE podía entrar con su matrícula/móvil,
+        // aunque el Informe sí se hubiera leído bien. Ahora se avisa
+        // pero se sigue adelante: el acceso y la lista de agentes
+        // siguen funcionando (construirDiasDesdeCruce() ya tolera un
+        // turnosData vacío sin romperse), solo que ese día no se podrá
+        // cruzar con el número de tren hasta que el Gráfico de esa
+        // sede se reconozca.
+        toast('⚠️ Intervención «'+d.nombre_servicio+'»: no se reconoció el Gráfico (el acceso funciona igual, pero sin cruce de tren todavía)');
       }
 
       var diasPorAgente = construirDiasDesdeCruce(agentsData, turnosData);
@@ -20258,7 +20265,8 @@ async function diagnosticarIntervencionAdmin(){
   }
   var txt = '';
   INTERVENTOR_SERVICES.forEach(function(s){
-    txt += '📋 «'+s.name+'» — '+s.data.length+' agente(s) detectado(s)\n';
+    var nTrenes = s.turnos ? Object.keys(s.turnos).length : 0;
+    txt += '📋 «'+s.name+'» — '+s.data.length+' agente(s) detectado(s) · Gráfico: '+(nTrenes>0?nTrenes+' turno(s) con tren':'⚠️ sin reconocer (acceso OK, cruce de tren no disponible)')+'\n';
     if(!s.data.length){
       txt += '   (0 agentes: la tabla no se reconoció — revisa el formato del Informe)\n';
     } else {
