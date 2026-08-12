@@ -2560,6 +2560,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .comp-hdr .at-cs{font-size:11px;color:var(--tx3)}
 .comp-list .pcard{margin-bottom:7px}
 .comp-cell{font-size:10px;color:var(--acc3);margin-top:2px;font-weight:600}
+.tren-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,.14);
+  border:1px solid rgba(249,115,22,.4);border-radius:8px;padding:3px 9px;margin-top:6px;
+  font-size:12px;font-weight:800;color:var(--nar3);letter-spacing:.2px}
+.tren-badge-num{color:var(--nar2);font-variant-numeric:tabular-nums;font-size:13px}
 .comp-none{background:var(--s2);border:1px solid var(--div);border-radius:12px;
            padding:16px 14px;text-align:center;font-size:12px;color:var(--tx3);line-height:1.5}
 .comp-none b{color:var(--tx2)}
@@ -19626,11 +19630,30 @@ async function cargarHorarioGlobalDesdeAdmin(){
       // tiene a nadie en ese tren ese día".
       var resumenPorSede = [];
       var mesAnioGlobal = null;
+      // NUEVO — caché por sede: si el admin ya tenía esta sede cargada
+      // con la MISMA fecha_subida que ahora devuelve Supabase, no hace
+      // falta volver a descargar ni volver a parsear ese PDF — se
+      // reutilizan los empleados que ya se leyeron la vez anterior.
+      // Solo se descarga/parsea de verdad la(s) sede(s) que de verdad
+      // tengan un archivo NUEVO (fecha_subida distinta). Esto es lo
+      // que hace que entrar en Compañeros repetidas veces sea rápido:
+      // la única forma de que se vuelva a tardar es que de verdad haya
+      // algo nuevo que leer.
+      if(!window._cacheHorarioPorSede) window._cacheHorarioPorSede = {};
       for(var i=0; i<respTodas.data.length; i++){
         var filaSede = respTodas.data[i];
         var sedeLbl = filaSede.sede || filaSede.tipo.replace('horario_general_','');
         if(!filaSede.url_archivo){ resumenPorSede.push(sedeLbl+':sin archivo'); continue; }
-        var datosSede = await _descargarYParsearHorario(filaSede);
+        var cacheSede = window._cacheHorarioPorSede[filaSede.tipo];
+        var datosSede;
+        if(cacheSede && cacheSede.fecha_subida === filaSede.fecha_subida){
+          datosSede = cacheSede.empleados;
+        } else {
+          datosSede = await _descargarYParsearHorario(filaSede);
+          if(datosSede && datosSede.length){
+            window._cacheHorarioPorSede[filaSede.tipo] = { fecha_subida: filaSede.fecha_subida, empleados: datosSede, mesAnio: datosSede.mesAnio };
+          }
+        }
         if(datosSede && datosSede.length){
           // Se etiqueta cada empleado con su sede real, añadiéndola
           // como 4º elemento de la tupla [id, nombre, dias, sede] —
@@ -19641,7 +19664,8 @@ async function cargarHorarioGlobalDesdeAdmin(){
           // nuevo y perdería esta propiedad). Se usa el primero que
           // se encuentre — todas las sedes de una misma publicación
           // deberían coincidir en el mes.
-          if(!mesAnioGlobal && datosSede.mesAnio) mesAnioGlobal = datosSede.mesAnio;
+          var mesAnioSede = datosSede.mesAnio || (cacheSede && cacheSede.mesAnio);
+          if(!mesAnioGlobal && mesAnioSede) mesAnioGlobal = mesAnioSede;
           datosFusionados = datosFusionados.concat(datosSede);
           resumenPorSede.push(sedeLbl+':'+datosSede.length);
         } else {
@@ -19675,7 +19699,20 @@ async function cargarHorarioGlobalDesdeAdmin(){
     if(resp.error){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · tipoSede="'+tipoSede+'" · Error en consulta: '+resp.error.message; return false; }
     if(!resp.data){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · tipoSede="'+tipoSede+'" · Sin error, pero sin datos (resp.data vacío)'; return false; }
     if(!resp.data.url_archivo){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila encontrada pero sin url_archivo'; return false; }
-    var datos = await _descargarYParsearHorario(resp.data);
+    // NUEVO — misma caché de arriba, aplicada aquí a la sede única del
+    // usuario normal: si ya la teníamos cargada con esta misma
+    // fecha_subida, no se vuelve a descargar/parsear el archivo.
+    if(!window._cacheHorarioPorSede) window._cacheHorarioPorSede = {};
+    var cacheUnica = window._cacheHorarioPorSede[tipoSede];
+    var datos;
+    if(cacheUnica && cacheUnica.fecha_subida === resp.data.fecha_subida){
+      datos = cacheUnica.empleados;
+    } else {
+      datos = await _descargarYParsearHorario(resp.data);
+      if(datos && datos.length){
+        window._cacheHorarioPorSede[tipoSede] = { fecha_subida: resp.data.fecha_subida, empleados: datos, mesAnio: datos.mesAnio };
+      }
+    }
     if(!datos || !datos.length){ _diagHorarioGeneral = 'esAdmin=false · tipoSede="'+tipoSede+'" · Fila y URL encontradas, pero 0 empleados tras descargar/parsear el archivo'; return false; }
     // NUEVO — se etiqueta también aquí la sede de cada empleado
     // (4º elemento de la tupla), igual que ya hace la fusión admin —
@@ -19685,7 +19722,7 @@ async function cargarHorarioGlobalDesdeAdmin(){
     datos.forEach(function(emp){ emp[3] = sedeUnica; });
     BASES.global.data = datos;
     BASES.global.month = new Date(resp.data.fecha_subida).toLocaleDateString('es-ES');
-    BASES.global.mesAnio = datos.mesAnio || null;
+    BASES.global.mesAnio = datos.mesAnio || (cacheUnica && cacheUnica.mesAnio) || null;
     BASES.global.label = 'Horario General · '+(resp.data.sede||miSede);
     return true;
   }catch(e){
@@ -21455,10 +21492,42 @@ function trainTokens(cell){
   const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
   const nums = new Set();
   for(const tok of tokens){
-    const m = tok.match(/^([0-9]{2,5})/);
+    // FIX — un número de tren a veces lleva letras pegadas, delante o
+    // detrás (ej. "V08125" = material vacío, "3062UM" = unidad
+    // múltiple, "3062F"...). Antes solo se reconocía si el token
+    // EMPEZABA por dígito, así que estos se perdían y dos compañeros
+    // que compartían uno de estos trenes no salían emparejados. Ahora
+    // se busca el tramo de dígitos esté donde esté dentro del token.
+    const m = tok.match(/(\d{2,6})/);
     if(m) nums.add(m[1].replace(/^0+(?=\d)/, ''));
   }
   return nums;
+}
+// NUEVO — misma detección que trainTokens(), pero además guarda el
+// texto EXACTO tal y como aparece en la celda (con sus letras), para
+// poder mostrarlo tal cual en pantalla. No sustituye a trainTokens()
+// (que se sigue usando para el cruce de compañeros); es solo para
+// pintar el número bonito en el badge.
+function trainTokensDetalle(cell){
+  const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
+  const detalle = new Map(); // dígitos normalizados -> texto original visto
+  for(const tok of tokens){
+    const m = tok.match(/(\d{2,6})/);
+    if(!m) continue;
+    const digits = m[1].replace(/^0+(?=\d)/, '');
+    if(!detalle.has(digits)) detalle.set(digits, tok);
+  }
+  return detalle;
+}
+// NUEVO — badge "🚆 Tren ..." para las tarjetas de compañero, con el
+// texto tal cual apareció en la celda (letras incluidas: V08125,
+// 3062UM, etc.). Si comparten más de un tren ese día, se listan todos
+// separados por " · ". Función única usada en las 3 vistas de
+// compañeros para no repetir el mismo HTML tres veces.
+function trenBadgeHTML(trenesCompartidos){
+  if(!trenesCompartidos || !trenesCompartidos.length) return '';
+  const etiqueta = trenesCompartidos.length>1 ? 'Trenes' : 'Tren';
+  return `<div class="tren-badge">🚆 ${etiqueta} <span class="tren-badge-num">${trenesCompartidos.join(' · ')}</span></div>`;
 }
 function findCompanions(day, selfId, selfName, selfCell){
   const selfTokens = trainTokens(selfCell);
@@ -21469,9 +21538,16 @@ function findCompanions(day, selfId, selfName, selfCell){
     const cell = days[String(day)];
     if(!cell) continue;
     const tokens = trainTokens(cell);
-    let shared = false;
-    for(const t of selfTokens){ if(tokens.has(t)){ shared = true; break; } }
-    if(shared) out.push({id, name, cell, sede});
+    // NUEVO — además de saber SI comparten tren, guardamos CUÁLES,
+    // con su texto tal cual (letras incluidas), para el badge.
+    const trenesCompartidos = [];
+    for(const t of selfTokens){ if(tokens.has(t)) trenesCompartidos.push(t); }
+    const shared = trenesCompartidos.length>0;
+    if(shared){
+      const detalle = trainTokensDetalle(cell);
+      const trenesTexto = trenesCompartidos.map(t => detalle.get(t) || t);
+      out.push({id, name, cell, sede, trenesCompartidos: trenesTexto});
+    }
   }
   return out;
 }
@@ -22032,6 +22108,7 @@ function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, iso
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
+        ${trenBadgeHTML(c.trenesCompartidos)}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -22349,6 +22426,7 @@ function renderCompanions(day, id, name, cell){
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
+        ${trenBadgeHTML(c.trenesCompartidos)}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -22594,6 +22672,7 @@ function renderCompanions(day, id, name, cell){
       <div class="pcard-info">
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
+        ${trenBadgeHTML(c.trenesCompartidos)}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
