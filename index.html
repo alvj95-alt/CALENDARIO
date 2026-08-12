@@ -2313,6 +2313,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .acc-body{max-height:0;overflow:hidden;transition:max-height .28s ease}
 .acc-section.open .acc-body{max-height:6000px}
 .acc-body-inner{border-top:1px solid var(--div)}
+/* ── NUEVO — vista de calendario dentro del perfil de un compañero ── */
+.toggle-view{display:flex;background:var(--s2);border-radius:10px;padding:3px;margin-bottom:14px}
+.toggle-view button{flex:1;padding:7px;border:none;background:none;color:var(--tx2);font-size:11px;font-weight:700;
+  border-radius:8px;cursor:pointer;font-family:inherit}
+.toggle-view button.on{background:var(--acc);color:#fff}
+.p-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.p-cal-nav-lbl{font-size:13px;font-weight:800}
+.p-cal-wd{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
+.p-cal-wd span{font-size:9px;color:var(--tx3);text-align:center;font-weight:700}
+.p-cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dc-code{font-size:7px;opacity:.85;margin-top:1px;max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p-cal-legend{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px;font-size:9px;color:var(--tx2)}
+.p-cal-legend span{display:inline-flex;align-items:center;gap:4px}
+.p-cal-legend .dot{width:7px;height:7px;border-radius:50%}
+.p-day-detail{margin-top:10px;background:var(--s2);border:1px solid var(--div);border-radius:12px;padding:11px 12px}
+.p-day-detail-hdr{font-size:10px;font-weight:800;color:var(--acc3);letter-spacing:.2px;margin-bottom:3px;text-transform:uppercase}
+.p-day-detail-val{font-size:13px;font-weight:700}
 /* NUEVO — Guía de Cuentas: <details>/<summary> nativos, el propio
    navegador controla abrir/cerrar (sin JS nuestro de por medio, así
    que no puede quedarse "colgado" por ningún fallo de script). Misma
@@ -2997,7 +3014,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
-      <button class="hbtn" id="hbtn-toggle-interv-nombre" style="display:none" onclick="try{toggleFeatureBuscarInterventorNombre();}catch(eBtnInterv){alert('ERROR: '+eBtnInterv.message);}" title="Búsqueda de Interventor por nombre: desactivada para el resto">🔒</button>
       <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
@@ -3863,16 +3879,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
 
     <!-- NUEVO — Nota informativa sobre la disponibilidad de los
-         datos de Interventor, ahora en acordeón (colapsada por
-         defecto) para que no ocupe toda la pantalla al entrar. -->
-    <div class="adm-acc-item" id="acc-nota-interventor" style="margin:0 16px 14px">
-      <div class="adm-acc-hdr" onclick="toggleAdmAcc('acc-nota-interventor')" style="padding:12px 15px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25);border-radius:12px">
+         datos de Interventor, en acordeón (colapsada por defecto)
+         para que no ocupe toda la pantalla al entrar.
+         FIX — antes usaba clases (adm-acc-item/adm-acc-hdr/adm-acc-body)
+         y una función (toggleAdmAcc) que NO EXISTEN en ningún sitio del
+         archivo — así que el texto no colapsaba nunca (se veía siempre
+         "fuera", pegado debajo del botón) y tocar el botón no hacía
+         nada. Ahora usa el acordeón real que ya funciona en el resto
+         de la app (.acc-section/.acc-head, con su mismo onclick
+         inline de siempre — ver p.ej. línea ~7247). -->
+    <div class="acc-section" id="acc-nota-interventor" style="margin:0 16px 14px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25)">
+      <div class="acc-head" style="padding:12px 15px" onclick="this.closest('.acc-section').classList.toggle('open')">
         <span>ℹ️</span>
         <span style="flex:1;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">Sobre los datos de Interventor</span>
-        <span class="adm-acc-hdr-arr">›</span>
+        <span class="acc-chev">›</span>
       </div>
-      <div class="adm-acc-body">
-        <div style="padding:12px 15px 2px;font-size:12px;color:var(--tx2);line-height:1.65">
+      <div class="acc-body">
+        <div style="padding:12px 15px 14px;font-size:12px;color:var(--tx2);line-height:1.65">
           La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
           <br><br>
           Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
@@ -21702,13 +21725,13 @@ function cellContainsTrain(cell, trainNum){
   // sigue siendo "00123", nunca igual a "123" — por eso el .replace()).
   const norm = String(trainNum==null ? '' : trainNum).trim().replace(/^0+(?=\d)/, '');
   for(const tok of tokens){
-    const m = tok.match(/^([0-9]+)/);
+    // FIX — igual que trainTokens()/trainTokensDetalle(): un número de
+    // tren puede llevar letras pegadas (V08125, 3062UM...). Antes solo
+    // se reconocía si el token EMPEZABA por dígito, así que "Buscar
+    // por tren" no encontraba a nadie cuyo código llevara letras.
+    const m = tok.match(/(\d{2,6})/);
     if(m){
       const tokNorm = m[1].replace(/^0+(?=\d)/, '');
-      // DEBUG TEMPORAL DE AUDITORÍA — quítalo en cuanto confirmes que
-      // ya encuentra bien a los compañeros; imprime una línea por cada
-      // token de tren que aparece en la celda de cada compañero ese día.
-      console.log('Tren en PDF:', m[1], '| Tren buscado:', trainNum, '| ¿Son iguales? (normalizado):', tokNorm === norm);
       if(tokNorm === norm) return true;
     }
   }
@@ -22124,6 +22147,27 @@ function ofuscarNombreInterventor(nombre){
   });
 }
 
+// NUEVO — Maqueta 2A: badges Ida/Vuelta para "Buscar por tren". Si en
+// la celda de ese compañero ese día aparece, ADEMÁS del tren buscado
+// (ida, ya confirmado por cellContainsTrain), algún OTRO número de
+// tren distinto, se muestra como Vuelta. Si no aparece ningún otro
+// número, no se afirma nada sobre su vuelta (no hay dato real para
+// asegurarlo) — solo se muestra el tren de ida.
+function trenIdaVueltaBadgeHTML(cell, trainBuscadoRaw){
+  const detalle = trainTokensDetalle(cell);
+  const idaDigits = String(trainBuscadoRaw==null?'':trainBuscadoRaw).trim().replace(/^0+(?=\d)/, '');
+  const idaTexto = detalle.get(idaDigits) || trainBuscadoRaw;
+  const vueltaEntradas = [...detalle.entries()].filter(([digits]) => digits !== idaDigits);
+  let html = `<div class="tren-row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px">`;
+  html += `<div class="tren-badge ida" style="display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;letter-spacing:.2px;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.4);color:var(--nar3)">🚆 ${vueltaEntradas.length ? 'Ida' : 'Tren'} <span style="font-variant-numeric:tabular-nums;font-size:12px;color:var(--nar2)">${idaTexto}</span></div>`;
+  if(vueltaEntradas.length){
+    const etiqueta = vueltaEntradas.length>1 ? 'Vuelta' : 'Vuelta';
+    const texto = vueltaEntradas.map(([,tok])=>tok).join(' · ');
+    html += `<div class="tren-badge vuelta" style="display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:3px 9px;font-size:11px;font-weight:800;letter-spacing:.2px;background:rgba(8,145,178,.16);border:1px solid rgba(8,145,178,.45);color:#67E8F9">🔁 ${etiqueta} <span style="font-variant-numeric:tabular-nums;font-size:12px;color:#22D3EE">${texto}</span></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
 function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatches){
   interventorMatches = interventorMatches || [];
   concrecionMatches = concrecionMatches || [];
@@ -22172,6 +22216,7 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
           <div class="pcard-id">TRIPULACIÓN · ${sedeReal}${m.id ? ' · ID '+m.id : ''}</div>
         </div>
       </div>
+      ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
       ${esAdminTren ? `<button class="btn-import-comp-tren" data-midx="${mIdx}" style="margin-top:8px;padding:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:8px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío</button>` : ''}
     </div>`;
   });
@@ -22281,6 +22326,52 @@ function renderList(matches, query, interventorMatches){
 }
 
 const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
+// NUEVO — mes/año a usar para pintar la cuadrícula del calendario del
+// perfil de un compañero. Usa el mes/año real detectado en la cabecera
+// del PDF (BASES.global.mesAnio) si está disponible; si no, cae en el
+// mismo mes fijo que ya usa weekdayForDay() más abajo, para que ambas
+// vistas (lista y calendario) muestren siempre el mismo día de la
+// semana para cada número de día.
+function _mesAnioParaPerfil(){
+  var m = (typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio) ? BASES.global.mesAnio : null;
+  if(m && m.anio && m.mes) return {anio:m.anio, mes:m.mes}; // mes: 1-12
+  return {anio:2026, mes:8}; // fallback — agosto 2026, igual que weekdayForDay()
+}
+// NUEVO — cuadrícula de calendario (Maqueta 1B: código del turno visible
+// directo en cada celda, sin tener que tocarla). Reutiliza las mismas
+// clases .dc/.dc-ord/.dc-des/.dc-res/.dc-dop ya definidas para el
+// Calendario principal, para que los colores sean coherentes en toda
+// la app.
+function _renderProfileCalendarioHTML(days){
+  var ma = _mesAnioParaPerfil();
+  var y = ma.anio, m = ma.mes-1; // Date() usa mes 0-indexado
+  var last = new Date(y, m+1, 0).getDate();
+  var sd = new Date(y, m, 1).getDay(); sd = sd===0 ? 6 : sd-1; // lunes=0
+  var hoy = new Date();
+  var esMesHoy = hoy.getFullYear()===y && hoy.getMonth()===m;
+  var celdas = '';
+  for(var i=0;i<sd;i++) celdas += '<div class="dc dc-0"></div>';
+  for(var d=1; d<=last; d++){
+    var cell = days[String(d)] || '';
+    var info = classifyCell(cell);
+    var esHoy = esMesHoy && hoy.getDate()===d;
+    var cls = 'dc' + (info.type && info.type!=='oth' ? ' dc-'+info.type : '') + (esHoy ? ' dc-hoy' : '');
+    celdas += '<div class="'+cls+'" data-day="'+d+'">'+d
+      + (cell ? '<div class="dc-code">'+cell+'</div>' : '')
+      + '</div>';
+  }
+  var nombreMes = (typeof MESES!=='undefined' && MESES[m]) ? MESES[m] : (m+1);
+  return '<div class="p-cal-nav"><div></div><div class="p-cal-nav-lbl">'+nombreMes+' '+y+'</div><div></div></div>'
+    + '<div class="p-cal-wd"><span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span></div>'
+    + '<div class="p-cal-days">'+celdas+'</div>'
+    + '<div class="p-cal-legend">'
+      + '<span><span class="dot" style="background:#93C5FD"></span>Turno</span>'
+      + '<span><span class="dot" style="background:#86EFAC"></span>Descanso</span>'
+      + '<span><span class="dot" style="background:#FCD34D"></span>Franco/Res.</span>'
+      + '<span><span class="dot" style="background:#F9A8D4"></span>DOP</span>'
+    + '</div>'
+    + '<div class="p-day-detail" id="pCalDayDetail" style="display:none"></div>';
+}
 function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina, horasCI, horasCO, rutaPorDia]){
   let items = '';
   for(let d=1; d<=31; d++){
@@ -22340,8 +22431,13 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
       ${(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin')
         ? `<button id="btnImportarComp" style="width:100%;margin:4px 0 10px;padding:10px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:10px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío en el Calendario</button>`
         : ''}
-      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día en la línea de tiempo para ver con quién compartes ese turno.</div>
-      <div class="timeline">${items}</div>
+      <div class="toggle-view">
+        <button id="btnVistaLista" class="on">📋 Lista</button>
+        <button id="btnVistaCalendario">🗓️ Calendario</button>
+      </div>
+      <div class="hint-empty" id="hintVistaLista" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día en la línea de tiempo para ver con quién compartes ese turno.</div>
+      <div class="timeline" id="vistaListaZone">${items}</div>
+      <div id="vistaCalendarioZone" style="display:none">${_renderProfileCalendarioHTML(days)}</div>
       <div id="compZone"></div>
     </div>
   `;
@@ -22361,6 +22457,45 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
       });
       item.classList.add('sel');
       item.querySelector('.tl-arr').textContent = '▾';
+      document.getElementById('compZone').scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+  });
+  // NUEVO — toggle Lista/Calendario: solo alterna qué zona se ve, no
+  // vuelve a pedir ni a construir nada — ambas vistas ya están
+  // pintadas de una vez arriba.
+  var btnVistaLista = document.getElementById('btnVistaLista');
+  var btnVistaCalendario = document.getElementById('btnVistaCalendario');
+  var zonaLista = document.getElementById('vistaListaZone');
+  var zonaCalendario = document.getElementById('vistaCalendarioZone');
+  var hintLista = document.getElementById('hintVistaLista');
+  if(btnVistaLista && btnVistaCalendario){
+    btnVistaLista.addEventListener('click', function(){
+      btnVistaLista.classList.add('on'); btnVistaCalendario.classList.remove('on');
+      zonaLista.style.display=''; zonaCalendario.style.display='none';
+      if(hintLista) hintLista.style.display='';
+    });
+    btnVistaCalendario.addEventListener('click', function(){
+      btnVistaCalendario.classList.add('on'); btnVistaLista.classList.remove('on');
+      zonaCalendario.style.display=''; zonaLista.style.display='none';
+      if(hintLista) hintLista.style.display='none';
+    });
+  }
+  // NUEVO — tocar un día en la cuadrícula hace exactamente lo mismo
+  // que tocarlo en la lista: muestra el detalle del día y quién más
+  // comparte ese tren (mismo renderCompanions() de siempre).
+  viewEl.querySelectorAll('.p-cal-days .dc[data-day]').forEach(function(cellEl){
+    cellEl.addEventListener('click', function(){
+      var d = parseInt(cellEl.dataset.day, 10);
+      var cell = days[String(d)] || '';
+      var detalle = document.getElementById('pCalDayDetail');
+      if(detalle){
+        detalle.style.display = '';
+        detalle.innerHTML = '<div class="p-day-detail-hdr">'+weekdayForDay(d)+' '+d+'</div>'
+          + '<div class="p-day-detail-val">'+(cell || 'Sin turno registrado')+'</div>';
+      }
+      viewEl.querySelectorAll('.p-cal-days .dc[data-day]').forEach(function(r){ r.style.outline=''; });
+      cellEl.style.outline = '2px solid var(--acc2)';
+      renderCompanions(d, id, name, cell);
       document.getElementById('compZone').scrollIntoView({behavior:'smooth', block:'nearest'});
     });
   });
@@ -22753,12 +22888,15 @@ clearBtn.addEventListener('click', ()=>{
         </div>`;
       });
       matches.forEach((m)=>{
-        filas += `<div class="pcard">
-          <div class="pcard-av">${initials(m.name)}</div>
-          <div class="pcard-info">
-            <div class="pcard-name">${m.name}</div>
-            <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+        filas += `<div class="pcard" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="pcard-av">${initials(m.name)}</div>
+            <div class="pcard-info">
+              <div class="pcard-name">${m.name}</div>
+              <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+            </div>
           </div>
+          ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
         </div>`;
       });
       const partes = [];
