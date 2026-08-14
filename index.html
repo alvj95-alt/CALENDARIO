@@ -13431,14 +13431,25 @@ async function rellenarCompanerosAutomaticos(areaEl){
       h.innerHTML = '<div class="tc-vacio">Sin Horario General publicado todavía.</div>';
       return;
     }
-    var tren = h.dataset.tren, dia = h.dataset.dia;
-    var nombres = [];
-    try{ nombres = window.buscarCompanerosParaTrenDia(tren, dia) || []; }catch(e){ nombres = []; }
-    if(!nombres.length){
-      h.innerHTML = '<div class="tc-vacio">Nadie más de tu base hace el tren '+tren+' ese día.</div>';
-    } else {
-      h.innerHTML = '<div class="tc-tit">🧑‍🤝‍🧑 Viajas con:</div>'
-        + nombres.map(function(n){ return '<div class="tc-nombre">'+n.name+_chipUmDhTexto(n.tren)+'</div>'; }).join('');
+    // FIX — antes, si algo fallaba al construir el HTML de ESTE hueco
+    // (ida o vuelta), el error cortaba en seco el forEach entero y el
+    // OTRO hueco se quedaba colgado para siempre en "Buscando
+    // compañeros..." sin ningún aviso. Ahora cada hueco es
+    // independiente: un fallo en uno no afecta al otro, y si algo
+    // sale mal se ve un aviso en vez de quedarse colgado.
+    try{
+      var tren = h.dataset.tren, dia = h.dataset.dia;
+      var nombres = [];
+      try{ nombres = window.buscarCompanerosParaTrenDia(tren, dia) || []; }catch(e){ nombres = []; }
+      if(!nombres.length){
+        h.innerHTML = '<div class="tc-vacio">Nadie más de tu base hace el tren '+tren+' ese día.</div>';
+      } else {
+        h.innerHTML = '<div class="tc-tit">🧑‍🤝‍🧑 Viajas con:</div>'
+          + nombres.map(function(n){ return '<div class="tc-nombre">'+(n&&n.name?n.name:n)+_chipUmDhTexto(n&&n.tren)+'</div>'; }).join('');
+      }
+    }catch(errHueco){
+      h.innerHTML = '<div class="tc-vacio">No se pudo mostrar (error inesperado).</div>';
+      console.warn('Error al pintar hueco de compañeros:', errHueco);
     }
   });
 }
@@ -16042,7 +16053,7 @@ function renderAll(diasData, meta){
                 cont.innerHTML = '<div class="tc-vacio">Nadie más de tu base hace el tren '+tren+' ese día.</div>';
               } else {
                 cont.innerHTML = '<div class="tc-tit">🧑‍🤝‍🧑 Viajas con:</div>'
-                  + nombres.map(function(n){ return '<div class="tc-nombre">'+n.name+_chipUmDhTexto(n.tren)+'</div>'; }).join('');
+                  + nombres.map(function(n){ return '<div class="tc-nombre">'+(n&&n.name?n.name:n)+_chipUmDhTexto(n&&n.tren)+'</div>'; }).join('');
               }
             }catch(errBuscarComp){
               cont.innerHTML = '<div class="tc-vacio">No se pudo buscar ahora mismo.</div>';
