@@ -13448,7 +13448,7 @@ async function rellenarCompanerosAutomaticos(areaEl){
           + nombres.map(function(n){ return '<div class="tc-nombre">'+(n&&n.name?n.name:n)+_chipUmDhTexto(n&&n.tren)+'</div>'; }).join('');
       }
     }catch(errHueco){
-      h.innerHTML = '<div class="tc-vacio">No se pudo mostrar (error inesperado).</div>';
+      h.innerHTML = '<div class="tc-vacio">No se pudo mostrar: '+(errHueco&&errHueco.message?errHueco.message:String(errHueco))+'</div>';
       console.warn('Error al pintar hueco de compañeros:', errHueco);
     }
   });
@@ -16056,7 +16056,7 @@ function renderAll(diasData, meta){
                   + nombres.map(function(n){ return '<div class="tc-nombre">'+(n&&n.name?n.name:n)+_chipUmDhTexto(n&&n.tren)+'</div>'; }).join('');
               }
             }catch(errBuscarComp){
-              cont.innerHTML = '<div class="tc-vacio">No se pudo buscar ahora mismo.</div>';
+              cont.innerHTML = '<div class="tc-vacio">No se pudo buscar: '+(errBuscarComp&&errBuscarComp.message?errBuscarComp.message:String(errBuscarComp))+'</div>';
               console.warn('Error buscando compañeros automáticos:', errBuscarComp);
             }
           });
