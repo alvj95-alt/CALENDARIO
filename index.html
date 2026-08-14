@@ -20625,19 +20625,19 @@ window.asegurarHorarioGeneralCargado = async function(){
   }
   return !!(activeBase && activeBase.data);
 };
-// NUEVO — versión compacta de los chips UM/DH, pensada para ir PEGADA
-// al nombre dentro del mismo chip ".tc-nombre" (que es una píldora de
-// texto simple, no la tarjeta pcard grande del Buscador de
-// Compañeros). Se usa en "🧑‍🤝‍🧑 Viajas con:" — detalle del día y
-// acordeones del calendario. Si el tren no lleva UM ni DH, no añade
-// nada (no se rellena con "No").
-function _chipUmDhTexto(tren){
+// FIX — esta función vive dentro de un módulo aislado (function(){...})()
+// que usa la app para el buscador/PDF, pero se llama desde FUERA de
+// ese módulo (detalle del día y acordeones del calendario, ambos
+// definidos antes de este bloque). Por eso tiene que colgarse de
+// window explícitamente — como función local sin más, quedaba fuera
+// de alcance y lanzaba "_chipUmDhTexto is not defined".
+window._chipUmDhTexto = function(tren){
   if(!tren) return '';
   var out = '';
   if(/UM/.test(tren)) out += ' <span style="color:var(--violet2, #C4B5FD);font-weight:800">🔀UM</span>';
   if(/DH/.test(tren)) out += ' <span style="color:var(--amber2, #FCD34D);font-weight:800">☕DH</span>';
   return out;
-}
+};
 window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
   if(!activeBase || !activeBase.data) return null;
   var matches = [];
