@@ -20348,6 +20348,19 @@ window.validarAccesoBuscador = async function(){
 };
 
 window.abrirBuscadorConHorarioGlobal = async function(){
+  // NUEVO — FIX de lentitud: la primera vez en la sesión se hace la
+  // carga completa de siempre (con su comprobación de red). A partir
+  // de la segunda vez que se entra en la pestaña Compañeros, si ya
+  // tenemos datos en memoria, se entra AL INSTANTE con esos datos —
+  // la comprobación de "¿hay algo nuevo publicado?" se sigue haciendo,
+  // pero en segundo plano, sin bloquear la pantalla. Antes se repetía
+  // la consulta a Supabase (y se esperaba a que respondiera) cada vez
+  // que se tocaba la pestaña, aunque no hubiera nada nuevo que leer.
+  if(window._companerosCargadoEnEstaSesion && BASES.global && BASES.global.data && BASES.global.data.length){
+    activateBase('global');
+    cargarHorarioGlobalDesdeAdmin().then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
+    return;
+  }
   // NUEVO — se dispara en segundo plano, sin esperar; si falla, el
   // buscador sigue funcionando igual, solo que sin la búsqueda de
   // interventor por nombre (que ya está desactivada por defecto).
@@ -20370,6 +20383,7 @@ window.abrirBuscadorConHorarioGlobal = async function(){
     var ok = await cargarHorarioGlobalDesdeAdmin();
     if(ok){
       activateBase('global');
+      window._companerosCargadoEnEstaSesion = true;
     } else if(statusEl){
       statusEl.innerHTML = 'Todavía no hay ningún horario publicado por el administrador, o hubo un problema al cargarlo.'
         + (_diagHorarioGeneral ? (' [Diagnóstico: '+_diagHorarioGeneral+']') : '')
@@ -21999,6 +22013,22 @@ function trenBadgeHTML(trenesCompartidos){
   const etiqueta = trenesCompartidos.length>1 ? 'Trenes' : 'Tren';
   return `<div class="tren-badge">🚆 ${etiqueta} <span class="tren-badge-num">${trenesCompartidos.join(' · ')}</span></div>`;
 }
+// NUEVO — chips "🔀 UM" y "☕ DH" aparte del número de tren, para que
+// se vean de un vistazo en la tarjeta de compañero. Se leen del texto
+// tal cual como aparece en el PDF (p.ej. "3152UM", "3122DH"), que ya
+// se guarda en trenesCompartidos vía trainTokensDetalle() — no hace
+// falta ningún dato ni parser nuevo. Si el compañero no va como UM ni
+// tiene DH ese tren, no se muestra nada (no se rellena con "No").
+function umDhBadgesHTML(trenesCompartidos){
+  if(!trenesCompartidos || !trenesCompartidos.length) return '';
+  var esUM = trenesCompartidos.some(function(t){ return /UM/.test(t); });
+  var esDH = trenesCompartidos.some(function(t){ return /DH/.test(t); });
+  if(!esUM && !esDH) return '';
+  var chips = '';
+  if(esUM) chips += '<span style="font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.15);color:var(--violet2);border:1px solid rgba(124,58,237,.35)">🔀 UM</span>';
+  if(esDH) chips += '<span style="font-size:10.5px;font-weight:800;padding:4px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:4px;background:rgba(217,119,6,.15);color:var(--amber2);border:1px solid rgba(217,119,6,.35);margin-left:6px">☕ DH</span>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+chips+'</div>';
+}
 function findCompanions(day, selfId, selfName, selfCell){
   const selfTokens = trainTokens(selfCell);
   if(selfTokens.size===0) return [];
@@ -22579,6 +22609,8 @@ function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, iso
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         ${trenBadgeHTML(c.trenesCompartidos)}
+        ${umDhBadgesHTML(c.trenesCompartidos)}
+        ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -23009,6 +23041,8 @@ function renderCompanions(day, id, name, cell){
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         ${trenBadgeHTML(c.trenesCompartidos)}
+        ${umDhBadgesHTML(c.trenesCompartidos)}
+        ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -23255,6 +23289,8 @@ function renderCompanions(day, id, name, cell){
         <div class="pcard-name">${c.name}</div>
         ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
         ${trenBadgeHTML(c.trenesCompartidos)}
+        ${umDhBadgesHTML(c.trenesCompartidos)}
+        ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
