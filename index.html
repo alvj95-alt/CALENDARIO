@@ -19555,7 +19555,12 @@ async function enviarSolicitudAccesoBusc(){
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
-  if(!yaPendiente.error && !yaPendiente.data){
+  if(yaPendiente.error){
+    mostrar('No se pudo guardar la solicitud (¿existe la tabla solicitudes_acceso en Supabase?): ' + yaPendiente.error.message);
+    if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+    return;
+  }
+  if(!yaPendiente.data){
     var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
     if(alta.error){
       mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
@@ -19602,7 +19607,12 @@ async function enviarSolicitudAccesoTrip(){
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
 
   var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
-  if(!yaPendiente.error && !yaPendiente.data){
+  if(yaPendiente.error){
+    mostrar('No se pudo guardar la solicitud (¿existe la tabla solicitudes_acceso en Supabase?): ' + yaPendiente.error.message);
+    if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+    return;
+  }
+  if(!yaPendiente.data){
     var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
     if(alta.error){
       mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
@@ -19638,7 +19648,12 @@ async function enviarSolicitudAcceso(){
 
   // Evita duplicar solicitudes pendientes para la misma matrícula.
   var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
-  if(!yaPendiente.error && !yaPendiente.data){
+  if(yaPendiente.error){
+    mostrar('No se pudo guardar la solicitud (¿existe la tabla solicitudes_acceso en Supabase?): ' + yaPendiente.error.message);
+    if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+    return;
+  }
+  if(!yaPendiente.data){
     var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
     if(alta.error){
       mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
