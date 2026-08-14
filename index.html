@@ -2799,6 +2799,26 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
     <div id="accesoTripulanteMsg" style="min-height:18px;font-size:12px;margin-bottom:10px;line-height:1.4"></div>
 
+    <!-- NUEVO — Solicitar acceso cuando la matrícula todavía no
+         aparece en ningún Horario General. Se muestra solo cuando
+         validarMatriculaTripulanteYEntrar() lo activa. -->
+    <div id="bloqueSolicitudAccesoTrip" style="display:none;margin:0 0 16px;padding-top:10px;border-top:1px solid #1E293B;text-align:left">
+      <div style="font-size:11px;color:#93C5FD;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);border-radius:9px;padding:8px 10px;margin-bottom:8px;line-height:1.4">Puedes solicitar acceso — el administrador la revisará y te avisará cuando esté activa.</div>
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:#94A3B8;display:block;margin-bottom:4px">NOMBRE COMPLETO</label>
+      <input type="text" id="solicitudNombreInputTrip" placeholder="Tu nombre completo…" autocomplete="off"
+        style="width:100%;background:#132236;border:2px solid #1E293B;border-radius:12px;color:#F8FAFC;font-size:14px;font-weight:600;padding:12px 14px;margin-bottom:10px;outline:none;box-sizing:border-box">
+      <button id="btnEnviarSolicitudAccesoTrip" onclick="enviarSolicitudAccesoTrip()" style="width:100%;background:linear-gradient(135deg,#2563EB,#3B82F6);
+        border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;padding:12px;cursor:pointer;margin-bottom:8px">📨 Enviar solicitud de acceso</button>
+      <div id="estadoSolicitudAccesoTrip" style="display:none;font-size:11px;color:#94A3B8;margin-bottom:8px;line-height:1.4"></div>
+      <div id="bloqueAvisosSolicitudTrip" style="display:none;gap:8px;flex-direction:column">
+        <a id="linkWhatsappSolicitudTrip" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box;
+          background:transparent;border:1px solid #1E293B;border-radius:12px;color:#94A3B8;font-size:12px;font-weight:700;padding:10px" target="_blank" rel="noopener">📱 Avisar por WhatsApp</a>
+        <a id="linkCorreoSolicitudTrip" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box;
+          background:transparent;border:1px solid #1E293B;border-radius:12px;color:#94A3B8;font-size:12px;font-weight:700;padding:10px">✉️ Avisar por correo</a>
+      </div>
+    </div>
+
+
     <!-- NUEVO — checkbox discreto con las condiciones como ENLACE
          dentro de la misma frase (a propósito distinto del botón
          grande "📄 Ver descargo" del Interventor) — el pop-up con el
@@ -5010,6 +5030,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <input type="text" id="accesoMatriculaInput" class="field-inp" placeholder="Ej. 1234567" inputmode="numeric" autocomplete="off">
       <div id="accesoBuscadorMsg"></div>
 
+      <!-- NUEVO — Solicitar acceso cuando la matrícula todavía no
+           aparece en el Horario General. Se muestra solo cuando
+           validarAccesoBuscador() lo activa. -->
+      <div id="bloqueSolicitudAccesoBusc" style="display:none;margin:10px 0 16px;padding-top:10px;border-top:1px solid var(--div)">
+        <div class="msg-info" style="margin-bottom:8px">Tu matrícula todavía no está en el Horario General. Puedes solicitar acceso — el administrador la revisará y te avisará cuando esté activa.</div>
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">NOMBRE COMPLETO</label>
+        <input class="aj-nombre-inp" id="solicitudNombreInputBusc" placeholder="Tu nombre completo…" autocomplete="off" style="margin-bottom:10px">
+        <button class="m-save" style="width:100%" id="btnEnviarSolicitudAccesoBusc" onclick="enviarSolicitudAccesoBusc()">📨 Enviar solicitud de acceso</button>
+        <div id="estadoSolicitudAccesoBusc" class="estado-archivo sin-archivo" style="margin-top:8px;display:none"></div>
+        <div id="bloqueAvisosSolicitudBusc" style="display:none;margin-top:8px;gap:8px;flex-direction:column">
+          <a id="linkWhatsappSolicitudBusc" class="dct-btn-sec" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box" target="_blank" rel="noopener">📱 Avisar por WhatsApp</a>
+          <a id="linkCorreoSolicitudBusc" class="dct-btn-sec" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box">✉️ Avisar por correo</a>
+        </div>
+      </div>
+
       <label style="display:flex;align-items:flex-start;gap:9px;margin:14px 0 16px;cursor:pointer;font-size:12px;color:var(--tx2);line-height:1.5">
         <input type="checkbox" id="accesoAceptoCheck" onchange="document.getElementById('btnContinuarAccesoBuscador').disabled=!this.checked" style="width:17px;height:17px;flex-shrink:0;margin-top:1px;accent-color:var(--acc)">
         He leído y acepto las condiciones de uso
@@ -5082,6 +5117,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <button class="m-save" style="width:100%;margin-bottom:8px" id="btnCrearCuentaNube" onclick="crearCuentaConMatricula()">Crear mi cuenta</button>
         <button class="dct-btn-sec" style="width:100%" onclick="mostrarLoginCuentaNube()" id="btnMostrarLogin">Ya tengo cuenta — iniciar sesión</button>
         <div id="estadoCuentaNube" class="estado-archivo sin-archivo" style="margin-top:8px;display:none"></div>
+
+        <!-- NUEVO — Solicitar acceso cuando la matrícula todavía no
+             aparece en ningún Horario General publicado. Se muestra
+             solo cuando crearCuentaConMatricula() lo activa. -->
+        <div id="bloqueSolicitudAcceso" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--div)">
+          <div class="msg-info" style="margin-bottom:8px">Tu matrícula todavía no está en ningún horario publicado. Puedes solicitar acceso — el administrador la revisará y te avisará cuando esté activa.</div>
+          <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">NOMBRE COMPLETO</label>
+          <input class="aj-nombre-inp" id="solicitudNombreInput" placeholder="Tu nombre completo…" autocomplete="off" style="margin-bottom:10px">
+          <button class="m-save" style="width:100%" id="btnEnviarSolicitudAcceso" onclick="enviarSolicitudAcceso()">📨 Enviar solicitud de acceso</button>
+          <div id="estadoSolicitudAcceso" class="estado-archivo sin-archivo" style="margin-top:8px;display:none"></div>
+          <div id="bloqueAvisosSolicitud" style="display:none;margin-top:8px;gap:8px;flex-direction:column">
+            <a id="linkWhatsappSolicitud" class="dct-btn-sec" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box" target="_blank" rel="noopener">📱 Avisar por WhatsApp</a>
+            <a id="linkCorreoSolicitud" class="dct-btn-sec" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box">✉️ Avisar por correo</a>
+          </div>
+        </div>
 
         <div style="height:1px;background:var(--div);margin:18px 0"></div>
         <button class="dct-btn-sec" style="width:100%;font-size:11px;opacity:.7" onclick="closeOv('ov-cuenta-nube');openOv('ov-admin-login')">🧑‍💼 Acceso Administrador</button>
@@ -5170,6 +5220,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAceptacionesDescargoAdmin()">🔄 Actualizar lista</button>
       <div class="estado-archivo sin-archivo" id="estadoAceptacionesDescargo">Toca "Actualizar lista" para ver los accesos.</div>
       <div id="listaAceptacionesDescargo" style="margin-top:8px"></div>
+    </div>
+
+    <!-- NUEVO — Solicitudes de acceso: matrículas que pidieron entrar
+         sin estar en ningún Horario General todavía. Al aceptar, esa
+         matrícula queda válida para crear cuenta aunque no aparezca
+         en ningún PDF subido (ver _matriculaTieneSolicitudAceptada). -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico" style="background:rgba(245,158,11,.15);color:#FCD34D">📨</div>
+        <div>
+          <div class="admin-card-tit">Solicitudes de acceso <span id="badgeSolicitudesAcceso" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px"></span></div>
+          <div class="admin-card-sub">Matrículas que han pedido entrar sin estar en ningún Horario General.</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarSolicitudesAccesoAdmin()">🔄 Actualizar lista</button>
+      <div class="estado-archivo sin-archivo" id="estadoSolicitudesAcceso">Toca "Actualizar lista" para ver las solicitudes.</div>
+      <div id="listaSolicitudesAcceso" style="margin-top:8px"></div>
     </div>
 
     <div class="admin-card">
@@ -6021,11 +6088,29 @@ function verificarDescansosMes(){
    salida que checkRestTime() (descMin/limiteMin/descStr/limStr/
    esEnBase/msg), para que el resto del sistema (banner, correo) lo
    trate exactamente igual. No toca TV ni ningún dato guardado.
+
+   FIX — el retraso del tramo 2 (vuelta) se guarda en un registro
+   DISTINTO (TV[turno.diaSiguiente], el día de la vuelta), no en
+   este mismo "turno" (que es siempre el día de la IDA/origen). Antes
+   solo se restaba turno.retrasoMin (el retraso de la ida) y el
+   retraso metido en el día de la vuelta no se restaba de nada —
+   así que un retraso en el tramo de vuelta no reducía el descanso
+   ni generaba enlace de jornada, aunque estuviera guardado. Ahora
+   se suman AMBOS retrasos (ida + vuelta, cada uno leído de su
+   propio registro) antes de calcular el hueco de descanso.
 ═══════════════════════════════════════════════════════════ */
 function checkDescansoInternoPernocta(turno){
   if(!turno || !turno.hL || !turno.hF2) return null;
   var toM=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
-  var retA=parseInt(turno.retrasoMin)||0;
+  var ret1Obj = turno.retrasos && turno.retrasos.filter(function(r){return r.tramo===1;})[0];
+  var min1 = ret1Obj ? (parseInt(ret1Obj.minutos)||0) : (parseInt(turno.retrasoMin)||0);
+  var min2 = 0;
+  var tVuelta = turno.diaSiguiente ? TV[turno.diaSiguiente] : null;
+  if(tVuelta){
+    var ret2Obj = tVuelta.retrasos && tVuelta.retrasos.filter(function(r){return r.tramo===2;})[0];
+    min2 = ret2Obj ? (parseInt(ret2Obj.minutos)||0) : (parseInt(tVuelta.retrasoMin)||0);
+  }
+  var retA = min1 + min2;
   // Tramo 2 empieza siempre al día siguiente del fin del tramo 1
   // (misma lógica de "un día de diferencia" que ya usa checkRestTime
   // para los cruces de medianoche).
@@ -6588,10 +6673,10 @@ function secArt5152Flow(){
     // a guardar (antes, con continuidad de por medio, la vista previa
     // ya salía mal desde antes de guardar).
     var minContinuidadPrev = 0, minEscalaPrevCalc = 0, finIdaRealPrev = F.hL;
-    if(!esPernocta && F.continuidad && F.continuidad.length){
+    if(F.continuidad && F.continuidad.length){
       F.continuidad.forEach(function(c){
         if(c.horaInicio && c.horaFin) minContinuidadPrev += calcMins(c.horaInicio, c.horaFin);
-        if(c.escalaMin!=null && c.escalaMin>0) minEscalaPrevCalc += c.escalaMin;
+        if(!esPernocta && c.escalaMin!=null && c.escalaMin>0) minEscalaPrevCalc += c.escalaMin;
         if(c.horaFin) finIdaRealPrev = c.horaFin;
       });
     }
@@ -6600,22 +6685,28 @@ function secArt5152Flow(){
       if(huecoFinalPrev>0) minEscalaPrevCalc += huecoFinalPrev;
     }
     var minContinuidadVueltaPrev = 0;
-    if(!esPernocta && F.continuidadVuelta && F.continuidadVuelta.length){
+    if(F.continuidadVuelta && F.continuidadVuelta.length){
       F.continuidadVuelta.forEach(function(c){
         if(c.horaInicio && c.horaFin) minContinuidadVueltaPrev += calcMins(c.horaInicio, c.horaFin);
-        if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaPrev += c.escalaMin;
+        if(!esPernocta && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaPrev += c.escalaMin;
       });
     }
     var hEscalaPrev = Math.round(minEscalaPrevCalc/60*100)/100;
     var hContinuidadPrev = Math.round(minContinuidadPrev/60*100)/100;
     var hContinuidadVueltaPrev = Math.round(minContinuidadVueltaPrev/60*100)/100;
-    var hTotalPrev  = esPernocta ? hTotal : Math.round((hIda+hEscalaPrev+hContinuidadPrev+hVuelta+hContinuidadVueltaPrev)*100)/100;
+    // FIX — en pernocta, la continuidad de la ida y de la vuelta SÍ
+    // deben sumarse al total (son horas realmente trabajadas); lo
+    // único que sigue sin sumarse es la escala/hueco de descanso
+    // entre ambos tramos. Antes se descartaba TODO en bloque.
+    var hTotalPrev  = esPernocta
+      ? Math.round((hTotal+hContinuidadPrev+hContinuidadVueltaPrev)*100)/100
+      : Math.round((hIda+hEscalaPrev+hContinuidadPrev+hVuelta+hContinuidadVueltaPrev)*100)/100;
     if(hTotalPrev>0){
       h += '<div class="cr-row"><span class="cr-l">Horas ida</span><span class="cr-v">'+hIda+' h</span></div>';
       if(!esPernocta && hEscalaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas escala</span><span class="cr-v">'+hEscalaPrev+' h</span></div>';
-      if(!esPernocta && hContinuidadPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad</span><span class="cr-v">'+hContinuidadPrev+' h</span></div>';
+      if(hContinuidadPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad'+(esPernocta?' (ida)':'')+'</span><span class="cr-v">'+hContinuidadPrev+' h</span></div>';
       if(hVuelta>0) h += '<div class="cr-row"><span class="cr-l">Horas vuelta</span><span class="cr-v">'+hVuelta+' h</span></div>';
-      if(!esPernocta && hContinuidadVueltaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad vuelta</span><span class="cr-v">'+hContinuidadVueltaPrev+' h</span></div>';
+      if(hContinuidadVueltaPrev>0) h += '<div class="cr-row"><span class="cr-l">Horas continuidad'+(esPernocta?' (vuelta)':' vuelta')+'</span><span class="cr-v">'+hContinuidadVueltaPrev+' h</span></div>';
       h += '<div class="cr-row"><span class="cr-l"><strong>Total horas</strong></span><span class="cr-v"><strong>'+hTotalPrev+' h</strong></span></div>'
         +'<div class="cr-row"><span class="cr-l">Tarifa Art. 51/52</span><span class="cr-v">'+monto.toFixed(2)+' €/h</span></div>'
         +(base>0?'<div class="cr-row"><span class="cr-l">Valor base</span><span class="cr-v">+'+base.toFixed(2)+' €</span></div>':'')
@@ -6624,7 +6715,7 @@ function secArt5152Flow(){
         +(pIntlArt>0?'<div class="cr-row"><span class="cr-l">Plus Internacional</span><span class="cr-v">+'+pIntlArt.toFixed(2)+' €</span></div>':'')
         +'<div class="cr-div"></div>'
         +'<div class="cr-total"><span class="cr-tl">Total a cobrar</span><span class="cr-tv">'+Math.round((hTotalPrev*monto+base+pActArt+pJTArt+pIntlArt)*100)/100+' €</span></div>'
-        +(esPernocta?'<div style="font-size:9px;color:var(--tx3);margin-top:4px">Pernocta: solo tiempo efectivo en tren (sin escala/descanso).</div>':'');
+        +(esPernocta?'<div style="font-size:9px;color:var(--tx3);margin-top:4px">Pernocta: tiempo en tren + continuidad (sin escala/descanso nocturno).</div>':'');
     } else {
       h += '<div style="font-size:10px;color:var(--tx3)">⚠️ Completa los tramos para ver el cálculo</div>';
     }
@@ -11623,10 +11714,10 @@ function guardarTurno(){
       // el turno — si había continuidad de vuelta, ese dinero real
       // faltaba del importe guardado, no solo del desglose.
       var minContinuidadImp = 0, minEscalaImp = 0, finIdaRealImp = F.hL;
-      if(!esPernoctaImp && F.continuidad && F.continuidad.length){
+      if(F.continuidad && F.continuidad.length){
         F.continuidad.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadImp += calcMins(c.horaInicio, c.horaFin);
-          if(c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
+          if(!esPernoctaImp && c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
           if(c.horaFin) finIdaRealImp = c.horaFin;
         });
       }
@@ -11635,16 +11726,24 @@ function guardarTurno(){
         if(huecoFinalImp>0) minEscalaImp += huecoFinalImp;
       }
       var minContinuidadVueltaImp = 0;
-      if(!esPernoctaImp && F.continuidadVuelta && F.continuidadVuelta.length){
+      if(F.continuidadVuelta && F.continuidadVuelta.length){
         F.continuidadVuelta.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadVueltaImp += calcMins(c.horaInicio, c.horaFin);
-          if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaImp += c.escalaMin;
+          if(!esPernoctaImp && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaImp += c.escalaMin;
         });
       }
       var hEscalaImp = Math.round(minEscalaImp/60*100)/100;
       var hContinuidadImp = Math.round(minContinuidadImp/60*100)/100;
       var hContinuidadVueltaImp = Math.round(minContinuidadVueltaImp/60*100)/100;
-      var horasComputablesHTDL = esPernoctaImp ? d.horas : Math.round((hIda+hEscalaImp+hContinuidadImp+hVuelta+hContinuidadVueltaImp)*100)/100;
+      // FIX — en pernocta, la continuidad de ida y de vuelta SÍ suman
+      // al importe guardado (d.importe); antes se descartaban en
+      // bloque y el importe del día quedaba por debajo del real,
+      // aunque el total mensual de Stats (calculateEarnings) ya lo
+      // calculaba bien por su cuenta — de ahí la descuadre entre la
+      // ficha del día y el total del mes.
+      var horasComputablesHTDL = esPernoctaImp
+        ? Math.round((d.horas+hContinuidadImp+hContinuidadVueltaImp)*100)/100
+        : Math.round((hIda+hEscalaImp+hContinuidadImp+hVuelta+hContinuidadVueltaImp)*100)/100;
       var hFparaTasa = esPernoctaImp ? F.hF : F.hF2;
       var hLparaTasa = esPernoctaImp ? F.hL : F.hL2;
       d.importe=calcImp(horasComputablesHTDL,hFparaTasa,hLparaTasa,F.linea,F.plusAct,F.plusJT,F.plusIntlAuto);
@@ -11816,10 +11915,10 @@ function guardarTurno(){
       var minContinuidadArt = 0;
       var minEscalaArt = 0;
       var finIdaRealArt = F.hL;
-      if(!esPernoctaArt && F.continuidad && F.continuidad.length){
+      if(F.continuidad && F.continuidad.length){
         F.continuidad.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadArt += calcMins(c.horaInicio, c.horaFin);
-          if(c.escalaMin!=null && c.escalaMin>0) minEscalaArt += c.escalaMin;
+          if(!esPernoctaArt && c.escalaMin!=null && c.escalaMin>0) minEscalaArt += c.escalaMin;
           if(c.horaFin) finIdaRealArt = c.horaFin;
         });
       }
@@ -11828,16 +11927,23 @@ function guardarTurno(){
         if(huecoFinalArt>0) minEscalaArt += huecoFinalArt;
       }
       var minContinuidadVueltaArt = 0;
-      if(!esPernoctaArt && F.continuidadVuelta && F.continuidadVuelta.length){
+      if(F.continuidadVuelta && F.continuidadVuelta.length){
         F.continuidadVuelta.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadVueltaArt += calcMins(c.horaInicio, c.horaFin);
-          if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaArt += c.escalaMin;
+          if(!esPernoctaArt && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaArt += c.escalaMin;
         });
       }
       var hEscalaArt = Math.round(minEscalaArt/60*100)/100;
       var hContinuidadArt = Math.round(minContinuidadArt/60*100)/100;
       var hContinuidadVueltaArt = Math.round(minContinuidadVueltaArt/60*100)/100;
-      var horasCompArt = esPernoctaArt ? d.horas : Math.round((hIda+hEscalaArt+hContinuidadArt+hVuelta+hContinuidadVueltaArt)*100)/100;
+      // FIX — igual que en HTDL: en pernocta, la continuidad de ida y
+      // de vuelta SÍ suman al total de horas de Art.51/52 (y por tanto
+      // al dinero, d.importe, calculado justo debajo); antes se
+      // descartaban en bloque para pernocta y esas horas trabajadas
+      // de verdad se perdían del importe guardado.
+      var horasCompArt = esPernoctaArt
+        ? Math.round((d.horas+hContinuidadArt+hContinuidadVueltaArt)*100)/100
+        : Math.round((hIda+hEscalaArt+hContinuidadArt+hVuelta+hContinuidadVueltaArt)*100)/100;
       d.horasEfectivas = horasCompArt;
       d.hEscala = hEscalaArt;
       d.hContinuidad = hContinuidadArt;
@@ -13058,7 +13164,12 @@ function renderStats(){
           +'<span class="cv cv-warn">'+e.retrasos.length+' registrado'+(e.retrasos.length>1?'s':'')+'</span></div>';
         e.retrasos.forEach(function(r){
           // MÓDULO C: Impacto económico SI/NO según tramo y tipo compensación
-          var impacta=r.esHTDL&&r.tramo===2;
+          // FIX — en pernocta, el tramo 1 (ida) TAMBIÉN es económico si su
+          // retraso forma parte de un enlace de jornada real (8h de
+          // descanso incumplidas) — antes se etiquetaba siempre como
+          // "informativo" aunque ya estuviera generando dinero por el
+          // bloque de descanso interno de pernocta.
+          var impacta=r.esHTDL&&(r.tramo===2||(r.tramo===1&&r.esEnlacePernocta));
           var impEco=impacta?Math.round((r.minutos/60)*e.HTDL*100)/100:0;
           desInfo+='<div class="cs-r cs-r-sub" style="flex-wrap:wrap">';
           desInfo+='<span class="cl">';
@@ -13790,16 +13901,32 @@ function calculateEarnings(ks){
     // el campo comp solo vive en el registro de origen.
     var origenParaComp = t.origenPernocta ? TV[t.origenPernocta] : t;
     var esCompDinero = !!(origenParaComp && origenParaComp.comp==='dinero');
+    // NUEVO — si este día pertenece a una pernocta y el retraso (de
+    // cualquiera de los dos tramos) hace que no se cumplan las 8h de
+    // descanso interno (enlace de jornada), el tramo 1 (ida) TAMBIÉN
+    // pasa a ser económico aquí abajo, no solo informativo — porque
+    // ya está generando dinero real por el bloque de "descanso interno
+    // de pernocta" en el cálculo principal. Se reutiliza
+    // checkDescansoInternoPernocta() (solo lectura) sobre el registro
+    // de ORIGEN, sea cual sea la celda (ida o vuelta) que estemos
+    // mirando ahora mismo.
+    var esPernoctaParaEnlace = !!(origenParaComp && (origenParaComp.modo==='pernocta'||origenParaComp.modo==='pernocta3'));
+    var esEnlacePernocta = false;
+    if(esPernoctaParaEnlace && typeof checkDescansoInternoPernocta==='function'){
+      var _rIntMes = checkDescansoInternoPernocta(origenParaComp);
+      esEnlacePernocta = !!(_rIntMes && _rIntMes.incumple);
+    }
     // Retrasos nuevos (con tramo+tren)
     if(t.retrasos&&t.retrasos.length){
       t.retrasos.forEach(function(r){
-        retMes.push({fecha:dL2,tramo:r.tramo,minutos:r.minutos,tren:r.tren||'',numTren:t.numTren||'',esHTDL:esCompDinero});
+        retMes.push({fecha:dL2,tramo:r.tramo,minutos:r.minutos,tren:r.tren||'',numTren:t.numTren||'',esHTDL:esCompDinero,esEnlacePernocta:esEnlacePernocta});
       });
     } else if(t.retrasoMin>0){
       // Retrasos antiguos (solo minutos)
-      retMes.push({fecha:dL2,tramo:0,minutos:t.retrasoMin,tren:'',numTren:t.numTren||'',esHTDL:esCompDinero});
+      retMes.push({fecha:dL2,tramo:0,minutos:t.retrasoMin,tren:'',numTren:t.numTren||'',esHTDL:esCompDinero,esEnlacePernocta:esEnlacePernocta});
     }
   });
+
 
   ks.forEach(function(k){
     var t=TV[k];if(!t)return;
@@ -18430,6 +18557,10 @@ function abrirAccesoAdmin(){
     openOv('ov-panel-admin');
     refrescarEstadoArchivosAdmin();
     if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
+    // NUEVO — solo el badge de pendientes se carga sola al abrir el
+    // panel (consulta ligera); la lista completa sigue pidiendo
+    // "Actualizar lista", igual que las demás tarjetas del panel.
+    if(typeof cargarSolicitudesAccesoAdmin==='function') cargarSolicitudesAccesoAdmin();
     return;
   }
   // SIMPLIFICADO — se quita del todo el paso de "Mi cuenta en la
@@ -18504,6 +18635,7 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
       openOv('ov-panel-admin');
       refrescarEstadoArchivosAdmin();
+      if(typeof cargarSolicitudesAccesoAdmin==='function') cargarSolicitudesAccesoAdmin();
       // NUEVO — solo se comprueba en un login EXPLÍCITO (abrirPanel=true,
       // que es justo lo que pasa al entrar desde un dispositivo nuevo sin
       // sesión guardada). En una recarga con sesión ya persistida en este
@@ -18942,6 +19074,70 @@ async function cargarAceptacionesDescargoAdmin(){
   });
 }
 
+// NUEVO — Solicitudes de acceso (panel de admin): lista las
+// matrículas que han pedido entrar sin estar en ningún Horario
+// General publicado (ver enviarSolicitudAcceso), con botones para
+// aceptar/rechazar cada una. Al aceptar, esa matrícula queda válida
+// para crear cuenta gracias a _matriculaTieneSolicitudAceptada().
+async function cargarSolicitudesAccesoAdmin(){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elLista = document.getElementById('listaSolicitudesAcceso');
+  var elEstado = document.getElementById('estadoSolicitudesAcceso');
+  if(elEstado) elEstado.textContent = 'Cargando...';
+  var resp = await sbAdmin.from('solicitudes_acceso').select('*').order('fecha_hora', { ascending:false }).limit(50);
+  if(resp.error){
+    if(elEstado) elEstado.textContent = 'Error al cargar: ' + resp.error.message;
+    return;
+  }
+  var filas = resp.data || [];
+  var pendientes = filas.filter(function(f){ return f.estado==='pendiente'; });
+  _actualizarBadgeSolicitudesAcceso(pendientes.length);
+  if(elEstado) elEstado.textContent = filas.length ? (pendientes.length+' pendiente(s) de '+filas.length+' en total') : 'No hay ninguna solicitud todavía.';
+  if(!elLista) return;
+  elLista.innerHTML = '';
+  filas.forEach(function(fila){
+    var div = document.createElement('div');
+    div.style.cssText = 'background:var(--s2);border:1px solid var(--div);border-radius:9px;padding:8px 11px;margin-bottom:6px;font-size:12px';
+    var fecha = fila.fecha_hora ? new Date(fila.fecha_hora).toLocaleString('es-ES') : '';
+    var etiquetaEstado = fila.estado==='aceptada' ? '✅ Aceptada' : (fila.estado==='rechazada' ? '🚫 Rechazada' : '⏳ Pendiente');
+    var filaHtml = '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<span><b>'+(fila.nombre||'(sin nombre)')+'</b> · '+fila.matricula+'</span>'
+      + '<span style="color:var(--tx3);font-size:10px">'+fecha+'</span></div>'
+      + '<div style="margin-top:4px;font-size:11px;color:var(--tx3)">'+etiquetaEstado+'</div>';
+    if(fila.estado==='pendiente'){
+      filaHtml += '<div style="display:flex;gap:6px;margin-top:6px">'
+        + '<button style="flex:1;padding:7px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:8px;color:#6EE7B7;font-size:11px;font-weight:700;cursor:pointer" onclick="aceptarSolicitudAcceso('+fila.id+',\''+fila.matricula+'\')">✅ Aceptar</button>'
+        + '<button style="flex:1;padding:7px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#FCA5A5;font-size:11px;font-weight:700;cursor:pointer" onclick="rechazarSolicitudAcceso('+fila.id+')">🚫 Rechazar</button>'
+        + '</div>';
+    }
+    div.innerHTML = filaHtml;
+    elLista.appendChild(div);
+  });
+}
+
+function _actualizarBadgeSolicitudesAcceso(n){
+  var badge = document.getElementById('badgeSolicitudesAcceso');
+  if(!badge) return;
+  if(n>0){ badge.textContent = n; badge.style.display = 'inline-block'; }
+  else { badge.style.display = 'none'; }
+}
+
+async function aceptarSolicitudAcceso(id, matricula){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var r = await sbAdmin.from('solicitudes_acceso').update({estado:'aceptada'}).eq('id', id);
+  if(r.error){ toast('Error al aceptar: '+r.error.message); return; }
+  toast('✅ Matrícula '+matricula+' aceptada. Ya puede crear su cuenta.');
+  cargarSolicitudesAccesoAdmin();
+}
+
+async function rechazarSolicitudAcceso(id){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var r = await sbAdmin.from('solicitudes_acceso').update({estado:'rechazada'}).eq('id', id);
+  if(r.error){ toast('Error al rechazar: '+r.error.message); return; }
+  toast('Solicitud rechazada.');
+  cargarSolicitudesAccesoAdmin();
+}
+
 // NUEVO — Accesos de Interventor: lista, para el admin, de cada
 // matrícula que ha entrado como Interventor (Portal de Perfil →
 // Acceso de Interventor), con nombre y fecha/hora. Lee la tabla
@@ -19311,6 +19507,158 @@ async function _buscarMatriculaEnPdf(buf, matricula){
   return false;
 }
 
+// NUEVO — Solicitudes de acceso para matrículas que todavía no están
+// en ningún Horario General publicado. Tabla Supabase:
+// solicitudes_acceso (id, matricula, nombre, estado, fecha_hora).
+// 'estado' empieza en 'pendiente' y el admin la pasa a 'aceptada' o
+// 'rechazada' desde el Panel de Control (ver cargarSolicitudesAccesoAdmin).
+async function _matriculaTieneSolicitudAceptada(matricula){
+  if(typeof sbAdmin === 'undefined') return false;
+  try{
+    var r = await sbAdmin.from('solicitudes_acceso').select('estado').eq('matricula', matricula).eq('estado','aceptada').maybeSingle();
+    return !!(r && r.data);
+  }catch(e){ return false; }
+}
+
+function mostrarBloqueSolicitudAcceso(){
+  var bloque = document.getElementById('bloqueSolicitudAcceso');
+  if(!bloque) return;
+  bloque.style.display = 'block';
+  var nombreInp = document.getElementById('solicitudNombreInput');
+  if(nombreInp) nombreInp.focus();
+}
+
+// NUEVO — misma solicitud de acceso, pero para el modal REAL que usa
+// la gente (Acceso al Buscador de Compañeros, ov-acceso-buscador). El
+// bloque de "Mi cuenta en la nube" (arriba) se dejó tal cual por si
+// se reactiva más adelante, pero hoy no es accesible desde ningún
+// botón de la app — este es el punto de entrada que de verdad se ve.
+function mostrarBloqueSolicitudAccesoBusc(){
+  var bloque = document.getElementById('bloqueSolicitudAccesoBusc');
+  if(!bloque) return;
+  bloque.style.display = 'block';
+  var nombreInp = document.getElementById('solicitudNombreInputBusc');
+  if(nombreInp) nombreInp.focus();
+}
+
+async function enviarSolicitudAccesoBusc(){
+  var matricula = document.getElementById('accesoMatriculaInput').value.trim();
+  var nombre = document.getElementById('solicitudNombreInputBusc').value.trim();
+  var estadoEl = document.getElementById('estadoSolicitudAccesoBusc');
+  var mostrar = function(txt){ if(estadoEl){ estadoEl.style.display='block'; estadoEl.textContent = txt; } };
+
+  if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
+  if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
+  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+
+  var btn = document.getElementById('btnEnviarSolicitudAccesoBusc');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
+  if(!yaPendiente.error && !yaPendiente.data){
+    var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
+    if(alta.error){
+      mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
+      if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+      return;
+    }
+  }
+
+  if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
+  mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
+
+  var textoAviso = 'Hola, soy '+nombre+' (matrícula '+matricula+'). He solicitado acceso a TrenTurnos, ¿puedes revisarlo?';
+  var linkWa = document.getElementById('linkWhatsappSolicitudBusc');
+  var linkCorreo = document.getElementById('linkCorreoSolicitudBusc');
+  if(linkWa) linkWa.href = 'https://wa.me/66660753771?text=' + encodeURIComponent(textoAviso);
+  if(linkCorreo) linkCorreo.href = 'mailto:alvj321th@trenturnov5.es?subject=' + encodeURIComponent('Solicitud de acceso — TrenTurnos') + '&body=' + encodeURIComponent(textoAviso);
+  var bloqueAvisos = document.getElementById('bloqueAvisosSolicitudBusc');
+  if(bloqueAvisos){ bloqueAvisos.style.display = 'flex'; }
+}
+
+// NUEVO — misma solicitud de acceso, para la pantalla REAL de primer
+// acceso de Tripulante (Portal de Perfil, #portal-tripulante-acceso).
+// Esta es la que ve cualquiera que entra por primera vez sin tener
+// su matrícula todavía en ningún Horario General.
+function mostrarBloqueSolicitudAccesoTrip(){
+  var bloque = document.getElementById('bloqueSolicitudAccesoTrip');
+  if(!bloque) return;
+  bloque.style.display = 'block';
+  var nombreInp = document.getElementById('solicitudNombreInputTrip');
+  if(nombreInp) nombreInp.focus();
+}
+
+async function enviarSolicitudAccesoTrip(){
+  var matricula = document.getElementById('accesoMatriculaTripulanteInput').value.trim();
+  var nombre = document.getElementById('solicitudNombreInputTrip').value.trim();
+  var estadoEl = document.getElementById('estadoSolicitudAccesoTrip');
+  var mostrar = function(txt){ if(estadoEl){ estadoEl.style.display='block'; estadoEl.textContent = txt; } };
+
+  if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
+  if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
+  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+
+  var btn = document.getElementById('btnEnviarSolicitudAccesoTrip');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
+  if(!yaPendiente.error && !yaPendiente.data){
+    var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
+    if(alta.error){
+      mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
+      if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+      return;
+    }
+  }
+
+  if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
+  mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
+
+  var textoAviso = 'Hola, soy '+nombre+' (matrícula '+matricula+'). He solicitado acceso a TrenTurnos, ¿puedes revisarlo?';
+  var linkWa = document.getElementById('linkWhatsappSolicitudTrip');
+  var linkCorreo = document.getElementById('linkCorreoSolicitudTrip');
+  if(linkWa) linkWa.href = 'https://wa.me/66660753771?text=' + encodeURIComponent(textoAviso);
+  if(linkCorreo) linkCorreo.href = 'mailto:alvj321th@trenturnov5.es?subject=' + encodeURIComponent('Solicitud de acceso — TrenTurnos') + '&body=' + encodeURIComponent(textoAviso);
+  var bloqueAvisos = document.getElementById('bloqueAvisosSolicitudTrip');
+  if(bloqueAvisos){ bloqueAvisos.style.display = 'flex'; }
+}
+
+async function enviarSolicitudAcceso(){
+  var matricula = document.getElementById('cuentaMatInput').value.trim();
+  var nombre = document.getElementById('solicitudNombreInput').value.trim();
+  var estadoEl = document.getElementById('estadoSolicitudAcceso');
+  var mostrar = function(txt){ if(estadoEl){ estadoEl.style.display='block'; estadoEl.textContent = txt; } };
+
+  if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
+  if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
+  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+
+  var btn = document.getElementById('btnEnviarSolicitudAcceso');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  // Evita duplicar solicitudes pendientes para la misma matrícula.
+  var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
+  if(!yaPendiente.error && !yaPendiente.data){
+    var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
+    if(alta.error){
+      mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
+      if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
+      return;
+    }
+  }
+
+  if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
+  mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
+
+  var textoAviso = 'Hola, soy '+nombre+' (matrícula '+matricula+'). He solicitado acceso a TrenTurnos, ¿puedes revisarlo?';
+  var linkWa = document.getElementById('linkWhatsappSolicitud');
+  var linkCorreo = document.getElementById('linkCorreoSolicitud');
+  if(linkWa) linkWa.href = 'https://wa.me/66660753771?text=' + encodeURIComponent(textoAviso);
+  if(linkCorreo) linkCorreo.href = 'mailto:alvj321th@trenturnov5.es?subject=' + encodeURIComponent('Solicitud de acceso — TrenTurnos') + '&body=' + encodeURIComponent(textoAviso);
+  var bloqueAvisos = document.getElementById('bloqueAvisosSolicitud');
+  if(bloqueAvisos){ bloqueAvisos.style.display = 'flex'; }
+}
+
 async function crearCuentaConMatricula(){
   var matricula = document.getElementById('cuentaMatInput').value.trim();
   var pin = document.getElementById('cuentaPinInput').value.trim();
@@ -19338,8 +19686,15 @@ async function crearCuentaConMatricula(){
     mostrarEstado('Comprobando tu matrícula en los horarios publicados...');
     var existe = await _verificarMatriculaEnTodasLasSedes(matricula);
     if(!existe){
-      mostrarEstado('Esa matrícula no aparece en ningún Horario General publicado todavía. Prueba más tarde, o contacta con tu administrador.');
-      return;
+      // NUEVO — si el admin ya aceptó manualmente una solicitud de
+      // acceso para esta matrícula (tabla solicitudes_acceso), se
+      // deja pasar aunque no esté en ningún Horario General todavía.
+      var solicitudAceptada = await _matriculaTieneSolicitudAceptada(matricula);
+      if(!solicitudAceptada){
+        mostrarEstado('Esa matrícula no aparece en ningún Horario General publicado todavía.');
+        mostrarBloqueSolicitudAcceso();
+        return;
+      }
     }
     mostrarEstado('Creando tu cuenta...');
   }
@@ -19876,8 +20231,15 @@ window.validarAccesoBuscador = async function(){
 
   var existe = BASES.global.data.some(function(empleado){ return String(empleado[0]).trim() === matricula; });
   if(!existe){
-    msg.innerHTML = '<div class="msg-error">Esa matrícula no aparece en el Horario General. Revisa que la hayas escrito bien.</div>';
-    return;
+    // NUEVO — si el admin ya aceptó manualmente una solicitud de
+    // acceso para esta matrícula, se deja pasar aunque no esté en el
+    // Horario General todavía (ver tabla solicitudes_acceso).
+    var solicitudAceptadaBusc = await _matriculaTieneSolicitudAceptada(matricula);
+    if(!solicitudAceptadaBusc){
+      msg.innerHTML = '<div class="msg-error">Esa matrícula no aparece en el Horario General. Revisa que la hayas escrito bien, o solicita acceso abajo.</div>';
+      mostrarBloqueSolicitudAccesoBusc();
+      return;
+    }
   }
 
   // NUEVO — Registro silencioso de la aceptación (matrícula + nombre
@@ -23215,8 +23577,18 @@ clearBtn.addEventListener('click', ()=>{
     if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
 
     if(!resultado || !resultado.valida){
-      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en ningún Horario General publicado.')+'</span>';
-      return;
+      // NUEVO — si el admin ya aceptó manualmente una solicitud de
+      // acceso para esta matrícula, se deja pasar como si la
+      // hubiera encontrado en un Horario General (nombre/sede se
+      // dejan vacíos: la persona los puede rellenar en Ajustes).
+      var solicitudAceptadaTrip = await _matriculaTieneSolicitudAceptada(matricula);
+      if(solicitudAceptadaTrip){
+        resultado = { valida:true, nombre:null, sede:null };
+      } else {
+        if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en ningún Horario General publicado.')+'</span>';
+        mostrarBloqueSolicitudAccesoTrip();
+        return;
+      }
     }
 
     // Encontrada: se rellenan AJ.nombre/AJ.matricula/AJ.base solas —
