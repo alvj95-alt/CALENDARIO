@@ -13438,7 +13438,7 @@ async function rellenarCompanerosAutomaticos(areaEl){
       h.innerHTML = '<div class="tc-vacio">Nadie más de tu base hace el tren '+tren+' ese día.</div>';
     } else {
       h.innerHTML = '<div class="tc-tit">🧑‍🤝‍🧑 Viajas con:</div>'
-        + nombres.map(function(n){ return '<div class="tc-nombre">'+n+'</div>'; }).join('');
+        + nombres.map(function(n){ return '<div class="tc-nombre">'+n.name+_chipUmDhTexto(n.tren)+'</div>'; }).join('');
     }
   });
 }
@@ -16042,7 +16042,7 @@ function renderAll(diasData, meta){
                 cont.innerHTML = '<div class="tc-vacio">Nadie más de tu base hace el tren '+tren+' ese día.</div>';
               } else {
                 cont.innerHTML = '<div class="tc-tit">🧑‍🤝‍🧑 Viajas con:</div>'
-                  + nombres.map(function(n){ return '<div class="tc-nombre">'+n+'</div>'; }).join('');
+                  + nombres.map(function(n){ return '<div class="tc-nombre">'+n.name+_chipUmDhTexto(n.tren)+'</div>'; }).join('');
               }
             }catch(errBuscarComp){
               cont.innerHTML = '<div class="tc-vacio">No se pudo buscar ahora mismo.</div>';
@@ -20614,6 +20614,19 @@ window.asegurarHorarioGeneralCargado = async function(){
   }
   return !!(activeBase && activeBase.data);
 };
+// NUEVO — versión compacta de los chips UM/DH, pensada para ir PEGADA
+// al nombre dentro del mismo chip ".tc-nombre" (que es una píldora de
+// texto simple, no la tarjeta pcard grande del Buscador de
+// Compañeros). Se usa en "🧑‍🤝‍🧑 Viajas con:" — detalle del día y
+// acordeones del calendario. Si el tren no lleva UM ni DH, no añade
+// nada (no se rellena con "No").
+function _chipUmDhTexto(tren){
+  if(!tren) return '';
+  var out = '';
+  if(/UM/.test(tren)) out += ' <span style="color:var(--violet2, #C4B5FD);font-weight:800">🔀UM</span>';
+  if(/DH/.test(tren)) out += ' <span style="color:var(--amber2, #FCD34D);font-weight:800">☕DH</span>';
+  return out;
+}
 window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
   if(!activeBase || !activeBase.data) return null;
   var matches = [];
@@ -20621,7 +20634,17 @@ window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
     var row = activeBase.data[i];
     var name = row[1], days = row[2];
     var cell = days ? days[String(dayNum)] : null;
-    if(cell && cellContainsTrain(cell, trainNum)) matches.push(name);
+    // FIX — antes solo se devolvía el nombre (string), perdiendo el
+    // texto real del tren de ESE compañero ("3112UM", "3122DH"...),
+    // que es justo lo que hace falta para poder mostrar los chips UM/
+    // DH en "🧑‍🤝‍🧑 Viajas con:" (detalle del día). Se sigue devolviendo
+    // algo "stringificable" (name sigue siendo lo primero, ver toString
+    // más abajo) por si algún sitio viejo lo trata como texto plano.
+    if(cell && cellContainsTrain(cell, trainNum)){
+      var detalleComp = trainTokensDetalle(cell);
+      var textoTren = detalleComp.get(String(trainNum).replace(/^0+(?=\d)/,'')) || String(trainNum);
+      matches.push({ name: name, cell: cell, tren: textoTren, toString: function(){ return this.name; } });
+    }
   }
   return matches;
 };
@@ -23226,77 +23249,6 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
       document.getElementById('compZone').scrollIntoView({behavior:'smooth', block:'nearest'});
     });
   });
-}
-
-function renderCompanions(day, id, name, cell){
-  const zone = document.getElementById('compZone');
-  const info = classifyCell(cell);
-  const wd = weekdayForDay(day);
-  if(info.off || !cell){
-    zone.innerHTML = `<div class="comp-wrap">
-      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· sin tren asignado ese día</span></div>
-      <div class="comp-none">Ese día tienes <b>${cell || 'sin turno registrado'}</b>, así que no hay tren que compartir con nadie.</div>
-    </div>`;
-    return;
-  }
-  const companions = findCompanions(day, id, name, cell);
-
-  // ── NUEVO: buscar también el/los interventor(es) de ese mismo tren ese día ──
-  // Esta vista de "Buscar por nombre" asume siempre julio de 2026 (igual que
-  // weekdayForDay), así que se construye la fecha real con ese mismo supuesto
-  // para poder cruzar contra los servicios de Interventor cargados.
-  const fechaParaInterventor = new Date(2026, 7, day); // FIX: agosto, no julio
-  const trenesDelDia = [...trainTokens(cell)];
-  let interventorMatches = [];
-  for(const t of trenesDelDia){
-    interventorMatches.push(...buscarInterventor(t, fechaParaInterventor));
-  }
-  // dedupe (un mismo interventor puede salir por más de un token de tren)
-  const vistos = new Set();
-  interventorMatches = interventorMatches.filter(m=>{
-    const k = m.id+'|'+m.name+'|'+m.servicio;
-    if(vistos.has(k)) return false;
-    vistos.add(k); return true;
-  });
-
-  if(companions.length===0 && interventorMatches.length===0){
-    zone.innerHTML = `<div class="comp-wrap">
-      <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${cell}</span></div>
-      <div class="comp-none">Nadie más coincide contigo en ese tren <b>${wd} ${day}</b> según la plantilla, ni hay ningún interventor cargado para ese tren.</div>
-    </div>`;
-    return;
-  }
-  const partes = [];
-  if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
-  if(companions.length) partes.push(`${companions.length} compañero(s)`);
-  let html = `<div class="comp-wrap">
-    <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· ${partes.join(' · ')} · ${cell}</span></div>
-    <div class="comp-list">`;
-  for(const m of interventorMatches){
-    html += `<div class="pcard" style="cursor:default;border-color:var(--nar);background:rgba(249,115,22,.08)">
-      <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
-      <div class="pcard-info">
-        <div class="pcard-name">${ofuscarNombreInterventor(m.name)}</div>
-        <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${m.servicio}</div>
-        <div class="comp-cell">${m.cell}</div>
-      </div>
-    </div>`;
-  }
-  for(const c of companions){
-    html += `<div class="pcard" style="cursor:default">
-      <div class="pcard-av">${initials(c.name)}</div>
-      <div class="pcard-info">
-        <div class="pcard-name">${c.name}</div>
-        ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
-        ${trenBadgeHTML(c.trenesCompartidos)}
-        ${umDhBadgesHTML(c.trenesCompartidos)}
-        ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
-        <div class="comp-cell">${c.cell}</div>
-      </div>
-    </div>`;
-  }
-  html += '</div></div>';
-  zone.innerHTML = html;
 }
 
 function doSearch(){
