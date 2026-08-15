@@ -20153,7 +20153,7 @@ async function cargarHorarioGlobalDesdeAdmin(){
       BASES.global.month = fechaMasReciente ? fechaMasReciente.toLocaleDateString('es-ES') : '—';
       BASES.global.mesAnio = mesAnioGlobal;
       var huboFallo = resumenPorSede.some(function(r){ return r.indexOf('⚠️')!==-1 || r.indexOf('sin archivo')!==-1; });
-      BASES.global.label = 'Horario General · Todas las sedes (admin)' + (huboFallo ? ' — ⚠️ revisar: '+resumenPorSede.join(', ') : '');
+      BASES.global.label = 'Todas las sedes' + (huboFallo ? ' — ⚠️ revisar: '+resumenPorSede.join(', ') : '');
       console.log('Horario General (admin, todas las sedes) — empleados por sede:', resumenPorSede.join(' | '), '| mes/año detectado:', mesAnioGlobal);
       return true;
     }
@@ -22121,6 +22121,22 @@ function trainTokensDetalle(cell){
   const tokens = (cell||'').split(/[^0-9A-Za-z]+/).filter(Boolean);
   const detalle = new Map(); // dígitos normalizados -> texto original visto
   let ultimoDigits = null;
+  // NUEVO — fusiona letras MARCADOR A MARCADOR (no el sufijo entero
+  // en bloque), para no duplicar uno que ya estuviera presente. Ej.:
+  // actual="3113UM" + nuevo sufijo "UMDH" (que ya trae "UM" incluido)
+  // → antes daba "3113UMUMDH"; ahora reconoce que "UM" ya estaba y
+  // solo añade lo nuevo ("DH"), dando "3113UMDH".
+  const MARCADORES = ['UM','DH'];
+  function fusionarLetras(base, letrasNuevas){
+    if(!letrasNuevas) return base;
+    let out = base;
+    MARCADORES.forEach(function(marca){
+      if(letrasNuevas.indexOf(marca)!==-1 && out.indexOf(marca)===-1) out += marca;
+    });
+    const sobrante = letrasNuevas.replace(new RegExp(MARCADORES.join('|'),'g'), '');
+    if(sobrante && out.indexOf(sobrante)===-1) out += sobrante;
+    return out;
+  }
   for(const tok of tokens){
     const m = tok.match(/(\d{2,6})/);
     if(m){
@@ -22137,7 +22153,7 @@ function trainTokensDetalle(cell){
         // las letras de todas las repeticiones del mismo número.
         const actual = detalle.get(digits);
         const letrasTok = tok.replace(m[1], '');
-        if(letrasTok && actual.indexOf(letrasTok)===-1) detalle.set(digits, actual+letrasTok);
+        detalle.set(digits, fusionarLetras(actual, letrasTok));
       }
       ultimoDigits = digits;
     } else if(/^[A-Za-z]+$/.test(tok) && ultimoDigits && detalle.has(ultimoDigits)){
@@ -22146,8 +22162,7 @@ function trainTokensDetalle(cell){
       // token suelto, sin dígitos, ej. "...3113UM" seguido de "DH" en
       // su propia línea). Se pega al último número de tren visto,
       // que es al que realmente corresponde.
-      const actualUlt = detalle.get(ultimoDigits);
-      if(actualUlt.indexOf(tok)===-1) detalle.set(ultimoDigits, actualUlt+tok);
+      detalle.set(ultimoDigits, fusionarLetras(detalle.get(ultimoDigits), tok));
     }
   }
   return detalle;
@@ -22842,7 +22857,7 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
   });
   matches.forEach((m, mIdx)=>{
     var esAdminTren = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
-    var sedeReal = (m.entry && m.entry[3]) ? m.entry[3] : activeBase.label;
+    var sedeReal = (m.entry && m.entry[3]) ? m.entry[3] : '';
     // NUEVO — chip UM/DH (se me había pasado en esta vista) + barra de
     // horario en vivo, usando horaCI/horaCO del PDF (entry[9]/[10]).
     var digitsBuscado = String(trainNum).replace(/^0+(?=\d)/,'');
@@ -22854,7 +22869,7 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
         <div class="pcard-av">${initials(m.name)}</div>
         <div class="pcard-info">
           <div class="pcard-name">${m.name}</div>
-          <div class="pcard-id">TRIPULACIÓN · ${sedeReal}${m.id ? ' · ID '+m.id : ''}${_chipUmDhTexto(textoTrenM, m.cell)}</div>
+          <div class="pcard-id">TRIPULACIÓN${sedeReal ? ' · '+sedeReal : ''}${m.id ? ' · ID '+m.id : ''}${_chipUmDhTexto(textoTrenM, m.cell)}</div>
         </div>
       </div>
       ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
@@ -23464,15 +23479,27 @@ clearBtn.addEventListener('click', ()=>{
         </div>`;
       });
       matches.forEach((m)=>{
+        // FIX — antes mostraba activeBase.label entero (que para
+        // interventor/admin es "Todas las sedes", perdiendo qué sede
+        // es CADA persona). Ahora usa la sede real de esa persona
+        // (guardada en m.entry[3] al fusionar las sedes); si por lo
+        // que sea no está disponible, no se muestra nada de sede en
+        // vez de filtrar la etiqueta de toda la base.
+        var sedeRealM = (m.entry && m.entry[3]) ? m.entry[3] : '';
+        var digitsBuscadoM = String(trainNum).replace(/^0+(?=\d)/,'');
+        var textoTrenM2 = (typeof trainTokensDetalle==='function') ? (trainTokensDetalle(m.cell).get(digitsBuscadoM) || trainNum) : trainNum;
+        var horaCIm2 = (m.entry && m.entry[9]) ? m.entry[9][String(day)] : null;
+        var horaCOm2 = (m.entry && m.entry[10]) ? m.entry[10][String(day)] : null;
         filas += `<div class="pcard" style="flex-direction:column;align-items:stretch">
           <div style="display:flex;align-items:center;gap:10px">
             <div class="pcard-av">${initials(m.name)}</div>
             <div class="pcard-info">
               <div class="pcard-name">${m.name}</div>
-              <div class="pcard-id">TRIPULACIÓN · ${activeBase.label}${m.id ? ' · ID '+m.id : ''}</div>
+              <div class="pcard-id">TRIPULACIÓN${sedeRealM ? ' · '+sedeRealM : ''}${m.id ? ' · ID '+m.id : ''}${_chipUmDhTexto(textoTrenM2, m.cell)}</div>
             </div>
           </div>
           ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
+          ${_progresoHorarioHTML(horaCIm2, horaCOm2, day)}
         </div>`;
       });
       const partes = [];
