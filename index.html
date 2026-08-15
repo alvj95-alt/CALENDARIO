@@ -20456,6 +20456,15 @@ window.cargarDatosParaInterventor = async function(){
     var sigueValida = INTERVENTOR_SERVICES.some(function(servicio){
       return (servicio.data||[]).some(function(agente){ return String(agente[0]).trim() === matriculaGuardada; });
     });
+    // FIX — esta revalidación solo miraba el Informe de Intervención
+    // oficial, sin tener en cuenta las solicitudes de acceso que TÚ
+    // aceptaste a mano (tabla solicitudes_acceso). Por eso un
+    // interventor aceptado por solicitud entraba bien la primera vez
+    // (esa comprobación sí lo tenía en cuenta) pero lo expulsaba
+    // enseguida aquí, en la siguiente comprobación silenciosa.
+    if(!sigueValida && typeof _matriculaTieneSolicitudAceptada==='function'){
+      try{ sigueValida = await _matriculaTieneSolicitudAceptada(matriculaGuardada); }catch(errRevalSolicitud){ /* si falla la comprobación, no se expulsa por eso */ }
+    }
     if(!sigueValida && typeof window.__cerrarSesionInterventorPorMatriculaInvalida === 'function'){
       window.__cerrarSesionInterventorPorMatriculaInvalida();
     }
