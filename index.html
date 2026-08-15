@@ -20661,6 +20661,65 @@ window._chipUmDhTexto = function(tren, cell){
   if(/DH/.test(tren)) out += ' <span style="color:var(--amber2, #FCD34D);font-weight:800">☕DH</span>'+sufijo;
   return out;
 };
+
+// NUEVO — Opción D confirmada: barra de progreso en vivo para el
+// horario del compañero (hora de toma/CI → hora de deje/CO), que solo
+// se mueve si HOY es el día del turno y la hora actual del móvil está
+// dentro de ese rango. Fuera de eso queda fija al principio (0%) o al
+// final (100%), sin animar — nunca se inventa progreso para otro día.
+window._pghSeq = 0;
+window._progresoHorarioHTML = function(horaCI, horaCO, diaNum){
+  if(!horaCI || !horaCO || !diaNum) return '';
+  var pid = 'pgh'+(window._pghSeq++);
+  return '<div class="pgh-wrap" id="'+pid+'" data-ci="'+horaCI+'" data-co="'+horaCO+'" data-dia="'+diaNum+'" style="margin-top:9px">'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<span style="font-family:monospace;font-size:11px;font-weight:800;color:var(--tx,#F8FAFC)">'+horaCI+'</span>'
+    + '<div class="pgh-bar" style="flex:1;height:5px;background:var(--div,#1E3350);border-radius:3px;position:relative">'
+    + '<div class="pgh-fill" style="position:absolute;left:0;top:0;height:100%;width:0%;background:var(--acc,#2563EB);border-radius:3px;transition:width 1s linear"></div>'
+    + '<span class="pgh-tren" style="position:absolute;top:50%;left:0%;font-size:12px;transform:translate(-50%,-50%);display:none;transition:left 1s linear">🚆</span>'
+    + '</div>'
+    + '<span style="font-family:monospace;font-size:11px;font-weight:800;color:var(--tx,#F8FAFC)">'+horaCO+'</span>'
+    + '</div>'
+    + '<div class="pgh-live" style="display:none;align-items:center;gap:4px;font-size:10px;color:#4ADE80;font-weight:800;margin-top:4px">'
+    + '<span style="width:6px;height:6px;border-radius:50%;background:currentColor"></span> En curso ahora mismo</div>'
+    + '</div>';
+};
+// NUEVO — un único temporizador global actualiza TODAS las barras de
+// progreso visibles a la vez, comparando contra la hora real del
+// móvil. Se relanza cada 30s — suficiente para que se vea "moverse"
+// sin recalcular cada segundo. Solo se activa si hay barras en pantalla.
+window._actualizarProgresosHorario = function(){
+  var barras = document.querySelectorAll('.pgh-wrap[data-ci]');
+  if(!barras.length) return;
+  var mesAnio = (typeof activeBase!=='undefined' && activeBase && (activeBase.mesAnio || (activeBase.data && activeBase.data.mesAnio)))
+    || (typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio) || null;
+  var ahora = new Date();
+  function aMin(hhmm){ var p=String(hhmm).split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+  barras.forEach(function(el){
+    var horaCI = el.dataset.ci, horaCO = el.dataset.co, dia = parseInt(el.dataset.dia,10);
+    var esHoy = !!(mesAnio && ahora.getFullYear()===mesAnio.anio && (ahora.getMonth()+1)===mesAnio.mes && ahora.getDate()===dia);
+    var minIni = aMin(horaCI), minFin = aMin(horaCO);
+    if(minFin < minIni) minFin += 24*60;
+    var minAhora = ahora.getHours()*60 + ahora.getMinutes();
+    var pct = 0, enCurso = false;
+    if(esHoy){
+      if(minAhora < minIni) pct = 0;
+      else if(minAhora > minFin) pct = 100;
+      else { pct = Math.round(((minAhora-minIni)/(minFin-minIni))*100); enCurso = true; }
+    }
+    var fill = el.querySelector('.pgh-fill');
+    var tren = el.querySelector('.pgh-tren');
+    var live = el.querySelector('.pgh-live');
+    if(fill) fill.style.width = pct+'%';
+    if(tren){ tren.style.left = pct+'%'; tren.style.display = enCurso ? 'block' : 'none'; }
+    if(live) live.style.display = enCurso ? 'flex' : 'none';
+  });
+};
+if(!window._pghIntervalStarted){
+  window._pghIntervalStarted = true;
+  window._actualizarProgresosHorario();
+  setInterval(window._actualizarProgresosHorario, 30000);
+}
 window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
   if(!activeBase || !activeBase.data) return null;
   var matches = [];
@@ -22114,7 +22173,8 @@ function findCompanions(day, selfId, selfName, selfCell){
   const selfTokens = trainTokens(selfCell);
   if(selfTokens.size===0) return [];
   const out = [];
-  for(const [id, name, days, sede] of activeBase.data){
+  for(const row of activeBase.data){
+    const id = row[0], name = row[1], days = row[2], sede = row[3];
     if(id===selfId && name===selfName) continue;
     const cell = days[String(day)];
     if(!cell) continue;
@@ -22127,7 +22187,12 @@ function findCompanions(day, selfId, selfName, selfCell){
     if(shared){
       const detalle = trainTokensDetalle(cell);
       const trenesTexto = trenesCompartidos.map(t => detalle.get(t) || t);
-      out.push({id, name, cell, sede, trenesCompartidos: trenesTexto});
+      // NUEVO — hora de toma (CI) y hora de deje (CO) de ese día, ya
+      // extraídas del PDF (row[9]/row[10]), para la barra de progreso
+      // en vivo del Buscador de Compañeros.
+      const horaCI = row[9] ? row[9][String(day)] : null;
+      const horaCO = row[10] ? row[10][String(day)] : null;
+      out.push({id, name, cell, sede, trenesCompartidos: trenesTexto, horaCI, horaCO});
     }
   }
   return out;
@@ -22692,6 +22757,7 @@ function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, iso
         ${trenBadgeHTML(c.trenesCompartidos)}
         ${umDhBadgesHTML(c.trenesCompartidos)}
         ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
+        ${_progresoHorarioHTML(c.horaCI, c.horaCO, dayNum)}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
@@ -22768,15 +22834,22 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
   matches.forEach((m, mIdx)=>{
     var esAdminTren = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
     var sedeReal = (m.entry && m.entry[3]) ? m.entry[3] : activeBase.label;
+    // NUEVO — chip UM/DH (se me había pasado en esta vista) + barra de
+    // horario en vivo, usando horaCI/horaCO del PDF (entry[9]/[10]).
+    var digitsBuscado = String(trainNum).replace(/^0+(?=\d)/,'');
+    var textoTrenM = (typeof trainTokensDetalle==='function') ? (trainTokensDetalle(m.cell).get(digitsBuscado) || trainNum) : trainNum;
+    var horaCIm = (m.entry && m.entry[9]) ? m.entry[9][String(day)] : null;
+    var horaCOm = (m.entry && m.entry[10]) ? m.entry[10][String(day)] : null;
     filas += `<div class="pcard" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:10px">
         <div class="pcard-av">${initials(m.name)}</div>
         <div class="pcard-info">
           <div class="pcard-name">${m.name}</div>
-          <div class="pcard-id">TRIPULACIÓN · ${sedeReal}${m.id ? ' · ID '+m.id : ''}</div>
+          <div class="pcard-id">TRIPULACIÓN · ${sedeReal}${m.id ? ' · ID '+m.id : ''}${_chipUmDhTexto(textoTrenM, m.cell)}</div>
         </div>
       </div>
       ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
+      ${_progresoHorarioHTML(horaCIm, horaCOm, day)}
       ${esAdminTren ? `<button class="btn-import-comp-tren" data-midx="${mIdx}" style="margin-top:8px;padding:8px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.35);border-radius:8px;color:#93c5fd;font-size:11px;font-weight:700;cursor:pointer">👤 (Admin) Ver su horario junto al mío</button>` : ''}
     </div>`;
   });
@@ -23124,6 +23197,7 @@ function renderCompanions(day, id, name, cell){
         ${trenBadgeHTML(c.trenesCompartidos)}
         ${umDhBadgesHTML(c.trenesCompartidos)}
         ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
+        ${_progresoHorarioHTML(c.horaCI, c.horaCO, day)}
         <div class="comp-cell">${c.cell}</div>
       </div>
     </div>`;
