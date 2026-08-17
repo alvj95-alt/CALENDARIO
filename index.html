@@ -186,7 +186,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
    tocar más días los añade/quita de la selección; una barra fija
    abajo confirma o cancela. Aditivo — no toca .dc en su estado normal.
 ═══════════════════════════════════════════════════════════ */
-.dc-marcado-borrar{outline:2.5px solid var(--nar)!important;transform:scale(.93)}
+.dc-marcado-borrar{outline:2.5px solid var(--nar)!important;transform:scale(.93)!important;background:rgba(249,115,22,.14)!important}
+/* FIX — el mantener pulsado en móvil puede disparar selección de
+   texto / menú de "copiar" nativo del sistema, que retrasa el
+   repintado hasta soltar el dedo. Se desactiva SOLO en las celdas
+   del calendario, sin tocar el resto de la app. */
+.dc{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .dc-check-borrar{position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;
   border:1.5px solid rgba(255,255,255,.5);background:rgba(0,0,0,.25);
   display:none;align-items:center;justify-content:center;font-size:9px;z-index:2}
@@ -13001,12 +13006,29 @@ function _iniciarSeleccionBorrado(k, celdaEl){
 }
 
 function _toggleSeleccionBorrado(k, celdaEl){
+  // FIX — Confirmado por Alex: el marcado no se veía al instante en
+  // móvil (solo aparecía al recargar/mover el calendario). Dos causas
+  // probables: 1) el elemento recibido podía estar obsoleto si el
+  // calendario se había vuelto a pintar entre medias — se vuelve a
+  // buscar la celda VIVA por su data-k, por si acaso; 2) el estilo
+  // ":active" nativo del navegador durante la pulsación ganaba por
+  // especificidad CSS — ahora también se aplica el estilo DIRECTO al
+  // elemento (no solo la clase), que nada puede pisar por encima.
+  var celdaViva = document.querySelector('[data-k="'+k+'"]') || celdaEl;
   if(_diasSeleccionadosBorrar[k]){
     delete _diasSeleccionadosBorrar[k];
-    if(celdaEl) celdaEl.classList.remove('dc-marcado-borrar');
+    if(celdaViva){
+      celdaViva.classList.remove('dc-marcado-borrar');
+      celdaViva.style.outline=''; celdaViva.style.background='';
+    }
   } else {
     _diasSeleccionadosBorrar[k] = true;
-    if(celdaEl) celdaEl.classList.add('dc-marcado-borrar');
+    if(celdaViva){
+      celdaViva.classList.add('dc-marcado-borrar');
+      celdaViva.style.outline='2.5px solid #F97316';
+      celdaViva.style.background='rgba(249,115,22,.14)';
+      celdaViva.offsetHeight; // fuerza a que el navegador pinte YA, sin esperar al siguiente frame
+    }
   }
   var n = Object.keys(_diasSeleccionadosBorrar).length;
   document.getElementById('bbm-contador').textContent = n;
@@ -13021,6 +13043,7 @@ function _cancelarSeleccionBorrado(){
     grid.classList.remove('modo-seleccion-borrado');
     Array.prototype.slice.call(grid.querySelectorAll('.dc-marcado-borrar')).forEach(function(el){
       el.classList.remove('dc-marcado-borrar');
+      el.style.outline=''; el.style.background=''; // limpia también el estilo directo, ver _toggleSeleccionBorrado()
     });
   }
   document.getElementById('barra-borrado-masivo').classList.remove('on');
