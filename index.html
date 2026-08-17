@@ -17909,6 +17909,24 @@ function _escribirBloquePdf(res, modo){
       ddExtra.tipo = tipoHeredado; ddExtra.comp = 'dinero'; ddExtra.diasComp = [];
       TV2[esc.k].push(ddExtra);
     } else {
+      // FIX — Confirmado por Alex: al "Sobrescribir" un día que ya
+      // tenía un turno real puesto, ese turno YA NO se pierde — pasa
+      // a SECUNDARIO con sus horas congeladas en este mismo momento,
+      // exactamente el mismo mecanismo que ya usan "Copiar turno" y
+      // "Cambiar tipo de turno". Antes se pisaba directo y esas horas
+      // desaparecían de la Auditoría de golpe, en vez de seguir
+      // sumando según su tipo (Ordinario→Efectiva/Presencia,
+      // HTDL/Art.51-52→dinero/días).
+      var existentePdf = TV[esc.k];
+      if(existentePdf && existentePdf.tipo!=='descanso'){
+        if(!TV2[esc.k]) TV2[esc.k]=[];
+        var ddViejoPdf={}; for(var campoVP in existentePdf) ddViejoPdf[campoVP]=existentePdf[campoVP];
+        ddViejoPdf.esAntiguoPrincipal = true;
+        try{
+          ddViejoPdf._horasGarantizadas = calcularJornadaDiaria([existentePdf], esc.k);
+        }catch(errGarantiaPdf){ /* si falla, calcularJornadaDiaria() recalcula como siempre */ }
+        TV2[esc.k].push(ddViejoPdf);
+      }
       if(modo==='sobrescribir' && TV[esc.k] && TV[esc.k].diaSiguiente && TV[esc.k].diaSiguiente!==esc.data.diaSiguiente){
         if(TV[TV[esc.k].diaSiguiente] && TV[TV[esc.k].diaSiguiente].origenPernocta===esc.k) delete TV[TV[esc.k].diaSiguiente];
       }
