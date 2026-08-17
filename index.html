@@ -20,7 +20,7 @@
      sube en formato .xlsx (el CSV no lo necesita). -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'Inter',sans-serif}
 :root{
@@ -314,6 +314,32 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 @keyframes sup{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .sh-handle{width:34px;height:3px;background:var(--div);border-radius:2px;margin:9px auto 0;flex-shrink:0}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Estilo "billete de tren" para el popup de Novedades
+   (maqueta aprobada por Alex, versión oscura). Clases con prefijo
+   nov2- para no tocar nada del resto de overlays (.sh/.sh-hdr etc.
+   siguen intactos, esto solo se usa DENTRO de #ov-novedades).
+═══════════════════════════════════════════════════════════ */
+.nov2-head{padding:20px 22px 14px}
+.nov2-brand{font-size:9px;letter-spacing:2.5px;color:var(--nar2);font-weight:800;text-transform:uppercase}
+.nov2-title{font-family:'DM Serif Display',serif;font-size:28px;color:var(--tx);margin-top:5px;line-height:1}
+.nov2-route{display:flex;align-items:center;gap:7px;margin-top:12px;font-size:10.5px;color:var(--tx3);font-weight:700;letter-spacing:.4px}
+.nov2-dot{width:4px;height:4px;border-radius:50%;background:var(--nar2);flex-shrink:0}
+.nov2-ln{flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--tx3) 0 4px,transparent 4px 8px);opacity:.4}
+.nov2-perf{position:relative;height:20px;flex-shrink:0}
+.nov2-perf::before,.nov2-perf::after{content:'';position:absolute;top:-2px;width:20px;height:20px;background:var(--bg);border-radius:50%}
+.nov2-perf::before{left:-10px}
+.nov2-perf::after{right:-10px}
+.nov2-perf-line{position:absolute;left:22px;right:22px;top:9px;border-top:2px dashed var(--div)}
+.nov2-stub{display:grid;grid-template-columns:38px 1fr;gap:13px;padding:14px 0;border-bottom:1px solid var(--div)}
+.nov2-stub:last-child{border-bottom:none}
+.nov2-stub-ico{width:38px;height:38px;border-radius:10px;background:rgba(249,115,22,.12);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.nov2-stub-title{font-weight:800;font-size:13px;color:var(--tx);margin-bottom:4px;letter-spacing:.1px}
+.nov2-stub-desc{font-size:11.5px;color:var(--tx3);line-height:1.55}
+.nov2-btn{width:100%;padding:15px;background:var(--nar2);border:none;border-radius:10px;color:#1a1006;font-weight:800;font-size:13.5px;letter-spacing:.3px;cursor:pointer}
+.nov2-barcode{margin-top:13px;height:22px;background:repeating-linear-gradient(90deg,var(--tx3) 0 2px,transparent 2px 5px);opacity:.4}
+
 .sh-hdr{padding:10px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--div);flex-shrink:0}
 .sh-ico{font-size:20px}
 .sh-tit{flex:1;font-size:14px;font-weight:800}
@@ -3679,6 +3705,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div style="padding:0 10px">
   <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
   <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
+  <!-- NUEVO — Carga automática del horario individual (PDF) al calendario.
+       Módulo aditivo: solo LEE horarioActualDias/horarioActualMeta (ya
+       existentes) y ESCRIBE en TV/TV2 con la misma estructura que ya usa
+       guardarTurno()/guardarTurnoEnTV2(). No toca el parser ni el cálculo
+       de horas/dinero. Ver cargarPdfEnCalendarioAuto(). -->
+  <button id="btnCargarPdfCalendario" class="upload-btn" style="margin-top:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7" onclick="cargarPdfEnCalendarioAuto()">📅 Cargar en calendario</button>
   <!-- NUEVO — reinicia la elección Tripulante/Interventor del Portal
        de Perfil, por si alguien se equivocó al elegir o presta el
        móvil a otra persona. -->
@@ -4037,6 +4069,139 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         💬 ¿Necesitas ayuda o tienes sugerencias?
       </button>
 
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — Conflicto al cargar el PDF individual en el calendario.
+     Aparece SOLO cuando algún día del bloque (ida/vuelta/intermedio)
+     ya tiene algo guardado. Aditivo — no toca ov-ayuda ni ov-dh.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-carga-pdf-conflicto">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">⚠️</div>
+      <div><div class="sh-tit">Ese día ya tiene algo</div><div class="sh-sub" id="cpdf-dias">—</div></div>
+    </div>
+    <div style="padding:0 18px 4px">
+      <div class="msg-info" style="margin-bottom:8px">Código del PDF: <b id="cpdf-codigo">—</b></div>
+      <div class="msg-info" id="cpdf-existente" style="margin-bottom:14px">—</div>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px" onclick="_resolverConflictoPdf('sobrescribir')">♻️ Sobrescribir con el PDF</button>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px" onclick="_resolverConflictoPdf('extra')">➕ Añadir como turno extra</button>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px" onclick="_resolverConflictoPdf('editar')">✏️ Lo edito yo a mano (dejar para luego)</button>
+      <button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:14px" onclick="_resolverConflictoPdf('omitir')">⏭️ Omitir este día</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — Pregunta TODAS las siglas de estación del PDF que la
+     app todavía no conoce, de una sola vez (un campo por sigla).
+     Se guardan para siempre en ESTACIONES_PDF — la próxima carga
+     con esas mismas siglas ya no pregunta nada.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-carga-pdf-estacion">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:85%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📍</div>
+      <div><div class="sh-tit">Estaciones nuevas del PDF</div><div class="sh-sub" id="cpdf-est-restantes">—</div></div>
+    </div>
+    <div style="padding:0 18px;overflow-y:auto;flex:1;min-height:0">
+      <div class="msg-info" style="margin-bottom:12px">Escribe el nombre completo tal cual lo usas en la app para cada sigla. Las que dejes en blanco se preguntarán de nuevo la próxima vez.</div>
+      <div id="cpdf-est-lista"></div>
+    </div>
+    <div style="padding:12px 18px 18px">
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4)" onclick="_guardarTodasEstacionesPdf()">✅ Guardar todas y cargar</button>
+      <button class="dct-btn-sec sec-red" style="width:100%" onclick="_omitirEstacionesPdf()">⏭️ Continuar sin rellenar el resto</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — Copiar turno: 1) elegir día destino en un mini
+     calendario propio (independiente del calendario de días de
+     compensación de HTDL, para no mezclar estados); 2) elegir tipo
+     de jornada; 3) conflicto si el destino ya tiene algo.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-copiar-cal">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📋</div>
+      <div><div class="sh-tit">Copiar turno</div><div class="sh-sub" id="cop-origen-lbl">—</div></div>
+      <button class="sh-close btn-cerrar" onclick="closeOv('ov-copiar-cal')" style="margin-left:auto">✕</button>
+    </div>
+    <div id="cop-pernocta-aviso" style="display:none;margin:0 18px 10px;padding:8px 10px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.35);border-radius:10px;font-size:11px;color:#fdba74"></div>
+    <div style="padding:0 18px 4px;display:flex;align-items:center;justify-content:space-between">
+      <button onclick="_copiarCalMesNav(-1)" style="background:none;border:none;color:var(--tx2);font-size:18px;padding:4px 10px">‹</button>
+      <div id="cop-cal-mes" style="font-weight:700;font-size:13px">—</div>
+      <button onclick="_copiarCalMesNav(1)" style="background:none;border:none;color:var(--tx2);font-size:18px;padding:4px 10px">›</button>
+    </div>
+    <div id="cop-cal-grid" style="padding:0 18px 18px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px"></div>
+  </div>
+</div>
+
+<div class="ov" id="ov-copiar-tipo">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">🏷️</div>
+      <div><div class="sh-tit">¿Cómo quieres guardarlo?</div><div class="sh-sub" id="cop-tipo-destino-lbl">—</div></div>
+    </div>
+    <div style="padding:0 18px 18px">
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;text-align:left" onclick="_elegirTipoCopia('ordinario')">
+        <b>Ordinario</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Jornada normal de trabajo</span>
+      </button>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;text-align:left" onclick="_elegirTipoCopia('art5152')">
+        <b>Art. 51/52</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Régimen especial de descanso</span>
+      </button>
+      <button class="dct-btn-sec" style="width:100%;text-align:left" onclick="_elegirTipoCopia('htdl')">
+        <b>HTDL</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Trabajado en día libre</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — modo de compensación al copiar como Art.51/52 o HTDL.
+     "Días"/"Mixto" se derivan al formulario real de la app (mismo
+     mini-calendario de días de compensación ya existente) porque
+     implican elegir días concretos del mes siguiente — no se
+     reimplementa esa lógica aparte, se reutiliza tal cual. -->
+<div class="ov" id="ov-copiar-comp">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">💶</div>
+      <div><div class="sh-tit">¿Cómo se compensa?</div><div class="sh-sub" id="cop-comp-sub">—</div></div>
+    </div>
+    <div style="padding:0 18px 18px">
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;text-align:left" onclick="_elegirCompCopia('dinero')">
+        <b>Dinero</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Se paga directamente</span>
+      </button>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;text-align:left" onclick="_elegirCompCopia('dias')">
+        <b>Días</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Genera día(s) libres el mes siguiente — eliges cuáles</span>
+      </button>
+      <button id="cop-comp-mix-btn" class="dct-btn-sec" style="width:100%;text-align:left" onclick="_elegirCompCopia('mix')">
+        <b>Mixto</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Parte dinero, parte días — el tramo con más horas se paga, el de menos genera día libre</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-copiar-conflicto">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📋</div>
+      <div><div class="sh-tit">Así va a quedar</div><div class="sh-sub">Revisa antes de confirmar</div></div>
+    </div>
+    <div style="padding:0 18px 18px">
+      <div id="cop-conflicto-dias" class="msg-info" style="margin-bottom:14px;line-height:1.6">—</div>
+      <button class="dct-btn-sec" style="width:100%;margin-bottom:8px;background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4)" onclick="_resolverConflictoCopia('confirmar')">✅ Confirmar copia</button>
+      <button class="dct-btn-sec sec-red" style="width:100%" onclick="_resolverConflictoCopia('cancelar')">✕ Cancelar</button>
     </div>
   </div>
 </div>
@@ -5004,21 +5169,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div class="ov" id="ov-novedades" onclick="if(event.target===this)cerrarNovedades()">
   <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
     <div class="sh-handle"></div>
-    <div class="sh-hdr">
-      <div class="sh-ico">🆕</div>
-      <div>
-        <div class="sh-tit">Novedades</div>
-        <div class="sh-sub" id="nov-version-lbl"></div>
+    <div class="nov2-head" style="position:relative">
+      <button class="sh-close" onclick="cerrarNovedades()" style="position:absolute;top:18px;right:18px">✕</button>
+      <div class="nov2-brand">TrenTurnos · Boletín de servicio</div>
+      <div class="nov2-title">Novedades</div>
+      <div class="nov2-route">
+        <span>BCN</span><span class="nov2-dot"></span><span class="nov2-ln"></span><span class="nov2-dot"></span>
+        <span id="nov-version-lbl"></span>
       </div>
-      <button class="sh-close" onclick="cerrarNovedades()">✕</button>
     </div>
-    <div style="padding:6px 18px 0;overflow-y:auto">
-      <ul id="nov-lista" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:14px"></ul>
+    <div class="nov2-perf"><div class="nov2-perf-line"></div></div>
+    <div style="padding:2px 22px 0;overflow-y:auto">
+      <ul id="nov-lista" style="list-style:none;padding:0;margin:0"></ul>
     </div>
-    <div style="padding:14px 18px 24px">
-      <button onclick="cerrarNovedades()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">
-        ✓ Entendido
-      </button>
+    <div style="padding:18px 22px 24px">
+      <button class="nov2-btn" onclick="cerrarNovedades()">✓ Entendido</button>
+      <div class="nov2-barcode"></div>
     </div>
   </div>
 </div>
@@ -5736,38 +5902,42 @@ function _saveArt5152UsoAnual(){ localStorage.setItem('art5152_uso_anual', JSON.
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
-var NOV_VERSION = 'nov_v7';
+var NOV_VERSION = 'nov_v8';
+// FIX — Confirmado por Alex: antes esta fecha se calculaba con
+// new Date() en el momento en que la persona ABRÍA el popup, así que
+// mostraba "hoy" en vez de la fecha real en que se publicó esta
+// actualización — si alguien la veía por primera vez varios días
+// después de subirla, salía una fecha equivocada. Ahora es un texto
+// fijo, ligado a esta versión — se actualiza a mano cada vez que se
+// suba una nueva tanda de novedades (junto con NOV_VERSION y
+// listaNovedades, ver instrucciones más abajo).
+var NOV_FECHA = '17/8/2026';
 
 var listaNovedades = [
   {
-    ico: '🔀',
-    titulo: 'Módulo Interventor',
-    desc: 'El Buscador de Compañeros ahora también cruza tu tren con el Gráfico de Intervención y el Informe de agentes: te dice qué interventor lleva tu servicio ese día, además de con qué compañeros coincides.'
+    ico: '📥',
+    titulo: 'Carga automática de horario',
+    desc: 'Sube el PDF de tu horario individual y pulsa «Cargar en calendario» — reconoce pernoctas, escalas entre trenes y tramos DH sola, sin escribir nada a mano. También carga los días de reserva («R») y vacaciones («CP») del propio PDF.'
   },
   {
-    ico: '🏥',
-    titulo: 'Baja Médica sobre un turno ya puesto',
-    desc: 'Si te dan la baja y ya tenías el turno registrado, ya no hace falta borrar nada: desde el propio historial pulsas «Convertir en Baja Laboral». Si es tu primera baja del año, se abona el 100% de las horas; si no, se descuentan los 3 primeros días y desde el 4º se abona el 75%.'
+    ico: '📋',
+    titulo: 'Copiar turno',
+    desc: 'Copia cualquier turno ya guardado y pégalo en otro día, incluso de otro mes. Eliges si se guarda como Ordinario, Art.51/52 o HTDL, y cómo se compensa (dinero, días o mixto).'
   },
   {
-    ico: '⏳',
-    titulo: 'Reserva de HTDL y Art. 51/52',
-    desc: 'Al registrar una Reserva de HTDL o Artículo 51/52, ahora solo pides la hora de toma y de deje. Si luego «Pinchas / Verificas» el turno, la app te deja meter el tren real (ida, vuelta o pernocta) y recalcula todo con tu tarifa según el rol activo.'
+    ico: '🔁',
+    titulo: 'Cambiar tipo de turno',
+    desc: '¿Un turno ya puesto que en realidad debería ser HTDL o Art.51/52 en vez de Ordinario? Cámbialo en el sitio, sin borrar ni volver a escribir nada.'
   },
   {
-    ico: '💰',
-    titulo: 'Desglose Económico reorganizado',
-    desc: 'El resumen del mes ahora está en tarjetas separadas y más claras (Compensación económica, Pluses, Información adicional), y al final aparece bien grande el Total a Pagar del mes, sumando todo automáticamente.'
+    ico: '📊',
+    titulo: 'Auditoría de Horas más precisa',
+    desc: 'El cálculo de Horas Efectivas y de Presencia ya tiene en cuenta las esperas entre trenes conectados y los enlaces de jornada — el resultado queda mucho más cerca del cómputo oficial.'
   },
   {
-    ico: '📄',
-    titulo: 'Sube tu horario con una foto',
-    desc: 'Ya no hace falta que el cuadrante sea un PDF: ahora puedes sacarle una foto (o una captura) y la app lo reconoce igual de bien, gracias al nuevo lector de imágenes integrado.'
-  },
-  {
-    ico: '👤',
-    titulo: 'Perfil por rol: Tripulante / Auxiliar',
-    desc: 'Elige tu rol en Ajustes y las tarifas de HTDL, nocturnidad y Artículo 51/52 se autocompletan solas según el rol activo — sin tener que introducirlas a mano si no quieres.'
+    ico: '🗺️',
+    titulo: 'Diccionario de estaciones que aprende solo',
+    desc: 'La app ya reconoce de fábrica las siglas de estación más habituales. Si aparece una que no conoce, te pregunta una sola vez y la recuerda para siempre — para ti y para el resto.'
   }
 ];
 
@@ -5961,48 +6131,38 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
     return resultado;
   }
 
-  // Flag interno de tipo de jornada — Ordinaria o HTDL-equivalente
-  // (trabajado O Art.51/52) — se resuelve ANTES de decidir si el
-  // tiempo computa o no.
-  // FIX: 'art5152' añadido — antes solo reconocía 'trabajado', así
-  // que un enlace con un turno Art.51/52 se clasificaba como
-  // ORDINARIA_ORDINARIA (Presencia) en vez de computar como Impacto
-  // Económico, igual que ya hace HTDL.
+  // FIX — Confirmado por Alex (regla final, más simple que la anterior):
+  // solo cuenta el enlace cuando los DOS lados son del MISMO tipo.
+  //   · Ordinaria ↔ Ordinaria       → cuenta como Horas de Presencia.
+  //   · HTDL ↔ HTDL                 → cuenta económicamente.
+  //   · Art.51/52 ↔ Art.51/52       → cuenta económicamente (mismo trato que HTDL).
+  //   · Cualquier combinación MIXTA (un lado Ordinaria y el otro
+  //     HTDL/Art.51-52, en cualquier orden) → NO cuenta nada, solo el
+  //     aviso informativo. Antes "HTDL/Art.51-52 → Ordinaria" sí
+  //     computaba económicamente — eso ya no aplica.
   var esHTDL_A = (turnoA.tipo === 'trabajado' || turnoA.tipo === 'art5152');
   var esHTDL_B = (turnoB.tipo === 'trabajado' || turnoB.tipo === 'art5152');
 
-  // FIX — Matriz A1/A2/B: antes CUALQUIER combinación mixta (una
-  // Ordinaria + un HTDL/Art.51-52, en cualquier orden) caía en el
-  // mismo "no computa". Ahora se distingue la DIRECCIÓN del enlace:
-  //   A2) Ordinaria(A) → HTDL/Art.51-52(B): NO computa (regulación propia).
-  //   B)  HTDL/Art.51-52(A) → Ordinaria(B): SÍ computa económicamente.
-  var tipoEnlace = 'ORDINARIA_ORDINARIA';                              // A1
-  if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';                   // ambos HTDL/Art.51-52
-  else if(esHTDL_A && !esHTDL_B) tipoEnlace = 'HTDL_A_ORDINARIA_B';    // B
-  else if(!esHTDL_A && esHTDL_B) tipoEnlace = 'ORDINARIA_A_HTDL_B';    // A2
+  var tipoEnlace = 'ORDINARIA_ORDINARIA';
+  if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';
+  else if(esHTDL_A !== esHTDL_B) tipoEnlace = 'MIXTO';
 
   resultado.tipoEnlace = tipoEnlace;
 
   if(resultado.incumple){
     if(tipoEnlace==='ORDINARIA_ORDINARIA'){
-      // A1 — jornada ordinaria (pernocta o ida/vuelta): las horas no
-      // descansadas computan como Horas Efectivas.
+      // Jornada ordinaria (pernocta o ida/vuelta): las horas no
+      // descansadas computan como Horas de Presencia.
       resultado.computaPresencia = true;
     } else if(tipoEnlace==='HTDL_HTDL'){
-      // FIX — Enlace entre dos HTDL: es un HTDL con acuerdo, así que NO
-      // se cobra en dinero ni computa como horas (antes sí computaba
-      // económicamente). La notificación del enlace SÍ debe seguir
-      // saliendo, pero con el aviso de que no computa — mismo patrón
-      // que ya usa el caso "Ordinaria → HTDL" (A2) más abajo.
-      resultado.avisoNoComputa = 'Ojo: Enlace entre dos HTDL (con acuerdo) — no computa en horas ni en dinero.';
-    } else if(tipoEnlace==='HTDL_A_ORDINARIA_B'){
-      // B — HTDL o Art.51-52 enlazando con una Ordinaria POSTERIOR:
-      // sí se paga, con la tarifa del lado HTDL/Art.51-52 (turnoA).
+      // Enlace entre dos HTDL o dos Art.51/52: sí computa
+      // económicamente, con la tarifa del lado A.
       resultado.computaFinanciero = true;
     } else {
-      // A2 — Ordinaria enlazando con HTDL/Art.51-52 posterior: enlace
-      // consentido/regulado aparte, no computa ni en horas ni en dinero.
-      resultado.avisoNoComputa = 'Ojo: Enlace con HTDL/Art.51-52 (consentido) — no computa en horas ni en dinero.';
+      // MIXTO — un lado Ordinaria y el otro HTDL/Art.51-52, en
+      // cualquier orden: enlace consentido/regulado aparte, no
+      // computa ni en horas ni en dinero.
+      resultado.avisoNoComputa = 'Ojo: Enlace entre Ordinaria y HTDL/Art.51-52 — no computa en horas ni en dinero.';
     }
   }
   return resultado;
@@ -6016,12 +6176,14 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
    decisión en dos sitios distintos que podrían desincronizarse.
    Devuelve el mismo resultado, con los mismos campos:
      .incumple            → true si hay incumplimiento de descanso
-     .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'HTDL_A_ORDINARIA_B' | 'ORDINARIA_A_HTDL_B' | 'TURNO_INTERCAMBIADO'
-     .computaPresencia     → true si el tipo de jornada es Ordinaria (ver nota abajo)
-     .computaFinanciero    → true SOLO si tipoEnlace==='HTDL_A_ORDINARIA_B'
-                             (HTDL/Art.51-52 → Ordinaria posterior). El
-                             caso HTDL_HTDL (HTDL con acuerdo) NO computa
-                             ni en horas ni en dinero — solo genera aviso.
+     .tipoEnlace           → 'ORDINARIA_ORDINARIA' | 'HTDL_HTDL' | 'MIXTO' | 'TURNO_INTERCAMBIADO'
+     .computaPresencia     → true si tipoEnlace==='ORDINARIA_ORDINARIA'
+     .computaFinanciero    → true si tipoEnlace==='HTDL_HTDL' (los dos
+                             lados son HTDL y/o Art.51-52, en cualquier
+                             combinación). El caso MIXTO (un lado
+                             Ordinaria, el otro HTDL/Art.51-52) NO
+                             computa ni en horas ni en dinero — solo
+                             genera aviso.
      .descMin/.limiteMin   → minutos de descanso real / mínimo exigido
      .esEnBase             → true=12h exigidas, false=8h exigidas
    NOTA: el campo se sigue llamando "computaPresencia" por
@@ -7095,11 +7257,11 @@ function calcularImpactoEnlacesEconomico(ks){
     var enlace = procesarIncumplimientoDescanso(tA, tB, kA, kB);
     if(!enlace.incumple || !enlace.computaFinanciero) continue;
     var h = Math.round((enlace.descMin/60)*100)/100;
-    // FIX — mismo criterio que en calculateEarnings(): en el caso B
-    // (HTDL_A_ORDINARIA_B) la tarifa la aporta tA (el lado HTDL/
-    // Art.51-52), no tB (que aquí es la Ordinaria).
-    var turnoTarifaObs = (enlace.tipoEnlace==='HTDL_A_ORDINARIA_B') ? tA
-      : (tB.tipo==='art5152' ? tB : tA.tipo==='art5152' ? tA : tB);
+    // FIX — mismo criterio que en calculateEarnings(): ahora que solo
+    // computaFinanciero=true cuando LOS DOS lados son HTDL/Art.51-52
+    // (tipoEnlace==='HTDL_HTDL'), la tarifa se elige por si alguno de
+    // los dos es Art.51/52 (tiene su propia tarifa distinta a HTDL).
+    var turnoTarifaObs = (tB.tipo==='art5152') ? tB : (tA.tipo==='art5152' ? tA : tA);
     var tarifaAplic = (turnoTarifaObs.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
     var imp = Math.round(h*tarifaAplic*100)/100;
     horas += h; importe += imp;
@@ -7459,6 +7621,13 @@ function abrirRetraso(){
   var r1=retrasos.filter(function(r){return r.tramo===(soloUnTramo?tramoFijo:1);})[0]
         ||{minutos:parseInt(t.retrasoMin)||0,tren:t.numTren||''};
   var r2=retrasos.filter(function(r){return r.tramo===2;})[0]||{minutos:0,tren:t.numTrenVuelta||''};
+  // NUEVO — tramos de continuidad (3, 4...) en el desplegable, solo
+  // cuando se ve el día de origen directamente (no en un día derivado
+  // de pernocta). Numeración: continuidad[0]→tramo 3, [1]→tramo 4...
+  var contList = (!soloUnTramo && t.continuidad && t.continuidad.length) ? t.continuidad : [];
+  var contOptsHTML = contList.map(function(c,idx){
+    return '<option value="'+(idx+3)+'">'+(idx+3)+' · Continuidad (tren '+(c.tren||'?')+')</option>';
+  }).join('');
   wrap=document.createElement('div');
   wrap.id='retraso-panel';
   wrap.className='retraso-wrap';
@@ -7474,6 +7643,7 @@ function abrirRetraso(){
       +'<select id="sel-tramo-ret" style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx);font-size:12px;padding:5px 8px;outline:none">'
       +'<option value="1">1 Tramo ida</option>'
       +'<option value="2">2 Tramo vuelta</option>'
+      +contOptsHTML
       +'</select></div>');
   wrap.innerHTML=
     '<div style="font-size:10px;font-weight:800;color:var(--amber2);margin-bottom:2px">RETRASO</div>'
@@ -7500,12 +7670,25 @@ function abrirRetraso(){
     var selEl=wrap.querySelector('[id=sel-tramo-ret]');
     if(selEl) selEl.onchange=function(){
       var tv=parseInt(this.value);
-      var rv=tv===1?r1:r2;
+      var rv;
+      if(tv===1) rv=r1;
+      else if(tv===2) rv=r2;
+      else {
+        // NUEVO — tramo de continuidad (3, 4...): coge el retraso ya
+        // guardado para ese tramo, si lo hay, y el tren de ese tramo.
+        var cEntry = t.continuidad ? t.continuidad[tv-3] : null;
+        rv = retrasos.filter(function(r){return r.tramo===tv;})[0]
+             || {minutos:0, tren:(cEntry&&cEntry.tren)||''};
+      }
       var ii=document.getElementById('inp-retraso');
       var ti=document.getElementById('inp-tren-ret');
       if(ii)ii.value=rv.minutos||0;
       if(ti)ti.value=rv.tren||'';
-      previsualizarRetraso(rv.minutos||0);
+      // La previsualización de descanso solo tiene sentido para el
+      // tramo de VUELTA (afecta al enlace con el día siguiente) — en
+      // continuidad se limpia para no mostrar un aviso que no aplica.
+      if(tv===2) previsualizarRetraso(rv.minutos||0);
+      else { var prev=document.getElementById('retraso-preview'); if(prev) prev.textContent=''; }
     };
   }
   // FIX: buscar .dc-turno en modal (dia-card-body) Y en dia-area como fallback
@@ -7555,6 +7738,420 @@ function previsualizarRetraso(val){
   }
 }
 
+// NUEVO — Desplaza en cadena las horas de un tramo de continuidad por
+// un retraso: alarga la hora de fin de ESE tramo, y empuja inicio+fin
+// de todos los tramos de continuidad siguientes, más la vuelta
+// (hF2/hL2) si la hay. No toca tipoTramo/dhHoraInicio/dhHoraFin —
+// cada tramo sigue contando como Efectiva o Presencia según ya
+// estaba clasificado, solo con más (o menos) minutos.
+function _desplazarContinuidadPorRetraso(t, idxContinuidad, deltaMin){
+  if(!t || !t.continuidad || !t.continuidad[idxContinuidad] || !deltaMin) return;
+  var c0 = t.continuidad[idxContinuidad];
+  if(c0.horaFin) c0.horaFin = _pdfSumarMinutos(c0.horaFin, deltaMin);
+  for(var i=idxContinuidad+1; i<t.continuidad.length; i++){
+    if(t.continuidad[i].horaInicio) t.continuidad[i].horaInicio = _pdfSumarMinutos(t.continuidad[i].horaInicio, deltaMin);
+    if(t.continuidad[i].horaFin) t.continuidad[i].horaFin = _pdfSumarMinutos(t.continuidad[i].horaFin, deltaMin);
+  }
+  if(t.hF2) t.hF2 = _pdfSumarMinutos(t.hF2, deltaMin);
+  if(t.hL2) t.hL2 = _pdfSumarMinutos(t.hL2, deltaMin);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — COPIAR TURNO A OTRO DÍA.
+   100% aditivo. Reutiliza el mismo lenguaje visual que ya usas en
+   la carga del PDF (calendario propio, popup de tipo, popup de
+   conflicto Sobrescribir/Extra/Omitir), pero con su propio estado
+   — no toca _cargaPdfCola ni nada del módulo del PDF.
+═══════════════════════════════════════════════════════════ */
+var _copiarOrigen = null;      // {k, t, dias, tipoOriginal}
+var _copiarMesCal = null;      // Date del mes visible en el mini-calendario
+var _copiarDestino = null;     // {y,m,d}
+var _copiarTipoPendiente = null;
+
+// Suma/resta N días a una clave "YYYY-MM-DD".
+function _sumarDiasKey(k, n){
+  var p = k.split('-').map(Number);
+  var dt = new Date(p[0], p[1]-1, p[2]+n);
+  return key(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+}
+
+function abrirCopiarTurno(k){
+  var kOrigen = k || (selDay && selDay.k);
+  if(!kOrigen || !TV[kOrigen]) return;
+  var t = TV[kOrigen];
+  // Si estás viendo el día derivado de una pernocta (vuelta o
+  // intermedio), la copia se hace siempre desde el día de ORIGEN,
+  // para poder copiar la pernocta completa igual que se guardó.
+  var esDerivado = (t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio');
+  var kReal = esDerivado ? t.origenPernocta : kOrigen;
+  var tReal = esDerivado ? TV[kReal] : t;
+  if(!tReal){ toast('⚠️ No se encontró el turno de origen de la pernocta'); return; }
+  var dias = (tReal.modo==='pernocta3') ? 3 : (tReal.modo==='pernocta') ? 2 : 1;
+  _copiarOrigen = {k:kReal, t:tReal, dias:dias};
+
+  var kp = kReal.split('-').map(Number);
+  var etiquetaDias = dias===1 ? (kp[2]+' '+MESES_C[kp[1]-1]) :
+    (kp[2]+'-'+parseInt(_sumarDiasKey(kReal,dias-1).split('-')[2],10)+' '+MESES_C[kp[1]-1]);
+  document.getElementById('cop-origen-lbl').textContent = 'Origen: '+etiquetaDias;
+  var avisoEl = document.getElementById('cop-pernocta-aviso');
+  if(dias>1){
+    avisoEl.style.display='block';
+    avisoEl.textContent = '🌙 Es una '+(dias===3?'pernocta de 3 días':'pernocta')+' — se copiarán juntos el día que elijas'+(dias===3?' + los 2 siguientes.':' + el siguiente.');
+  } else {
+    avisoEl.style.display='none';
+  }
+
+  _copiarMesCal = new Date(kp[0], kp[1]-1, 1);
+  _copiarDestino = null;
+  _renderCopiarCal();
+  openOvTop('ov-copiar-cal');
+}
+
+function _copiarCalMesNav(delta){
+  _copiarMesCal = new Date(_copiarMesCal.getFullYear(), _copiarMesCal.getMonth()+delta, 1);
+  _renderCopiarCal();
+}
+
+function _renderCopiarCal(){
+  var y=_copiarMesCal.getFullYear(), m=_copiarMesCal.getMonth();
+  document.getElementById('cop-cal-mes').textContent =
+    MESES[m].charAt(0).toUpperCase()+MESES[m].slice(1)+' '+y;
+  var ultimo = new Date(y,m+1,0).getDate();
+  var sd = new Date(y,m,1).getDay(); sd = sd===0?6:sd-1;
+  var dias = _copiarOrigen ? _copiarOrigen.dias : 1;
+  var html = ['L','M','X','J','V','S','D'].map(function(l){
+    return '<div style="text-align:center;font-size:10px;color:var(--tx3);padding:4px 0">'+l+'</div>';
+  }).join('');
+  for(var i=0;i<sd;i++) html+='<div></div>';
+  for(var d=1; d<=ultimo; d++){
+    var kD = key(y,m+1,d);
+    // Si es pernocta, los días que ocuparía (kD..kD+dias-1) que ya
+    // tienen algo se marcan en ámbar para avisar de un vistazo, sin
+    // bloquear la selección (el conflicto real se resuelve después).
+    var ocupado = false;
+    for(var j=0;j<dias;j++){ if(TV[_sumarDiasKey(kD,j)]) ocupado=true; }
+    var esOrigen = (_copiarOrigen && kD>=_copiarOrigen.k && kD<_sumarDiasKey(_copiarOrigen.k,dias));
+    var estilo = esOrigen
+      ? 'background:var(--s2);color:var(--tx3);opacity:.4'
+      : (ocupado ? 'background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.4);color:#fdba74' : 'background:var(--s2);color:var(--tx2)');
+    html += '<div onclick="'+(esOrigen?'':'_seleccionarDestinoCopiar('+y+','+(m+1)+','+d+')')+'" '
+      + 'style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px;'+estilo+(esOrigen?'':';cursor:pointer')+'">'+d+'</div>';
+  }
+  document.getElementById('cop-cal-grid').innerHTML = html;
+}
+
+function _seleccionarDestinoCopiar(y,m,d){
+  _copiarDestino = {y:y,m:m,d:d};
+  closeOv('ov-copiar-cal');
+  var origen = _copiarOrigen.t;
+  var puedeElegirTipo = (origen.tipo==='ordinario'||origen.tipo==='trabajado'||origen.tipo==='art5152');
+  if(puedeElegirTipo){
+    var kDestino = key(y,m,d);
+    document.getElementById('cop-tipo-destino-lbl').textContent = 'Destino: '+d+' '+MESES_C[m-1];
+    openOvTop('ov-copiar-tipo');
+  } else {
+    // Días sin tipo que elegir (ej. descanso): se copian tal cual.
+    _elegirTipoCopia(null);
+  }
+}
+
+function _elegirTipoCopia(tipoElegido){
+  closeOv('ov-copiar-tipo');
+  _copiarTipoPendiente = tipoElegido;
+  if(tipoElegido==='art5152' || tipoElegido==='htdl'){
+    // NUEVO — Art.51/52 y HTDL necesitan saber cómo se compensa
+    // (dinero/días/mix) antes de poder guardar nada — sin esto el
+    // motor de dinero no tiene datos suficientes.
+    document.getElementById('cop-comp-sub').textContent =
+      (tipoElegido==='htdl'?'HTDL':'Art. 51/52')+' — cómo se compensa esta copia';
+    // FIX — "Mixto" solo existe para pernoctas (confirmado por
+    // Alex): el tramo con más horas va a dinero y el de menos a
+    // día libre — eso no tiene sentido en un ida-vuelta de un solo
+    // día, y el propio motor de dinero no lo calcula si no hay
+    // modo pernocta. El formulario real ya oculta "Mix" en ese
+    // caso (F.modo!=='pernocta'); aquí se hace lo mismo para no
+    // dejar elegir una opción que luego no calcularía nada.
+    var esPernocta = _copiarOrigen && _copiarOrigen.dias>1;
+    document.getElementById('cop-comp-mix-btn').style.display = esPernocta ? '' : 'none';
+    openOvTop('ov-copiar-comp');
+    return;
+  }
+  _procesarCopiaConModo(tipoElegido, null);
+}
+
+function _elegirCompCopia(modoComp){
+  closeOv('ov-copiar-comp');
+  if(modoComp==='mix' && !(_copiarOrigen && _copiarOrigen.dias>1)){
+    toast('⚠️ Mixto solo existe para pernoctas');
+    return;
+  }
+  if(modoComp==='dinero'){
+    _procesarCopiaConModo(_copiarTipoPendiente, 'dinero');
+  } else {
+    // "Días" y "Mixto" implican elegir día(s) concretos del mes
+    // siguiente — en vez de reconstruir ese selector aparte, se
+    // reutiliza el formulario real de creación de turno, ya
+    // preparado para esto (mismo mini-calendario de compensación
+    // que usas al crearlo a mano).
+    _abrirFormParaCopiaDiasMixto(_copiarTipoPendiente, modoComp);
+  }
+}
+
+function _procesarCopiaConModo(tipoElegido, modoComp){
+  var res = _construirEscrituraCopia(_copiarOrigen, _copiarDestino, tipoElegido, modoComp);
+  if(!res){ toast('⚠️ No se pudo preparar la copia'); return; }
+  window._copiaConflictoPendiente = res;
+  // NUEVO — regla confirmada por Alex, evaluada día por día (no todo
+  // el bloque a la vez): si el día ya tenía DESCANSO, se sobrescribe
+  // sin más (no hay nada que perder). Si ya tenía un turno REAL, ese
+  // turno no se borra — pasa a SECUNDARIO (turno extra) y sus horas
+  // siguen contando igual que ahora; la copia entra como principal.
+  var hayAlgo = res.escrituras.some(function(esc){ return !!TV[esc.k]; });
+  if(!hayAlgo){
+    _escribirCopiaTurno(res);
+  } else {
+    var resumen = res.escrituras.map(function(esc){
+      var existente = TV[esc.k];
+      if(!existente) return '· '+esc.k+': vacío → se rellena';
+      if(existente.tipo==='descanso') return '· '+esc.k+': tenía descanso → se sobrescribe';
+      return '· '+esc.k+': tenía un turno guardado → pasa a secundario (sus horas se siguen contando)';
+    });
+    document.getElementById('cop-conflicto-dias').innerHTML = resumen.join('<br>');
+    openOvTop('ov-copiar-conflicto');
+  }
+}
+
+// NUEVO — Para "Días"/"Mixto": abre el formulario REAL de la app
+// (el mismo que usas al crear un turno a mano), pre-rellenado con
+// todo lo del turno de origen, apuntando ya al día destino elegido.
+// Así el mini-calendario de días de compensación, el cálculo de
+// Mix y el guardado final son exactamente los que ya tienes
+// probados — no se duplica esa lógica aquí.
+function _abrirFormParaCopiaDiasMixto(tipoElegido, modoComp){
+  closeOv('ov-copiar-cal'); closeOv('ov-copiar-tipo'); closeOv('ov-copiar-comp'); closeOv('ov-copiar-conflicto');
+  var o = _copiarOrigen.t;
+  var destino = _copiarDestino;
+  var kDestino = key(destino.y, destino.m, destino.d);
+  var yaExistia = !!TV[kDestino];
+
+  var tipoFinal = (tipoElegido==='htdl') ? 'trabajado' : 'art5152';
+  var kIntOrigen = o.diaIntermedio;
+  var tIntOrigen = kIntOrigen ? TV[kIntOrigen] : null;
+
+  F={tipo:tipoFinal, linea:o.linea||null,
+     sal:o.sal||(AJ.base||null), lle:o.lle||null, hF:o.hF||null, hL:o.hL||null,
+     sal2:o.sal2||null, lle2:o.lle2||null, hF2:o.hF2||null, hL2:o.hL2||null,
+     sal3:(tIntOrigen&&tIntOrigen.sal)||null, lle3:(tIntOrigen&&tIntOrigen.lle)||null,
+     hF3:(tIntOrigen&&tIntOrigen.hF)||null, hL3:(tIntOrigen&&tIntOrigen.hL)||null,
+     modo:o.modo||null,
+     comp:(tipoFinal==='trabajado')?modoComp:null,
+     compArt5152:(tipoFinal==='art5152')?modoComp:null,
+     horas:o.horas||0, diasComp:[], notas:o.notas||'',
+     numTren:o.numTren||'', numTrenVuelta:o.numTrenVuelta||'',
+     numTrenIntermedio:o.numTrenIntermedio||'',
+     estadoServicio:o.estadoServicio||'ordinario',
+     estadoServicioDetalle:o.estadoServicioDetalle||'',
+     estadoServicioVuelta:o.estadoServicioVuelta||'ordinario',
+     estadoServicioVueltaDetalle:o.estadoServicioVueltaDetalle||'',
+     dhMismoTren:(typeof o.dhMismoTren==='boolean')?o.dhMismoTren:null,
+     dhMinutos:(o.dhMinutos!=null)?o.dhMinutos:null,
+     dhMismoTrenVuelta:(typeof o.dhMismoTrenVuelta==='boolean')?o.dhMismoTrenVuelta:null,
+     dhMinutosVuelta:(o.dhMinutosVuelta!=null)?o.dhMinutosVuelta:null,
+     continuidad:(o.continuidad||[]).map(function(c){var cc={};for(var kk in c)cc[kk]=c[kk];return cc;}),
+     continuidadVuelta:(o.continuidadVuelta||[]).map(function(c){var cc={};for(var kk in c)cc[kk]=c[kk];return cc;}),
+     plusAct:o.plusAct||false, plusJT:o.plusJT||false,
+     modoArt5152:o.modoArt5152||'normal',
+     modoTrabajado:'normal',
+     plusIntlAuto:(o.linea||'').includes('Internacional')};
+
+  selDay = {d:destino.d, k:kDestino, t:TV[kDestino]||null};
+  curM = new Date(destino.y, destino.m-1, 1);
+  renderCal();
+  abrirForm(yaExistia);
+  toast(yaExistia
+    ? '⚠️ '+kDestino+' ya tenía algo — revisa antes de guardar'
+    : '📋 Copiado — elige el/los día(s) de compensación y guarda');
+}
+
+function _resolverConflictoCopia(accion){
+  closeOv('ov-copiar-conflicto');
+  var res = window._copiaConflictoPendiente;
+  if(!res) return;
+  if(accion==='confirmar') _escribirCopiaTurno(res);
+  else toast('Copia cancelada');
+}
+
+// Construye las escrituras (sin aplicar todavía) para copiar el
+// turno de origen al día destino elegido — mismo patrón que la
+// carga del PDF: 1 día suelto, pernocta (2) o pernocta3 (3).
+// modoComp ('dinero'|'dias'|'mix') solo se usa cuando tipoElegido es
+// 'art5152' o 'htdl' — para 'dias'/'mix' esta función ya no se llama
+// (se enruta al formulario real, ver _abrirFormParaCopiaDiasMixto).
+// Calcula las "horas computables" para dinero — misma fórmula que
+// usa guardarTurno() para HTDL (d.importe) y Art.51/52
+// (d.horasEfectivas): en pernocta solo cuenta el trabajo real (ida +
+// continuidad ida + continuidad vuelta + vuelta); en ida-vuelta del
+// mismo día también entra la escala/hueco entre tramos.
+function _horasComputablesParaDinero(d, esPernocta){
+  // FIX — Confirmado por Alex: las esperas/escalas entre trenes
+  // conectados también deben pagarse en pernocta, no solo en día
+  // suelto — mismo criterio ya corregido en guardarTurno() para
+  // mantener el cálculo idéntico se cree el turno a mano, se copie,
+  // o se cambie de tipo. Sigue sin pagar el hueco propio de la
+  // pernocta (descanso nocturno entre ida y vuelta) — ese guard no
+  // cambia.
+  var hIda = (d.hF&&d.hL) ? calcMins(d.hF,d.hL)/60 : 0;
+  var hVuelta = (d.hF2&&d.hL2) ? calcMins(d.hF2,d.hL2)/60 : 0;
+  var minEscala=0, minContinuidad=0, finIdaReal=d.hL;
+  (d.continuidad||[]).forEach(function(c){
+    if(c.horaInicio&&c.horaFin) minContinuidad += calcMins(c.horaInicio,c.horaFin);
+    if(c.escalaMin!=null && c.escalaMin>0) minEscala += c.escalaMin;
+    if(c.horaFin) finIdaReal = c.horaFin;
+  });
+  if(!esPernocta && finIdaReal && d.hF2){
+    var hueco = calcMins(finIdaReal, d.hF2);
+    if(hueco>0) minEscala += hueco;
+  }
+  var minContinuidadVuelta=0;
+  (d.continuidadVuelta||[]).forEach(function(c){
+    if(c.horaInicio&&c.horaFin) minContinuidadVuelta += calcMins(c.horaInicio,c.horaFin);
+    if(c.escalaMin!=null && c.escalaMin>0) minEscala += c.escalaMin;
+  });
+  var hEscala = Math.round(minEscala/60*100)/100;
+  var hContinuidad = Math.round(minContinuidad/60*100)/100;
+  var hContinuidadVuelta = Math.round(minContinuidadVuelta/60*100)/100;
+  // NUEVO — mismo criterio confirmado por Alex: si hay enlace de
+  // jornada (descanso real por debajo del mínimo legal: 12h en base,
+  // 8h fuera), la dormida entera pasa a contar. finIdaReal ya tiene
+  // en cuenta el último tramo de continuidad de la ida, si lo hay.
+  var hEnlaceJornada = 0;
+  if(esPernocta && finIdaReal && d.hF2){
+    var dM=(1440-calcMins('00:00',finIdaReal))+calcMins('00:00',d.hF2); if(dM<0)dM+=1440;
+    var estDescanso = d.sal2||d.lle||'';
+    var lim = (AJ.base && estDescanso===AJ.base) ? 720 : 480;
+    if(dM < lim) hEnlaceJornada = Math.round(dM/60*100)/100;
+  }
+  if(esPernocta) return Math.round(((d.horas||0)+hEscala+hContinuidad+hContinuidadVuelta+hEnlaceJornada)*100)/100;
+  return Math.round((hIda+hEscala+hContinuidad+hVuelta+hContinuidadVuelta)*100)/100;
+}
+
+// Aplica el modo de compensación 'dinero' a un registro ya construido
+// (d), calculando importe/horasEfectivas EXACTAMENTE igual que hace
+// guardarTurno() — antes esto se dejaba en blanco y el dinero no
+// aparecía en Stats hasta entrar a editar el turno a mano.
+function _aplicarDineroCopia(d, esHTDL, esArt5152, esPernocta){
+  var horasComp = _horasComputablesParaDinero(d, esPernocta);
+  if(esHTDL){
+    d.comp = 'dinero';
+    var hFparaTasa = esPernocta ? d.hF : d.hF2;
+    var hLparaTasa = esPernocta ? d.hL : d.hL2;
+    d.importe = calcImp(horasComp, hFparaTasa, hLparaTasa, d.linea, d.plusAct, d.plusJT, d.plusIntlAuto);
+  } else if(esArt5152){
+    d.compensacion = 'dinero';
+    d.horasEfectivas = horasComp;
+  }
+}
+
+function _construirEscrituraCopia(origen, destino, tipoElegido, modoComp){
+  var o = origen.t;
+  var kDestino = key(destino.y, destino.m, destino.d);
+  var esHTDL = (tipoElegido==='htdl');
+  var esArt5152 = (tipoElegido==='art5152');
+  var tipoFinal = esHTDL ? 'trabajado' : (tipoElegido || o.tipo);
+  var esPernocta = origen.dias>1;
+
+  function clonar(obj){ return obj ? JSON.parse(JSON.stringify(obj)) : obj; }
+
+  if(origen.dias===1){
+    var d1 = clonar(o);
+    d1.tipo = tipoFinal;
+    delete d1.cargadoDesdePdf;
+    // FIX — HTDL y Art.51/52 ahora se tratan EXACTAMENTE igual que
+    // Ordinario a nivel de estructura (misma celda/celdas), la única
+    // diferencia real es el tipo y cómo se compensa el dinero.
+    if(modoComp==='dinero') _aplicarDineroCopia(d1, esHTDL, esArt5152, false);
+    return {escrituras:[{k:kDestino, data:d1}], incompletos:[]};
+  }
+
+  // Pernocta (2) o pernocta3 (3): reconstruir cada día a partir de lo
+  // que ya está guardado — el principal (o) trae ida y vuelta/resumen;
+  // los derivados (vuelta-pernocta / intermedio) se leen de TV.
+  var kVtaOrigen = o.diaSiguiente;
+  var kIntOrigen = o.diaIntermedio;
+  var tVtaOrigen = kVtaOrigen ? TV[kVtaOrigen] : null;
+  var tIntOrigen = kIntOrigen ? TV[kIntOrigen] : null;
+  if(!tVtaOrigen){ return null; }
+
+  var kIdaD = kDestino;
+  var kIntD = origen.dias===3 ? _sumarDiasKey(kDestino,1) : null;
+  var kVtaD = _sumarDiasKey(kDestino, origen.dias-1);
+
+  var principal = clonar(o);
+  principal.tipo = tipoFinal;
+  principal.diaSiguiente = kVtaD;
+  if(origen.dias===3) principal.diaIntermedio = kIntD;
+  delete principal.cargadoDesdePdf;
+  if(modoComp==='dinero') _aplicarDineroCopia(principal, esHTDL, esArt5152, true);
+
+  var escrituras = [{k:kIdaD, data:principal}];
+  if(origen.dias===3 && tIntOrigen){
+    var intD = clonar(tIntOrigen);
+    intD.origenPernocta = kIdaD;
+    delete intD.cargadoDesdePdf;
+    escrituras.push({k:kIntD, data:intD});
+  }
+  var vtaD = clonar(tVtaOrigen);
+  vtaD.origenPernocta = kIdaD;
+  delete vtaD.cargadoDesdePdf;
+  escrituras.push({k:kVtaD, data:vtaD});
+
+  return {escrituras:escrituras, incompletos:[]};
+}
+
+function _escribirCopiaTurno(res){
+  res.escrituras.forEach(function(esc){
+    var existente = TV[esc.k];
+    // NUEVO — regla confirmada por Alex: si ya había un turno REAL
+    // (no descanso), no se pierde — pasa a SECUNDARIO (turno extra),
+    // conservando todos sus datos tal cual, así que sus horas y su
+    // dinero se siguen contando exactamente igual que antes. Solo
+    // deja de ser el turno "oficial" del día — la copia pasa a serlo.
+    if(existente && existente.tipo!=='descanso'){
+      if(!TV2[esc.k]) TV2[esc.k]=[];
+      var ddViejo={}; for(var campoV in existente) ddViejo[campoV]=existente[campoV];
+      // NUEVO — marca de "era el principal de este día antes de la
+      // copia" — se usa SOLO para que el contador "TOTAL DEL DÍA" no
+      // lo sume junto al turno nuevo (así Alex puede ver de un
+      // vistazo solo las horas del turno que acaba de agregar). NO
+      // afecta a Stats del mes — ahí sus horas siguen contando igual
+      // que siempre, sin este filtro.
+      ddViejo.esAntiguoPrincipal = true;
+      // NUEVO — Confirmado por Alex: sus horas se quedan GRABADAS en
+      // este mismo momento, calculadas mientras el dato todavía es
+      // 100% fiable (justo antes de pisarlo), en vez de fiarse de que
+      // el cálculo mensual lo vuelva a procesar bien más adelante.
+      // calcularJornadaDiaria() usa este valor directamente si existe
+      // (ver el FIX correspondiente ahí), así que estas horas quedan
+      // garantizadas pase lo que pase después.
+      try{
+        ddViejo._horasGarantizadas = calcularJornadaDiaria([existente], esc.k);
+      }catch(errGarantia){ /* si falla, calcularJornadaDiaria() recalcula como siempre */ }
+      TV2[esc.k].push(ddViejo);
+    }
+    // Limpieza de enlaces de pernocta huérfanos si el día pisado
+    // apuntaba a otro día distinto del nuevo (evita dejar un
+    // "vuelta-pernocta" colgando sin turno de origen real).
+    if(existente && existente.diaSiguiente && existente.diaSiguiente!==esc.data.diaSiguiente){
+      if(TV[existente.diaSiguiente] && TV[existente.diaSiguiente].origenPernocta===esc.k) delete TV[existente.diaSiguiente];
+    }
+    TV[esc.k] = esc.data;
+  });
+  saveTV(); saveTV2();
+  renderCal(); renderStats();
+  if(selDay) renderDiaArea();
+  toast('✅ Turno copiado a '+res.escrituras[0].k);
+}
+
 function guardarRetraso(){
   if(!selDay||!selDay.t) return;
   var inp=document.getElementById('inp-retraso');
@@ -7567,11 +8164,30 @@ function guardarRetraso(){
     ? (parseInt(tramEl.value)||1)
     : (wrap&&wrap.dataset.tramoFijo ? parseInt(wrap.dataset.tramoFijo)||1 : 1);
   var tren=trenEl?(trenEl.value.trim()||''):'';
+  // NUEVO — para tramos de continuidad (3, 4...) hace falta saber
+  // cuántos minutos tenía YA aplicados este tramo, para desplazar
+  // solo la DIFERENCIA (si editas un retraso de 10min a 15min, el
+  // tramo solo se alarga 5min más, no 15 de golpe).
+  var minAntes = 0;
+  if(tramo>=3 && TV[selDay.k].retrasos){
+    var rAntes = TV[selDay.k].retrasos.filter(function(r){return r.tramo===tramo;})[0];
+    minAntes = rAntes ? (rAntes.minutos||0) : 0;
+  }
   TV[selDay.k].retrasoMin=min>0?min:undefined;
   if(!TV[selDay.k].retrasos) TV[selDay.k].retrasos=[];
   TV[selDay.k].retrasos=TV[selDay.k].retrasos.filter(function(r){return r.tramo!==tramo;});
   if(min>0) TV[selDay.k].retrasos.push({tramo:tramo,minutos:min,tren:tren});
   if(TV[selDay.k].retrasos.length===0) delete TV[selDay.k].retrasos;
+  // NUEVO — desplazar en cadena las horas del tramo de continuidad
+  // afectado (y de todo lo que venga después: siguientes tramos +
+  // vuelta), tal como confirmaste: el retraso alarga ese tramo y
+  // empuja lo que sigue, sin tocar el motor de dinero — las horas ya
+  // desplazadas se cuentan solas como Efectiva o Presencia según el
+  // tipo de cada tramo (igual que si las hubieras escrito a mano).
+  if(tramo>=3){
+    var deltaMin = min - minAntes;
+    if(deltaMin!==0) _desplazarContinuidadPorRetraso(TV[selDay.k], tramo-3, deltaMin);
+  }
   selDay.t=TV[selDay.k];
   saveTV();
   ALERTAS_DESCANSO=verificarDescansosMes();
@@ -8425,8 +9041,18 @@ function renderizarPopUpSimplificado(t, esDiaVuelta, ocultarTotalDia){
         + '</div>';
     }
 
+    // NUEVO — Confirmado por Alex: cuando este bloque en realidad
+    // pertenece al día de la VUELTA (o intermedio) de una pernocta —
+    // dispara aquí porque guarda sus datos en los mismos campos que
+    // "ida" (sal/hF/hL/numTren), no porque lo sea — la etiqueta debe
+    // decir lo que es de verdad, no "IDA". El resto del bloque (DH,
+    // ruta, horas, "Viajas con") ya sale igual, solo cambia el rótulo.
+    var etiquetaBloqueIda = '🚂 IDA';
+    if(t.tipo==='vuelta-pernocta') etiquetaBloqueIda = '↩ VUELTA';
+    else if(t.tipo==='pernocta3-intermedio') etiquetaBloqueIda = '🏨 TRAMO INTERMEDIO';
+
     h += '<div class="tv-block ida'+(idaEsDH?' tv-block-dh':'')+'">'
-      + '<div class="tv-block-tag">🚂 IDA</div>'
+      + '<div class="tv-block-tag">'+etiquetaBloqueIda+'</div>'
       + numIdaHTML
       + dhIdaTag
       + (t.sal&&t.lle?'<div class="tv-route">'+t.sal+' → '+t.lle+'</div>':'')
@@ -9384,6 +10010,9 @@ function renderDiaArea(){
       : '')
     +'<button class="dct-btn-sec sec-cyan" onclick="verDetallesEnHistorial(\''+k+'\')">📋 Detalles</button>'
     +'<button class="dct-btn-sec sec-green" onclick="compartirTurnoSeleccionado()">📤 Compartir</button>'
+    +((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio'||t.tipo==='descanso')
+      ? '<button class="dct-btn-sec" onclick="abrirCopiarTurno(\''+k+'\')">📋 Copiar turno</button>'
+      : '')
     +'</div>'
     // NUEVO — Convertir turno existente en Baja Laboral, directamente
     // desde el historial, sin borrar el día a mano. Solo aplica a
@@ -9998,7 +10627,25 @@ function _convertirCambioDescanso(nuevoTipo){
 /* ═══════════════════════════════════════
    CAMBIO CON COMPAÑERO — universal
 ═══════════════════════════════════════ */
+// NUEVO — el botón "Cambio" ahora pregunta primero qué quieres hacer,
+// en vez de ir directo a solicitar el cambio con un compañero. La
+// opción nueva ("Cambiar tipo de turno") reutiliza toda la lógica ya
+// construida para "Copiar turno" (popups de tipo/compensación,
+// cálculo de dinero) — no se reimplementa nada de cero.
 function abrirCambio(){
+  if(!selDay)return;
+  document.getElementById('cambio-tit').textContent='¿Qué quieres hacer?';
+  document.getElementById('cambio-body').innerHTML =
+    '<div style="padding:14px 16px">'
+    + '<button onclick="_abrirSolicitudCambioTurno()" style="width:100%;margin-bottom:10px;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+    + '<b>🔄 Solicitar cambio de turno</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Pide el cambio a un compañero por correo</span></button>'
+    + '<button onclick="_abrirCambioTipoTurno()" style="width:100%;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+    + '<b>🔁 Cambiar tipo de turno</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Pásalo a Ordinario, Art.51/52 o HTDL sin borrarlo</span></button>'
+    + '</div>';
+  openOv('ov-cambio');
+}
+
+function _abrirSolicitudCambioTurno(){
   if(!selDay)return;
   var t=selDay.t||{},k=selDay.k;
   var kw=k.split('-').map(Number);var y=kw[0],mo=kw[1],dd=kw[2];
@@ -10039,7 +10686,131 @@ function abrirCambio(){
     +'border:1.5px dashed var(--div);border-radius:11px;color:var(--tx2);font-size:12px;font-weight:700;cursor:pointer">'
     +'🔁 Registrar Intercambio</button>'
     +'</div>';
-  actualizarPrevCambio();openOv('ov-cambio');
+  actualizarPrevCambio();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — CAMBIAR TIPO DE TURNO (segunda opción del botón "Cambio").
+   Reclasifica un turno YA GUARDADO (Ordinario ↔ Art.51/52 ↔ HTDL)
+   sin borrarlo y volverlo a crear. Reutiliza el mismo lenguaje
+   visual y las mismas funciones de dinero ya construidas para
+   "Copiar turno" (_horasComputablesParaDinero, _aplicarDineroCopia),
+   con su propio estado — no comparte variables con _copiarOrigen.
+═══════════════════════════════════════════════════════════ */
+var _cambioTipoOrigen = null;   // {k, t, dias}
+var _cambioTipoElegido = null;
+
+function _abrirCambioTipoTurno(){
+  if(!selDay) return;
+  var k = selDay.k;
+  var t = TV[k];
+  if(!t){ toast('⚠️ No hay turno guardado este día'); return; }
+  var esDerivado = (t.tipo==='vuelta-pernocta' || t.tipo==='pernocta3-intermedio');
+  var kReal = esDerivado ? t.origenPernocta : k;
+  var tReal = esDerivado ? TV[kReal] : t;
+  if(!tReal){ toast('⚠️ No se encontró el turno de origen de la pernocta'); return; }
+  if(tReal.tipo!=='ordinario' && tReal.tipo!=='trabajado' && tReal.tipo!=='art5152'){
+    toast('⚠️ Este tipo de día no se puede reclasificar así');
+    return;
+  }
+  var dias = (tReal.modo==='pernocta3') ? 3 : (tReal.modo==='pernocta') ? 2 : 1;
+  _cambioTipoOrigen = {k:kReal, t:tReal, dias:dias};
+
+  document.getElementById('cambio-tit').textContent = '¿A qué tipo lo cambiamos?';
+  document.getElementById('cambio-body').innerHTML =
+    '<div style="padding:14px 16px">'
+    + '<button onclick="_elegirTipoCambioEstado(\'ordinario\')" style="width:100%;margin-bottom:8px;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+    + '<b>Ordinario</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Jornada normal de trabajo</span></button>'
+    + '<button onclick="_elegirTipoCambioEstado(\'art5152\')" style="width:100%;margin-bottom:8px;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+    + '<b>Art. 51/52</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Régimen especial de descanso</span></button>'
+    + '<button onclick="_elegirTipoCambioEstado(\'htdl\')" style="width:100%;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+    + '<b>HTDL</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Trabajado en día libre</span></button>'
+    + '</div>';
+}
+
+function _elegirTipoCambioEstado(tipoElegido){
+  _cambioTipoElegido = tipoElegido;
+  if(tipoElegido==='art5152' || tipoElegido==='htdl'){
+    var esPernocta = _cambioTipoOrigen.dias>1;
+    document.getElementById('cambio-tit').textContent = '¿Cómo se compensa?';
+    document.getElementById('cambio-body').innerHTML =
+      '<div style="padding:14px 16px">'
+      + '<button onclick="_aplicarCambioTipoTurno(\'dinero\')" style="width:100%;margin-bottom:8px;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+      + '<b>Dinero</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Se paga directamente</span></button>'
+      + '<button onclick="_abrirFormParaCambioTipo(\'dias\')" style="width:100%;'+(esPernocta?'margin-bottom:8px;':'')+'text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+      + '<b>Días</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Genera día(s) libres el mes siguiente</span></button>'
+      + (esPernocta ? ('<button onclick="_abrirFormParaCambioTipo(\'mix\')" style="width:100%;text-align:left;padding:14px;background:var(--s2);border:1px solid var(--div);border-radius:12px;color:var(--tx);cursor:pointer">'
+        + '<b>Mixto</b><br><span style="font-size:11px;color:var(--tx3);font-weight:400">Parte dinero, parte días</span></button>') : '')
+      + '</div>';
+  } else {
+    _aplicarCambioTipoTurno(null);
+  }
+}
+
+// "Dinero" (u Ordinario, que no necesita compensación): se aplica
+// directamente sobre el mismo día, sin abrir el formulario completo.
+function _aplicarCambioTipoTurno(modoComp){
+  var o = _cambioTipoOrigen.t;
+  var k = _cambioTipoOrigen.k;
+  var dias = _cambioTipoOrigen.dias;
+  var esHTDL = (_cambioTipoElegido==='htdl');
+  var esArt5152 = (_cambioTipoElegido==='art5152');
+  var tipoFinal = esHTDL ? 'trabajado' : _cambioTipoElegido;
+
+  var nuevo = {}; for(var campo in o) nuevo[campo]=o[campo];
+  nuevo.tipo = tipoFinal;
+  if(modoComp==='dinero') _aplicarDineroCopia(nuevo, esHTDL, esArt5152, dias>1);
+  else { delete nuevo.comp; delete nuevo.compensacion; delete nuevo.importe; delete nuevo.horasEfectivas; }
+
+  TV[k] = nuevo;
+  saveTV();
+  closeOv('ov-cambio');
+  renderCal(); renderStats();
+  selDay = {d:selDay.d, k:selDay.k, t:TV[selDay.k]};
+  renderDiaArea();
+  toast('✅ Turno actualizado a '+(TIPO_INFO[tipoFinal]?TIPO_INFO[tipoFinal].lbl:tipoFinal));
+}
+
+// "Días"/"Mixto": igual que en "Copiar turno", se enruta al
+// formulario real (mismo mini-calendario de compensación ya
+// probado) — pre-rellenado y apuntando al MISMO día, no a uno nuevo.
+function _abrirFormParaCambioTipo(modoComp){
+  closeOv('ov-cambio');
+  var o = _cambioTipoOrigen.t;
+  var k = _cambioTipoOrigen.k;
+  var tipoFinal = (_cambioTipoElegido==='htdl') ? 'trabajado' : 'art5152';
+  var kIntOrigen = o.diaIntermedio;
+  var tIntOrigen = kIntOrigen ? TV[kIntOrigen] : null;
+
+  F={tipo:tipoFinal, linea:o.linea||null,
+     sal:o.sal||(AJ.base||null), lle:o.lle||null, hF:o.hF||null, hL:o.hL||null,
+     sal2:o.sal2||null, lle2:o.lle2||null, hF2:o.hF2||null, hL2:o.hL2||null,
+     sal3:(tIntOrigen&&tIntOrigen.sal)||null, lle3:(tIntOrigen&&tIntOrigen.lle)||null,
+     hF3:(tIntOrigen&&tIntOrigen.hF)||null, hL3:(tIntOrigen&&tIntOrigen.hL)||null,
+     modo:o.modo||null,
+     comp:(tipoFinal==='trabajado')?modoComp:null,
+     compArt5152:(tipoFinal==='art5152')?modoComp:null,
+     horas:o.horas||0, diasComp:[], notas:o.notas||'',
+     numTren:o.numTren||'', numTrenVuelta:o.numTrenVuelta||'',
+     numTrenIntermedio:o.numTrenIntermedio||'',
+     estadoServicio:o.estadoServicio||'ordinario',
+     estadoServicioDetalle:o.estadoServicioDetalle||'',
+     estadoServicioVuelta:o.estadoServicioVuelta||'ordinario',
+     estadoServicioVueltaDetalle:o.estadoServicioVueltaDetalle||'',
+     dhMismoTren:(typeof o.dhMismoTren==='boolean')?o.dhMismoTren:null,
+     dhMinutos:(o.dhMinutos!=null)?o.dhMinutos:null,
+     dhMismoTrenVuelta:(typeof o.dhMismoTrenVuelta==='boolean')?o.dhMismoTrenVuelta:null,
+     dhMinutosVuelta:(o.dhMinutosVuelta!=null)?o.dhMinutosVuelta:null,
+     continuidad:(o.continuidad||[]).map(function(c){var cc={};for(var kk in c)cc[kk]=c[kk];return cc;}),
+     continuidadVuelta:(o.continuidadVuelta||[]).map(function(c){var cc={};for(var kk in c)cc[kk]=c[kk];return cc;}),
+     plusAct:o.plusAct||false, plusJT:o.plusJT||false,
+     modoArt5152:o.modoArt5152||'normal',
+     modoTrabajado:'normal',
+     plusIntlAuto:(o.linea||'').includes('Internacional')};
+
+  selDay = {d:selDay.d, k:k, t:TV[k]};
+  abrirForm(true);
+  toast('📋 Elige el/los día(s) de compensación y guarda');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -11435,42 +12206,39 @@ function abrirTrabajoEnDescanso(){F.tipo='trabajado';renderFormBody();}
 /* ═══════════════════════════════════════
    GUARDAR TURNO
 ═══════════════════════════════════════ */
-// NUEVO — protección del día de vuelta/intermedio de una pernocta: si
-// ese día YA tiene algo real guardado (un turno tuyo, un cambio
-// registrado, etc.), NO se debe sobrescribir con el puntero normal de
-// pernocta (eso lo borraría todo). Devuelve true si el día está
-// "protegido" (hay que dejarlo tal cual y avisar aparte); false si
-// está vacío o solo tenía un puntero de pernocta huérfano/repetido
-// (caso normal de siempre, sin cambios de comportamiento).
-function _diaVueltaPernoctaProtegido(kDestino, kOrigen){
-  var actual = TV[kDestino];
-  if(!actual || !actual.tipo) return false; // vacío — comportamiento de siempre
-  if(actual.origenPernocta === kOrigen) return false; // puntero de esta misma pernocta, se puede regenerar
-  if(actual.tipo === 'vuelta-pernocta' || actual.tipo === 'pernocta3-intermedio') return false; // puntero huérfano de otra pernocta ya editada, se puede sustituir
-  return true; // hay un turno/cambio real — proteger
-}
-// Añade la nota informativa cuando el día de vuelta/intermedio está
-// protegido — mismo patrón de "nota que no toca nada" ya usado para
-// el Cambio con compañero, solo que aquí avisa de lo contrario: que
-// el dinero de ESE día ya vive completo en el día de la ida.
-function _avisarVueltaPernoctaProtegida(kDestino, kOrigen, etiquetaTramo, datosTramo){
-  var kop = kOrigen.split('-').map(Number);
-  var lblOrigen = kop[2]+' de '+MESES[kop[1]-1].toLowerCase();
-  if(!TV2[kDestino]) TV2[kDestino] = [];
-  TV2[kDestino].push({
-    tipo: 'ordinario',
-    turno_referencia_externa: true,
-    vueltaPernoctaInformativa: true,
-    origenPernocta: kOrigen,
-    etiquetaTramo: etiquetaTramo,
-    sal: datosTramo && datosTramo.sal || null,
-    lle: datosTramo && datosTramo.lle || null,
-    hF: datosTramo && datosTramo.hF || null,
-    hL: datosTramo && datosTramo.hL || null,
-    numTren: datosTramo && datosTramo.numTren || '',
-    notas: '💰 Ya contado completo en el día '+lblOrigen+' — aquí no suma nada aparte.',
-    companeroNombre: null
-  });
+// NUEVO — Confirmado por Alex: cuando el día de vuelta/intermedio de
+// una pernocta ya tenía un turno REAL guardado, ya no se protege sin
+// tocar (eso dejaba una nota informativa sin datos reales) — pasa a
+// SECUNDARIO conservando TODOS sus datos tal cual (si es Ordinario,
+// sus horas siguen sumando a Efectivas/Presencia con normalidad, sin
+// generar dinero aparte — el dinero extra solo lo genera HTDL/Art.51-
+// 52, que Ordinario no tiene, así que no hay riesgo de duplicar
+// nada). El día de vuelta/intermedio nuevo entra como PRINCIPAL, con
+// la misma estructura que ya usa siempre esa celda (tipo
+// 'vuelta-pernocta'/'pernocta3-intermedio'), para que se vea igual
+// que cualquier otra (con compañeros, DH, etc., si esa información
+// llega a calcularse ahí). Si el día estaba en descanso o vacío, se
+// sobrescribe limpio, sin nada que conservar.
+function _escribirDiaPernoctaConDemota(kDestino, kOrigen, nuevoDato){
+  var existente = TV[kDestino];
+  var esPunteroDeEstaMismaPernocta = existente && existente.origenPernocta === kOrigen;
+  var esVacioODescanso = !existente || !existente.tipo || existente.tipo==='descanso';
+  var esPunteroHuerfano = existente && (existente.tipo==='vuelta-pernocta' || existente.tipo==='pernocta3-intermedio');
+  if(existente && !esVacioODescanso && !esPunteroDeEstaMismaPernocta && !esPunteroHuerfano){
+    if(!TV2[kDestino]) TV2[kDestino]=[];
+    var ddViejo={}; for(var campo in existente) ddViejo[campo]=existente[campo];
+    // NUEVO — misma marca que en "Copiar turno": para que "TOTAL DEL
+    // DÍA" no sume estas horas junto al nuevo día de vuelta/intermedio.
+    // Stats del mes no se ve afectado, ahí sigue sumando igual.
+    ddViejo.esAntiguoPrincipal = true;
+    // NUEVO — mismas horas grabadas en el momento del pisado, ver el
+    // comentario igual en _escribirCopiaTurno().
+    try{
+      ddViejo._horasGarantizadas = calcularJornadaDiaria([existente], kDestino);
+    }catch(errGarantia){ /* si falla, se recalcula como siempre */ }
+    TV2[kDestino].push(ddViejo);
+  }
+  TV[kDestino] = nuevoDato;
   saveTV2();
 }
 
@@ -11665,19 +12433,10 @@ function guardarTurno(){
       var _ks2=k.split('-').map(Number);var y=_ks2[0],mo=_ks2[1],dd=_ks2[2];
       var sig=new Date(y,mo-1,dd);sig.setDate(sig.getDate()+1);
       var kSig=key(sig.getFullYear(),sig.getMonth()+1,sig.getDate());
-      if(_diaVueltaPernoctaProtegido(kSig, k)){
-        // NUEVO — el día de vuelta ya tiene algo real (turno, cambio,
-        // etc.) guardado — no se toca. Solo se avisa con una nota; el
-        // dinero ya vive completo en el día de la ida (k), así que no
-        // hace falta sumar nada aparte en kSig.
-        _avisarVueltaPernoctaProtegida(kSig, k, 'vuelta', {sal:d.sal2, lle:d.lle2, hF:F.hF2, hL:F.hL2, numTren:F.numTrenVuelta});
-      } else {
-        if(TV[kSig]&&TV[kSig].origenPernocta===k) delete TV[kSig];
-        TV[kSig]={tipo:'vuelta-pernocta',linea:F.linea,
-          sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
-          numTren:F.numTrenVuelta||'',
-          nocturno:d.nocturno,origenPernocta:k};
-      }
+      _escribirDiaPernoctaConDemota(kSig, k, {tipo:'vuelta-pernocta',linea:F.linea,
+        sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
+        numTren:F.numTrenVuelta||'',
+        nocturno:d.nocturno,origenPernocta:k});
       d.diaSiguiente=kSig;
       // Limpiar restos de una pernocta3 previa en este mismo día de origen
       if(selDay.t&&selDay.t.diaIntermedio) delete TV[selDay.t.diaIntermedio];
@@ -11689,24 +12448,14 @@ function guardarTurno(){
       var diaFin=new Date(y3,mo3-1,dd3);diaFin.setDate(diaFin.getDate()+2);
       var kFin=key(diaFin.getFullYear(),diaFin.getMonth()+1,diaFin.getDate());
       var nocIntermedio=!!((F.hF3&&esHoraNocturna(F.hF3))||(F.hL3&&esHoraNocturna(F.hL3)));
-      if(_diaVueltaPernoctaProtegido(kInt, k)){
-        _avisarVueltaPernoctaProtegida(kInt, k, 'noche intermedia (día 2)', {sal:F.sal3, lle:F.lle3, hF:F.hF3, hL:F.hL3, numTren:F.numTrenIntermedio});
-      } else {
-        if(TV[kInt]&&TV[kInt].origenPernocta===k) delete TV[kInt];
-        TV[kInt]={tipo:'pernocta3-intermedio',linea:F.linea,
-          sal:F.sal3||'',lle:F.lle3||'',hF:F.hF3||'',hL:F.hL3||'',
-          numTren:F.numTrenIntermedio||'',
-          nocturno:nocIntermedio,origenPernocta:k};
-      }
-      if(_diaVueltaPernoctaProtegido(kFin, k)){
-        _avisarVueltaPernoctaProtegida(kFin, k, 'vuelta final (día 3)', {sal:d.sal2, lle:d.lle2, hF:F.hF2, hL:F.hL2, numTren:F.numTrenVuelta});
-      } else {
-        if(TV[kFin]&&TV[kFin].origenPernocta===k) delete TV[kFin];
-        TV[kFin]={tipo:'vuelta-pernocta',linea:F.linea,
-          sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
-          numTren:F.numTrenVuelta||'',
-          nocturno:d.nocturno,origenPernocta:k};
-      }
+      _escribirDiaPernoctaConDemota(kInt, k, {tipo:'pernocta3-intermedio',linea:F.linea,
+        sal:F.sal3||'',lle:F.lle3||'',hF:F.hF3||'',hL:F.hL3||'',
+        numTren:F.numTrenIntermedio||'',
+        nocturno:nocIntermedio,origenPernocta:k});
+      _escribirDiaPernoctaConDemota(kFin, k, {tipo:'vuelta-pernocta',linea:F.linea,
+        sal:d.sal2||null,lle:d.lle2||null,hF:F.hF2||null,hL:F.hL2||null,
+        numTren:F.numTrenVuelta||'',
+        nocturno:d.nocturno,origenPernocta:k});
       d.numTrenIntermedio=F.numTrenIntermedio||'';
       d.diaIntermedio=kInt;
       d.diaSiguiente=kFin;
@@ -11732,11 +12481,19 @@ function guardarTurno(){
       // trabajándose en medio. d.importe es lo que queda GUARDADO en
       // el turno — si había continuidad de vuelta, ese dinero real
       // faltaba del importe guardado, no solo del desglose.
+      // FIX — Confirmado por Alex: las esperas/escalas ENTRE TRENES
+      // conectados (ej. 63 min esperando el siguiente tren) también
+      // deben pagarse en HTDL, sea o no pernocta — antes solo se
+      // pagaban en un día suelto, y en pernocta se descartaban por
+      // completo. La única espera que sigue SIN pagar es la de la
+      // propia pernocta entre ida y vuelta (el descanso nocturno real,
+      // ver el guard "!esPernoctaImp" más abajo, que se mantiene
+      // igual) — esa no es una espera entre trenes, es tu descanso.
       var minContinuidadImp = 0, minEscalaImp = 0, finIdaRealImp = F.hL;
       if(F.continuidad && F.continuidad.length){
         F.continuidad.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadImp += calcMins(c.horaInicio, c.horaFin);
-          if(!esPernoctaImp && c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
+          if(c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
           if(c.horaFin) finIdaRealImp = c.horaFin;
         });
       }
@@ -11748,12 +12505,28 @@ function guardarTurno(){
       if(F.continuidadVuelta && F.continuidadVuelta.length){
         F.continuidadVuelta.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadVueltaImp += calcMins(c.horaInicio, c.horaFin);
-          if(!esPernoctaImp && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaImp += c.escalaMin;
+          if(c.escalaMin!=null && c.escalaMin>0) minEscalaImp += c.escalaMin;
         });
       }
       var hEscalaImp = Math.round(minEscalaImp/60*100)/100;
       var hContinuidadImp = Math.round(minContinuidadImp/60*100)/100;
       var hContinuidadVueltaImp = Math.round(minContinuidadVueltaImp/60*100)/100;
+      // NUEVO — Confirmado por Alex: la dormida entre ida y vuelta NO
+      // se paga — salvo que sea un ENLACE DE JORNADA (el descanso real
+      // quedó por debajo del mínimo legal: 12h si duermes en tu base,
+      // 8h si duermes fuera). Ahí la dormida entera pasa a contar,
+      // igual que cualquier otra espera. Mismo cálculo que ya usa
+      // checkDescansoInternoPernocta(), sin depender de si el día
+      // siguiente ya está guardado en TV (aquí puede que aún no lo
+      // esté, se está guardando ahora mismo).
+      var hEnlaceJornadaImp = 0;
+      if(esPernoctaImp && F.hL && F.hF2){
+        var toMinImp=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
+        var dMImp=(1440-toMinImp(F.hL))+toMinImp(F.hF2); if(dMImp<0)dMImp+=1440;
+        var estDescansoImp = F.sal2||F.lle||'';
+        var limImp = (AJ.base && estDescansoImp===AJ.base) ? 720 : 480;
+        if(dMImp < limImp) hEnlaceJornadaImp = Math.round(dMImp/60*100)/100;
+      }
       // FIX — en pernocta, la continuidad de ida y de vuelta SÍ suman
       // al importe guardado (d.importe); antes se descartaban en
       // bloque y el importe del día quedaba por debajo del real,
@@ -11761,7 +12534,7 @@ function guardarTurno(){
       // calculaba bien por su cuenta — de ahí la descuadre entre la
       // ficha del día y el total del mes.
       var horasComputablesHTDL = esPernoctaImp
-        ? Math.round((d.horas+hContinuidadImp+hContinuidadVueltaImp)*100)/100
+        ? Math.round((d.horas+hEscalaImp+hContinuidadImp+hContinuidadVueltaImp+hEnlaceJornadaImp)*100)/100
         : Math.round((hIda+hEscalaImp+hContinuidadImp+hVuelta+hContinuidadVueltaImp)*100)/100;
       var hFparaTasa = esPernoctaImp ? F.hF : F.hF2;
       var hLparaTasa = esPernoctaImp ? F.hL : F.hL2;
@@ -11931,13 +12704,19 @@ function guardarTurno(){
       // contaba en ningún sitio. Ahora se separan igual que en HTDL:
       // trabajo real de continuidad (ida y vuelta) aparte de la
       // escala real.
+      // FIX — Confirmado por Alex: las esperas/escalas entre trenes
+      // conectados también deben pagarse en Art.51/52, sea o no
+      // pernocta — mismo criterio aplicado a HTDL. La única espera
+      // que se sigue excluyendo es la de la pernocta en sí (el
+      // descanso nocturno real entre ida y vuelta, guard
+      // "!esPernoctaArt" más abajo, sin cambios).
       var minContinuidadArt = 0;
       var minEscalaArt = 0;
       var finIdaRealArt = F.hL;
       if(F.continuidad && F.continuidad.length){
         F.continuidad.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadArt += calcMins(c.horaInicio, c.horaFin);
-          if(!esPernoctaArt && c.escalaMin!=null && c.escalaMin>0) minEscalaArt += c.escalaMin;
+          if(c.escalaMin!=null && c.escalaMin>0) minEscalaArt += c.escalaMin;
           if(c.horaFin) finIdaRealArt = c.horaFin;
         });
       }
@@ -11949,19 +12728,30 @@ function guardarTurno(){
       if(F.continuidadVuelta && F.continuidadVuelta.length){
         F.continuidadVuelta.forEach(function(c){
           if(c.horaInicio && c.horaFin) minContinuidadVueltaArt += calcMins(c.horaInicio, c.horaFin);
-          if(!esPernoctaArt && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaArt += c.escalaMin;
+          if(c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaArt += c.escalaMin;
         });
       }
       var hEscalaArt = Math.round(minEscalaArt/60*100)/100;
       var hContinuidadArt = Math.round(minContinuidadArt/60*100)/100;
       var hContinuidadVueltaArt = Math.round(minContinuidadVueltaArt/60*100)/100;
+      // NUEVO — mismo criterio que en HTDL: enlace de jornada (descanso
+      // real por debajo del mínimo legal: 12h en base, 8h fuera) hace
+      // que la dormida entera pase a contar.
+      var hEnlaceJornadaArt = 0;
+      if(esPernoctaArt && F.hL && F.hF2){
+        var toMinArt=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
+        var dMArt=(1440-toMinArt(F.hL))+toMinArt(F.hF2); if(dMArt<0)dMArt+=1440;
+        var estDescansoArt = F.sal2||F.lle||'';
+        var limArt = (AJ.base && estDescansoArt===AJ.base) ? 720 : 480;
+        if(dMArt < limArt) hEnlaceJornadaArt = Math.round(dMArt/60*100)/100;
+      }
       // FIX — igual que en HTDL: en pernocta, la continuidad de ida y
       // de vuelta SÍ suman al total de horas de Art.51/52 (y por tanto
       // al dinero, d.importe, calculado justo debajo); antes se
       // descartaban en bloque para pernocta y esas horas trabajadas
       // de verdad se perdían del importe guardado.
       var horasCompArt = esPernoctaArt
-        ? Math.round((d.horas+hContinuidadArt+hContinuidadVueltaArt)*100)/100
+        ? Math.round((d.horas+hEscalaArt+hContinuidadArt+hContinuidadVueltaArt+hEnlaceJornadaArt)*100)/100
         : Math.round((hIda+hEscalaArt+hContinuidadArt+hVuelta+hContinuidadVueltaArt)*100)/100;
       d.horasEfectivas = horasCompArt;
       d.hEscala = hEscalaArt;
@@ -13706,6 +14496,21 @@ function calcularJornadaDiaria(turnos, fecha){
     // sin ninguna de las dos sigue calculándose exactamente igual que
     // siempre — el objeto jornada original del usuario, sin tocar.
     if(t.turno_referencia_externa || t.esTurnoIntercambiado) return;
+
+    // NUEVO — Confirmado por Alex: si este turno tiene horas GRABADAS
+    // (se congelaron en el momento exacto en que pasó a secundario,
+    // ver _escribirCopiaTurno()/_escribirDiaPernoctaConDemota()), se
+    // usan tal cual, sin volver a calcular nada — así quedan
+    // garantizadas pase lo que pase con el resto del día. Esto NO
+    // sustituye al cálculo normal para turnos nuevos, solo aplica a
+    // los ya congelados en su momento.
+    if(t._horasGarantizadas){
+      efectivasCal  += t._horasGarantizadas.efectivasMin||0;
+      presenciaCal  += t._horasGarantizadas.presenciaMin||0;
+      efectivasHTDL += t._horasGarantizadas.efectivasHTDLMin||0;
+      presenciaHTDL += t._horasGarantizadas.presenciaHTDLMin||0;
+      return;
+    }
     // FIX — bucket POR TURNO, no por día completo.
     var esHTDLEste = (t.tipo==='trabajado' || t.tipo==='art5152');
 
@@ -13959,6 +14764,7 @@ function calculateEarnings(ks){
 
 
   ks.forEach(function(k){
+   try{
     var t=TV[k];if(!t)return;
     var _ks=k.split('-');var mo=parseInt(_ks[1]),dd=_ks[2];
     var dL=parseInt(dd)+' '+MESES_C[parseInt(mo)-1];
@@ -14062,10 +14868,18 @@ function calculateEarnings(ks){
         // Ahora solo la escala (minEscalaHTDL) se sigue excluyendo en
         // pernocta; la duración de cada tramo de continuidad se suma
         // siempre.
+        // FIX — Confirmado por Alex: las esperas/escalas entre trenes
+        // conectados SÍ deben pagarse también en pernocta (antes se
+        // excluían siempre con "!esPernoctaHTDL", igual que ya se
+        // corrigió en guardarTurno() y en Copiar Turno — esta era la
+        // TERCERA copia de la misma fórmula, usada aquí para el
+        // desglose en vivo de Stats, que se había quedado sin
+        // arreglar). La duración de cada tramo de continuidad
+        // siempre se suma.
         if(t.continuidad && t.continuidad.length){
           t.continuidad.forEach(function(c){
             if(c.horaInicio && c.horaFin) minContinuidadHTDL += calcMins(c.horaInicio, c.horaFin);
-            if(!esPernoctaHTDL && c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
+            if(c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
             if(c.horaFin) finIdaRealHTDL = c.horaFin;
           });
         }
@@ -14074,7 +14888,6 @@ function calculateEarnings(ks){
           if(huecoFinalHTDL>0) minEscalaHTDL += huecoFinalHTDL;
         }
         var hContinuidadHTDL = Math.round(minContinuidadHTDL/60*100)/100;
-        var hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100;
         // FIX — mismo problema que la continuidad de la IDA, pero más
         // grave: la continuidad de la VUELTA (t.continuidadVuelta, p.
         // ej. un CONT. después del tramo principal de vuelta) no se
@@ -14084,16 +14897,22 @@ function calculateEarnings(ks){
         // solo de la etiqueta. Se suman aquí exactamente igual que la
         // continuidad de la ida: duración de cada tramo de
         // continuidadVuelta siempre; su escalaMin (el hueco antes de
-        // cada uno) solo si NO es pernocta, por el mismo motivo de
-        // arriba.
+        // cada uno) también siempre, ya sea pernocta o no.
         var minContinuidadVueltaHTDL = 0;
         if(t.continuidadVuelta && t.continuidadVuelta.length){
           t.continuidadVuelta.forEach(function(c){
             if(c.horaInicio && c.horaFin) minContinuidadVueltaHTDL += calcMins(c.horaInicio, c.horaFin);
-            if(!esPernoctaHTDL && c.escalaMin!=null && c.escalaMin>0) minContinuidadVueltaHTDL += c.escalaMin;
+            if(c.escalaMin!=null && c.escalaMin>0) minEscalaHTDL += c.escalaMin;
           });
         }
         var hContinuidadVueltaHTDL = Math.round(minContinuidadVueltaHTDL/60*100)/100;
+        // FIX — 'hEscalaHTDL' se calcula AQUÍ (no antes) porque tiene
+        // que incluir también las esperas de la continuidadVuelta que
+        // se acaban de sumar arriba — antes se calculaba demasiado
+        // pronto y esos minutos se perdían de esta cifra (aunque
+        // seguían sumando al total final, solo faltaban del desglose
+        // por partes).
+        var hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100;
         // NUEVO — TURNOS ADICIONALES (TV2) EN DÍA HTDL: no existen días
         // mixtos. Si el turno principal del día es HTDL ('trabajado'),
         // cualquier turno adicional guardado ese mismo día (aunque su
@@ -14137,8 +14956,20 @@ function calculateEarnings(ks){
           hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100; // recalculado con los huecos añadidos
         }
         var hExtraHTDL = Math.round(minExtraHTDL/60*100)/100;
+        // NUEVO — Confirmado por Alex: la dormida entre ida y vuelta
+        // NO se paga, salvo que sea un ENLACE DE JORNADA (descanso
+        // real por debajo del mínimo legal: 12h en base, 8h fuera).
+        // Mismo cálculo que checkDescansoInternoPernocta().
+        var hEnlaceJornadaHTDL = 0;
+        if(esPernoctaHTDL && t.hL && t.hF2){
+          var toMinHTDL=function(hh){var p=hh.split(':').map(Number);return p[0]*60+p[1];};
+          var dMHTDL=(1440-toMinHTDL(t.hL))+toMinHTDL(t.hF2); if(dMHTDL<0)dMHTDL+=1440;
+          var estDescansoHTDL = t.sal2||t.lle||'';
+          var limHTDL = (AJ.base && estDescansoHTDL===AJ.base) ? 720 : 480;
+          if(dMHTDL < limHTDL) hEnlaceJornadaHTDL = Math.round(dMHTDL/60*100)/100;
+        }
         var hComputable = esPernoctaHTDL
-          ? Math.round((h+hContinuidadHTDL+hContinuidadVueltaHTDL)*100)/100
+          ? Math.round((h+hEscalaHTDL+hContinuidadHTDL+hContinuidadVueltaHTDL+hEnlaceJornadaHTDL)*100)/100
           : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL+hExtraHTDL)*100)/100;
         var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
@@ -14251,6 +15082,18 @@ function calculateEarnings(ks){
         if(ex.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
       });
     }
+   } catch(errDia){
+     // NUEVO — diagnóstico visible sin herramientas de desarrollador:
+     // si el cálculo de UN día concreto falla, antes rompía todo el
+     // bucle silenciosamente (los días siguientes del mes se quedaban
+     // sin sumar, sin ningún aviso). Ahora se avisa con el día y el
+     // error exactos — con alert() en vez de toast() para que el
+     // mensaje se quede fijo en pantalla (el toast desaparece solo a
+     // los 2,5s, muy poco tiempo para leerlo y copiarlo) — y se sigue
+     // con el resto del mes.
+     console.error('Error calculando el día', k, errDia);
+     alert('⚠️ Error calculando '+k+':\n'+(errDia&&errDia.message||errDia)+'\n\n(Haz captura de esto y envíasela a soporte)');
+   }
   });
 
   // ── Enlaces de jornada: descanso incumplido entre días consecutivos ──
@@ -14291,14 +15134,12 @@ function calculateEarnings(ks){
       // que usa la tarifa HTDL — mezclar horas de Art.51/52 ahí
       // descuadraría esa fila).
       var horasEnlaceHTDL = Math.round((enlace.descMin/60)*100)/100;
-      // FIX — el turno de referencia para la tarifa depende del tipo
-      // de enlace: en el caso B (HTDL_A_ORDINARIA_B) el lado HTDL/
-      // Art.51-52 es SIEMPRE tAEnl (antes se miraba tBEnl, que en
-      // este caso es la Ordinaria — tarifa equivocada). HTDL_HTDL ya
-      // no llega aquí (computaFinanciero=false para ese caso), así
-      // que este bloque solo se ejecuta para HTDL_A_ORDINARIA_B.
-      var turnoTarifaEnl = (enlace.tipoEnlace==='HTDL_A_ORDINARIA_B') ? tAEnl
-        : (tBEnl.tipo==='art5152' ? tBEnl : tAEnl.tipo==='art5152' ? tAEnl : tBEnl);
+      // FIX — ahora computaFinanciero=true SOLO cuando tipoEnlace es
+      // 'HTDL_HTDL' (los dos lados son HTDL/Art.51-52, en cualquier
+      // combinación) — el caso mixto con una Ordinaria ya no llega
+      // aquí (avisoNoComputa). La tarifa se elige por si alguno de
+      // los dos lados es Art.51/52.
+      var turnoTarifaEnl = (tBEnl.tipo==='art5152') ? tBEnl : (tAEnl.tipo==='art5152' ? tAEnl : tAEnl);
       if(turnoTarifaEnl.tipo==='art5152'){
         var tarifaArtEnl = parseFloat(AJ.art5152Monto)||0;
         tH += horasEnlaceHTDL*tarifaArtEnl;
@@ -14756,14 +15597,9 @@ function guardarTurnoEnTV2(){
     var _kkp2 = kk.split('-').map(Number);
     var _sig = new Date(_kkp2[0], _kkp2[1]-1, _kkp2[2]); _sig.setDate(_sig.getDate()+1);
     var _kSigTV2 = key(_sig.getFullYear(), _sig.getMonth()+1, _sig.getDate());
-    if(_diaVueltaPernoctaProtegido(_kSigTV2, kk)){
-      _avisarVueltaPernoctaProtegida(_kSigTV2, kk, 'vuelta', {sal:dd.sal2, lle:dd.lle2, hF:dd.hF2, hL:dd.hL2, numTren:dd.numTrenVuelta});
-    } else {
-      if(TV[_kSigTV2] && TV[_kSigTV2].origenPernocta===kk) delete TV[_kSigTV2];
-      TV[_kSigTV2] = {tipo:'vuelta-pernocta', linea:dd.linea,
-        sal:dd.sal2||null, lle:dd.lle2||null, hF:dd.hF2||null, hL:dd.hL2||null,
-        numTren:dd.numTrenVuelta||'', nocturno:dd.nocturno, origenPernocta:kk};
-    }
+    _escribirDiaPernoctaConDemota(_kSigTV2, kk, {tipo:'vuelta-pernocta', linea:dd.linea,
+      sal:dd.sal2||null, lle:dd.lle2||null, hF:dd.hF2||null, hL:dd.hL2||null,
+      numTren:dd.numTrenVuelta||'', nocturno:dd.nocturno, origenPernocta:kk});
     dd.diaSiguiente = _kSigTV2;
   } else if(dd.modo==='pernocta3'){
     var _kkp3 = kk.split('-').map(Number);
@@ -14772,22 +15608,12 @@ function guardarTurnoEnTV2(){
     var _fin = new Date(_kkp3[0], _kkp3[1]-1, _kkp3[2]); _fin.setDate(_fin.getDate()+2);
     var _kFinTV2 = key(_fin.getFullYear(), _fin.getMonth()+1, _fin.getDate());
     var _nocInt = !!((F.hF3&&esHoraNocturna(F.hF3))||(F.hL3&&esHoraNocturna(F.hL3)));
-    if(_diaVueltaPernoctaProtegido(_kIntTV2, kk)){
-      _avisarVueltaPernoctaProtegida(_kIntTV2, kk, 'noche intermedia (día 2)', {sal:F.sal3, lle:F.lle3, hF:F.hF3, hL:F.hL3, numTren:F.numTrenIntermedio});
-    } else {
-      if(TV[_kIntTV2] && TV[_kIntTV2].origenPernocta===kk) delete TV[_kIntTV2];
-      TV[_kIntTV2] = {tipo:'pernocta3-intermedio', linea:dd.linea,
-        sal:F.sal3||'', lle:F.lle3||'', hF:F.hF3||'', hL:F.hL3||'',
-        numTren:F.numTrenIntermedio||'', nocturno:_nocInt, origenPernocta:kk};
-    }
-    if(_diaVueltaPernoctaProtegido(_kFinTV2, kk)){
-      _avisarVueltaPernoctaProtegida(_kFinTV2, kk, 'vuelta final (día 3)', {sal:dd.sal2, lle:dd.lle2, hF:dd.hF2, hL:dd.hL2, numTren:dd.numTrenVuelta});
-    } else {
-      if(TV[_kFinTV2] && TV[_kFinTV2].origenPernocta===kk) delete TV[_kFinTV2];
-      TV[_kFinTV2] = {tipo:'vuelta-pernocta', linea:dd.linea,
-        sal:dd.sal2||null, lle:dd.lle2||null, hF:dd.hF2||null, hL:dd.hL2||null,
-        numTren:dd.numTrenVuelta||'', nocturno:dd.nocturno, origenPernocta:kk};
-    }
+    _escribirDiaPernoctaConDemota(_kIntTV2, kk, {tipo:'pernocta3-intermedio', linea:dd.linea,
+      sal:F.sal3||'', lle:F.lle3||'', hF:F.hF3||'', hL:F.hL3||'',
+      numTren:F.numTrenIntermedio||'', nocturno:_nocInt, origenPernocta:kk});
+    _escribirDiaPernoctaConDemota(_kFinTV2, kk, {tipo:'vuelta-pernocta', linea:dd.linea,
+      sal:dd.sal2||null, lle:dd.lle2||null, hF:dd.hF2||null, hL:dd.hL2||null,
+      numTren:dd.numTrenVuelta||'', nocturno:dd.nocturno, origenPernocta:kk});
     dd.numTrenIntermedio = F.numTrenIntermedio||'';
     dd.diaIntermedio = _kIntTV2;
     dd.diaSiguiente = _kFinTV2;
@@ -15362,7 +16188,24 @@ function renderAccordionTurno(turno, k, esExtra, idxExtra, abiertoPorDefecto, ti
         + 'font-weight:700;cursor:pointer">💼 He trabajado este descanso</button>';
     }
   }
-  if(!t.vueltaPernoctaInformativa) cuerpo += renderizarPopUpSimplificado(t, false, true);
+  if(!t.vueltaPernoctaInformativa){
+    // NUEVO — Confirmado por Alex: el día de la vuelta debe mostrar
+    // también sus tramos de continuidad (ej. la escala de Madrid antes
+    // de llegar a Barcelona), no solo el primer tramo. Esos tramos
+    // viven guardados en el día de ORIGEN (continuidadVuelta) — aquí
+    // solo se toman prestados para PINTARLOS, sin duplicar el dato
+    // real ni tocar TV, así que no hay riesgo de que se desincronicen
+    // si editas uno de los dos días.
+    var tParaMostrar = t;
+    if((t.tipo==='vuelta-pernocta') && t.origenPernocta && TV[t.origenPernocta] &&
+       TV[t.origenPernocta].continuidadVuelta && TV[t.origenPernocta].continuidadVuelta.length &&
+       (!t.continuidad || !t.continuidad.length)){
+      tParaMostrar = {};
+      for(var _kcv in t) tParaMostrar[_kcv] = t[_kcv];
+      tParaMostrar.continuidad = TV[t.origenPernocta].continuidadVuelta;
+    }
+    cuerpo += renderizarPopUpSimplificado(tParaMostrar, false, true);
+  }
   if(t.notas && t.notas.trim()){
     cuerpo += '<div style="margin-top:8px;padding:8px 0;border-top:1px solid var(--div);'
       + 'font-size:11px;color:var(--acc)"><b style="color:var(--tx3);font-size:9px;'
@@ -15410,7 +16253,36 @@ function renderDiaAreaMulti(){
   // número mostrado aquí sea siempre coherente con el que se paga/
   // cuenta — incluye ambos turnos, sus escalas internas y el hueco
   // entre turno 1 y turno 2, tal como corresponde a un día HTDL.
-  var jornadaCombo = calcularJornadaDiaria(all, k);
+  // NUEVO — Confirmado por Alex: el "TOTAL DEL DÍA" combinado no debe
+  // sumar un turno que pasó a secundario por haber sido pisado (era
+  // el principal antes) — solo debe reflejar el turno nuevo. Esas
+  // horas del turno viejo siguen contando en Stats del mes con
+  // normalidad (calcularJornadaDiaria no cambia); aquí solo se filtra
+  // qué entra en ESTE total concreto de la tarjeta del día.
+  // NUEVO — Confirmado por Alex: cuando el día de la vuelta/intermedio
+  // es el turno PRINCIPAL de ese día (por "Copiar turno" o por
+  // registrarlo a mano encima de algo), su propio "TOTAL DEL DÍA"
+  // debe mostrar sus horas — pero calcularJornadaDiaria() solo sabe
+  // sumar tipo 'ordinario'/'trabajado'/'art5152', nunca
+  // 'vuelta-pernocta'/'pernocta3-intermedio' (para el cálculo MENSUAL
+  // eso está bien: esas horas ya se cuentan una vez, desde el día de
+  // origen). Aquí, para ESTE total del día en concreto, se traduce
+  // una copia SOLO PARA EL CÁLCULO (no se guarda nada) al tipo real
+  // del origen, con sus propios datos como si fueran la "ida" de ese
+  // día — así sus horas sí entran en la suma, sin tocar cómo vive
+  // guardado ni duplicar nada en Stats del mes.
+  var allParaTotal = all.filter(function(x){ return !x.esAntiguoPrincipal; }).map(function(x){
+    if(x.tipo!=='vuelta-pernocta' && x.tipo!=='pernocta3-intermedio') return x;
+    var origen = x.origenPernocta ? TV[x.origenPernocta] : null;
+    var tipoReal = (origen && (origen.tipo==='trabajado'||origen.tipo==='art5152')) ? origen.tipo : 'ordinario';
+    var traducido = {}; for(var _kt in x) traducido[_kt] = x[_kt];
+    traducido.tipo = tipoReal;
+    if(origen && origen.continuidadVuelta && origen.continuidadVuelta.length && (!x.continuidad||!x.continuidad.length)){
+      traducido.continuidad = origen.continuidadVuelta;
+    }
+    return traducido;
+  });
+  var jornadaCombo = calcularJornadaDiaria(allParaTotal, k);
   // FIX — el total real del día es la suma de los CUATRO buckets. Antes
   // solo se sumaban efectivasMin+presenciaMin (bucket Ordinario), asi
   // que un dia mixto (Turno Principal Ordinario + Turno Adicional HTDL)
@@ -15454,8 +16326,13 @@ function renderDiaAreaMulti(){
   // con"), colapsado por defecto salvo el primero, en vez de la
   // tarjeta plana anterior — resuelve que faltaran compañeros y que
   // el aspecto no coincidiera con el de un día normal.
-  for(var ii=all.length-1; ii>=0; ii--){
-    html += renderAccordionTurno(all[ii], k, ii>0, ii-1, ii===all.length-1, tipoHTDLDia);
+  // FIX — Confirmado por Alex: el TURNO PRINCIPAL (all[0]) tiene que
+  // salir SIEMPRE arriba del todo, y ser el que se abre por defecto —
+  // antes el bucle iba al revés (de los adicionales hacia el
+  // principal), así que el principal quedaba abajo y era el
+  // adicional el que se abría solo.
+  for(var ii=0; ii<all.length; ii++){
+    html += renderAccordionTurno(all[ii], k, ii>0, ii-1, ii===0, tipoHTDLDia);
   }
 
   html += '</div>';
@@ -15471,6 +16348,9 @@ function renderDiaAreaMulti(){
     + '</div>'
     + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio')
       ? '<div class="dct-row-sec"><button class="dct-btn-sec sec-amber" onclick="abrirRetraso()">⏱ '+(retrasoMin>0?'+'+retrasoMin+'m':'Registrar retraso')+'</button></div>'
+      : '')
+    + ((t.tipo==='ordinario'||t.tipo==='trabajado'||t.tipo==='art5152'||t.tipo==='vuelta-pernocta'||t.tipo==='pernocta3-intermedio'||t.tipo==='descanso')
+      ? '<div class="dct-row-sec"><button class="dct-btn-sec" onclick="abrirCopiarTurno(\''+k+'\')">📋 Copiar turno</button></div>'
       : '')
     + '</div>';
 
@@ -16170,6 +17050,9 @@ function parseSchedulePdfText(text){
       entry.tipo = 'LIBRE'; entry.codigo = 'DO';
     } else if(/DISPONIBLE/i.test(resto)){
       entry.tipo = 'RESERVA'; entry.codigo = 'R';
+    } else if(/\bCP\b/i.test(resto)){
+      // NUEVO — Confirmado por Alex: "CP" son días de vacaciones.
+      entry.tipo = 'VACACIONES'; entry.codigo = 'CP';
     } else {
       entry.tipo = 'SERVICIO';
       const parts = resto.split(/\s+/);
@@ -16193,6 +17076,687 @@ function parseSchedulePdfText(text){
   }
 
   return {dias: diasOut, meta: {empleado, mes, totalHE, totalHP}};
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — CARGA AUTOMÁTICA DEL PDF INDIVIDUAL AL CALENDARIO.
+   100% aditivo: solo LEE horarioActualDias/horarioActualMeta (ya
+   extraídos por parseSchedulePdfText) y ESCRIBE en TV/TV2 con la
+   MISMA estructura que ya usa guardarTurno()/guardarTurnoEnTV2().
+   No toca el parser, ni calculateEarnings, ni ninguna función
+   existente. Alcance v1: solo turnos Ordinario (tipo:'trabajado',
+   estadoServicio:'ordinario'); LIBRE/RESERVA se ignoran por ahora.
+
+   DETECCIÓN DE PERNOCTA — confirmado contra un PDF real de Alex:
+   cuando un servicio cruza la noche, el CÓDIGO de actividad
+   ("438-437", "3304DH-3304-4565-...") aparece IDÉNTICO en los 2 (o 3)
+   días consecutivos que forman el viaje, pero cada día solo trae SUS
+   propios tramos. Se agrupan por eso — nunca por comparar estaciones.
+═══════════════════════════════════════════════════════════ */
+var MESES_PDF_MAP = {ENERO:1,FEBRERO:2,MARZO:3,ABRIL:4,MAYO:5,JUNIO:6,JULIO:7,AGOSTO:8,SEPTIEMBRE:9,OCTUBRE:10,NOVIEMBRE:11,DICIEMBRE:12};
+
+function _pdfMesAnio(mesTexto){
+  if(!mesTexto) return null;
+  var m = mesTexto.match(/([A-ZÁÉÍÓÚ]+)\s+(\d{4})/i);
+  if(!m) return null;
+  var nombre = m[1].toUpperCase().replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U');
+  var mesNum = MESES_PDF_MAP[nombre];
+  if(!mesNum) return null;
+  return {anio: parseInt(m[2],10), mes: mesNum};
+}
+
+// Agrupa los días SERVICIO en bloques de 1 (turno normal), 2 (pernocta)
+// o 3 (pernocta3) días consecutivos con el MISMO código de actividad.
+function _pdfDetectarBloques(dias){
+  var servicio = dias.filter(function(e){ return e.tipo==='SERVICIO' && e.tramos && e.tramos.length; })
+                      .sort(function(a,b){ return a.n-b.n; });
+  var bloques = [];
+  var i = 0;
+  while(i < servicio.length){
+    var grupo = [servicio[i]];
+    var j = i+1;
+    while(j < servicio.length && grupo.length < 3 &&
+          servicio[j].n === grupo[grupo.length-1].n+1 &&
+          servicio[j].codigo === grupo[0].codigo){
+      grupo.push(servicio[j]);
+      j++;
+    }
+    bloques.push(grupo);
+    i = j;
+  }
+  return bloques;
+}
+
+function _pdfBuscarLlegadaSF(tren){
+  var r = SF.filter(function(s){ return s.numTren===tren; })[0];
+  return r ? (r.lle||null) : null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Detección de tramos DH a partir del propio código de
+   actividad del PDF (confirmado con Alex sobre datos reales):
+   - Un número de tren aparece SOLO con DH (ej. "34609DH", sin
+     "34609" suelto en el mismo código) → el tramo entero es DH
+     (100% Presencia).
+   - Un número de tren aparece DOS veces, una normal y otra con DH
+     (ej. "3304" y "3304DH") → es UN solo tramo (una fila de horario)
+     donde a mitad de trayecto pasas de pasajero a trabajador (o al
+     revés) — la mitad de esas horas van a Presencia y la mitad a
+     Efectivas.
+   Devuelve { numTren: 'total'|'mitad', ... } solo para los trenes
+   que sí tienen marca DH en el código.
+═══════════════════════════════════════════════════════════ */
+function _pdfClasificarDH(codigo){
+  var partes = (codigo||'').split('-').filter(Boolean);
+  var tieneDH = {}, tienePlano = {};
+  partes.forEach(function(p){
+    if(/DH$/i.test(p)) tieneDH[p.slice(0, -2)] = true;
+    else tienePlano[p] = true;
+  });
+  var resultado = {};
+  Object.keys(tieneDH).forEach(function(base){
+    resultado[base] = tienePlano[base] ? 'mitad' : 'total';
+  });
+  return resultado;
+}
+
+// Suma/resta minutos a una hora "HH:MM", con vuelta de reloj.
+function _pdfSumarMinutos(hhmm, mins){
+  var p = hhmm.split(':').map(Number);
+  var total = ((p[0]*60+p[1]+mins) % 1440 + 1440) % 1440;
+  var h = Math.floor(total/60), m = total%60;
+  return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Diccionario de siglas de estación (PDF → nombre completo
+   que ya usa la app en LINEAS/F.sal/F.lle). El PDF individual solo
+   trae siglas (BSN, COR, ATO...), nunca el nombre completo. Se
+   guarda en localStorage y se va enseñando la primera vez que
+   aparece cada sigla que NO esté ya en este diccionario base —
+   nunca se adivina una desconocida.
+
+   Confirmadas por Alex (16/08/2026) — vienen de serie para que
+   nadie tenga que volver a enseñarlas desde cero:
+═══════════════════════════════════════════════════════════ */
+var ESTACIONES_PDF_BASE = {
+  BSN:'Barcelona-Sants',
+  COR:'Córdoba',
+  BIL:'Bilbao-Abando',
+  FVL:'Figueres-Vilafant',
+  ALC:'Alicante / Alacant',
+  GRA:'Granada',
+  ATO:'Madrid-Puerta de Atocha',
+  CHA:'Madrid-Chamartín Clara Campoamor',
+  VIG:'Vigo-Urzáiz',
+  SVQ:'Sevilla-Santa Justa',
+  SSB:'San Sebastián',
+  PAM:'Pamplona',
+  CAR:'Cartagena',
+  AGP:'Málaga-María Zambrano',
+  VLN:'Valencia Estació del Nord',
+  // NOTA — VLC y VLJ, a petición de Alex, NO van en la lista base:
+  // cada persona las enseña a mano la primera vez que le aparezcan.
+  ZAZ:'Zaragoza-Delicias'
+};
+var ESTACIONES_PDF = (function(){
+  var guardadas = {};
+  try{ guardadas = JSON.parse(localStorage.getItem('pdfEstMap')||'{}'); }catch(e){ guardadas = {}; }
+  // Las siglas base van primero; lo que el usuario ya haya aprendido
+  // por su cuenta (o corregido a mano) tiene prioridad y no se pisa.
+  var combinado = {};
+  for(var k1 in ESTACIONES_PDF_BASE) combinado[k1] = ESTACIONES_PDF_BASE[k1];
+  for(var k2 in guardadas) combinado[k2] = guardadas[k2];
+  return combinado;
+})();
+function _guardarEstacionesPdf(){
+  try{ localStorage.setItem('pdfEstMap', JSON.stringify(ESTACIONES_PDF)); }catch(e){}
+}
+// Devuelve el nombre completo si ya se conoce esa sigla; null si no.
+function _pdfTraducirEstacion(codigo){
+  if(!codigo) return null;
+  return ESTACIONES_PDF[codigo] || null;
+}
+// Recorre todas las siglas del PDF y devuelve las que aún no conoce.
+// Antes intenta reconocer sola tu estación base: la sigla que más se
+// repite como primera parada del día, si coincide en frecuencia con
+// tener AJ.base configurado, se guarda automáticamente como tu base
+// (sin preguntar — es tu propia Estación Base ya guardada en Ajustes).
+function _pdfCodigosDesconocidos(dias){
+  var vistos = {};
+  dias.forEach(function(e){
+    if(e.tipo!=='SERVICIO') return;
+    (e.tramos||[]).forEach(function(t){ if(t.est) vistos[t.est]=(vistos[t.est]||0)+1; });
+  });
+  if(AJ.base){
+    var mejorCod=null, mejorCount=0;
+    Object.keys(vistos).forEach(function(c){ if(vistos[c]>mejorCount){ mejorCount=vistos[c]; mejorCod=c; } });
+    if(mejorCod && !ESTACIONES_PDF[mejorCod] && mejorCount>=2){
+      ESTACIONES_PDF[mejorCod] = AJ.base;
+      _guardarEstacionesPdf();
+    }
+  }
+  return Object.keys(vistos).filter(function(c){ return !ESTACIONES_PDF[c]; });
+}
+
+// Construye ida+vuelta a partir de los tramos de UN SOLO día suelto
+// (bloque de 1 día): primer tramo = ida, último tramo = vuelta,
+// los del medio = continuidad. Es el caso normal ida-vuelta o los
+// días con escalas que no cruzan a otro día.
+function _pdfConstruirDiaSuelto(entry){
+  var tramos = entry.tramos;
+  var dhMap = _pdfClasificarDH(entry.codigo);
+  var out = {sal:null,lle:null,hF:null,hL:null,numTren:'',
+             sal2:null,lle2:null,hF2:null,hL2:null,numTrenVuelta:'',
+             continuidad:[], incompleto:false};
+  if(!tramos.length){ out.incompleto = true; return out; }
+  var primero = tramos[0], ultimo = tramos[tramos.length-1];
+  var salTxt = _pdfTraducirEstacion(primero.est);
+  out.sal = salTxt || primero.est; out.hF = primero.CI; out.numTren = primero.tren;
+  if(!salTxt) out.incompleto = true;
+  if(tramos.length===1){
+    out.lle = _pdfBuscarLlegadaSF(primero.tren);
+    // FIX — este es el ÚNICO tramo del día (nada continúa después), así
+    // que el final real de la jornada es el CHECK-OUT (CO), no la mera
+    // llegada del tren (arr). El PDF ya deja claro que ese margen final
+    // (arr→CO) también cuenta como parte de las horas del día — antes
+    // se perdía sin más, ni como Efectivas ni como Presencia.
+    out.hL = primero.CO || primero.arr || null;
+    if(!out.lle) out.incompleto = true;
+  } else {
+    var lleTxt = _pdfTraducirEstacion(tramos[1].est);
+    out.lle = lleTxt || tramos[1].est; out.hL = primero.arr || null;
+    if(!lleTxt) out.incompleto = true;
+    var sal2Txt = _pdfTraducirEstacion(ultimo.est);
+    out.sal2 = sal2Txt || ultimo.est; out.hF2 = ultimo.CI; out.numTrenVuelta = ultimo.tren;
+    if(!sal2Txt) out.incompleto = true;
+    out.lle2 = _pdfBuscarLlegadaSF(ultimo.tren) || (AJ.base || null);
+    // FIX — mismo criterio: 'ultimo' es el ÚLTIMO tramo del día (la
+    // vuelta), nada continúa después, así que el final real es su
+    // CO, no su arr.
+    out.hL2 = ultimo.CO || ultimo.arr || null;
+    if(!out.lle2) out.incompleto = true;
+    for(var m=1; m<tramos.length-1; m++){
+      var salM = _pdfTraducirEstacion(tramos[m].est);
+      var lleM = _pdfTraducirEstacion(tramos[m+1].est);
+      if(!salM || !lleM) out.incompleto = true;
+      // FIX — la espera real entre el tramo anterior y este (llegada
+      // de uno → toma del siguiente) no se estaba calculando, así que
+      // esos minutos desaparecían de "Presencia" en Stats. Se saca
+      // directamente del propio PDF (arr del tramo anterior → CI de
+      // este), igual que harías al meterlo a mano.
+      var esperaM = (tramos[m-1].arr && tramos[m].CI) ? calcMins(tramos[m-1].arr, tramos[m].CI) : null;
+      var contM = {
+        tren: tramos[m].tren, salida: salM||tramos[m].est, llegada: lleM||tramos[m+1].est,
+        horaInicio: tramos[m].CI, horaFin: tramos[m].arr, escalaMin:esperaM, tipoTramo:'trabajado'
+      };
+      // NUEVO — DH confirmado por Alex: si este tramo intermedio lleva
+      // marca DH en el código, se reparte igual que en cualquier otro
+      // tramo con DH (ver _pdfClasificarDH arriba).
+      var dhCont = dhMap[tramos[m].tren];
+      if(dhCont){
+        contM.tipoTramo = 'dh';
+        if(dhCont==='mitad'){
+          var durCont = calcMins(tramos[m].CI, tramos[m].arr);
+          contM.dhHoraInicio = tramos[m].CI;
+          contM.dhHoraFin = _pdfSumarMinutos(tramos[m].CI, Math.round(durCont/2));
+        }
+        // si es 'total', se deja sin dhHoraInicio/dhHoraFin: el tramo
+        // entero cuenta como Presencia (comportamiento ya existente).
+      }
+      out.continuidad.push(contM);
+    }
+  }
+  // NUEVO — DH en el tramo de IDA (primero) o VUELTA (último), fuera
+  // de continuidad — usa el mismo campo que ya usa la app para
+  // turnos guardados a mano (estadoServicio/estadoServicioVuelta +
+  // dhMismoTren + dhMinutos).
+  var dhIda = dhMap[primero.tren];
+  if(dhIda && out.hF && out.hL){
+    var durIda = calcMins(out.hF, out.hL);
+    out.estadoServicio = 'dh';
+    out.dhMismoTren = true;
+    out.dhMinutos = (dhIda==='total') ? durIda : Math.round(durIda/2);
+    out.estadoServicioDetalle = 'DH automático (PDF · '+dhIda+')';
+  }
+  if(tramos.length>1){
+    var dhVta = dhMap[ultimo.tren];
+    if(dhVta && out.hF2 && out.hL2){
+      var durVta = calcMins(out.hF2, out.hL2);
+      out.estadoServicioVuelta = 'dh';
+      out.dhMismoTrenVuelta = true;
+      out.dhMinutosVuelta = (dhVta==='total') ? durVta : Math.round(durVta/2);
+      out.estadoServicioVueltaDetalle = 'DH automático (PDF · '+dhVta+')';
+    }
+  }
+  return out;
+}
+
+// Construye UNA dirección completa (todos los tramos de un día
+// tratados como un único trayecto, no como ida+vuelta) — se usa
+// para cada día de una pernocta/pernocta3, donde el día ENTERO es
+// solo la ida, o solo la vuelta, o solo el tramo intermedio.
+function _pdfDireccionCompleta(entry){
+  var tramos = entry.tramos;
+  var dhMap = _pdfClasificarDH(entry.codigo);
+  var out = {salida:null,horaInicio:null,numTren:'',destino:null,llegadaCabeza:null,horaFinal:null,continuidad:[],incompleto:false,
+             esDH:null, dhMinutosCabeza:0};
+  if(!tramos.length){ out.incompleto = true; return out; }
+  var salTxt = _pdfTraducirEstacion(tramos[0].est);
+  out.salida = salTxt || tramos[0].est; out.horaInicio = tramos[0].CI; out.numTren = tramos[0].tren;
+  // FIX — BUG GRAVE: esto usaba la llegada del ÚLTIMO tramo del día
+  // como "horaFinal" del tramo principal (hF2/hL2 en el turno final).
+  // Como los tramos intermedios/segundo tramo YA se cuentan aparte en
+  // 'continuidad' (con su propia duración sumando a Efectivas), ese
+  // mismo tiempo se estaba contando DOS VECES: una metido dentro del
+  // rango CI→última-llegada, y otra vez en continuidad. Eso es
+  // exactamente lo que inflaba "Horas Efectivas" muy por encima del
+  // PDF oficial en días de pernocta con más de un tramo por lado.
+  // horaFinal debe ser SOLO la llegada del primer tramo (la "cabeza"),
+  // igual que ya hace correctamente _pdfConstruirDiaSuelto.
+  out.horaFinal = tramos[0].arr || null;
+  if(!salTxt) out.incompleto = true;
+  if(tramos.length===1){
+    // FIX — si es el ÚNICO tramo de esta dirección, nada continúa
+    // después, así que el final real es su CO (check-out), igual que
+    // en _pdfConstruirDiaSuelto — si no, se perdía ese margen final.
+    out.horaFinal = tramos[0].CO || tramos[0].arr || null;
+    out.destino = _pdfBuscarLlegadaSF(tramos[0].tren);
+    out.llegadaCabeza = out.destino;
+  } else {
+    for(var i=1;i<tramos.length;i++){
+      var llegadaTxt = (i+1<tramos.length) ? _pdfTraducirEstacion(tramos[i+1].est) : _pdfBuscarLlegadaSF(tramos[tramos.length-1].tren);
+      var llegadaCodigoBruto = (i+1<tramos.length) ? tramos[i+1].est : null;
+      if(i+1<tramos.length && !llegadaTxt) out.incompleto = true;
+      // FIX — misma corrección que en _pdfConstruirDiaSuelto: la
+      // espera real entre tramos conectados (arr del anterior → CI de
+      // este) se saca del propio PDF en vez de dejarla en null, para
+      // que sí sume a "Presencia" en Stats.
+      var esperaI = (tramos[i-1].arr && tramos[i].CI) ? calcMins(tramos[i-1].arr, tramos[i].CI) : null;
+      // FIX — si este es el ÚLTIMO tramo de la dirección (i === último
+      // índice), nada continúa después → su final real es el CO, no
+      // el arr, mismo criterio que arriba.
+      var esUltimoTramo = (i === tramos.length-1);
+      var contI = {
+        tren: tramos[i].tren, salida: _pdfTraducirEstacion(tramos[i].est)||tramos[i].est,
+        llegada: llegadaTxt || llegadaCodigoBruto,
+        horaInicio: tramos[i].CI,
+        horaFin: esUltimoTramo ? (tramos[i].CO || tramos[i].arr) : tramos[i].arr,
+        escalaMin:esperaI, tipoTramo:'trabajado'
+      };
+      // NUEVO — DH confirmado por Alex, mismo criterio que en
+      // _pdfConstruirDiaSuelto (ver _pdfClasificarDH).
+      var dhI = dhMap[tramos[i].tren];
+      if(dhI){
+        contI.tipoTramo = 'dh';
+        if(dhI==='mitad'){
+          var durI = calcMins(contI.horaInicio, tramos[i].arr);
+          contI.dhHoraInicio = contI.horaInicio;
+          contI.dhHoraFin = _pdfSumarMinutos(contI.horaInicio, Math.round(durI/2));
+        }
+      }
+      out.continuidad.push(contI);
+    }
+    out.destino = out.continuidad[out.continuidad.length-1].llegada;
+    // NUEVO — Confirmado por Alex: 'destino' es el final de TODA la
+    // cadena de tramos de este día (se usa para enlazar con el día
+    // siguiente de la pernocta) — pero para MOSTRAR el tramo de la
+    // "cabeza" (el primer tren) hace falta su propia llegada, que es
+    // sencillamente donde arranca el segundo tramo (ahí es donde
+    // conecta). Antes se usaba 'destino' para las dos cosas, y el
+    // tramo de cabeza mostraba el destino final de todo el viaje en
+    // vez del suyo propio (ej. mostraba "Barcelona" en vez de
+    // "Madrid Chamartín" para un tren que solo llega hasta ahí).
+    // FIX — Confirmado por Alex: a veces hay un traslado real entre dos
+    // estaciones de la misma ciudad (ej. Chamartín → Atocha) que el
+    // PDF nunca refleja como tramo aparte — el siguiente tren figura
+    // saliendo de la estación del traslado, no de donde realmente
+    // llegó el tren anterior. Por eso, si ya conoces el destino real
+    // de ESE tren en concreto (tu historial, SF), se usa ese dato con
+    // prioridad; solo si no lo conoces se usa la suposición de que
+    // llega justo donde sale el siguiente (lo normal, cuando no hay
+    // traslado de por medio).
+    out.llegadaCabeza = _pdfBuscarLlegadaSF(tramos[0].tren) || out.continuidad[0].salida;
+  }
+  // NUEVO — DH en la CABECERA de esta dirección (tramos[0]) — se
+  // devuelve para que el llamante (_pdfConstruirEscrituras) decida si
+  // va en estadoServicio (ida) o estadoServicioVuelta (vuelta), según
+  // qué lado de la pernocta sea esta dirección.
+  var dhCabeza = dhMap[tramos[0].tren];
+  if(dhCabeza && out.horaInicio && out.horaFinal){
+    var durCabeza = calcMins(out.horaInicio, out.horaFinal);
+    out.esDH = dhCabeza;
+    out.dhMinutosCabeza = (dhCabeza==='total') ? durCabeza : Math.round(durCabeza/2);
+  }
+  if(!out.destino) out.incompleto = true;
+  return out;
+}
+
+// Construye las escrituras TV/TV2 (sin escribir todavía) para una
+// unidad de carga: un día LIBRE (descanso) o un bloque de 1-3 días
+// SERVICIO. Devuelve {escrituras:[{k,data}], incompletos:[k,...]}.
+function _pdfConstruirEscrituras(bloque, anio, mesNum){
+  var kDe = function(n){ return key(anio, mesNum, n); };
+
+  // Día libre (LD/DO) → descanso. Nunca se agrupa (bloque de 1).
+  if(bloque.length===1 && bloque[0].tipo==='LIBRE'){
+    return {escrituras:[{k:kDe(bloque[0].n), data:{tipo:'descanso', cargadoDesdePdf:true}}], incompletos:[]};
+  }
+
+  // NUEVO — Confirmado por Alex: "R" (DISPONIBLE/RESERVA) es un día
+  // de oficina — se guarda igual que un turno de reserva simple hecho
+  // a mano ({tipo:'reserva', simple:true}), que la app YA sabe contar
+  // como 8h de Presencia por defecto (calcularJornadaDiaria, rama
+  // 'reserva', sin reservaHoraToma/Llegada). Tampoco se agrupa nunca.
+  if(bloque.length===1 && bloque[0].tipo==='RESERVA'){
+    return {escrituras:[{k:kDe(bloque[0].n), data:{tipo:'reserva', simple:true, cargadoDesdePdf:true}}], incompletos:[]};
+  }
+
+  // NUEVO — "CP" (vacaciones), mismo patrón que descanso/reserva.
+  if(bloque.length===1 && bloque[0].tipo==='VACACIONES'){
+    return {escrituras:[{k:kDe(bloque[0].n), data:{tipo:'vacaciones', simple:true, cargadoDesdePdf:true}}], incompletos:[]};
+  }
+
+  var escrituras = [], incompletos = [];
+
+  if(bloque.length===1){
+    var d1 = _pdfConstruirDiaSuelto(bloque[0]);
+    var kUnico = kDe(bloque[0].n);
+    if(d1.incompleto) incompletos.push(kUnico);
+    var horasU = (d1.hF&&d1.hL?Math.round(calcMins(d1.hF,d1.hL)/60*100)/100:0) +
+                 (d1.hF2&&d1.hL2?Math.round(calcMins(d1.hF2,d1.hL2)/60*100)/100:0);
+    var dataUnico = {
+      // FIX — 'ordinario' es el turno normal de trabajo; 'trabajado' es
+      // específicamente HTDL (descanso trabajado). Un turno cargado
+      // desde el PDF de tu horario oficial es SIEMPRE Ordinario.
+      tipo:'ordinario', modo:'ida', estadoServicio:'ordinario', linea:null,
+      sal:d1.sal, lle:d1.lle, hF:d1.hF, hL:d1.hL, numTren:d1.numTren,
+      sal2:d1.sal2, lle2:d1.lle2, hF2:d1.hF2, hL2:d1.hL2, numTrenVuelta:d1.numTrenVuelta,
+      continuidad:d1.continuidad, continuidadVuelta:[],
+      horas: horasU,
+      nocturno: !!((d1.hF&&esHoraNocturna(d1.hF))||(d1.hL&&esHoraNocturna(d1.hL))||
+                   (d1.hF2&&esHoraNocturna(d1.hF2))||(d1.hL2&&esHoraNocturna(d1.hL2))),
+      cargadoDesdePdf:true
+    };
+    // NUEVO — DH confirmado por Alex en ida y/o vuelta de un día suelto
+    // (ver _pdfConstruirDiaSuelto → estadoServicio/estadoServicioVuelta).
+    if(d1.estadoServicio==='dh'){
+      dataUnico.estadoServicio = 'dh';
+      dataUnico.dhMismoTren = d1.dhMismoTren;
+      dataUnico.dhMinutos = d1.dhMinutos;
+      dataUnico.estadoServicioDetalle = d1.estadoServicioDetalle;
+    }
+    if(d1.estadoServicioVuelta==='dh'){
+      dataUnico.estadoServicioVuelta = 'dh';
+      dataUnico.dhMismoTrenVuelta = d1.dhMismoTrenVuelta;
+      dataUnico.dhMinutosVuelta = d1.dhMinutosVuelta;
+      dataUnico.estadoServicioVueltaDetalle = d1.estadoServicioVueltaDetalle;
+    }
+    escrituras.push({k:kUnico, data:dataUnico});
+  } else {
+    var direcciones = bloque.map(_pdfDireccionCompleta);
+    var ks = bloque.map(function(e){ return kDe(e.n); });
+
+    // FIX — la llegada de cada tramo de una pernocta NO se adivina con
+    // el historial de trenes (SF): se enlaza directamente con la
+    // SALIDA del día siguiente del propio bloque, que es un dato real
+    // ya sacado del PDF (ahí es donde de verdad duermes/continúas).
+    // Solo el último día (la vuelta final) no tiene "día siguiente"
+    // dentro del bloque — ese vuelve a la base, así que si no hay dato
+    // mejor (SF), se asume tu Estación Base.
+    for(var di=0; di<direcciones.length-1; di++){
+      direcciones[di].destino = direcciones[di+1].salida;
+    }
+    var dirFinal = direcciones[direcciones.length-1];
+    if(!dirFinal.destino) dirFinal.destino = AJ.base || null;
+    // Si ese día tenía tramos de continuidad, su último tramo interno
+    // apuntaba al mismo destino sin resolver — se sincroniza para que
+    // también se vea su ruta (antes se quedaba con salida pero sin
+    // llegada, y por eso tampoco pintaba esa línea).
+    direcciones.forEach(function(dir){
+      if(dir.continuidad.length) dir.continuidad[dir.continuidad.length-1].llegada = dir.destino;
+    });
+
+    direcciones.forEach(function(dir,idx){ if(!dir.salida || !dir.destino) incompletos.push(ks[idx]); });
+
+    var dIda = direcciones[0], dVta = direcciones[direcciones.length-1];
+    var kIda = ks[0], kVta = ks[ks.length-1];
+    var horasIda = (dIda.horaInicio&&dIda.horaFinal?Math.round(calcMins(dIda.horaInicio,dIda.horaFinal)/60*100)/100:0);
+    var horasVta = (dVta.horaInicio&&dVta.horaFinal?Math.round(calcMins(dVta.horaInicio,dVta.horaFinal)/60*100)/100:0);
+    var principal = {
+      tipo:'ordinario', linea:null, estadoServicio:'ordinario',
+      sal:dIda.salida, lle:dIda.llegadaCabeza, hF:dIda.horaInicio, hL:dIda.horaFinal, numTren:dIda.numTren,
+      sal2:dVta.salida, lle2:dVta.llegadaCabeza, hF2:dVta.horaInicio, hL2:dVta.horaFinal, numTrenVuelta:dVta.numTren,
+      continuidad:dIda.continuidad, continuidadVuelta:dVta.continuidad,
+      nocturno: !!((dIda.horaInicio&&esHoraNocturna(dIda.horaInicio))||(dVta.horaFinal&&esHoraNocturna(dVta.horaFinal))),
+      cargadoDesdePdf:true
+    };
+    // NUEVO — DH confirmado por Alex en la cabecera de ida y/o vuelta
+    // (ver _pdfDireccionCompleta → esDH/dhMinutosCabeza).
+    if(dIda.esDH){
+      principal.estadoServicio = 'dh';
+      principal.dhMismoTren = true;
+      principal.dhMinutos = dIda.dhMinutosCabeza;
+      principal.estadoServicioDetalle = 'DH automático (PDF · '+dIda.esDH+')';
+    }
+    if(dVta.esDH){
+      principal.estadoServicioVuelta = 'dh';
+      principal.dhMismoTrenVuelta = true;
+      principal.dhMinutosVuelta = dVta.dhMinutosCabeza;
+      principal.estadoServicioVueltaDetalle = 'DH automático (PDF · '+dVta.esDH+')';
+    }
+    if(bloque.length===2){
+      principal.modo='pernocta';
+      principal.horas = Math.round((horasIda+horasVta)*100)/100;
+      principal.diaSiguiente = kVta;
+      escrituras.push({k:kIda, data:principal});
+      escrituras.push({k:kVta, data:{
+        tipo:'vuelta-pernocta', linea:null,
+        sal:dVta.salida, lle:dVta.llegadaCabeza, hF:dVta.horaInicio, hL:dVta.horaFinal, numTren:dVta.numTren,
+        nocturno: !!((dVta.horaInicio&&esHoraNocturna(dVta.horaInicio))||(dVta.horaFinal&&esHoraNocturna(dVta.horaFinal))),
+        origenPernocta:kIda, cargadoDesdePdf:true
+      }});
+    } else { // 3 días — pernocta3
+      var dInt = direcciones[1], kInt = ks[1];
+      principal.modo='pernocta3';
+      principal.numTrenIntermedio = dInt.numTren;
+      principal.diaIntermedio = kInt;
+      principal.diaSiguiente = kVta;
+      principal.horas = Math.round((horasIda+horasVta)*100)/100; // igual que hace guardarTurno (el intermedio no suma aquí)
+      escrituras.push({k:kIda, data:principal});
+      escrituras.push({k:kInt, data:{
+        tipo:'pernocta3-intermedio', linea:null,
+        sal:dInt.salida, lle:dInt.llegadaCabeza, hF:dInt.horaInicio, hL:dInt.horaFinal, numTren:dInt.numTren,
+        nocturno: !!((dInt.horaInicio&&esHoraNocturna(dInt.horaInicio))||(dInt.horaFinal&&esHoraNocturna(dInt.horaFinal))),
+        origenPernocta:kIda, cargadoDesdePdf:true
+      }});
+      escrituras.push({k:kVta, data:{
+        tipo:'vuelta-pernocta', linea:null,
+        sal:dVta.salida, lle:dVta.llegadaCabeza, hF:dVta.horaInicio, hL:dVta.horaFinal, numTren:dVta.numTren,
+        nocturno: !!((dVta.horaInicio&&esHoraNocturna(dVta.horaInicio))||(dVta.horaFinal&&esHoraNocturna(dVta.horaFinal))),
+        origenPernocta:kIda, cargadoDesdePdf:true
+      }});
+    }
+  }
+  return {escrituras: escrituras, incompletos: incompletos};
+}
+
+// ── Orquestador: primero aprende las siglas de estación que falten,
+//    luego procesa una cola secuencial con preguntas solo si hace falta ──
+var _cargaPdfCola = [], _cargaPdfIdx = 0, _cargaPdfAnio=null, _cargaPdfMes=null;
+var _cargaPdfResumen = {cargados:0, sobrescritos:0, extra:0, omitidos:0, revisar:[]};
+var _cargaPdfEstPendientes = [];
+
+function cargarPdfEnCalendarioAuto(){
+  if(!horarioActualDias || !horarioActualDias.length){
+    toast('⚠️ Primero sube el PDF de este mes en Horario individual');
+    return;
+  }
+  var mesAnio = _pdfMesAnio(horarioActualMeta && horarioActualMeta.mes);
+  if(!mesAnio){
+    toast('⚠️ No se pudo identificar el mes/año de este horario');
+    return;
+  }
+  _cargaPdfAnio = mesAnio.anio; _cargaPdfMes = mesAnio.mes;
+
+  var pendientesEst = _pdfCodigosDesconocidos(horarioActualDias);
+  if(pendientesEst.length){
+    _mostrarFormularioEstacionesPdf(pendientesEst);
+  } else {
+    _iniciarColaCargaPdf();
+  }
+}
+
+// NUEVO — FIX UX: antes preguntaba una sigla por pantalla, en fila
+// (molesto si había varias). Ahora se preguntan TODAS las siglas
+// desconocidas de una sola vez, en un único formulario con un campo
+// por sigla, y se guardan todas juntas al pulsar un solo botón.
+function _mostrarFormularioEstacionesPdf(pendientes){
+  _cargaPdfEstPendientes = pendientes;
+  document.getElementById('cpdf-est-restantes').textContent =
+    pendientes.length===1 ? '1 sigla nueva' : (pendientes.length+' siglas nuevas');
+  var html = pendientes.map(function(cod){
+    return '<div style="margin-bottom:10px">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">Sigla del PDF: <b style="color:var(--tx)">'+cod+'</b></div>'
+      + '<input type="text" class="aj-nombre-inp" data-cpdf-cod="'+cod+'" placeholder="Ej. Barcelona Sants" style="width:100%;box-sizing:border-box">'
+      + '</div>';
+  }).join('');
+  document.getElementById('cpdf-est-lista').innerHTML = html;
+  openOv('ov-carga-pdf-estacion');
+}
+
+function _guardarTodasEstacionesPdf(){
+  var inputs = document.querySelectorAll('#cpdf-est-lista input[data-cpdf-cod]');
+  inputs.forEach(function(inp){
+    var val = inp.value.trim();
+    if(val) ESTACIONES_PDF[inp.getAttribute('data-cpdf-cod')] = val;
+  });
+  _guardarEstacionesPdf();
+  closeOv('ov-carga-pdf-estacion');
+  _iniciarColaCargaPdf();
+}
+
+function _omitirEstacionesPdf(){
+  // Las que se dejen en blanco no se guardan — esos días quedarán
+  // marcados para revisar y se volverá a preguntar la próxima carga.
+  _guardarTodasEstacionesPdf();
+}
+
+function _iniciarColaCargaPdf(){
+  var bloques = _pdfDetectarBloques(horarioActualDias);
+  var descansos = horarioActualDias.filter(function(e){ return e.tipo==='LIBRE'; }).map(function(e){ return [e]; });
+  // NUEVO — días "R" (reserva/disponible) también se cargan, mismo
+  // patrón que los descansos: nunca se agrupan, un día = un bloque.
+  var reservas = horarioActualDias.filter(function(e){ return e.tipo==='RESERVA'; }).map(function(e){ return [e]; });
+  // NUEVO — días "CP" (vacaciones), mismo patrón.
+  var vacaciones = horarioActualDias.filter(function(e){ return e.tipo==='VACACIONES'; }).map(function(e){ return [e]; });
+  var cola = bloques.concat(descansos).concat(reservas).concat(vacaciones).sort(function(a,b){ return a[0].n-b[0].n; });
+  if(!cola.length){
+    toast('No hay días de servicio, descansos ni reservas que cargar en este horario');
+    return;
+  }
+  _cargaPdfCola = cola; _cargaPdfIdx = 0;
+  _cargaPdfResumen = {cargados:0, sobrescritos:0, extra:0, omitidos:0, revisar:[]};
+  toast('📅 Cargando '+cola.length+' día(s) del PDF...');
+  _procesarSiguienteBloquePdf();
+}
+
+function _bloqueTieneConflicto(escrituras){
+  return escrituras.some(function(esc){
+    return !!TV[esc.k] || (TV2[esc.k] && TV2[esc.k].length);
+  });
+}
+
+function _procesarSiguienteBloquePdf(){
+  if(_cargaPdfIdx >= _cargaPdfCola.length){ _finalizarCargaPdf(); return; }
+  var bloque = _cargaPdfCola[_cargaPdfIdx];
+  var res = _pdfConstruirEscrituras(bloque, _cargaPdfAnio, _cargaPdfMes);
+
+  // NUEVO — Confirmado por Alex: cuando los descansos llegan antes en
+  // un PDF aparte (que nunca se sube a la app) y ya están puestos a
+  // mano, el PDF individual del mes en curso los vuelve a mostrar
+  // como "día libre" — si el día ya tiene descanso o DOP puesto, ya
+  // coincide, no hay nada que preguntar. No se sobrescribe el DOP
+  // (perdería su marca especial de solicitud) — se salta sin más.
+  if(res.escrituras.length===1 && res.escrituras[0].data.tipo==='descanso'){
+    var kLibre = res.escrituras[0].k;
+    var existenteLibre = TV[kLibre];
+    if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop')){
+      _cargaPdfResumen.yaCoincidian = (_cargaPdfResumen.yaCoincidian||0) + 1;
+      _cargaPdfIdx++;
+      _procesarSiguienteBloquePdf();
+      return;
+    }
+  }
+
+  if(!_bloqueTieneConflicto(res.escrituras)){
+    _escribirBloquePdf(res, 'directo');
+    if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
+    _cargaPdfIdx++;
+    _procesarSiguienteBloquePdf();
+  } else {
+    _mostrarConflictoPdf(bloque, res);
+  }
+}
+
+function _mostrarConflictoPdf(bloque, res){
+  var etiquetas = bloque.map(function(e){ return e.n+' '+e.d; }).join(' → ');
+  document.getElementById('cpdf-dias').textContent = etiquetas;
+  document.getElementById('cpdf-codigo').textContent = bloque[0].codigo || '';
+  var existentes = res.escrituras.map(function(esc){
+    return TV[esc.k] ? ('· '+esc.k+' ya tiene un turno guardado ('+(TV[esc.k].tipo||'')+')') : null;
+  }).filter(Boolean).join('<br>');
+  document.getElementById('cpdf-existente').innerHTML = existentes || 'Ya hay algo guardado en uno de estos días.';
+  window._cpdfPendiente = res;
+  openOv('ov-carga-pdf-conflicto');
+}
+
+function _resolverConflictoPdf(accion){
+  var res = window._cpdfPendiente;
+  closeOv('ov-carga-pdf-conflicto');
+  if(accion==='sobrescribir'){
+    _escribirBloquePdf(res, 'sobrescribir');
+    if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
+  } else if(accion==='extra'){
+    _escribirBloquePdf(res, 'extra');
+  } else if(accion==='editar'){
+    _cargaPdfResumen.revisar.push('día '+_cargaPdfCola[_cargaPdfIdx][0].n+' (marcado para editar a mano)');
+  } else {
+    _cargaPdfResumen.omitidos++;
+  }
+  _cargaPdfIdx++;
+  _procesarSiguienteBloquePdf();
+}
+
+function _escribirBloquePdf(res, modo){
+  res.escrituras.forEach(function(esc){
+    if(modo==='extra'){
+      var tipoHeredado = (TV[esc.k] && TV[esc.k].tipo) || 'ordinario';
+      if(!TV2[esc.k]) TV2[esc.k]=[];
+      var ddExtra = {};
+      for(var campo in esc.data) ddExtra[campo]=esc.data[campo];
+      ddExtra.tipo = tipoHeredado; ddExtra.comp = 'dinero'; ddExtra.diasComp = [];
+      TV2[esc.k].push(ddExtra);
+    } else {
+      if(modo==='sobrescribir' && TV[esc.k] && TV[esc.k].diaSiguiente && TV[esc.k].diaSiguiente!==esc.data.diaSiguiente){
+        if(TV[TV[esc.k].diaSiguiente] && TV[TV[esc.k].diaSiguiente].origenPernocta===esc.k) delete TV[TV[esc.k].diaSiguiente];
+      }
+      TV[esc.k] = esc.data;
+    }
+  });
+  if(modo==='extra') _cargaPdfResumen.extra++;
+  else if(modo==='sobrescribir') _cargaPdfResumen.sobrescritos++;
+  else _cargaPdfResumen.cargados++;
+}
+
+function _finalizarCargaPdf(){
+  saveTV(); saveTV2();
+  renderCal(); renderStats();
+  var r = _cargaPdfResumen;
+  var msg = '✅ '+r.cargados+' nuevos · '+r.sobrescritos+' sobrescritos · '+r.extra+' como extra · '+r.omitidos+' omitidos';
+  if(r.yaCoincidian) msg += ' · '+r.yaCoincidian+' descansos ya coincidían';
+  if(r.revisar.length) msg += ' · Revisar: '+r.revisar.join(', ');
+  toast(msg);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -17860,27 +19424,34 @@ function _obtenerPasosTour(){
    MÓDULO NOVEDADES — popup dinámico basado en listaNovedades[].
    Para añadir una versión futura:
      1. Edita listaNovedades con los nuevos objetos
-     2. Cambia NOV_VERSION a 'nov_v6' (o la siguiente)
+     2. Cambia NOV_VERSION a 'nov_v8' (o la siguiente)
+     3. Cambia NOV_FECHA a la fecha real de publicación (fija, no se
+        calcula sola — antes usaba la fecha de "hoy" al abrir el
+        popup, lo cual era incorrecto si alguien lo veía días después)
    El popup volverá a salir automáticamente a todos los usuarios.
    Clave localStorage: NOV_VERSION — aislada de TV/AJ/turnos.
 ═══════════════════════════════════════════════════════════ */
 
 function mostrarNovedades(){
-  // Renderizar lista desde el array
+  // Renderizar lista desde el array — estilo "billete de tren"
+  // (maqueta aprobada por Alex): icono en caja + título + descripción,
+  // separados por línea, igual que los resguardos de un billete.
   var ul = document.getElementById('nov-lista');
   if(!ul) return;
   ul.innerHTML = listaNovedades.map(function(n){
-    return '<li style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--div)">'
-      +'<div style="font-size:24px;flex-shrink:0;margin-top:1px">'+n.ico+'</div>'
+    return '<li class="nov2-stub">'
+      +'<div class="nov2-stub-ico">'+n.ico+'</div>'
       +'<div>'
-      +'<div style="font-size:13px;font-weight:800;color:var(--tx);margin-bottom:3px">'+n.titulo+'</div>'
-      +'<div style="font-size:11px;color:var(--tx3);line-height:1.55">'+n.desc+'</div>'
+      +'<div class="nov2-stub-title">'+n.titulo+'</div>'
+      +'<div class="nov2-stub-desc">'+n.desc+'</div>'
       +'</div>'
       +'</li>';
   }).join('');
-  // Etiqueta de versión
+  // FIX — "BCN" ahora vive en su propia línea de ruta (junto a los
+  // puntitos), así que aquí solo va la fecha, para no repetir "BCN"
+  // dos veces.
   var lbl = document.getElementById('nov-version-lbl');
-  if(lbl) lbl.textContent = 'TrenTurnos v5 · BCN · '+new Date().toLocaleDateString('es-ES');
+  if(lbl) lbl.textContent = NOV_FECHA;
   openOv('ov-novedades');
 }
 
