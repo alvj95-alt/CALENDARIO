@@ -180,6 +180,29 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 /* Hoy: anillo naranja */
 .dc-hoy{border-color:var(--nar)!important;color:var(--nar3)!important;font-weight:800}
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Modo selección para borrado múltiple (maqueta A,
+   aprobada por Alex). Mantener pulsado un día entra en este modo;
+   tocar más días los añade/quita de la selección; una barra fija
+   abajo confirma o cancela. Aditivo — no toca .dc en su estado normal.
+═══════════════════════════════════════════════════════════ */
+.dc-marcado-borrar{outline:2.5px solid var(--nar)!important;transform:scale(.93)}
+.dc-check-borrar{position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.5);background:rgba(0,0,0,.25);
+  display:none;align-items:center;justify-content:center;font-size:9px;z-index:2}
+.modo-seleccion-borrado .dc-check-borrar{display:flex}
+.dc-marcado-borrar .dc-check-borrar{background:var(--nar);border-color:var(--nar);color:#1a1006;font-weight:900}
+#barra-borrado-masivo{position:fixed;left:0;right:0;bottom:0;background:var(--s1);
+  border-top:1px solid var(--div);padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+  display:none;align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:0 -10px 30px rgba(0,0,0,.4);z-index:150}
+#barra-borrado-masivo.on{display:flex}
+#barra-borrado-masivo .bbm-count{font-size:13px;font-weight:800;color:var(--tx)}
+#barra-borrado-masivo .bbm-btns{display:flex;gap:8px}
+#barra-borrado-masivo button{padding:10px 16px;border-radius:10px;border:none;font-weight:800;font-size:12.5px;cursor:pointer}
+#barra-borrado-masivo .bbm-cancel{background:var(--s2);color:var(--tx2);border:1px solid var(--div)}
+#barra-borrado-masivo .bbm-del{background:#DC2626;color:#fff}
+
 /* NUEVO — Sistema Horario Compañero: badge azul con el turno del
    compañero, superpuesto en la celda, y modo "solo compañero" que
    atenúa (no oculta del todo, para no perder los badges de retraso/
@@ -5559,6 +5582,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- NUEVO — barra de borrado múltiple (modo selección, maqueta A) -->
+<div id="barra-borrado-masivo">
+  <div class="bbm-count"><span id="bbm-contador">0</span> día(s) seleccionados</div>
+  <div class="bbm-btns">
+    <button class="bbm-cancel" onclick="_cancelarSeleccionBorrado()">Cancelar</button>
+    <button class="bbm-del" onclick="_confirmarEliminarSeleccionMasiva()">🗑 Eliminar</button>
+  </div>
+</div>
+
+
 <!-- BOTÓN DETENER ALARMA — aparece solo cuando hay alarma activa -->
 <div id="alarma-stop-btn" style="
   display:none;
@@ -8799,10 +8832,35 @@ function renderSlide(gridId, fecha){
         }
       }
     }
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'');
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
+    // NUEVO — modo selección para borrado múltiple (maqueta A): tap
+    // normal sigue abriendo el día como siempre; mantener pulsado
+    // ~500ms entra en modo selección (empezando por ese día ya
+    // marcado); un tap NORMAL mientras el modo está activo marca o
+    // desmarca ese día en vez de abrirlo.
     (function(dd, kk, tt){
-      c.onclick=function(){ clickDia(dd, kk, tt); };
+      var _pressTimer = null;
+      var _yaEntroPorPulsacionLarga = false;
+      function _empezarPulsacion(){
+        _yaEntroPorPulsacionLarga = false;
+        _pressTimer = setTimeout(function(){
+          _yaEntroPorPulsacionLarga = true;
+          _iniciarSeleccionBorrado(kk, c);
+        }, 500);
+      }
+      function _cancelarPulsacion(){ clearTimeout(_pressTimer); }
+      c.addEventListener('touchstart', _empezarPulsacion, {passive:true});
+      c.addEventListener('touchend', _cancelarPulsacion);
+      c.addEventListener('touchmove', _cancelarPulsacion);
+      c.addEventListener('mousedown', _empezarPulsacion);
+      c.addEventListener('mouseup', _cancelarPulsacion);
+      c.addEventListener('mouseleave', _cancelarPulsacion);
+      c.onclick=function(){
+        if(_yaEntroPorPulsacionLarga){ _yaEntroPorPulsacionLarga=false; return; } // evita que el propio long-press dispare también un click
+        if(_modoSeleccionBorrado){ _toggleSeleccionBorrado(kk, c); return; }
+        clickDia(dd, kk, tt);
+      };
     })(d, k, t);
     frag.appendChild(c);
   }
@@ -8810,6 +8868,18 @@ function renderSlide(gridId, fecha){
   // Una sola operación de DOM: vaciar + insertar todo de golpe
   grid.innerHTML='';
   grid.appendChild(frag);
+
+  // NUEVO — si el modo selección de borrado ya estaba activo antes de
+  // este renderizado (ej. un renderCal() en segundo plano mientras la
+  // persona tenía días marcados), se reaplican la clase del grid y
+  // las marcas de los días ya elegidos, para no perder la selección.
+  if(_modoSeleccionBorrado){
+    grid.classList.add('modo-seleccion-borrado');
+    Object.keys(_diasSeleccionadosBorrar).forEach(function(kSel){
+      var celda = grid.querySelector('[data-k="'+kSel+'"]');
+      if(celda) celda.classList.add('dc-marcado-borrar');
+    });
+  }
 
   // NUEVO — Sistema Horario Compañero: si hay datos de un compañero
   // importados y el modo de vista no es 'mio', añade un overlay con
@@ -12911,6 +12981,104 @@ function confirmarEliminar(){
    Guarda turnos + ajustes en un .json
    y los restaura sin tocar el código.
 ═══════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — BORRADO MÚLTIPLE POR SELECCIÓN (maqueta A, aprobada por
+   Alex). Mantener pulsado un día entra en "modo selección"; tocar
+   más días los añade/quita; una barra fija abajo confirma o cancela.
+   100% aditivo — no toca clickDia() ni confirmarEliminar() (el
+   borrado de un solo día desde la ficha sigue exactamente igual).
+═══════════════════════════════════════════════════════════ */
+var _modoSeleccionBorrado = false;
+var _diasSeleccionadosBorrar = {};
+
+function _iniciarSeleccionBorrado(k, celdaEl){
+  if(_modoSeleccionBorrado) return;
+  _modoSeleccionBorrado = true;
+  _diasSeleccionadosBorrar = {};
+  document.getElementById('days').classList.add('modo-seleccion-borrado');
+  _toggleSeleccionBorrado(k, celdaEl);
+  if(navigator.vibrate) navigator.vibrate(30); // vibración corta de confirmación, si el dispositivo la soporta
+}
+
+function _toggleSeleccionBorrado(k, celdaEl){
+  if(_diasSeleccionadosBorrar[k]){
+    delete _diasSeleccionadosBorrar[k];
+    if(celdaEl) celdaEl.classList.remove('dc-marcado-borrar');
+  } else {
+    _diasSeleccionadosBorrar[k] = true;
+    if(celdaEl) celdaEl.classList.add('dc-marcado-borrar');
+  }
+  var n = Object.keys(_diasSeleccionadosBorrar).length;
+  document.getElementById('bbm-contador').textContent = n;
+  document.getElementById('barra-borrado-masivo').classList.toggle('on', n>0);
+}
+
+function _cancelarSeleccionBorrado(){
+  _modoSeleccionBorrado = false;
+  _diasSeleccionadosBorrar = {};
+  var grid = document.getElementById('days');
+  if(grid){
+    grid.classList.remove('modo-seleccion-borrado');
+    Array.prototype.slice.call(grid.querySelectorAll('.dc-marcado-borrar')).forEach(function(el){
+      el.classList.remove('dc-marcado-borrar');
+    });
+  }
+  document.getElementById('barra-borrado-masivo').classList.remove('on');
+}
+
+// Limpieza de UN día para el borrado masivo — mismos pasos que ya
+// hace confirmarEliminar() para un solo día (contadores de Art.51/52,
+// días de compensación propios y de Mix, pernocta de 2/3 días,
+// turnos extra en TV2), pero SIN tocar selDay ni la UI (overlays,
+// toasts, renderCal) — eso se hace UNA sola vez al final del lote,
+// no en cada iteración.
+function _eliminarDiaParaBorradoMasivo(k){
+  var t = TV[k];
+  if(!t) return;
+  if(t.tipo==='art5152' && (t.compensacion==='dinero' || t.compensacion==='dias')){
+    var mesOrigenDel = k.slice(0,7);
+    var anioOrigenDel = k.slice(0,4);
+    if(ART5152_USO[mesOrigenDel]){
+      ART5152_USO[mesOrigenDel] = Math.max(0, ART5152_USO[mesOrigenDel]-1);
+      _saveArt5152Uso();
+    }
+    if(ART5152_USO_ANUAL[anioOrigenDel]){
+      ART5152_USO_ANUAL[anioOrigenDel] = Math.max(0, ART5152_USO_ANUAL[anioOrigenDel]-1);
+      _saveArt5152UsoAnual();
+    }
+  }
+  if(t.diasComp && t.diasComp.length){
+    t.diasComp.forEach(function(iso){ if(TV[iso] && TV[iso].origen===k) delete TV[iso]; });
+  }
+  if(t.mixDias && t.mixDias.diasComp && t.mixDias.diasComp.length){
+    t.mixDias.diasComp.forEach(function(iso){ if(TV[iso] && TV[iso].origen===k) delete TV[iso]; });
+  }
+  if(t.diaSiguiente && TV[t.diaSiguiente] && TV[t.diaSiguiente].origenPernocta===k){
+    delete TV[t.diaSiguiente];
+  }
+  if(t.diaIntermedio && TV[t.diaIntermedio] && TV[t.diaIntermedio].origenPernocta===k){
+    delete TV[t.diaIntermedio];
+  }
+  delete TV[k];
+  if(TV2[k]) delete TV2[k];
+}
+
+function _confirmarEliminarSeleccionMasiva(){
+  var dias = Object.keys(_diasSeleccionadosBorrar);
+  if(!dias.length) return;
+  var etiquetas = dias.slice().sort().map(function(k){ return parseInt(k.split('-')[2],10); }).join(', ');
+  if(!confirm('¿Eliminar '+dias.length+' día(s) del calendario (día '+etiquetas+')?\n\nEsta acción no se puede deshacer.')) return;
+  dias.forEach(function(k){ _eliminarDiaParaBorradoMasivo(k); });
+  saveTV(); saveTV2();
+  _cancelarSeleccionBorrado();
+  if(selDay && dias.indexOf(selDay.k)!==-1){
+    clearSelDay();
+    document.getElementById('dia-area').innerHTML='';
+  }
+  renderCal(); renderStats();
+  toast('🗑 '+dias.length+' día(s) eliminados');
+}
+
 function pedirBorrarTodo(){openOv('ov-borrar');}
 
 /* ═══════════════════════════════════════════════════════════
