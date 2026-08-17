@@ -17675,13 +17675,16 @@ function _procesarSiguienteBloquePdf(){
   // NUEVO — Confirmado por Alex: cuando los descansos llegan antes en
   // un PDF aparte (que nunca se sube a la app) y ya están puestos a
   // mano, el PDF individual del mes en curso los vuelve a mostrar
-  // como "día libre" — si el día ya tiene descanso o DOP puesto, ya
-  // coincide, no hay nada que preguntar. No se sobrescribe el DOP
-  // (perdería su marca especial de solicitud) — se salta sin más.
+  // como "día libre" — si el día ya tiene descanso, DOP o COMPE
+  // puesto, ya coincide, no hay nada que preguntar. Los "COMPE" salen
+  // en el PDF como "LD" — son los días de descanso que generó un
+  // HTDL trabajado el mes anterior (compensación "por día"). No se
+  // sobrescribe ninguno de los tres (el DOP y el COMPE perderían su
+  // marca especial y su enlace al turno de origen) — se saltan sin más.
   if(res.escrituras.length===1 && res.escrituras[0].data.tipo==='descanso'){
     var kLibre = res.escrituras[0].k;
     var existenteLibre = TV[kLibre];
-    if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop')){
+    if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop' || existenteLibre.tipo==='comp')){
       _cargaPdfResumen.yaCoincidian = (_cargaPdfResumen.yaCoincidian||0) + 1;
       _cargaPdfIdx++;
       _procesarSiguienteBloquePdf();
