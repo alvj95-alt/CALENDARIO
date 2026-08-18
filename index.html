@@ -3036,18 +3036,28 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </button>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;padding-top:10px;overflow-y:auto">
-    <div style="font-size:12px;color:#94A3B8;margin-bottom:14px">
-      Busca un compañero por nombre en el Horario General publicado.
+    <!-- NUEVO — Confirmado por Alex: se oculta la búsqueda por nombre
+         para Interventor, dejando solo la búsqueda por tren. Se
+         OCULTA con CSS (no se borra del HTML) porque el bloque de
+         abajo (q2/clearBtn2/view2) tiene su propio módulo de
+         JavaScript que asume que estos elementos existen en la
+         página — quitarlos del todo rompería ese script al cargar.
+         Ocultos así, el módulo sigue inicializando sin error, solo
+         que nunca llega a verse ni a usarse. -->
+    <div style="display:none">
+      <div style="font-size:12px;color:#94A3B8;margin-bottom:14px">
+        Busca un compañero por nombre en el Horario General publicado.
+      </div>
+      <div class="srch" style="margin-bottom:10px">
+        <span class="srch-ico">👤</span>
+        <input type="text" id="q2" placeholder="Escribe un nombre..." autocomplete="off">
+        <button class="srch-clear" id="clearBtn2">✕</button>
+      </div>
+      <div id="view2"></div>
     </div>
-    <div class="srch" style="margin-bottom:10px">
-      <span class="srch-ico">👤</span>
-      <input type="text" id="q2" placeholder="Escribe un nombre..." autocomplete="off">
-      <button class="srch-clear" id="clearBtn2">✕</button>
-    </div>
-    <div id="view2"></div>
 
-    <div style="font-size:12px;color:#94A3B8;margin:18px 0 10px;border-top:1px solid rgba(148,163,184,.15);padding-top:16px">
-      O busca por número de tren (muestra tripulación e interventor):
+    <div style="font-size:12px;color:#94A3B8;margin-bottom:10px">
+      Busca por número de tren para ver quién de tripulación hace ese tren ese día:
     </div>
     <div class="srch" style="margin-bottom:10px">
       <span class="srch-ico">🚆</span>
@@ -26021,7 +26031,7 @@ clearBtn.addEventListener('click', ()=>{
             <div class="pcard-av">${initials(m.name)}</div>
             <div class="pcard-info">
               <div class="pcard-name">${m.name}</div>
-              <div class="pcard-id">TRIPULACIÓN${sedeRealM ? ' · '+sedeRealM : ''}${m.id ? ' · ID '+m.id : ''}${_chipUmDhTexto(textoTrenM2, m.cell)}</div>
+              <div class="pcard-id">TRIPULACIÓN${sedeRealM ? ' · '+sedeRealM : ''}${_chipUmDhTexto(textoTrenM2, m.cell)}</div>
             </div>
           </div>
           ${trenIdaVueltaBadgeHTML(m.cell, trainNum)}
