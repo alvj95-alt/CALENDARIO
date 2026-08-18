@@ -4107,6 +4107,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div><div class="sh-tit">Check-in del día</div><div class="sh-sub" id="ci-sub">—</div></div>
       <button class="sh-close" onclick="closeOv('ov-checkin')">✕</button>
     </div>
+    <div style="margin:8px 16px 0;padding:7px 10px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:8px;font-size:9.5px;color:var(--nar3);text-align:center;font-weight:700">🧪 Función en fase de prueba — revisa siempre los datos antes de confiar en ellos del todo</div>
     <div id="ci-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:10px"></div>
   </div>
 </div>
@@ -20873,7 +20874,23 @@ function ciAgruparPorPrimerTramo(filas){
     if(!grupos[key]){ grupos[key] = {hora:f.hora, primero:primero, personas:[]}; orden.push(key); }
     grupos[key].personas.push(f);
   });
-  return orden.map(function(k){ return grupos[k]; });
+  var listaGrupos = orden.map(function(k){ return grupos[k]; });
+  // MODIFICADO — se ordena SIEMPRE por hora, da igual en qué orden se
+  // subieran las fotos o en qué orden saliera cada fila del OCR. Los
+  // grupos sin hora detectada (el OCR no la pudo leer) van al final,
+  // para no desordenar los que sí tienen hora buena.
+  function minutosDeHora(h){
+    var m = h && h.match(/^(\d{1,2}):(\d{2})/);
+    return m ? (parseInt(m[1],10)*60 + parseInt(m[2],10)) : null;
+  }
+  listaGrupos.sort(function(a,b){
+    var ma = minutosDeHora(a.hora), mb = minutosDeHora(b.hora);
+    if(ma===null && mb===null) return 0;
+    if(ma===null) return 1;
+    if(mb===null) return -1;
+    return ma-mb;
+  });
+  return listaGrupos;
 }
 function ciRenderGrupoHtml(g){
   var primeroWarn = /DH|UM/i.test(g.primero||'');
