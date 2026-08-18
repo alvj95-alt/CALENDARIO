@@ -2806,6 +2806,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ci-persona{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
 .ci-persona:last-child{border-bottom:none}
 .ci-mat{font-size:8.5px;color:var(--tx3);font-family:monospace;width:52px;flex-shrink:0}
+/* NUEVO — pista visual de que un dato del vistazo se puede tocar
+   para corregirlo (subrayado discontinuo, se resalta al tocar) */
+.ci-editable{cursor:pointer;border-bottom:1px dashed rgba(148,163,184,.4);padding-bottom:1px}
+.ci-editable:active{background:rgba(249,115,22,.12);border-radius:4px}
 .ci-nom{flex:1;min-width:0}
 .ci-nom-tx{font-size:11.5px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ci-ruta{display:flex;gap:3px;align-items:baseline;margin-top:2px;font-size:8px;flex-wrap:wrap}
@@ -20917,9 +20921,20 @@ function ciParsearTextoOcr(texto){
     if(seccion==='reservas'){
       var mTipo = resto.match(reTipoReserva);
       var horasEncontradas = resto.match(reHoraTodas) || [];
-      var nombreR = resto;
-      if(mTipo) nombreR = nombreR.replace(mTipo[0],'');
-      horasEncontradas.forEach(function(h){ nombreR = nombreR.replace(h,''); });
+      // MODIFICADO — antes se "borraba" cada dato reconocido del texto
+      // y se dejaba pegado todo lo demás alrededor (firma, columnas
+      // vacías mal leídas...). Ahora se CORTA el nombre justo donde
+      // empieza el primer dato reconocido (tipo de reserva u hora) —
+      // así lo que venga después, se lea bien o mal, no contamina el
+      // nombre. Comprobado con datos reales: soluciona el problema de
+      // "nombre con basura pegada al final".
+      var indicesR = [];
+      if(mTipo) indicesR.push(mTipo.index);
+      if(horasEncontradas.length){
+        var iHoraR = resto.search(reHora);
+        if(iHoraR>=0) indicesR.push(iHoraR);
+      }
+      var nombreR = indicesR.length ? resto.slice(0, Math.min.apply(null, indicesR)) : resto;
       nombreR = nombreR.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
       nombreR = ((nombrePendiente ? nombrePendiente+' ' : '') + nombreR).replace(/\s{2,}/g,' ').trim();
       nombrePendiente = '';
@@ -20936,10 +20951,18 @@ function ciParsearTextoOcr(texto){
     var mTurno = resto.match(reTurno);
     var mPos   = resto.match(rePos);
     var mHora  = resto.match(reHora);
-    var nombre = resto;
-    if(mTurno) nombre = nombre.replace(mTurno[0],'');
-    if(mPos)   nombre = nombre.replace(mPos[0],'');
-    if(mHora)  nombre = nombre.replace(mHora[0],'');
+    // MODIFICADO — mismo cambio que en reservas: se corta el nombre en
+    // el primer dato reconocido (turno, posición u hora, el que
+    // aparezca antes) en vez de intentar "limpiar" el texto entero.
+    // Antes, si UN carácter del turno o la posición se leía mal (ej.
+    // "TCF" mal leído como "TCE"), esa parte dejaba de reconocerse y
+    // se quedaba pegada entera al nombre, junto con toda la basura de
+    // las columnas de firma/OBS que vinieran después.
+    var indices = [];
+    if(mTurno) indices.push(mTurno.index);
+    if(mPos)   indices.push(mPos.index);
+    if(mHora)  indices.push(mHora.index);
+    var nombre = indices.length ? resto.slice(0, Math.min.apply(null, indices)) : resto;
     nombre = nombre.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
     nombre = ((nombrePendiente ? nombrePendiente+' ' : '') + nombre).replace(/\s{2,}/g,' ').trim();
     nombrePendiente = '';
@@ -20963,7 +20986,14 @@ function ciAgruparPorPrimerTramo(filas){
   var grupos = {}, orden = [];
   filas.forEach(function(f){
     var primero = (f.turno||'').split('-')[0] || '';
-    var key = (f.hora||'?')+'|'+primero;
+    // FIX — cuando ni la hora NI el tren se pudieron leer, antes se
+    // agrupaban por error TODAS las personas sin esos datos como si
+    // fueran del mismo servicio (aparecían mezcladas en una tarjeta
+    // "¿hora? ¿tren?" con gente que no tenía nada que ver entre sí).
+    // Ahora, si falta el tren, cada persona va en su propia tarjeta
+    // (usando su matrícula como identificador único) — no se asume
+    // que compartan nada solo por faltar el dato.
+    var key = (f.hora||'?')+'|'+(primero || ('__sin_leer_'+f.matricula));
     if(!grupos[key]){ grupos[key] = {hora:f.hora, primero:primero, personas:[]}; orden.push(key); }
     grupos[key].personas.push(f);
   });
@@ -21001,13 +21031,41 @@ function ciRenderReservasHtml(reservas){
   });
   var html = '<div class="ci-seccion-hdr"><span style="font-size:13px">🪑</span><div class="ci-seccion-hdr-tit">Reservas de hoy</div></div><div class="ci-grupo">';
   ordenadas.forEach(function(r){
+    // NUEVO — mismo criterio que en check-in: cada dato editable a
+    // mano si el OCR lo leyó mal, escribiendo sobre
+    // _ciReservasPendientes[idx] directamente.
+    var idx = _ciReservasPendientes.indexOf(r);
     var horas = (r.inicio||'¿inicio?') + '–' + (r.fin||'¿fin?');
     var horasCls = (!r.inicio || !r.fin) ? 'ci-res-horas est-falta' : 'ci-res-horas';
-    html += '<div class="ci-persona"><div class="ci-mat">'+r.matricula+'</div>'+
-      '<div class="ci-nom"><div class="ci-nom-tx">'+r.nombre+'</div><div class="ci-res-tramo">'+(r.tipo||'¿tipo?')+'</div></div>'+
-      '<div class="'+horasCls+'">'+horas+'</div></div>';
+    html += '<div class="ci-persona">'
+      +'<div class="ci-mat ci-editable" onclick="ciEditarCampoReserva('+idx+',\'matricula\',\'Matrícula\')">'+r.matricula+'</div>'
+      +'<div class="ci-nom">'
+        +'<div class="ci-nom-tx ci-editable" onclick="ciEditarCampoReserva('+idx+',\'nombre\',\'Nombre\')">'+r.nombre+'</div>'
+        +'<div class="ci-res-tramo ci-editable" onclick="ciEditarCampoReserva('+idx+',\'tipo\',\'Tipo de reserva (ej. Reserva mañana)\')">'+(r.tipo||'¿tipo?')+'</div>'
+      +'</div>'
+      +'<div class="'+horasCls+' ci-editable" onclick="ciEditarHorasReserva('+idx+')">'+horas+'</div></div>';
   });
   return html+'</div>';
+}
+function ciEditarCampoReserva(idx, campo, etiqueta){
+  if(idx<0 || !_ciReservasPendientes || !_ciReservasPendientes[idx]) return;
+  var actual = _ciReservasPendientes[idx][campo] || '';
+  var nuevo = prompt('Corregir '+etiqueta+':', actual);
+  if(nuevo===null) return;
+  _ciReservasPendientes[idx][campo] = nuevo.trim();
+  renderCiVistazo(_ciFilasPendientes, _ciReservasPendientes);
+}
+// Las horas de reserva son dos campos (inicio/fin) — se preguntan
+// juntas en dos pasos seguidos para no tener que tocar dos veces.
+function ciEditarHorasReserva(idx){
+  if(idx<0 || !_ciReservasPendientes || !_ciReservasPendientes[idx]) return;
+  var r = _ciReservasPendientes[idx];
+  var nuevoInicio = prompt('Corregir hora de inicio (HH:MM):', r.inicio || '');
+  if(nuevoInicio===null) return;
+  var nuevoFin = prompt('Corregir hora de fin (HH:MM):', r.fin || '');
+  if(nuevoFin===null) return;
+  r.inicio = nuevoInicio.trim(); r.fin = nuevoFin.trim();
+  renderCiVistazo(_ciFilasPendientes, _ciReservasPendientes);
 }
 function ciRenderGrupoHtml(g){
   var primeroWarn = /DH|UM/i.test(g.primero||'');
@@ -21017,6 +21075,15 @@ function ciRenderGrupoHtml(g){
     '<div class="ci-count">'+g.personas.length+' persona'+(g.personas.length===1?'':'s')+'</div>'+
     '</div>';
   g.personas.forEach(function(p){
+    // NUEVO — Confirmado por Alex: los datos del OCR a veces vienen
+    // mal leídos (matrícula, nombre, hora...) — antes la única opción
+    // era repetir la foto entera. Ahora cada campo es EDITABLE: se
+    // toca, sale un cuadro para corregirlo a mano, y se repinta el
+    // vistazo con el dato ya corregido — sin volver a fotografiar
+    // nada. El índice se busca por referencia real dentro de
+    // _ciFilasPendientes (el mismo objeto que se sube al confirmar),
+    // así que la corrección se guarda de verdad, no solo en pantalla.
+    var idx = _ciFilasPendientes.indexOf(p);
     var segmentos = (p.turno||'').split('-').filter(Boolean);
     var rutaHtml = '';
     segmentos.forEach(function(seg,i){
@@ -21030,11 +21097,30 @@ function ciRenderGrupoHtml(g){
       return '<span class="pos-chip pos-'+pc+'">'+pc+'</span>';
     }).join('');
     if(!posChips) posChips = '<span class="est-falta">?</span>';
-    html += '<div class="ci-persona"><div class="ci-mat">'+p.matricula+'</div>'+
-      '<div class="ci-nom"><div class="ci-nom-tx">'+p.nombre+'</div><div class="ci-ruta">'+rutaHtml+'</div></div>'+
-      '<div class="ci-right">'+posChips+(p.obs?'<span class="est-obs">'+p.obs+'</span>':'')+'</div></div>';
+    html += '<div class="ci-persona">'
+      +'<div class="ci-mat ci-editable" onclick="ciEditarCampoCheckin('+idx+',\'matricula\',\'Matrícula\')">'+p.matricula+'</div>'
+      +'<div class="ci-nom">'
+        +'<div class="ci-nom-tx ci-editable" onclick="ciEditarCampoCheckin('+idx+',\'nombre\',\'Nombre\')">'+p.nombre+'</div>'
+        +'<div class="ci-ruta ci-editable" onclick="ciEditarCampoCheckin('+idx+',\'turno\',\'Turno (ej. 1101-1192)\')">'+rutaHtml+'</div>'
+      +'</div>'
+      +'<div class="ci-right">'
+        +'<span class="ci-editable" onclick="ciEditarCampoCheckin('+idx+',\'posicion\',\'Posición (ej. CP-TCF)\')">'+posChips+'</span>'
+        +(p.obs?'<span class="est-obs">'+p.obs+'</span>':'')
+      +'</div></div>';
   });
   return html+'</div>';
+}
+// NUEVO — abre un cuadro simple para corregir un campo mal leído por
+// el OCR, y repinta el vistazo con el valor ya corregido. Escribe
+// directamente sobre _ciFilasPendientes[idx] (el mismo array que se
+// sube al confirmar), así que la corrección se conserva de verdad.
+function ciEditarCampoCheckin(idx, campo, etiqueta){
+  if(idx<0 || !_ciFilasPendientes || !_ciFilasPendientes[idx]) return;
+  var actual = _ciFilasPendientes[idx][campo] || '';
+  var nuevo = prompt('Corregir '+etiqueta+':', actual);
+  if(nuevo===null) return; // canceló, no se toca nada
+  _ciFilasPendientes[idx][campo] = nuevo.trim();
+  renderCiVistazo(_ciFilasPendientes, _ciReservasPendientes);
 }
 var _ciReservasPendientes = null;
 function renderCiVistazo(filas, reservas){
@@ -21042,7 +21128,7 @@ function renderCiVistazo(filas, reservas){
   _ciReservasPendientes = reservas || [];
   var grupos = ciAgruparPorPrimerTramo(filas);
   var sinHora = filas.filter(function(f){return !f.hora;}).length;
-  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Échale un vistazo antes de confirmar'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
+  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Toca cualquier dato para corregirlo si el OCR lo leyó mal'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
   grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
   html += ciRenderReservasHtml(_ciReservasPendientes);
   document.getElementById('ci-body').innerHTML = html+
