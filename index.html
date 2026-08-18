@@ -20460,7 +20460,22 @@ function mostrarAvisoListaNegra(persona, onContinuar){
 ═══════════════════════════════════════════════════════════ */
 const SUPABASE_URL_ADMIN = 'https://xoftsdupynwhzxsiusox.supabase.co';
 const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
-const sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
+// FIX — Confirmado por Alex: si el script de Supabase no llega a
+// cargar (conexión mala, bloqueado, CDN caído...), esta línea
+// rompía SIN capturar el error — y al ser código de nivel superior
+// (no dentro de una función), eso podía cortar en seco todo lo que
+// estuviera definido DESPUÉS en este mismo bloque de <script>, no
+// solo el módulo de check-in. Ahora, si falla, sbAdmin se queda en
+// null en vez de tirar abajo el resto del archivo — las funciones
+// que ya comprobaban "sbAdmin sin definir" siguen funcionando igual
+// (null también entra por ese chequeo), simplemente avisan de que no
+// hay conexión en vez de romper la app entera.
+var sbAdmin = null;
+try{
+  sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
+}catch(errSbAdminInit){
+  console.error('No se pudo inicializar Supabase (revisa la conexión/CDN):', errSbAdminInit);
+}
 
 /* ═══════════════════════════════════════════════════════════
    NUEVO — MÓDULO CHECK-IN DEL DÍA (foto + OCR → Supabase).
@@ -20575,7 +20590,7 @@ function ciCambiarDia(delta){
   ciCargarYRenderizarFecha();
 }
 async function ciObtenerFilaFecha(fechaISO){
-  if(typeof sbAdmin === 'undefined') return null;
+  if(!sbAdmin) return null;
   try{
     var resp = await sbAdmin.from('checkin_diario').select('*')
       .eq('fecha', fechaISO).eq('sede', ciSedeActual()).maybeSingle();
@@ -20597,6 +20612,13 @@ function ciBarraDiaHtml(){
 // decide qué pintar: si es HOY, el flujo completo de subir/ver/editar
 // de siempre; si es un día pasado, siempre en solo lectura — el
 // histórico no se sube ni se edita, solo se consulta.
+// FIX — Confirmado por Alex: la pantalla se quedaba en "Cargando…"
+// sin avanzar nunca si la petición a Supabase iba muy lenta o se
+// quedaba colgada en silencio (sin lanzar ningún error, así que el
+// try/catch de ciObtenerFilaFecha() nunca llegaba a activarse). Ahora
+// se le pone un límite de 12 segundos: si no responde a tiempo, se
+// avisa y se ofrece un botón para reintentar, en vez de quedarse
+// esperando para siempre.
 async function ciCargarYRenderizarFecha(){
   document.getElementById('ci-sub').textContent = (AJ.base||'Base') + ' · ' + _ciFechaViendo.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
   if(!ciTieneBaseConfigurada()){
@@ -20604,12 +20626,38 @@ async function ciCargarYRenderizarFecha(){
     return;
   }
   renderCiCargando();
-  var fila = await ciObtenerFilaFecha(ciFechaISO(_ciFechaViendo));
+  var fechaPedida = ciFechaISO(_ciFechaViendo);
+  var timeoutId;
+  var promesaTimeout = new Promise(function(resolve){
+    timeoutId = setTimeout(function(){ resolve('__CI_TIMEOUT__'); }, 12000);
+  });
+  var fila;
+  try{
+    var resultado = await Promise.race([ciObtenerFilaFecha(fechaPedida), promesaTimeout]);
+    if(resultado === '__CI_TIMEOUT__'){
+      renderCiErrorConexion();
+      return;
+    }
+    fila = resultado;
+  } finally {
+    clearTimeout(timeoutId);
+  }
   if(ciEsHoy(_ciFechaViendo)){
     if(fila) renderCiBloqueado(fila); else renderCiVacio();
   } else {
     if(fila) renderCiHistorico(fila); else renderCiSinDatosHistoricos();
   }
+}
+// NUEVO — pantalla de "no se pudo conectar" con botón de reintentar,
+// para cuando la petición supera el límite de tiempo de arriba.
+function renderCiErrorConexion(){
+  document.getElementById('ci-body').innerHTML = ciBarraDiaHtml()+
+    '<div class="ci-empty">'+
+      '<div class="ci-empty-ico">📡</div>'+
+      '<div class="ci-empty-tit">No se pudo conectar</div>'+
+      '<div class="ci-empty-sub">La conexión está tardando demasiado. Comprueba tu internet e inténtalo de nuevo.</div>'+
+      '<button class="ci-btn-subir" onclick="ciCargarYRenderizarFecha()">🔄 Reintentar</button>'+
+    '</div>';
 }
 function renderCiSinDatosHistoricos(){
   document.getElementById('ci-body').innerHTML = ciBarraDiaHtml()+
@@ -22193,7 +22241,7 @@ async function _buscarMatriculaEnPdf(buf, matricula){
 // 'estado' empieza en 'pendiente' y el admin la pasa a 'aceptada' o
 // 'rechazada' desde el Panel de Control (ver cargarSolicitudesAccesoAdmin).
 async function _matriculaTieneSolicitudAceptada(matricula){
-  if(typeof sbAdmin === 'undefined') return false;
+  if(!sbAdmin) return false;
   try{
     var r = await sbAdmin.from('solicitudes_acceso').select('estado').eq('matricula', matricula).eq('estado','aceptada').maybeSingle();
     return !!(r && r.data);
@@ -22229,7 +22277,7 @@ async function enviarSolicitudAccesoBusc(){
 
   if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
   if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
-  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+  if(!sbAdmin){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
 
   var btn = document.getElementById('btnEnviarSolicitudAccesoBusc');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -22281,7 +22329,7 @@ async function enviarSolicitudAccesoTrip(){
 
   if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
   if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
-  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+  if(!sbAdmin){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
 
   var btn = document.getElementById('btnEnviarSolicitudAccesoTrip');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -22332,7 +22380,7 @@ async function enviarSolicitudAccesoInterv(){
 
   if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
   if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
-  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+  if(!sbAdmin){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
 
   var btn = document.getElementById('btnEnviarSolicitudAccesoInterv');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -22372,7 +22420,7 @@ async function enviarSolicitudAcceso(){
 
   if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
   if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
-  if(typeof sbAdmin === 'undefined'){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
+  if(!sbAdmin){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
 
   var btn = document.getElementById('btnEnviarSolicitudAcceso');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
@@ -22732,7 +22780,7 @@ var _diagHorarioGeneral = null; // último motivo de fallo, para poder verlo en 
 async function cargarHorarioGlobalDesdeAdmin(){
   _diagHorarioGeneral = null;
   try{
-    if(typeof sbAdmin === 'undefined'){ _diagHorarioGeneral = 'sbAdmin no está definido'; return false; }
+    if(!sbAdmin){ _diagHorarioGeneral = 'sbAdmin no está disponible'; return false; }
     var esAdmin = !!(perfilAdminActual && perfilAdminActual.rol==='admin')
       // NUEVO — el interventor ve todas las sedes fusionadas, igual
       // que el admin: no tiene una Estación Base propia de la que
@@ -22995,7 +23043,7 @@ window.validarAccesoBuscador = async function(){
   // esto — es solo la prueba de que aceptó, para uso interno.
   var empleadoMatch = BASES.global.data.find(function(e){ return String(e[0]).trim() === matricula; });
   var nombreEmpleado = empleadoMatch ? empleadoMatch[1] : null;
-  if(typeof sbAdmin !== 'undefined'){
+  if(sbAdmin){
     sbAdmin.from('aceptaciones_descargo').insert({
       matricula: matricula,
       nombre: nombreEmpleado,
@@ -23236,7 +23284,7 @@ async function _buscarFilaMatriculaEnArchivo(fila, matricula){
 }
 
 window.buscarTripulanteEnTodasLasSedes = async function(matricula){
-  if(typeof sbAdmin==='undefined') return { valida:false, motivo:'No se pudo conectar para comprobar la matrícula.' };
+  if(!sbAdmin) return { valida:false, motivo:'No se pudo conectar para comprobar la matrícula.' };
   var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
   if(resp.error || !resp.data || !resp.data.length){
     return { valida:false, motivo:'No hay ningún Horario General publicado todavía.' };
@@ -23414,7 +23462,7 @@ window.buscarCompanerosParaTrenDia = function(trainNum, dayNum){
 var _diagIntervencion = null;
 async function cargarIntervencionGlobalDesdeAdmin(){
   _diagIntervencion = null;
-  if(typeof sbAdmin === 'undefined'){
+  if(!sbAdmin){
     _diagIntervencion = 'Supabase no está disponible en este navegador.';
     toast('⚠️ Intervención: Supabase no está disponible en este navegador');
     return false;
@@ -26388,7 +26436,7 @@ clearBtn.addEventListener('click', ()=>{
     // cuándo (ver cargarAccesosInterventorAdmin(), en el Panel de
     // Administrador). El interventor no ve nada de esto — solo queda
     // registrado para uso interno del admin.
-    if(typeof sbAdmin !== 'undefined'){
+    if(sbAdmin){
       sbAdmin.from('accesos_interventor').insert({
         matricula: matricula,
         nombre: resultado.nombre || null,
@@ -26518,7 +26566,7 @@ clearBtn.addEventListener('click', ()=>{
     // matrícula (matricula es la clave primaria de la tabla): si ya
     // existe, el error de clave duplicada se ignora a propósito, sin
     // molestar a la persona con ningún aviso.
-    if(typeof sbAdmin !== 'undefined'){
+    if(sbAdmin){
       sbAdmin.from('accesos_tripulante').insert({
         matricula: matricula,
         nombre: resultado.nombre || null,
