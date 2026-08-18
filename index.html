@@ -4107,7 +4107,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div id="ci-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:10px"></div>
   </div>
 </div>
-<input type="file" id="ci-file-input" accept="image/*" multiple style="display:none" onchange="ciArchivosSeleccionados(this.files)">
+<input type="file" id="ci-file-input" accept="application/pdf" multiple style="display:none" onchange="ciArchivosSeleccionados(this.files)">
 
 
 <!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
@@ -20493,6 +20493,7 @@ try{
    versión anterior).
 ═══════════════════════════════════════════════════════════ */
 var _ciFilasPendientes = null;
+var _ciTextoOcrCrudo = null; // [{archivo, texto}] — texto crudo del OCR de cada foto, para diagnóstico
 var _ciReservasPendientes = null;
 var _ciFechaViendo = null; // objeto Date del día que se está mirando en el overlay
 
@@ -20602,9 +20603,9 @@ function renderCiVacio(){
     '<div class="ci-empty">'+
       '<div class="ci-empty-ico">📤</div>'+
       '<div class="ci-empty-tit">Aún no se ha subido el check-in de hoy</div>'+
-      '<div class="ci-empty-sub">Sube las fotos de la hoja de check-in de '+(AJ.base||'la base')+' — si son varias páginas, puedes elegirlas todas a la vez.</div>'+
-      '<button class="ci-btn-subir" onclick="document.getElementById(\'ci-file-input\').click()">📤 Subir fotos del check-in</button>'+
-      '<div class="ci-consejo">Procura que se vea toda la tabla, recta y con buena luz — el lector automático la entiende mejor así. Podrás corregir cualquier dato mal leído antes de confirmar.</div>'+
+      '<div class="ci-empty-sub">Sube el PDF del listado de asistencia de '+(AJ.base||'la base')+' — si son varias páginas o varios archivos, puedes elegirlos todos a la vez.</div>'+
+      '<button class="ci-btn-subir" onclick="document.getElementById(\'ci-file-input\').click()">📤 Subir PDF del check-in</button>'+
+      '<div class="ci-consejo">Al ser texto real dentro del PDF (no una foto escaneada), se lee prácticamente todo bien. Podrás corregir cualquier dato antes de confirmar.</div>'+
     '</div>';
 }
 function renderCiProgreso(msg, pct){
@@ -20657,39 +20658,60 @@ async function ciEliminarCheckin(fechaISO, esHistorico){
   if(esHistorico) renderCiSinDatosHistoricos(); else renderCiVacio();
 }
 
-// ── Selección y lectura de fotos (patrón simple, sin procesado propio) ──
+// ── Selección y lectura del PDF de check-in ──
 async function ciArchivosSeleccionados(fileList){
   var archivos = Array.prototype.slice.call(fileList||[]);
   if(!archivos.length) return;
-  var todasLasFilas = [], todasLasReservas = [], fotosSinLeerNada = 0;
+  var todasLasFilas = [], todasLasReservas = [], pdfsSinLeerNada = 0;
+  // NUEVO — Confirmado por Alex: se cambia de foto+OCR a PDF — el
+  // check-in se genera como PDF con texto real dentro (no una foto
+  // escaneada), así que se puede extraer directo, sin adivinar nada
+  // como hacía Tesseract. Reutiliza EXACTAMENTE el mismo lector que
+  // ya usa la carga del horario (pdfjsLib + asegurarPdfWorkerSeguro,
+  // ver el listener de #fileInput más arriba) — ni una línea nueva
+  // de lógica de lectura, solo se reaprovecha lo que ya funciona.
+  _ciTextoOcrCrudo = [];
   for(var idx=0; idx<archivos.length; idx++){
     var file = archivos[idx];
-    var etiqueta = archivos.length>1 ? ('foto '+(idx+1)+' de '+archivos.length) : 'la foto';
-    renderCiProgreso('Leyendo '+etiqueta+' (OCR)…', Math.round((idx/archivos.length)*100));
+    var etiqueta = archivos.length>1 ? ('PDF '+(idx+1)+' de '+archivos.length) : 'el PDF';
+    renderCiProgreso('Leyendo '+etiqueta+'…', Math.round((idx/archivos.length)*100));
     try{
-      var resultadoOcr = await Tesseract.recognize(file, 'spa', {
-        logger: function(m){
-          if(m.status==='recognizing text'){
-            var pct = (idx + (m.progress||0)) / archivos.length;
-            renderCiProgreso('Leyendo '+etiqueta+' (OCR)… '+Math.round((m.progress||0)*100)+'%', Math.round(pct*100));
-          }
-        }
-      });
-      var parseo = ciParsearTextoOcr(resultadoOcr.data.text);
-      if(!parseo.filas.length && !parseo.reservas.length) fotosSinLeerNada++;
+      await asegurarPdfWorkerSeguro();
+      var buf = await file.arrayBuffer();
+      var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      var fullText = '';
+      for(var p=1; p<=pdf.numPages; p++){
+        renderCiProgreso('Leyendo '+etiqueta+'… página '+p+' de '+pdf.numPages, Math.round(((idx+(p/pdf.numPages))/archivos.length)*100));
+        var page = await pdf.getPage(p);
+        var content = await page.getTextContent();
+        var items = content.items.map(function(it){ return {str:it.str, x:it.transform[4], y:it.transform[5]}; });
+        items.sort(function(a,b){ return b.y-a.y || a.x-b.x; });
+        var lastY = null;
+        items.forEach(function(it){
+          if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
+          else if(lastY !== null){ fullText += ' '; }
+          fullText += it.str;
+          lastY = it.y;
+        });
+        fullText += '\n';
+      }
+      _ciTextoOcrCrudo.push({archivo: file.name||('PDF '+(idx+1)), texto: fullText});
+      var parseo = ciParsearTextoOcr(fullText);
+      if(!parseo.filas.length && !parseo.reservas.length) pdfsSinLeerNada++;
       todasLasFilas = todasLasFilas.concat(parseo.filas);
       todasLasReservas = todasLasReservas.concat(parseo.reservas);
     }catch(err){
       console.error(err);
-      fotosSinLeerNada++;
+      _ciTextoOcrCrudo.push({archivo: file.name||('PDF '+(idx+1)), texto: '(ERROR: '+(err&&err.message||err)+')'});
+      pdfsSinLeerNada++;
     }
   }
   if(!todasLasFilas.length && !todasLasReservas.length){
     renderCiVacio();
-    toast('No se pudo leer ninguna tabla — prueba con una foto más recta y con más luz');
+    toast('No se pudo leer ningún dato del PDF — comprueba que sea el archivo correcto');
     return;
   }
-  if(fotosSinLeerNada>0) toast('⚠️ '+fotosSinLeerNada+' foto(s) no se pudieron leer bien — revisa el vistazo antes de confirmar');
+  if(pdfsSinLeerNada>0) toast('⚠️ '+pdfsSinLeerNada+' PDF(s) no se pudieron leer — revisa el vistazo antes de confirmar');
   renderCiVistazo(todasLasFilas, todasLasReservas);
 }
 
@@ -21011,7 +21033,9 @@ function renderCiVistazo(filas, reservas){
   _ciReservasPendientes = reservas||[];
   var grupos = ciAgruparPorHora(filas);
   var sinHora = filas.filter(function(f){return !f.hora;}).length;
-  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Toca cualquier dato para corregirlo si el OCR lo leyó mal'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
+  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Toca cualquier dato para corregirlo si el OCR lo leyó mal'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.'+
+    (_ciTextoOcrCrudo&&_ciTextoOcrCrudo.length ? '<br><a href="#" onclick="ciVerTextoCrudo();return false;" style="color:var(--acc2);font-weight:700">🔍 Ver texto leído (diagnóstico)</a>' : '')+
+    '</div>';
   html += ciRenderViaHtml(grupos, false);
   html += ciRenderReservasHtml(_ciReservasPendientes, false);
   document.getElementById('ci-body').innerHTML = html+
@@ -21019,6 +21043,22 @@ function renderCiVistazo(filas, reservas){
       '<button class="ci-btn-cancelar" onclick="renderCiVacio()">✕ Repetir foto</button>'+
       '<button class="ci-btn-confirmar" onclick="ciConfirmarSubida()">✓ Confirmar y subir</button>'+
     '</div>';
+}
+// NUEVO — muestra el texto EXACTO que Tesseract sacó de cada foto,
+// en un cuadro seleccionable para copiar y compartir tal cual. Sirve
+// para diagnosticar por qué algo se lee mal sin tener que adivinar.
+function ciVerTextoCrudo(){
+  if(!_ciTextoOcrCrudo || !_ciTextoOcrCrudo.length) return;
+  var html = _ciTextoOcrCrudo.map(function(t,i){
+    return '<div style="margin:0 16px 14px">'
+      + '<div style="font-size:10px;font-weight:800;color:var(--tx2);margin-bottom:5px">📷 '+(t.archivo||('Foto '+(i+1)))+'</div>'
+      + '<textarea readonly onclick="this.select()" style="width:100%;min-height:160px;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx2);font-family:monospace;font-size:10px;padding:8px;white-space:pre;overflow:auto">'+t.texto.replace(/</g,'&lt;')+'</textarea>'
+      + '</div>';
+  }).join('');
+  document.getElementById('ci-body').innerHTML =
+    '<div style="padding:12px 16px 4px;font-size:11px;color:var(--tx2)">Toca un cuadro para seleccionar todo el texto y copiarlo. Este es el texto tal cual lo leyó el lector, antes de interpretarlo.</div>'
+    + html
+    + '<div style="padding:0 16px 14px"><button class="ci-btn-cancelar" style="width:100%" onclick="renderCiVistazo(_ciFilasPendientes,_ciReservasPendientes)">‹ Volver al vistazo</button></div>';
 }
 async function ciConfirmarSubida(){
   if(!_ciFilasPendientes || (!_ciFilasPendientes.length && !(_ciReservasPendientes&&_ciReservasPendientes.length))) return;
