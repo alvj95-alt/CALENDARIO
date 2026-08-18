@@ -2795,6 +2795,25 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .pos-chip.pos-CP{background:rgba(37,99,235,.15);color:#93c5fd}
 .pos-chip.pos-TCF{background:rgba(16,185,129,.15);color:#6ee7b7}
 .pos-chip.pos-JT{background:rgba(249,115,22,.15);color:#fdba74}
+.pos-chip.pos-CC{background:rgba(168,85,247,.15);color:#d8b4fe}
+/* NUEVO — vista "Vía" del check-in (maqueta 3, aprobada por Alex):
+   carril vertical con una parada por hora de toma, y los trenes de
+   esa hora colgando a la derecha como bloques. */
+.m3-track{padding:10px 16px 4px}
+.m3-item{display:flex;gap:14px}
+.m3-rail{width:14px;flex-shrink:0;display:flex;flex-direction:column;align-items:center}
+.m3-dot{width:10px;height:10px;border-radius:50%;background:var(--acc);border:2px solid var(--bg);box-shadow:0 0 0 2px var(--acc);margin-top:4px;flex-shrink:0}
+.m3-line{width:2px;flex:1;background:var(--div);margin-top:2px;min-height:12px}
+.m3-item:last-child .m3-line{display:none}
+.m3-content{flex:1;padding-bottom:14px;min-width:0}
+.m3-hora{font-size:13px;font-weight:900;color:var(--tx);margin-bottom:8px;font-variant-numeric:tabular-nums}
+.m3-hora.est-falta{font-size:11.5px;color:var(--tx3);font-weight:700}
+.m3-tren-block{background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.m3-tren-block .ci-persona{padding:8px 2px}
+.m3-tren-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;padding:0 2px}
+.m3-tren{font-size:12px;font-weight:800;color:var(--tx)}
+.m3-warn{color:var(--nar2)}
+.m3-cnt{font-size:8px;color:var(--tx3);font-weight:700;background:var(--s3);padding:1px 6px;border-radius:10px}
 </style>
 </head>
 <body>
@@ -20601,10 +20620,10 @@ function renderCiSinDatosHistoricos(){
 }
 function renderCiHistorico(fila){
   var filas = fila.datos || [];
-  var grupos = ciAgruparPorPrimerTramo(filas);
+  var grupos = ciAgruparPorHora(filas);
   var esAdmin = ciEsAdminOInterventor();
   var html = ciBarraDiaHtml();
-  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g, true); });
+  html += ciRenderViaHtml(grupos, true);
   html += ciRenderReservasHtml(fila.reservas||[], true);
   html += '<div class="ci-hist-note">🗂️ Histórico de solo lectura — subido por '+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</div>';
   if(esAdmin){
@@ -20614,12 +20633,12 @@ function renderCiHistorico(fila){
 }
 function renderCiBloqueado(fila){
   var filas = fila.datos || [];
-  var grupos = ciAgruparPorPrimerTramo(filas);
+  var grupos = ciAgruparPorHora(filas);
   var esAdmin = ciEsAdminOInterventor();
   var horaSubida = '';
   try{ horaSubida = new Date(fila.subido_en).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }catch(e){}
   var html = ciBarraDiaHtml();
-  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g, true); });
+  html += ciRenderViaHtml(grupos, true);
   html += ciRenderReservasHtml(fila.reservas||[], true);
   html += '<div class="ci-locked-foot">🔒 Subido por <b>'+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</b>'+(horaSubida?' a las '+horaSubida:'')+'</div>';
   if(esAdmin){
@@ -20679,41 +20698,125 @@ function ciParsearTextoOcr(texto){
   var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(Boolean);
   var filas = [], reservas = [];
   var seccion = 'checkin', nombrePendiente = '', lineasSinMatriculaSeguidas = 0;
+  // NUEVO — fila con matrícula ya vista pero SIN turno/posición/hora
+  // todavía (el nombre se cortó justo ahí y el resto de la fila viene
+  // en la línea de abajo, ej. "4179742 ALVARADO RODRIGUEZ, JOSE" en
+  // una línea y "ALEJANDRO 3930DH-... JT-JT-CP-JT 7:30" en la
+  // siguiente, SIN su propia matrícula). Confirmado con fotos reales
+  // — es el patrón de nombre partido MÁS FRECUENTE, así que sin esto
+  // se perdía toda la fila (turno/posición/hora vacíos) por cada
+  // nombre largo de dos líneas.
+  var filaPendienteCheckin = null;  // {matricula, nombre}
+  var filaPendienteReserva = null;  // {matricula, nombre}
   var reMat = /^[^\dA-Za-zÁÉÍÓÚÑáéíóúñ]{0,4}(\d{6,7})/;
   var reHora = /(\d{1,2}:\d{2})/;
   var reHoraTodas = /(\d{1,2}:\d{2})/g;
-  var rePos = /\b((?:CP|TCF|JT)(?:[-·](?:CP|TCF|JT))*)\b/;
-  var reTurno = /\b(\d{3,6}(?:UM|DH|F)?(?:[-·]\d{3,6}(?:UM|DH|F)?){0,4})\b/;
+  var rePos = /\b((?:CP|TCF|JT|CC)(?:[-·](?:CP|TCF|JT|CC))*)\b/;
+  var reTurno = /\b(\d{3,6}(?:UM|DH|F)?(?:[-·]\d{3,6}(?:UM|DH|F)?){0,7})\b/;
   var reCabeceraReservas = /RESERVAS?\b.{0,20}FECHA/i;
   var reCabeceraCheckin = /CHECK.?IN\b.{0,20}FECHA/i;
   var reTipoReserva = /RESERVA\s*(MA[ÑN]ANA|INTERMEDIA|TARDE)/i;
+  function limpiar(s){ return s.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim(); }
+  function pareceContinuacionNombre(soloTexto){
+    return soloTexto.length>1 && soloTexto.length<30
+      && soloTexto === soloTexto.toUpperCase()
+      && !/\b\w\b.*\b\w\b/.test(soloTexto); // como mucho 1 "palabra" de una sola letra
+  }
 
   lineas.forEach(function(linea){
-    if(reCabeceraReservas.test(linea)){ seccion='reservas'; nombrePendiente=''; return; }
-    if(reCabeceraCheckin.test(linea)){ seccion='checkin'; nombrePendiente=''; return; }
+    if(reCabeceraReservas.test(linea)){ seccion='reservas'; nombrePendiente=''; filaPendienteCheckin=null; filaPendienteReserva=null; return; }
+    if(reCabeceraCheckin.test(linea)){ seccion='checkin'; nombrePendiente=''; filaPendienteCheckin=null; filaPendienteReserva=null; return; }
     var mMat = linea.match(reMat);
+
+    // ── Línea SIN matrícula propia ──
     if(!mMat){
       var soloTexto = linea.replace(/[^A-ZÁÉÍÓÚÑa-záéíóúñ,\s]/g,'').trim();
-      var pareceNombre = soloTexto.length>4 && soloTexto.length<40
+
+      // 1) ¿Completa una fila pendiente (matrícula ya vista, faltaba
+      //    turno/posición/hora)? Es el caso más común en tus fotos.
+      var filaPend = seccion==='reservas' ? filaPendienteReserva : filaPendienteCheckin;
+      if(filaPend){
+        if(seccion==='reservas'){
+          var mTipo2 = linea.match(reTipoReserva);
+          var horas2 = linea.match(reHoraTodas) || [];
+          if(mTipo2 || horas2.length){
+            var idx2 = [];
+            if(mTipo2) idx2.push(mTipo2.index);
+            if(horas2.length){ var ih2=linea.search(reHora); if(ih2>=0) idx2.push(ih2); }
+            var extra2 = idx2.length ? limpiar(linea.slice(0, Math.min.apply(null,idx2))) : '';
+            reservas.push({
+              matricula: filaPend.matricula,
+              nombre: limpiar((filaPend.nombre+' '+extra2).trim()) || '(nombre no leído)',
+              tipo: mTipo2 ? ('Reserva '+mTipo2[1].replace(/MANANA/i,'Mañana').toLowerCase().replace(/^\w/,function(c){return c.toUpperCase();})) : '',
+              inicio: horas2[0]||'', fin: horas2[1]||''
+            });
+            filaPendienteReserva = null; lineasSinMatriculaSeguidas=0; return;
+          }
+        } else {
+          var mT2=linea.match(reTurno), mP2=linea.match(rePos), mH2=linea.match(reHora);
+          if(mT2||mP2||mH2){
+            var idx3 = [];
+            if(mT2) idx3.push(mT2.index);
+            if(mP2) idx3.push(mP2.index);
+            if(mH2) idx3.push(mH2.index);
+            var extra3 = idx3.length ? limpiar(linea.slice(0, Math.min.apply(null,idx3))) : '';
+            filas.push({
+              matricula: filaPend.matricula,
+              nombre: limpiar((filaPend.nombre+' '+extra3).trim()) || '(nombre no leído)',
+              turno: mT2 ? mT2[1].replace(/·/g,'-') : '',
+              posicion: mP2 ? mP2[1].replace(/·/g,'-') : '',
+              hora: mH2 ? mH2[1] : '', obs: ''
+            });
+            filaPendienteCheckin = null; lineasSinMatriculaSeguidas=0; return;
+          }
+        }
+        // no traía datos de turno/posición/hora → puede ser una
+        // TERCERA línea del mismo nombre (nombres muy largos)
+        if(pareceContinuacionNombre(soloTexto)){
+          filaPend.nombre = (filaPend.nombre+' '+soloTexto).trim();
+          lineasSinMatriculaSeguidas=0; return;
+        }
+      }
+
+      // 2) Si no hay fila pendiente: puede ser el INICIO de un nombre
+      //    que se lee ANTES que su matrícula (caso menos común, pero
+      //    ya contemplado antes) — exige coma para no confundir ruido
+      //    del fondo con un nombre de verdad.
+      var pareceNombreNuevo = soloTexto.length>4 && soloTexto.length<40
         && soloTexto === soloTexto.toUpperCase()
         && soloTexto.indexOf(',')>=0
         && !/\b\w\b.*\b\w\b.*\b\w\b/.test(soloTexto);
-      if(pareceNombre){ nombrePendiente = (nombrePendiente+' '+soloTexto).trim(); lineasSinMatriculaSeguidas=0; }
-      else { lineasSinMatriculaSeguidas++; if(lineasSinMatriculaSeguidas>=2) nombrePendiente=''; }
+      var pareceContinuacionSuelta = nombrePendiente && pareceContinuacionNombre(soloTexto);
+      if(pareceNombreNuevo || pareceContinuacionSuelta){
+        nombrePendiente = (nombrePendiente+' '+soloTexto).trim(); lineasSinMatriculaSeguidas=0;
+      } else {
+        lineasSinMatriculaSeguidas++;
+        if(lineasSinMatriculaSeguidas>=2){ nombrePendiente=''; filaPendienteCheckin=null; filaPendienteReserva=null; }
+      }
       return;
     }
+
+    // ── Línea CON matrícula: cierra cualquier fila pendiente sin
+    //    terminar (mejor guardar el dato parcial que perderlo) ──
+    if(filaPendienteCheckin){ filas.push({matricula:filaPendienteCheckin.matricula, nombre:filaPendienteCheckin.nombre||'(nombre no leído)', turno:'', posicion:'', hora:'', obs:''}); filaPendienteCheckin=null; }
+    if(filaPendienteReserva){ reservas.push({matricula:filaPendienteReserva.matricula, nombre:filaPendienteReserva.nombre||'(nombre no leído)', tipo:'', inicio:'', fin:''}); filaPendienteReserva=null; }
     lineasSinMatriculaSeguidas = 0;
     var resto = linea.slice(mMat[0].length);
+
     if(seccion==='reservas'){
       var mTipo = resto.match(reTipoReserva);
       var horasEncontradas = resto.match(reHoraTodas) || [];
       var indicesR = [];
       if(mTipo) indicesR.push(mTipo.index);
       if(horasEncontradas.length){ var iHoraR = resto.search(reHora); if(iHoraR>=0) indicesR.push(iHoraR); }
-      var nombreR = indicesR.length ? resto.slice(0, Math.min.apply(null, indicesR)) : resto;
-      nombreR = nombreR.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
-      nombreR = ((nombrePendiente?nombrePendiente+' ':'')+nombreR).replace(/\s{2,}/g,' ').trim();
+      var nombreR = indicesR.length ? limpiar(resto.slice(0, Math.min.apply(null, indicesR))) : limpiar(resto);
+      nombreR = limpiar((nombrePendiente ? nombrePendiente+' ' : '') + nombreR);
       nombrePendiente = '';
+      if(!mTipo && !horasEncontradas.length){
+        // nombre cortado justo aquí, sin datos todavía → esperar la siguiente línea
+        filaPendienteReserva = {matricula: mMat[1], nombre: nombreR};
+        return;
+      }
       reservas.push({
         matricula: mMat[1], nombre: nombreR || '(nombre no leído)',
         tipo: mTipo ? ('Reserva '+mTipo[1].replace(/MANANA/i,'Mañana').toLowerCase().replace(/^\w/,function(c){return c.toUpperCase();})) : '',
@@ -20721,15 +20824,20 @@ function ciParsearTextoOcr(texto){
       });
       return;
     }
+
     var mTurno = resto.match(reTurno), mPos = resto.match(rePos), mHora = resto.match(reHora);
     var indices = [];
     if(mTurno) indices.push(mTurno.index);
     if(mPos) indices.push(mPos.index);
     if(mHora) indices.push(mHora.index);
-    var nombre = indices.length ? resto.slice(0, Math.min.apply(null, indices)) : resto;
-    nombre = nombre.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
-    nombre = ((nombrePendiente?nombrePendiente+' ':'')+nombre).replace(/\s{2,}/g,' ').trim();
+    var nombre = indices.length ? limpiar(resto.slice(0, Math.min.apply(null, indices))) : limpiar(resto);
+    nombre = limpiar((nombrePendiente ? nombrePendiente+' ' : '') + nombre);
     nombrePendiente = '';
+    if(!mTurno && !mPos && !mHora){
+      // nombre cortado justo aquí, sin datos todavía → esperar la siguiente línea
+      filaPendienteCheckin = {matricula: mMat[1], nombre: nombre};
+      return;
+    }
     filas.push({
       matricula: mMat[1], nombre: nombre || '(nombre no leído)',
       turno: mTurno ? mTurno[1].replace(/·/g,'-') : '',
@@ -20737,6 +20845,11 @@ function ciParsearTextoOcr(texto){
       hora: mHora ? mHora[1] : '', obs: ''
     });
   });
+
+  // Fin del texto con una fila a medias: mejor guardarla incompleta
+  // que perderla del todo.
+  if(filaPendienteCheckin) filas.push({matricula:filaPendienteCheckin.matricula, nombre:filaPendienteCheckin.nombre||'(nombre no leído)', turno:'', posicion:'', hora:'', obs:''});
+  if(filaPendienteReserva) reservas.push({matricula:filaPendienteReserva.matricula, nombre:filaPendienteReserva.nombre||'(nombre no leído)', tipo:'', inicio:'', fin:''});
   return {filas:filas, reservas:reservas};
 }
 
@@ -20760,33 +20873,86 @@ function ciAgruparPorPrimerTramo(filas){
   return lista;
 }
 
-function ciRenderGrupoHtml(g, soloLectura){
-  var primeroWarn = /DH|UM/i.test(g.primero||'');
-  var html = '<div class="ci-grupo"><div class="ci-ghdr">'+
-    '<div class="ci-hora'+(g.hora?'':' est-falta')+'">'+(g.hora||'¿hora?')+'</div>'+
-    '<span class="turno-code"><span class="tc-first'+(primeroWarn?' tc-warn':'')+'">'+(primeroWarn?'<span class="tc-warn-ico">⚠</span>':'')+(g.primero||'¿tren?')+'</span></span>'+
-    '<div class="ci-count">'+g.personas.length+' persona'+(g.personas.length===1?'':'s')+'</div></div>';
-  g.personas.forEach(function(p){
-    var idx = soloLectura ? -1 : _ciFilasPendientes.indexOf(p);
-    var ed = soloLectura ? '' : ' ci-editable';
-    var segmentos = (p.turno||'').split('-').filter(Boolean);
-    var rutaHtml = '';
-    segmentos.forEach(function(seg,i){
-      var warn = /DH|UM/i.test(seg);
-      var cls = i===0 ? 'tc-first-mini' : 'tc-rest';
-      rutaHtml += '<span class="'+cls+(warn?' tc-warn':'')+'">'+(warn?'<span class="tc-warn-ico">⚠</span>':'')+seg+'</span>';
-      if(i<segmentos.length-1) rutaHtml += '<span class="tc-arrow">→</span>';
+// NUEVO — agrupado en DOS niveles para la vista "Vía" (maqueta
+// aprobada por Alex): primero por HORA de toma, y dentro de cada
+// hora, por primer tramo de tren — así un mismo tren que entra dos
+// veces a horas distintas (típico de una salida en DH) aparece en
+// dos paradas separadas de la vía, cada una con su propia gente,
+// nunca mezcladas entre sí.
+function ciAgruparPorHora(filas){
+  var porHora = {}, ordenHoras = [];
+  filas.forEach(function(f){
+    var h = f.hora || '¿hora?';
+    if(!porHora[h]){ porHora[h] = {hora:f.hora, gruposTren:{}, ordenTrenes:[]}; ordenHoras.push(h); }
+    var primero = (f.turno||'').split('-')[0] || '';
+    var keyTren = primero || ('__sin_leer_'+f.matricula);
+    if(!porHora[h].gruposTren[keyTren]){ porHora[h].gruposTren[keyTren] = {primero:primero, personas:[]}; porHora[h].ordenTrenes.push(keyTren); }
+    porHora[h].gruposTren[keyTren].personas.push(f);
+  });
+  var lista = ordenHoras.map(function(h){
+    var entrada = porHora[h];
+    return {hora: entrada.hora, trenes: entrada.ordenTrenes.map(function(kt){ return entrada.gruposTren[kt]; })};
+  });
+  function min(h){ var m=h&&h.match(/^(\d{1,2}):(\d{2})/); return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):null; }
+  lista.sort(function(a,b){
+    var ma=min(a.hora), mb=min(b.hora);
+    if(ma===null && mb===null) return 0;
+    if(ma===null) return 1;
+    if(mb===null) return -1;
+    return ma-mb;
+  });
+  return lista;
+}
+
+// Fila de una persona (matrícula/nombre/ruta/posición, todo
+// editable si no es solo lectura) — pieza reutilizable tanto para
+// la vía normal como para cualquier vista futura.
+function ciRenderPersonaHtml(p, idx, soloLectura){
+  var ed = soloLectura ? '' : ' ci-editable';
+  var segmentos = (p.turno||'').split('-').filter(Boolean);
+  var rutaHtml = '';
+  segmentos.forEach(function(seg,i){
+    var warn = /DH|UM/i.test(seg);
+    var cls = i===0 ? 'tc-first-mini' : 'tc-rest';
+    rutaHtml += '<span class="'+cls+(warn?' tc-warn':'')+'">'+(warn?'<span class="tc-warn-ico">⚠</span>':'')+seg+'</span>';
+    if(i<segmentos.length-1) rutaHtml += '<span class="tc-arrow">→</span>';
+  });
+  if(!segmentos.length) rutaHtml = '<span class="est-falta">sin tren leído</span>';
+  var posChips = (p.posicion||'').split('-').filter(Boolean).map(function(pc){ return '<span class="pos-chip pos-'+pc+'">'+pc+'</span>'; }).join('');
+  if(!posChips) posChips = '<span class="est-falta">?</span>';
+  return '<div class="ci-persona">'
+    +'<div class="ci-mat'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'matricula\',\'Matrícula\')"')+'>'+p.matricula+'</div>'
+    +'<div class="ci-nom">'
+      +'<div class="ci-nom-tx'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'nombre\',\'Nombre\')"')+'>'+p.nombre+'</div>'
+      +'<div class="ci-ruta'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'turno\',\'Turno (ej. 1101-1192)\')"')+'>'+rutaHtml+'</div>'
+    +'</div>'
+    +'<div class="ci-right"><span'+ed+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'posicion\',\'Posición (ej. CP-TCF)\')"')+'>'+posChips+'</span></div></div>';
+}
+
+// NUEVO — vista "Vía" (maqueta 3, aprobada por Alex): un carril
+// vertical con una parada por cada HORA de toma; dentro de cada
+// parada, un bloque por cada tren de esa hora, con su gente debajo.
+// No importa el orden en que se suban las fotos — siempre sale
+// ordenado por hora y agrupado por tren. Un mismo tren que entra dos
+// veces a horas distintas (típico de una salida en DH) aparece en
+// dos paradas separadas de la vía, con su gente sin mezclarse.
+function ciRenderViaHtml(gruposPorHora, soloLectura){
+  var html = '<div class="m3-track">';
+  gruposPorHora.forEach(function(entrada){
+    html += '<div class="m3-item"><div class="m3-rail"><div class="m3-dot"></div><div class="m3-line"></div></div>';
+    html += '<div class="m3-content"><div class="m3-hora'+(entrada.hora?'':' est-falta')+'">'+(entrada.hora||'¿hora?')+'</div>';
+    entrada.trenes.forEach(function(gt){
+      var warn = /DH|UM/i.test(gt.primero||'');
+      html += '<div class="m3-tren-block"><div class="m3-tren-hdr">'
+        +'<span class="m3-tren'+(warn?' m3-warn':'')+'">'+(warn?'⚠ ':'')+(gt.primero||'¿tren?')+'</span>'
+        +'<span class="m3-cnt">'+gt.personas.length+' pers.</span></div>';
+      gt.personas.forEach(function(p){
+        var idx = soloLectura ? -1 : _ciFilasPendientes.indexOf(p);
+        html += ciRenderPersonaHtml(p, idx, soloLectura);
+      });
+      html += '</div>';
     });
-    if(!segmentos.length) rutaHtml = '<span class="est-falta">sin tren leído</span>';
-    var posChips = (p.posicion||'').split('-').filter(Boolean).map(function(pc){ return '<span class="pos-chip pos-'+pc+'">'+pc+'</span>'; }).join('');
-    if(!posChips) posChips = '<span class="est-falta">?</span>';
-    html += '<div class="ci-persona">'
-      +'<div class="ci-mat'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'matricula\',\'Matrícula\')"')+'>'+p.matricula+'</div>'
-      +'<div class="ci-nom">'
-        +'<div class="ci-nom-tx'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'nombre\',\'Nombre\')"')+'>'+p.nombre+'</div>'
-        +'<div class="ci-ruta'+ed+'"'+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'turno\',\'Turno (ej. 1101-1192)\')"')+'>'+rutaHtml+'</div>'
-      +'</div>'
-      +'<div class="ci-right"><span'+ed+(soloLectura?'':' onclick="ciEditarCampoCheckin('+idx+',\'posicion\',\'Posición (ej. CP-TCF)\')"')+'>'+posChips+'</span></div></div>';
+    html += '</div></div>';
   });
   return html+'</div>';
 }
@@ -20843,10 +21009,10 @@ function ciEditarHorasReserva(idx){
 function renderCiVistazo(filas, reservas){
   _ciFilasPendientes = filas;
   _ciReservasPendientes = reservas||[];
-  var grupos = ciAgruparPorPrimerTramo(filas);
+  var grupos = ciAgruparPorHora(filas);
   var sinHora = filas.filter(function(f){return !f.hora;}).length;
   var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Toca cualquier dato para corregirlo si el OCR lo leyó mal'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
-  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g, false); });
+  html += ciRenderViaHtml(grupos, false);
   html += ciRenderReservasHtml(_ciReservasPendientes, false);
   document.getElementById('ci-body').innerHTML = html+
     '<div class="ci-vistazo-btns">'+
