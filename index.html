@@ -2721,6 +2721,102 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .tren-suggest-item:hover,.tren-suggest-item.activo{background:rgba(59,127,255,.14)}
 .tren-suggest-num{font-weight:800;color:var(--acc3);font-size:12px}
 .tren-suggest-ruta{font-size:10px;color:var(--tx3)}
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — CHECK-IN DEL DÍA. Píldora en el mes-nav del Calendario
+   (para todo el mundo) que abre un overlay estándar (.ov/.sh) con
+   el check-in del día, subido por foto + OCR (Tesseract.js, ya
+   cargado por el Panel de Horario) desde el propio navegador. Se
+   guarda en Supabase, tabla checkin_diario, con clave primaria
+   (fecha,sede) — así solo la PRIMERA persona que confirma la
+   subida puede crear la fila; a partir de ahí el registro queda
+   bloqueado para todo el mundo salvo Admin (política RLS "solo
+   admin edita"). 100% aditivo — no toca TV/AJ ni ningún otro dato
+   existente.
+   REDISEÑADO — mismo lenguaje visual que el resto de botones/píldoras
+   de la app (mismo esquema que .mn-hoy, .mn-btn, .dcv-btn, .m-save,
+   .m-del) en vez de colores/gradientes propios — así no desentona.
+   Además, al usar var(--acc)/var(--acc2), la píldora y los botones se
+   recolorean solos en modo Admin (rojo) o Interventor (violeta),
+   exactamente igual que el resto de la app. */
+.ci-pill{font-size:10px;color:var(--acc2);font-weight:700;cursor:pointer;padding:3px 10px;
+  background:var(--s2);border:1px solid var(--acc);border-radius:20px;flex-shrink:0;
+  display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ci-pill.ci-pill-bloqueado{color:var(--green2);border-color:var(--green)}
+
+.ci-day-nav{display:flex;align-items:center;gap:4px;padding:12px 16px 8px}
+.ci-day-btn{background:rgba(255,255,255,.06);border:none;color:var(--tx2);font-size:16px;cursor:pointer;
+  border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s}
+.ci-day-btn:hover:not(:disabled){background:rgba(37,99,235,.18);color:var(--acc2)}
+.ci-day-btn:disabled{opacity:.25;cursor:default}
+.ci-day-lbl{flex:1;text-align:center;font-size:13px;font-weight:800;letter-spacing:-.2px}
+.ci-day-hoy-badge{font-size:9px;font-weight:800;color:var(--nar2);background:rgba(249,115,22,.12);
+  border:1px solid rgba(249,115,22,.28);border-radius:20px;padding:3px 9px;flex-shrink:0}
+.ci-hist-note{margin:4px 16px 10px;font-size:10px;color:var(--tx3);text-align:center;line-height:1.4}
+
+.ci-empty{background:var(--s2);border:1.5px dashed var(--div);border-radius:14px;margin:4px 16px 14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:24px 18px}
+.ci-empty-ico{font-size:30px;opacity:.3}
+.ci-empty-tit{font-size:13px;font-weight:700;text-align:center}
+.ci-empty-sub{font-size:11px;color:var(--tx2);line-height:1.5;text-align:center;margin-top:2px}
+.ci-btn-subir{margin-top:6px;background:var(--acc);color:#fff;border:none;border-radius:9px;
+  padding:9px 20px;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .18s}
+.ci-btn-subir:hover{background:var(--acc2)}
+.ci-consejo{font-size:9.5px;color:var(--tx3);line-height:1.5;margin-top:10px;text-align:center;padding:0 6px}
+
+.ci-locked-foot{margin:6px 16px 10px;padding:9px 12px;background:var(--s1);border:1px solid var(--div);
+  border-radius:10px;font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:7px}
+.ci-btn-eliminar{width:100%;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);
+  color:#FCA5A5;border-radius:9px;padding:9px 20px;font-size:12.5px;font-weight:700;cursor:pointer}
+.ci-btn-eliminar:hover{background:rgba(239,68,68,.2)}
+
+.turno-code{display:inline-flex;align-items:baseline;gap:3px;flex-wrap:wrap}
+.tc-first{font-weight:900;color:var(--acc3);font-size:14px;letter-spacing:.2px}
+.tc-first.tc-warn{color:var(--amber2)}
+.tc-first-mini{font-weight:800;color:var(--acc3);font-size:9.5px}
+.tc-first-mini.tc-warn{color:var(--amber2);background:rgba(217,119,6,.16);border:1px solid rgba(217,119,6,.4);border-radius:4px;padding:0 4px}
+.tc-arrow{color:var(--tx3);font-size:8px;opacity:.7;margin:0 1px}
+.tc-rest{font-weight:600;color:var(--tx3);font-size:9.5px}
+.tc-rest.tc-warn{color:var(--amber2);background:rgba(217,119,6,.16);border:1px solid rgba(217,119,6,.4);border-radius:4px;padding:0 4px}
+.tc-warn-ico{font-size:8px;margin-right:1px}
+.ci-legend{display:flex;gap:12px;padding:2px 16px 8px;flex-wrap:wrap}
+.ci-legend-item{display:flex;align-items:center;gap:4px;font-size:8.5px;color:var(--tx3);font-weight:700}
+
+.pos-chip{display:inline-flex;align-items:center;gap:3px;font-size:8.5px;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.2px}
+.pos-CP{background:rgba(37,99,235,.18);color:#93C5FD;border:1px solid rgba(37,99,235,.4)}
+.pos-TCF{background:rgba(217,119,6,.18);color:#FCD34D;border:1px solid rgba(217,119,6,.4)}
+.pos-JT{background:rgba(124,58,237,.18);color:#C4B5FD;border:1px solid rgba(124,58,237,.4)}
+.est-aus{color:var(--red2);font-size:9px;font-weight:800;background:rgba(220,38,38,.14);border:1px solid rgba(220,38,38,.35);padding:2px 6px;border-radius:6px}
+.est-obs{color:var(--amber2);font-size:9px;font-weight:800;background:rgba(217,119,6,.14);border:1px solid rgba(217,119,6,.35);padding:2px 6px;border-radius:6px}
+.est-falta{color:var(--nar2);font-size:9px;font-weight:800;background:rgba(249,115,22,.16);border:1.5px solid rgba(249,115,22,.5);padding:2px 6px;border-radius:6px}
+
+.ci-grupo{margin:0 16px 12px;border-radius:16px;background:var(--s1);border:1px solid var(--div);overflow:hidden}
+.ci-ghdr{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--s2);border-bottom:1px solid var(--div)}
+.ci-hora{font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--acc3);width:48px;flex-shrink:0}
+.ci-hora.est-falta{background:none;border:none;padding:0;font-size:14px}
+.ci-count{font-size:8.5px;color:var(--tx3);font-weight:800;background:var(--s3);padding:2px 7px;border-radius:20px;margin-left:auto;flex-shrink:0}
+.ci-persona{display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.ci-persona:last-child{border-bottom:none}
+.ci-mat{font-size:8.5px;color:var(--tx3);font-family:monospace;width:52px;flex-shrink:0}
+.ci-nom{flex:1;min-width:0}
+.ci-nom-tx{font-size:11.5px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ci-ruta{display:flex;gap:3px;align-items:baseline;margin-top:2px;font-size:8px;flex-wrap:wrap}
+.ci-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+/* Vistazo de confirmación tras el OCR — mismo patrón que .mfoot/.m-save/.m-del */
+.ci-vistazo-note{margin:4px 16px 12px;padding:10px 12px;background:rgba(249,115,22,.08);
+  border:1px solid rgba(249,115,22,.28);border-radius:10px;font-size:10.5px;color:var(--nar3);line-height:1.5}
+.ci-vistazo-btns{position:sticky;bottom:0;background:var(--s1);border-top:1px solid var(--div);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;gap:7px;flex-shrink:0}
+.ci-btn-cancelar{height:42px;padding:0 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
+  border-radius:10px;color:#FCA5A5;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.ci-btn-confirmar{flex:1;height:42px;background:var(--acc);border:none;border-radius:10px;color:#fff;
+  font-size:13px;font-weight:800;cursor:pointer;transition:background .18s}
+.ci-btn-confirmar:hover{background:var(--acc2)}
+.ci-progreso{padding:30px 20px;text-align:center;font-size:12px;color:var(--tx2)}
+.ci-progreso-ico{font-size:28px;margin-bottom:10px;animation:ciSpin 1.4s linear infinite;display:inline-block}
+@keyframes ciSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.ci-progreso-bar{height:4px;background:var(--s2);border-radius:3px;margin:14px 20px 0;overflow:hidden}
+.ci-progreso-fill{height:100%;background:var(--acc);border-radius:3px;transition:width .2s;width:0%}
 </style>
 </head>
 <body>
@@ -3147,6 +3243,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <button id="vista-ambos" class="vista-btn"     onclick="setVistaMode('ambos')">⚖ Comparar</button>
         <button id="vista-quitar-comp" class="vista-btn" onclick="quitarCompanero()" title="Quitar compañero" style="flex:0;padding:0 8px;color:var(--tx3)">✕</button>
       </div>
+      <button class="ci-pill" id="btn-ci-pill" style="display:none" onclick="abrirCheckin()">✅ Check-in</button>
       <div class="mn-hoy" onclick="irHoy()">Hoy</div>
       <button class="mn-btn" onclick="chM(1)" title="Mes siguiente">›</button>
     </div>
@@ -3977,31 +4074,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
     </div>
 
-    <!-- NUEVO — Nota informativa sobre la disponibilidad de los
-         datos de Interventor, en acordeón (colapsada por defecto)
-         para que no ocupe toda la pantalla al entrar.
-         FIX — antes usaba clases (adm-acc-item/adm-acc-hdr/adm-acc-body)
-         y una función (toggleAdmAcc) que NO EXISTEN en ningún sitio del
-         archivo — así que el texto no colapsaba nunca (se veía siempre
-         "fuera", pegado debajo del botón) y tocar el botón no hacía
-         nada. Ahora usa el acordeón real que ya funciona en el resto
-         de la app (.acc-section/.acc-head, con su mismo onclick
-         inline de siempre — ver p.ej. línea ~7247). -->
-    <div class="acc-section" id="acc-nota-interventor" style="margin:0 16px 14px;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.25)">
-      <div class="acc-head" style="padding:12px 15px" onclick="this.closest('.acc-section').classList.toggle('open')">
-        <span>ℹ️</span>
-        <span style="flex:1;font-weight:800;color:var(--nar2);font-size:11px;letter-spacing:.3px;text-transform:uppercase">Sobre los datos de Interventor</span>
-        <span class="acc-chev">›</span>
-      </div>
-      <div class="acc-body">
-        <div style="padding:12px 15px 14px;font-size:12px;color:var(--tx2);line-height:1.65">
-          La información de Interventores que aquí se muestra se incorpora de forma progresiva, a medida que podemos solicitarla directamente a los propios compañeros interventores. Entendemos y respetamos que, por motivos de privacidad de sus datos, no siempre estén en disposición de facilitarnos dicha documentación, y por eso es posible que en algunos días o servicios concretos aún no encuentres esta información disponible.
-          <br><br>
-          Cuando el dato sí está disponible, nos comprometemos a tratar de proteger la identidad del interventor sustituyendo parte de las letras de su nombre por números, como medida adicional de protección de datos. Esta información se ofrece exclusivamente como apoyo para la organización del propio tripulante, y su uso está pensado únicamente para consulta entre tripulación e interventores — te pedimos hacer un uso responsable y respetuoso de la misma.
-        </div>
-      </div>
-    </div>
-
     <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
   </div>
 </div>
@@ -4018,6 +4090,27 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — CHECK-IN DEL DÍA. Overlay estándar (.ov/.sh), igual
+     que ov-htdl-dias justo debajo. Contenido 100% dinámico, ver
+     renderCiXxx() en el bloque de JS del módulo (buscar "MÓDULO
+     CHECK-IN DEL DÍA" más abajo). No se auto-abre nunca: solo con
+     la píldora del mes-nav del Calendario (btn-ci-pill), visible
+     solo para Admin/Interventor.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-checkin" onclick="closeOv('ov-checkin')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">✅</div>
+      <div><div class="sh-tit">Check-in del día</div><div class="sh-sub" id="ci-sub">—</div></div>
+      <button class="sh-close" onclick="closeOv('ov-checkin')">✕</button>
+    </div>
+    <div id="ci-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:10px"></div>
+  </div>
+</div>
+<input type="file" id="ci-file-input" accept="image/*" multiple style="display:none" onchange="ciArchivosSeleccionados(this.files)">
 
 <!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
      Reubicado como hermano directo de .bnav (mismo contexto que ov-tipo y
@@ -14600,6 +14693,10 @@ function goP(n){
     renderStats();
   }
   if(n==='ajustes')loadAjUI();
+  // NUEVO — refresca la píldora ✅ Check-in (visible/oculta según rol,
+  // y en azul si ya hay check-in subido hoy) cada vez que se entra en
+  // Calendario, para que nunca quede desactualizada de una sesión a otra.
+  if(n==='cal' && typeof mostrarPillCheckinSiCorresponde==='function') mostrarPillCheckinSiCorresponde();
   // NUEVO: refrescar la lista individual de meses al entrar en Horario
   if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
   // NUEVO — al entrar en la pestaña Compañeros, dispara la misma
@@ -20351,6 +20448,545 @@ const SUPABASE_URL_ADMIN = 'https://xoftsdupynwhzxsiusox.supabase.co';
 const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
 const sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — MÓDULO CHECK-IN DEL DÍA (foto + OCR → Supabase).
+   Tabla checkin_diario (fecha,sede) como clave primaria: solo la
+   primera persona que confirma una subida puede crear la fila
+   (política RLS "insertar si no existe", abierta a cualquiera). A
+   partir de ahí, cualquier intento de volver a subir usa upsert()
+   sobre la misma fila — Postgres lo convierte en UPDATE, y la
+   política RLS "solo admin edita" bloquea ese UPDATE para
+   cualquiera que no sea Admin. Así el "primero gana, solo Admin
+   corrige" vive en las políticas de la base de datos, no en este
+   JS (que se podría saltar). Reutiliza sbAdmin, AJ, toast(),
+   openOv()/closeOv() y Tesseract.js ya cargados por el resto de
+   la app — no crea ninguna dependencia nueva.
+═══════════════════════════════════════════════════════════ */
+var _ciFilasPendientes = null;
+
+function ciFechaHoyISO(){
+  var d = new Date();
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var dd = String(d.getDate()).padStart(2,'0');
+  return d.getFullYear()+'-'+mm+'-'+dd;
+}
+function ciEsAdminOInterventor(){
+  return !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin')
+      || !!(typeof usuarioActual!=='undefined' && usuarioActual && usuarioActual.esInterventor);
+}
+// NUEVO — Quién es "yo" ahora mismo, para dejar constancia de quién
+// sube el check-in. NO crea ningún dato ni sesión nueva: solo lee lo
+// que la app YA tiene guardado, con esta prioridad:
+//  1) Admin logueado (perfilAdminActual) — identifica por su email,
+//     ya que el login de Admin es con email+contraseña, no matrícula.
+//  2) Interventor con matrícula ya validada (mismo localStorage que
+//     usa el resto del Portal de Interventor).
+//  3) Tripulante normal — AJ.matricula/AJ.nombre, de siempre.
+function ciIdentidadActual(){
+  if(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin'){
+    return { matricula: 'ADMIN', nombre: perfilAdminActual.email || 'Administrador' };
+  }
+  var matInterventor = localStorage.getItem('interventorMatriculaValidada');
+  if(matInterventor){
+    return { matricula: matInterventor, nombre: localStorage.getItem('interventorNombreValidado') || ('Interventor '+matInterventor) };
+  }
+  return { matricula: AJ.matricula || '', nombre: AJ.nombre || '' };
+}
+// Muestra/oculta la píldora del mes-nav según el rol, y consulta si
+// hoy ya existe check-in para pintarla en azul ("ya subido") o verde
+// pulsante ("pendiente de subir"). Se llama al entrar en Calendario
+// y al arrancar la app — nunca abre el overlay por sí sola.
+async function mostrarPillCheckinSiCorresponde(){
+  var pill = document.getElementById('btn-ci-pill');
+  if(!pill) return;
+  // MODIFICADO — el Check-in del día es para todo el mundo (no solo
+  // Admin/Interventor); lo único reservado a Admin es poder modificar
+  // un check-in que ya subió otra persona (ver renderCiBloqueado).
+  pill.style.display='flex';
+  pill.classList.remove('ci-pill-bloqueado');
+  pill.innerHTML = '✅ Check-in';
+  var fila = await ciObtenerFilaHoy();
+  if(fila){ pill.classList.add('ci-pill-bloqueado'); pill.innerHTML='✅ Check-in ✓'; }
+}
+var _ciFechaViendo = null; // objeto Date del día que se está mirando en el overlay
+
+function ciFechaISO(d){
+  var mm = String(d.getMonth()+1).padStart(2,'0');
+  var dd = String(d.getDate()).padStart(2,'0');
+  return d.getFullYear()+'-'+mm+'-'+dd;
+}
+// NUEVO — el check-in es estrictamente por base: alguien de Barcelona
+// nunca debe ver ni poder subir el de Valencia/Sevilla/Madrid, y
+// viceversa. Ya se filtraba por AJ.base en cada lectura/escritura,
+// pero si AJ.base está vacío (persona que aún no configuró su
+// Estación Base en Ajustes) todas esas personas caerían en el mismo
+// "cajón" sede='' y se verían entre sí por error — así que ahora se
+// exige tener la base puesta antes de poder ver o subir nada.
+// ciSedeActual() además normaliza mayúsculas/espacios, para que
+// pequeñas diferencias de escritura (p.ej. "Barcelona Sants " vs
+// "barcelona sants") no separen por error a gente de la misma base.
+function ciSedeActual(){
+  return (AJ.base || '').trim().toUpperCase();
+}
+function ciTieneBaseConfigurada(){
+  return ciSedeActual().length > 0;
+}
+function renderCiSinBase(){
+  document.getElementById('ci-body').innerHTML =
+    '<div class="ci-empty">'+
+      '<div class="ci-empty-ico">🧭</div>'+
+      '<div class="ci-empty-tit">Configura tu Estación Base primero</div>'+
+      '<div class="ci-empty-sub">El check-in es distinto para cada base (Barcelona, Valencia, Sevilla, Madrid…). Ve a Ajustes → Estación Base y ponla — así solo verás y podrás subir el de tu propia base.</div>'+
+    '</div>';
+}
+function ciEsHoy(d){
+  return ciFechaISO(d) === ciFechaHoyISO();
+}
+function ciFechaBonita(d){
+  return d.toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'long'});
+}
+async function abrirCheckin(){
+  openOv('ov-checkin');
+  _ciFechaViendo = new Date();
+  await ciCargarYRenderizarFecha();
+}
+// NUEVO — histórico: mueve el día que se está viendo dentro del
+// overlay (delta=-1 día anterior, +1 día siguiente). No deja avanzar
+// más allá de hoy — el check-in de mañana no existe todavía.
+function ciCambiarDia(delta){
+  var d = new Date(_ciFechaViendo);
+  d.setDate(d.getDate()+delta);
+  if(d > new Date()) return;
+  _ciFechaViendo = d;
+  ciCargarYRenderizarFecha();
+}
+async function ciObtenerFilaFecha(fechaISO){
+  if(typeof sbAdmin === 'undefined') return null;
+  try{
+    var resp = await sbAdmin.from('checkin_diario').select('*')
+      .eq('fecha', fechaISO).eq('sede', ciSedeActual()).maybeSingle();
+    return (resp && resp.data) ? resp.data : null;
+  }catch(e){ console.error(e); return null; }
+}
+async function ciObtenerFilaHoy(){ return ciObtenerFilaFecha(ciFechaHoyISO()); }
+
+function ciBarraDiaHtml(){
+  var esHoy = ciEsHoy(_ciFechaViendo);
+  return '<div class="ci-day-nav">'+
+    '<button class="ci-day-btn" onclick="ciCambiarDia(-1)" title="Día anterior">‹</button>'+
+    '<div class="ci-day-lbl">'+ciFechaBonita(_ciFechaViendo)+'</div>'+
+    (esHoy ? '<span class="ci-day-hoy-badge">HOY</span>' : '')+
+    '<button class="ci-day-btn" onclick="ciCambiarDia(1)" title="Día siguiente"'+(esHoy?' disabled':'')+'>›</button>'+
+    '</div>';
+}
+// Carga el check-in del día que se está viendo (_ciFechaViendo) y
+// decide qué pintar: si es HOY, el flujo completo de subir/ver/editar
+// de siempre; si es un día pasado, siempre en solo lectura — el
+// histórico no se sube ni se edita, solo se consulta.
+async function ciCargarYRenderizarFecha(){
+  document.getElementById('ci-sub').textContent = (AJ.base||'Base') + ' · ' + _ciFechaViendo.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+  if(!ciTieneBaseConfigurada()){
+    renderCiSinBase();
+    return;
+  }
+  renderCiCargando();
+  var fila = await ciObtenerFilaFecha(ciFechaISO(_ciFechaViendo));
+  if(ciEsHoy(_ciFechaViendo)){
+    if(fila) renderCiBloqueado(fila); else renderCiVacio();
+  } else {
+    if(fila) renderCiHistorico(fila); else renderCiSinDatosHistoricos();
+  }
+}
+function renderCiSinDatosHistoricos(){
+  document.getElementById('ci-body').innerHTML = ciBarraDiaHtml()+
+    '<div class="ci-empty">'+
+      '<div class="ci-empty-ico">🗂️</div>'+
+      '<div class="ci-empty-tit">No hay check-in guardado para este día</div>'+
+      '<div class="ci-empty-sub">Puede que ese día nadie llegara a subirlo.</div>'+
+    '</div>';
+}
+function renderCiHistorico(fila){
+  var filas = fila.datos || [];
+  var grupos = ciAgruparPorPrimerTramo(filas);
+  var esAdmin = !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  var html = ciBarraDiaHtml();
+  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  html += '<div class="ci-hist-note">🗂️ Histórico de solo lectura — subido por '+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</div>';
+  if(esAdmin){
+    html += '<div style="padding:0 16px 10px"><button class="ci-btn-eliminar" onclick="ciEliminarCheckin(\''+fila.fecha+'\', true)">🗑️ Eliminar este check-in (solo Admin)</button></div>';
+  }
+  document.getElementById('ci-body').innerHTML = html;
+}
+function renderCiCargando(){
+  document.getElementById('ci-body').innerHTML = ciBarraDiaHtml()+'<div class="ci-progreso"><span class="ci-progreso-ico">🚆</span><div>Cargando…</div></div>';
+}
+function renderCiVacio(){
+  document.getElementById('ci-body').innerHTML = ciBarraDiaHtml()+
+    '<div class="ci-empty">'+
+      '<div class="ci-empty-ico">📤</div>'+
+      '<div class="ci-empty-tit">Aún no se ha subido el check-in de hoy</div>'+
+      '<div class="ci-empty-sub">Sube las fotos de la hoja de check-in de '+(AJ.base||'la base')+' (de tu galería o cámara) — si son varias páginas, puedes elegirlas todas a la vez. En cuanto alguien las confirme, queda listo para todo el mundo.</div>'+
+      '<button class="ci-btn-subir" onclick="document.getElementById(\'ci-file-input\').click()">📤 Subir fotos del check-in</button>'+
+      '<div class="ci-consejo">Procura que se vea toda la tabla en cada foto, recta y bien iluminada — así el lector automático la entiende mejor.</div>'+
+    '</div>';
+}
+function renderCiProgreso(msg, pct){
+  document.getElementById('ci-body').innerHTML =
+    '<div class="ci-progreso"><span class="ci-progreso-ico">🚆</span><div>'+msg+'</div></div>'+
+    '<div class="ci-progreso-bar"><div class="ci-progreso-fill" style="width:'+Math.max(0,Math.min(100,pct))+'%"></div></div>';
+}
+
+// Recibe la foto elegida/tomada, la pasa por un preprocesado en
+// canvas (escala de grises + estirado de contraste + ampliado si es
+// pequeña — el mismo tipo de mejora que demostró marcar la
+// diferencia frente a la foto en crudo) y se la da a Tesseract.
+// MODIFICADO — ahora acepta VARIAS fotos a la vez (la hoja de
+// check-in suele ocupar varias páginas). Se procesan una a una, en
+// orden, y se van uniendo todas las personas leídas en una sola
+// lista antes de pasar al vistazo — así el check-in del día sale
+// completo aunque haya venido de 6 fotos distintas.
+async function ciArchivosSeleccionados(fileList){
+  var archivos = Array.prototype.slice.call(fileList || []);
+  if(!archivos.length) return;
+  var todasLasFilas = [];
+  var fotosSinLeerNada = 0;
+  for(var idx=0; idx<archivos.length; idx++){
+    var file = archivos[idx];
+    var etiqueta = archivos.length>1 ? ('foto '+(idx+1)+' de '+archivos.length) : 'la foto';
+    renderCiProgreso('Preparando '+etiqueta+'…', Math.round((idx/archivos.length)*100));
+    try{
+      var imagenPreparada = await ciPrepararImagen(file);
+      var resultadoOcr = await Tesseract.recognize(imagenPreparada, 'spa', {
+        logger: function(m){
+          if(m.status==='recognizing text'){
+            var pctFoto = (idx + (m.progress||0)) / archivos.length;
+            renderCiProgreso('Leyendo '+etiqueta+' (OCR)… '+Math.round((m.progress||0)*100)+'%', Math.round(pctFoto*100));
+          }
+        }
+      });
+      var filas = ciParsearTextoOcr(resultadoOcr.data.text);
+      if(!filas.length) fotosSinLeerNada++;
+      todasLasFilas = todasLasFilas.concat(filas);
+    }catch(err){
+      console.error(err);
+      fotosSinLeerNada++;
+    }
+  }
+  if(!todasLasFilas.length){
+    renderCiVacio();
+    toast('No se pudo leer ninguna tabla — prueba con fotos más rectas y con más luz');
+    return;
+  }
+  if(fotosSinLeerNada>0){
+    toast('⚠️ '+fotosSinLeerNada+' foto(s) no se pudieron leer bien — revisa el vistazo antes de confirmar');
+  }
+  renderCiVistazo(todasLasFilas);
+}
+// MODIFICADO — se añadió un AUTO-RECORTE antes del contraste. Antes,
+// esta función mejoraba el contraste de la foto ENTERA (mesa de
+// madera, carpeta, mano sujetando el papel...) y eso era justo lo que
+// más confundía al OCR: se comprobó con fotos reales que la mayoría
+// de "basura" leída venía del fondo, no de la tabla. Ahora primero se
+// intenta encontrar la hoja de papel (la zona más clara y contigua de
+// la foto, por proyección de brillo en filas/columnas — más simple y
+// rápido que detectar bordes) y se recorta a esa zona antes de seguir
+// con el mismo contraste de siempre. Si la detección sale rara
+// (recorte demasiado pequeño), se usa la foto entera como red de
+// seguridad, para no arriesgarse a recortar contenido real.
+function ciPrepararImagen(file){
+  return new Promise(function(resolve, reject){
+    var img = new Image();
+    img.onload = function(){
+      try{
+        var cajaRecorte = ciDetectarZonaPapel(img);
+        var sx = cajaRecorte.x, sy = cajaRecorte.y, sw = cajaRecorte.w, sh = cajaRecorte.h;
+
+        var escala = sw < 1400 ? 2 : 1;
+        var canvas = document.createElement('canvas');
+        canvas.width = sw*escala;
+        canvas.height = sh*escala;
+        var ctx = canvas.getContext('2d');
+        // dibuja SOLO la zona recortada (sx,sy,sw,sh de la imagen
+        // original) estirada al tamaño final — así el recorte y el
+        // reescalado se hacen en un único paso.
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        var data = ctx.getImageData(0,0,canvas.width,canvas.height);
+        var px = data.data, i, min=255, max=0, g;
+        var grises = new Float32Array(px.length/4);
+        for(i=0;i<px.length;i+=4){
+          g = 0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+          grises[i/4]=g;
+          if(g<min)min=g; if(g>max)max=g;
+        }
+        var rango = Math.max(1,max-min);
+        for(i=0;i<px.length;i+=4){
+          var v = ((grises[i/4]-min)/rango)*255;
+          px[i]=px[i+1]=px[i+2]=v;
+        }
+        ctx.putImageData(data,0,0);
+        resolve(canvas);
+      }catch(e){ reject(e); }
+    };
+    img.onerror = function(){ reject(new Error('No se pudo cargar la imagen')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+// Busca la zona más clara y contigua de la foto (la hoja de papel
+// blanca, se distingue de la mesa de madera/carpeta) trabajando sobre
+// una copia MUY reducida (rápido) y devuelve el recorte en
+// coordenadas de la imagen ORIGINAL. Umbral de brillo y de proyección
+// afinados con fotos reales — es una heurística sencilla a propósito
+// (sin librerías de visión), así que puede fallar con fondos también
+// muy claros; por eso siempre hay una red de seguridad por si el
+// recorte resultante es sospechosamente pequeño.
+function ciDetectarZonaPapel(img){
+  var full = {x:0, y:0, w:img.width, h:img.height};
+  try{
+    var maxLado = 320;
+    var factor = Math.min(1, maxLado/Math.max(img.width,img.height));
+    var pw = Math.max(1, Math.round(img.width*factor));
+    var ph = Math.max(1, Math.round(img.height*factor));
+    var c = document.createElement('canvas');
+    c.width = pw; c.height = ph;
+    var cx = c.getContext('2d');
+    cx.drawImage(img, 0, 0, pw, ph);
+    var d = cx.getImageData(0,0,pw,ph).data;
+
+    var gris = new Float32Array(pw*ph);
+    for(var i=0, p=0; i<d.length; i+=4, p++){
+      gris[p] = 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    }
+    var UMBRAL_BRILLO = 165;
+    var fracFila = new Float32Array(ph), fracCol = new Float32Array(pw);
+    for(var y=0;y<ph;y++){
+      var cnt=0;
+      for(var x=0;x<pw;x++){ if(gris[y*pw+x] > UMBRAL_BRILLO) cnt++; }
+      fracFila[y] = cnt/pw;
+    }
+    for(var x2=0;x2<pw;x2++){
+      var cnt2=0;
+      for(var y2=0;y2<ph;y2++){ if(gris[y2*pw+x2] > UMBRAL_BRILLO) cnt2++; }
+      fracCol[x2] = cnt2/ph;
+    }
+    var UMBRAL_PROYECCION = 0.5;
+    var y0=-1,y1=-1,x0=-1,x1=-1;
+    for(var yy=0;yy<ph;yy++){ if(fracFila[yy]>UMBRAL_PROYECCION){ if(y0<0)y0=yy; y1=yy; } }
+    for(var xx=0;xx<pw;xx++){ if(fracCol[xx]>UMBRAL_PROYECCION){ if(x0<0)x0=xx; x1=xx; } }
+
+    if(y0<0 || x0<0) return full; // no se detectó nada claro → sin recorte
+
+    var fx = img.width/pw, fy = img.height/ph;
+    var margen = 0.03; // 3% de margen alrededor, por si el recorte queda muy justo
+    var X0 = Math.max(0, Math.round((x0*fx) - img.width*margen));
+    var X1 = Math.min(img.width, Math.round((x1*fx) + img.width*margen));
+    var Y0 = Math.max(0, Math.round((y0*fy) - img.height*margen));
+    var Y1 = Math.min(img.height, Math.round((y1*fy) + img.height*margen));
+    var caja = {x:X0, y:Y0, w:X1-X0, h:Y1-Y0};
+
+    // Red de seguridad: si el recorte detectado es sospechosamente
+    // pequeño (menos del 25% del área total), probablemente la
+    // detección falló (foto ya muy recortada, fondo también claro,
+    // etc.) — mejor usar la foto entera que arriesgarse a perder tabla.
+    var areaCaja = caja.w*caja.h, areaTotal = img.width*img.height;
+    if(areaCaja < areaTotal*0.25) return full;
+    return caja;
+  }catch(e){
+    return full; // cualquier fallo en la detección → sin recorte, foto entera
+  }
+}
+
+// Parser heurístico del texto OCR de la tabla. Es "mejor esfuerzo" a
+// propósito — el vistazo posterior (renderCiVistazo) es quien atrapa
+// lo que esto no lea bien, marcándolo en naranja en vez de dar por
+// bueno un dato que no está.
+function ciParsearTextoOcr(texto){
+  var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  var filas = [];
+  var nombrePendiente = '';
+  var lineasSinMatriculaSeguidas = 0;
+  var reMat   = /^(\d{6,7})/;
+  var reHora  = /(\d{1,2}:\d{2})/;
+  var rePos   = /\b((?:CP|TCF|JT)(?:[-·](?:CP|TCF|JT))*)\b/;
+  var reTurno = /\b(\d{3,6}(?:UM|DH|F)?(?:[-·]\d{3,6}(?:UM|DH|F)?){1,4})\b/;
+  lineas.forEach(function(linea){
+    var mMat = linea.match(reMat);
+    if(!mMat){
+      // Sin matrícula: puede ser un nombre que la tabla partió en dos
+      // líneas (wrapping) — se guarda para pegarlo a la siguiente fila.
+      // MODIFICADO — endurecido a propósito: con fotos reales, el
+      // fondo (mesa, carpeta) genera "ruido" que el OCR confunde con
+      // texto, y antes ese ruido se colaba dentro del nombre de la
+      // siguiente persona. Ahora solo se acepta como "nombre pendiente"
+      // si de verdad tiene pinta de nombre de tabla: letras en
+      // mayúsculas, con una coma (formato "APELLIDOS, NOMBRE") y sin
+      // demasiadas palabras sueltas de una letra (típico del ruido).
+      var soloTexto = linea.replace(/[^A-ZÁÉÍÓÚÑa-záéíóúñ,\s]/g,'').trim();
+      var pareceNombre = soloTexto.length>4 && soloTexto.length<40
+        && soloTexto === soloTexto.toUpperCase()
+        && soloTexto.indexOf(',')>=0
+        && !/\b\w\b.*\b\w\b.*\b\w\b/.test(soloTexto); // 3+ "palabras" de una sola letra = ruido
+      if(pareceNombre){
+        nombrePendiente = (nombrePendiente+' '+soloTexto).trim();
+        lineasSinMatriculaSeguidas = 0;
+      } else {
+        // Demasiadas líneas de ruido seguidas sin encontrar matrícula:
+        // se descarta lo acumulado para no arrastrarlo a la próxima
+        // persona real que sí se lea bien.
+        lineasSinMatriculaSeguidas++;
+        if(lineasSinMatriculaSeguidas>=2) nombrePendiente = '';
+      }
+      return;
+    }
+    lineasSinMatriculaSeguidas = 0;
+    var resto = linea.slice(mMat[0].length);
+    var mTurno = resto.match(reTurno);
+    var mPos   = resto.match(rePos);
+    var mHora  = resto.match(reHora);
+    var nombre = resto;
+    if(mTurno) nombre = nombre.replace(mTurno[0],'');
+    if(mPos)   nombre = nombre.replace(mPos[0],'');
+    if(mHora)  nombre = nombre.replace(mHora[0],'');
+    nombre = nombre.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
+    nombre = ((nombrePendiente ? nombrePendiente+' ' : '') + nombre).replace(/\s{2,}/g,' ').trim();
+    nombrePendiente = '';
+    filas.push({
+      matricula: mMat[1],
+      nombre: nombre || '(nombre no leído)',
+      turno: mTurno ? mTurno[1].replace(/·/g,'-') : '',
+      posicion: mPos ? mPos[1].replace(/·/g,'-') : '',
+      hora: mHora ? mHora[1] : '',
+      obs: ''
+    });
+  });
+  return filas;
+}
+
+// Agrupa por HORA + primer tramo (el número de tren principal) —
+// misma regla de negocio ya validada en las maquetas: quien comparte
+// el primer tramo va en la misma tarjeta, aunque luego cada persona
+// tenga su propio tren de vuelta.
+function ciAgruparPorPrimerTramo(filas){
+  var grupos = {}, orden = [];
+  filas.forEach(function(f){
+    var primero = (f.turno||'').split('-')[0] || '';
+    var key = (f.hora||'?')+'|'+primero;
+    if(!grupos[key]){ grupos[key] = {hora:f.hora, primero:primero, personas:[]}; orden.push(key); }
+    grupos[key].personas.push(f);
+  });
+  return orden.map(function(k){ return grupos[k]; });
+}
+function ciRenderGrupoHtml(g){
+  var primeroWarn = /DH|UM/i.test(g.primero||'');
+  var html = '<div class="ci-grupo"><div class="ci-ghdr">'+
+    '<div class="ci-hora'+(g.hora?'':' est-falta')+'">'+(g.hora||'¿hora?')+'</div>'+
+    '<span class="turno-code"><span class="tc-first'+(primeroWarn?' tc-warn':'')+'">'+(primeroWarn?'<span class="tc-warn-ico">⚠</span>':'')+(g.primero||'¿tren?')+'</span></span>'+
+    '<div class="ci-count">'+g.personas.length+' persona'+(g.personas.length===1?'':'s')+'</div>'+
+    '</div>';
+  g.personas.forEach(function(p){
+    var segmentos = (p.turno||'').split('-').filter(Boolean);
+    var rutaHtml = '';
+    segmentos.forEach(function(seg,i){
+      var warn = /DH|UM/i.test(seg);
+      var cls = i===0 ? 'tc-first-mini' : 'tc-rest';
+      rutaHtml += '<span class="'+cls+(warn?' tc-warn':'')+'">'+(warn?'<span class="tc-warn-ico">⚠</span>':'')+seg+'</span>';
+      if(i<segmentos.length-1) rutaHtml += '<span class="tc-arrow">→</span>';
+    });
+    if(!segmentos.length) rutaHtml = '<span class="est-falta">sin tren leído</span>';
+    var posChips = (p.posicion||'').split('-').filter(Boolean).map(function(pc){
+      return '<span class="pos-chip pos-'+pc+'">'+pc+'</span>';
+    }).join('');
+    if(!posChips) posChips = '<span class="est-falta">?</span>';
+    html += '<div class="ci-persona"><div class="ci-mat">'+p.matricula+'</div>'+
+      '<div class="ci-nom"><div class="ci-nom-tx">'+p.nombre+'</div><div class="ci-ruta">'+rutaHtml+'</div></div>'+
+      '<div class="ci-right">'+posChips+(p.obs?'<span class="est-obs">'+p.obs+'</span>':'')+'</div></div>';
+  });
+  return html+'</div>';
+}
+function renderCiVistazo(filas){
+  _ciFilasPendientes = filas;
+  var grupos = ciAgruparPorPrimerTramo(filas);
+  var sinHora = filas.filter(function(f){return !f.hora;}).length;
+  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+'). Échale un vistazo antes de confirmar'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
+  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  document.getElementById('ci-body').innerHTML = html+
+    '<div class="ci-vistazo-btns">'+
+      '<button class="ci-btn-cancelar" onclick="renderCiVacio()">✕ Repetir foto</button>'+
+      '<button class="ci-btn-confirmar" onclick="ciConfirmarSubida()">✓ Confirmar y subir</button>'+
+    '</div>';
+}
+// Sube con upsert sobre (fecha,sede): si no existía fila, la política
+// RLS de INSERT deja pasar a cualquiera (primero en confirmar, gana).
+// Si ya existía, Postgres lo convierte en UPDATE y la política RLS
+// "solo admin edita" bloquea a quien no sea Admin — sin necesitar
+// distinguir aquí "es la primera vez o no", lo decide la base de datos.
+async function ciConfirmarSubida(){
+  if(!_ciFilasPendientes || !_ciFilasPendientes.length) return;
+  renderCiProgreso('Subiendo…', 92);
+  var identidad = ciIdentidadActual();
+  var payload = {
+    fecha: ciFechaHoyISO(),
+    sede: ciSedeActual(),
+    subido_por_matricula: identidad.matricula || '',
+    subido_por_nombre: identidad.nombre || '',
+    subido_en: new Date().toISOString(),
+    datos: _ciFilasPendientes,
+    editado_por_admin: !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin')
+  };
+  try{
+    var resp = await sbAdmin.from('checkin_diario').upsert(payload, {onConflict:'fecha,sede'}).select().single();
+    if(resp.error) throw resp.error;
+    toast('✅ Check-in subido');
+    _ciFilasPendientes = null;
+    renderCiBloqueado(resp.data);
+  }catch(err){
+    console.error(err);
+    toast('Ya hay un check-in de hoy — solo Admin puede modificarlo');
+    var fila = await ciObtenerFilaHoy();
+    if(fila) renderCiBloqueado(fila); else renderCiVacio();
+  }
+}
+// NUEVO — eliminar el check-in de un día (solo Admin). Igual que la
+// edición, esto se apoya en la política RLS de DELETE de la tabla
+// (solo rol='admin'), no en este JS — así que aunque alguien manipule
+// el navegador, Supabase seguiría rechazando el borrado si no es
+// Admin de verdad. Requiere una política RLS de DELETE (ver aviso al
+// usuario) además de las de INSERT/UPDATE que ya existían.
+async function ciEliminarCheckin(fechaISO, esHistorico){
+  var esAdmin = !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  if(!esAdmin) return;
+  if(!confirm('¿Eliminar el check-in de '+fechaISO+' ('+ciSedeActual()+')?\n\nEsta acción no se puede deshacer.')) return;
+  try{
+    var resp = await sbAdmin.from('checkin_diario').delete()
+      .eq('fecha', fechaISO).eq('sede', ciSedeActual());
+    if(resp.error) throw resp.error;
+    toast('🗑️ Check-in eliminado');
+    if(esHistorico) renderCiSinDatosHistoricos(); else renderCiVacio();
+    var pill = document.getElementById('btn-ci-pill');
+    if(pill && ciEsHoy(_ciFechaViendo)){ pill.classList.remove('ci-pill-bloqueado'); pill.innerHTML='✅ Check-in'; }
+  }catch(err){
+    console.error(err);
+    toast('No se pudo eliminar: '+err.message);
+  }
+}
+function renderCiBloqueado(fila){
+  var filas = fila.datos || [];
+  var grupos = ciAgruparPorPrimerTramo(filas);
+  var esAdmin = !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  var horaSubida = '';
+  try{ horaSubida = new Date(fila.subido_en).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }catch(e){}
+  var html = ciBarraDiaHtml();
+  grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  html += '<div class="ci-locked-foot">🔒 Subido por <b>'+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</b>'+(horaSubida?' a las '+horaSubida:'')+
+    (fila.editado_por_admin ? ' · editado por un administrador' : '')+'</div>';
+  if(esAdmin){
+    html += '<div style="padding:4px 16px 10px"><button class="ci-btn-subir" style="width:100%" onclick="renderCiVacio()">✏️ Volver a subir fotos (solo Admin)</button></div>';
+    html += '<div style="padding:0 16px 10px"><button class="ci-btn-eliminar" onclick="ciEliminarCheckin(\''+fila.fecha+'\', false)">🗑️ Eliminar check-in de hoy (solo Admin)</button></div>';
+  }
+  document.getElementById('ci-body').innerHTML = html;
+  var pill = document.getElementById('btn-ci-pill');
+  if(pill){ pill.classList.add('ci-pill-bloqueado'); pill.innerHTML = '✅ Check-in ✓'; }
+}
+
 let perfilAdminActual = null; // {id, email, rol}
 // NUEVO — cualquier persona con sesión iniciada (admin o con
 // matrícula+PIN), para la copia de seguridad personal en la nube.
@@ -20631,7 +21267,11 @@ async function subirArchivoGlobalAdmin(tipo, file){
     nombre_archivo: file.name,
     url_archivo: urlData.data.publicUrl,
     fecha_subida: new Date().toISOString(),
-    subido_por: perfilAdminActual.id
+    subido_por: perfilAdminActual.id,
+    // NUEVO — además del id (que ya se guardaba pero nunca se leía en
+    // ningún sitio), se guarda el email del admin — así se puede
+    // mostrar "quién lo subió" de forma legible en el panel.
+    subido_por_email: perfilAdminActual.email || ''
   };
   if(sedeSlug){
     var sedeSel2 = document.getElementById('selSedeHorarioGeneral');
@@ -20718,7 +21358,8 @@ async function subirIntervencionGlobalAdmin(){
     nombre_servicio: nombre,
     fecha_inicio: fecha,
     fecha_subida: new Date().toISOString(),
-    subido_por: perfilAdminActual.id
+    subido_por: perfilAdminActual.id,
+    subido_por_email: perfilAdminActual.email || ''
   });
   if(tabla.error){
     elEstado.textContent = 'Archivos subidos, pero no se pudo registrar: ' + tabla.error.message;
@@ -21700,7 +22341,8 @@ async function refrescarEstadoArchivosAdmin(){
     if(filasHorario.length){
       elHorario.classList.remove('sin-archivo');
       elHorario.innerHTML = filasHorario.map(function(f){
-        return '<div style="margin-bottom:4px"><b>'+(f.sede||f.tipo.replace('horario_general_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+'</div>';
+        return '<div style="margin-bottom:4px"><b>'+(f.sede||f.tipo.replace('horario_general_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+
+          (f.subido_por_email ? ' · <span style="color:var(--tx3)">subido por '+f.subido_por_email+'</span>' : '')+'</div>';
       }).join('');
     } else {
       elHorario.classList.add('sin-archivo');
@@ -21718,7 +22360,8 @@ async function refrescarEstadoArchivosAdmin(){
     if(filasIntervencion.length){
       elIntervencion.classList.remove('sin-archivo');
       elIntervencion.innerHTML = filasIntervencion.map(function(f){
-        return '<div style="margin-bottom:4px"><b>'+(f.nombre_servicio||f.tipo.replace('grafico_intervencion_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+'</div>';
+        return '<div style="margin-bottom:4px"><b>'+(f.nombre_servicio||f.tipo.replace('grafico_intervencion_',''))+'</b>: '+f.nombre_archivo+' · '+new Date(f.fecha_subida).toLocaleString('es-ES')+
+          (f.subido_por_email ? ' · <span style="color:var(--tx3)">subido por '+f.subido_por_email+'</span>' : '')+'</div>';
       }).join('');
     } else {
       elIntervencion.classList.add('sin-archivo');
@@ -25791,6 +26434,14 @@ clearBtn.addEventListener('click', ()=>{
     // esto asegura que el portal aparezca de todos modos, un poco
     // más tarde que de costumbre en vez de nunca.
     setTimeout(revisarPerfil, 3200);
+    // NUEVO — primera comprobación de la píldora ✅ Check-in (el
+    // Calendario ya está abierto por defecto al cargar, así que no
+    // pasa por goP('cal')). Con un pequeño margen para que la
+    // restauración de sesión/rol (cargarPerfilYVerificarAdmin) tenga
+    // tiempo de completarse antes de decidir si se muestra o no.
+    setTimeout(function(){
+      if(typeof mostrarPillCheckinSiCorresponde==='function') mostrarPillCheckinSiCorresponde();
+    }, 3500);
   }
 
   if(document.readyState === 'loading'){
