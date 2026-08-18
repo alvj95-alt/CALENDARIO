@@ -2765,6 +2765,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 .ci-locked-foot{margin:6px 16px 10px;padding:9px 12px;background:var(--s1);border:1px solid var(--div);
   border-radius:10px;font-size:10px;color:var(--tx2);display:flex;align-items:center;gap:7px}
+
+/* NUEVO — Reservas: mismas piezas visuales que el check-in
+   (ci-grupo/ci-persona), solo con una fila de sección propia y la
+   hora mostrada como rango en vez de badge de posición. */
+.ci-seccion-hdr{display:flex;align-items:center;gap:6px;margin:16px 16px 8px}
+.ci-seccion-hdr-tit{font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--tx2);text-transform:uppercase}
+.ci-seccion-hdr::after{content:'';flex:1;height:1px;background:var(--div)}
+.ci-res-tramo{color:var(--tx3);font-size:9px}
+.ci-res-horas{font-size:11px;font-weight:800;color:var(--tx2);font-variant-numeric:tabular-nums;flex-shrink:0}
 .ci-btn-eliminar{width:100%;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);
   color:#FCA5A5;border-radius:9px;padding:9px 20px;font-size:12.5px;font-weight:700;cursor:pointer}
 .ci-btn-eliminar:hover{background:rgba(239,68,68,.2)}
@@ -20612,6 +20621,7 @@ function renderCiHistorico(fila){
   var esAdmin = !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
   var html = ciBarraDiaHtml();
   grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  html += ciRenderReservasHtml(fila.reservas || []);
   html += '<div class="ci-hist-note">🗂️ Histórico de solo lectura — subido por '+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</div>';
   if(esAdmin){
     html += '<div style="padding:0 16px 10px"><button class="ci-btn-eliminar" onclick="ciEliminarCheckin(\''+fila.fecha+'\', true)">🗑️ Eliminar este check-in (solo Admin)</button></div>';
@@ -20650,6 +20660,7 @@ async function ciArchivosSeleccionados(fileList){
   var archivos = Array.prototype.slice.call(fileList || []);
   if(!archivos.length) return;
   var todasLasFilas = [];
+  var todasLasReservas = [];
   var fotosSinLeerNada = 0;
   for(var idx=0; idx<archivos.length; idx++){
     var file = archivos[idx];
@@ -20665,15 +20676,16 @@ async function ciArchivosSeleccionados(fileList){
           }
         }
       });
-      var filas = ciParsearTextoOcr(resultadoOcr.data.text);
-      if(!filas.length) fotosSinLeerNada++;
-      todasLasFilas = todasLasFilas.concat(filas);
+      var resultadoParseo = ciParsearTextoOcr(resultadoOcr.data.text);
+      if(!resultadoParseo.filas.length && !resultadoParseo.reservas.length) fotosSinLeerNada++;
+      todasLasFilas = todasLasFilas.concat(resultadoParseo.filas);
+      todasLasReservas = todasLasReservas.concat(resultadoParseo.reservas);
     }catch(err){
       console.error(err);
       fotosSinLeerNada++;
     }
   }
-  if(!todasLasFilas.length){
+  if(!todasLasFilas.length && !todasLasReservas.length){
     renderCiVacio();
     toast('No se pudo leer ninguna tabla — prueba con fotos más rectas y con más luz');
     return;
@@ -20681,56 +20693,92 @@ async function ciArchivosSeleccionados(fileList){
   if(fotosSinLeerNada>0){
     toast('⚠️ '+fotosSinLeerNada+' foto(s) no se pudieron leer bien — revisa el vistazo antes de confirmar');
   }
-  renderCiVistazo(todasLasFilas);
+  renderCiVistazo(todasLasFilas, todasLasReservas);
 }
-// MODIFICADO — se añadió un AUTO-RECORTE antes del contraste. Antes,
-// esta función mejoraba el contraste de la foto ENTERA (mesa de
-// madera, carpeta, mano sujetando el papel...) y eso era justo lo que
-// más confundía al OCR: se comprobó con fotos reales que la mayoría
-// de "basura" leída venía del fondo, no de la tabla. Ahora primero se
-// intenta encontrar la hoja de papel (la zona más clara y contigua de
-// la foto, por proyección de brillo en filas/columnas — más simple y
-// rápido que detectar bordes) y se recorta a esa zona antes de seguir
-// con el mismo contraste de siempre. Si la detección sale rara
-// (recorte demasiado pequeño), se usa la foto entera como red de
-// seguridad, para no arriesgarse a recortar contenido real.
-function ciPrepararImagen(file){
+// MODIFICADO — se añadió CORRECCIÓN DE ROTACIÓN antes del auto-recorte.
+// El trabajador puede hacer la foto con el móvil en cualquier postura
+// (vertical, apaisada hacia un lado o hacia el otro), así que en vez
+// de asumir "ancha = de lado" se usa Tesseract.detect() para
+// preguntarle a un motor de verdad en qué ángulo está el texto, y se
+// gira la imagen ANTES de buscar la hoja de papel — si no, el
+// auto-recorte (que asume una tabla en vertical) buscaría mal en una
+// foto que en realidad está tumbada. Se comprobó con fotos reales en
+// las 4 orientaciones y acertó en todas.
+// AUTO-RECORTE (de antes): mejorar el contraste de la foto ENTERA
+// (mesa, carpeta, mano...) era justo lo que más confundía al OCR, así
+// que primero se busca la hoja de papel (zona más clara y contigua) y
+// se recorta a esa zona antes del contraste. Si el recorte sale
+// sospechosamente pequeño, se usa la foto entera como red de seguridad.
+function ciCargarImagen(file){
   return new Promise(function(resolve, reject){
     var img = new Image();
-    img.onload = function(){
-      try{
-        var cajaRecorte = ciDetectarZonaPapel(img);
-        var sx = cajaRecorte.x, sy = cajaRecorte.y, sw = cajaRecorte.w, sh = cajaRecorte.h;
-
-        var escala = sw < 1400 ? 2 : 1;
-        var canvas = document.createElement('canvas');
-        canvas.width = sw*escala;
-        canvas.height = sh*escala;
-        var ctx = canvas.getContext('2d');
-        // dibuja SOLO la zona recortada (sx,sy,sw,sh de la imagen
-        // original) estirada al tamaño final — así el recorte y el
-        // reescalado se hacen en un único paso.
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-        var data = ctx.getImageData(0,0,canvas.width,canvas.height);
-        var px = data.data, i, min=255, max=0, g;
-        var grises = new Float32Array(px.length/4);
-        for(i=0;i<px.length;i+=4){
-          g = 0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
-          grises[i/4]=g;
-          if(g<min)min=g; if(g>max)max=g;
-        }
-        var rango = Math.max(1,max-min);
-        for(i=0;i<px.length;i+=4){
-          var v = ((grises[i/4]-min)/rango)*255;
-          px[i]=px[i+1]=px[i+2]=v;
-        }
-        ctx.putImageData(data,0,0);
-        resolve(canvas);
-      }catch(e){ reject(e); }
-    };
+    img.onload = function(){ resolve(img); };
     img.onerror = function(){ reject(new Error('No se pudo cargar la imagen')); };
     img.src = URL.createObjectURL(file);
   });
+}
+// Devuelve los grados que hay que girar EN SENTIDO HORARIO para
+// enderezar la foto (0, 90, 180 o 270). Umbral de confianza
+// conservador a propósito: si Tesseract no está mínimamente seguro,
+// se prefiere no tocar la foto (podría estropear una que ya estaba
+// bien) antes que arriesgarse a un giro erróneo.
+async function ciDetectarRotacion(file){
+  try{
+    var res = await Tesseract.detect(file);
+    var d = res && res.data;
+    var grados = (d && typeof d.orientation_degrees==='number') ? d.orientation_degrees : 0;
+    var confianza = (d && typeof d.orientation_confidence==='number') ? d.orientation_confidence : 0;
+    var corregir = (360 - grados) % 360; // grados = inclinación actual; para enderezar se gira lo contrario
+    if(corregir===0) return 0;
+    if(confianza < 1.5) return 0;
+    return corregir;
+  }catch(e){
+    console.error('Detección de rotación falló, se usa la foto tal cual:', e);
+    return 0;
+  }
+}
+function ciRotarImagen(img, grados){
+  var w = img.width, h = img.height;
+  var canvas = document.createElement('canvas');
+  if(grados===90 || grados===270){ canvas.width = h; canvas.height = w; }
+  else { canvas.width = w; canvas.height = h; }
+  var ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width/2, canvas.height/2);
+  ctx.rotate(grados*Math.PI/180);
+  ctx.drawImage(img, -w/2, -h/2);
+  return canvas;
+}
+async function ciPrepararImagen(file){
+  var img = await ciCargarImagen(file);
+  var gradosCorregir = await ciDetectarRotacion(file);
+  var origen = gradosCorregir ? ciRotarImagen(img, gradosCorregir) : img;
+
+  var cajaRecorte = ciDetectarZonaPapel(origen);
+  var sx = cajaRecorte.x, sy = cajaRecorte.y, sw = cajaRecorte.w, sh = cajaRecorte.h;
+  var escala = sw < 1400 ? 2 : 1;
+  var canvas = document.createElement('canvas');
+  canvas.width = sw*escala;
+  canvas.height = sh*escala;
+  var ctx = canvas.getContext('2d');
+  // dibuja SOLO la zona recortada (sx,sy,sw,sh de la imagen ya
+  // enderezada) estirada al tamaño final — recorte y reescalado en un
+  // único paso.
+  ctx.drawImage(origen, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  var data = ctx.getImageData(0,0,canvas.width,canvas.height);
+  var px = data.data, i, min=255, max=0, g;
+  var grises = new Float32Array(px.length/4);
+  for(i=0;i<px.length;i+=4){
+    g = 0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+    grises[i/4]=g;
+    if(g<min)min=g; if(g>max)max=g;
+  }
+  var rango = Math.max(1,max-min);
+  for(i=0;i<px.length;i+=4){
+    var v = ((grises[i/4]-min)/rango)*255;
+    px[i]=px[i+1]=px[i+2]=v;
+  }
+  ctx.putImageData(data,0,0);
+  return canvas;
 }
 // Busca la zona más clara y contigua de la foto (la hoja de papel
 // blanca, se distingue de la mesa de madera/carpeta) trabajando sobre
@@ -20800,16 +20848,41 @@ function ciDetectarZonaPapel(img){
 // propósito — el vistazo posterior (renderCiVistazo) es quien atrapa
 // lo que esto no lea bien, marcándolo en naranja en vez de dar por
 // bueno un dato que no está.
+// MODIFICADO — ahora también reconoce la tabla de RESERVAS, que suele
+// venir en las mismas fotos que el check-in (una página más del mismo
+// taco). Es una máquina de estados sencilla: por defecto se leen filas
+// de check-in; en cuanto aparece una línea de cabecera tipo "RESERVAS
+// ... FECHA" se cambia a leer filas de reserva (matrícula, nombre,
+// tipo de reserva, hora inicio, hora fin) hasta el final del texto —
+// y si reapareciera una cabecera "CHECK-IN ... FECHA" (por ejemplo si
+// una foto de check-in viene DESPUÉS de una de reservas), se vuelve
+// al modo normal. Devuelve {filas, reservas} en vez de un array suelto.
 function ciParsearTextoOcr(texto){
   var lineas = texto.split('\n').map(function(l){return l.trim();}).filter(Boolean);
   var filas = [];
+  var reservas = [];
+  var seccion = 'checkin';
   var nombrePendiente = '';
   var lineasSinMatriculaSeguidas = 0;
-  var reMat   = /^(\d{6,7})/;
-  var reHora  = /(\d{1,2}:\d{2})/;
-  var rePos   = /\b((?:CP|TCF|JT)(?:[-·](?:CP|TCF|JT))*)\b/;
-  var reTurno = /\b(\d{3,6}(?:UM|DH|F)?(?:[-·]\d{3,6}(?:UM|DH|F)?){1,4})\b/;
+  // MODIFICADO — el borde de la tabla (una raya vertical "│") a
+  // menudo se lee como un carácter suelto ("|", "]", "}"...) justo
+  // delante del número de matrícula. Antes esto hacía que la fila
+  // ENTERA se perdiera en silencio (el patrón exigía el número pegado
+  // al principio). Ahora se permiten hasta 4 caracteres "basura" antes
+  // del número — comprobado con filas reales que antes desaparecían.
+  var reMat      = /^[^\dA-Za-zÁÉÍÓÚÑáéíóúñ]{0,4}(\d{6,7})/;
+  var reHora     = /(\d{1,2}:\d{2})/;
+  var reHoraTodas= /(\d{1,2}:\d{2})/g;
+  var rePos      = /\b((?:CP|TCF|JT)(?:[-·](?:CP|TCF|JT))*)\b/;
+  var reTurno    = /\b(\d{3,6}(?:UM|DH|F)?(?:[-·]\d{3,6}(?:UM|DH|F)?){1,4})\b/;
+  var reCabeceraReservas = /RESERVAS?\b.{0,20}FECHA/i;
+  var reCabeceraCheckin  = /CHECK.?IN\b.{0,20}FECHA/i;
+  var reTipoReserva = /RESERVA\s*(MA[ÑN]ANA|INTERMEDIA|TARDE)/i;
+
   lineas.forEach(function(linea){
+    if(reCabeceraReservas.test(linea)){ seccion='reservas'; nombrePendiente=''; return; }
+    if(reCabeceraCheckin.test(linea)){ seccion='checkin'; nombrePendiente=''; return; }
+
     var mMat = linea.match(reMat);
     if(!mMat){
       // Sin matrícula: puede ser un nombre que la tabla partió en dos
@@ -20840,6 +20913,26 @@ function ciParsearTextoOcr(texto){
     }
     lineasSinMatriculaSeguidas = 0;
     var resto = linea.slice(mMat[0].length);
+
+    if(seccion==='reservas'){
+      var mTipo = resto.match(reTipoReserva);
+      var horasEncontradas = resto.match(reHoraTodas) || [];
+      var nombreR = resto;
+      if(mTipo) nombreR = nombreR.replace(mTipo[0],'');
+      horasEncontradas.forEach(function(h){ nombreR = nombreR.replace(h,''); });
+      nombreR = nombreR.replace(/[|\[\]!¡_]/g,' ').replace(/\s{2,}/g,' ').trim();
+      nombreR = ((nombrePendiente ? nombrePendiente+' ' : '') + nombreR).replace(/\s{2,}/g,' ').trim();
+      nombrePendiente = '';
+      reservas.push({
+        matricula: mMat[1],
+        nombre: nombreR || '(nombre no leído)',
+        tipo: mTipo ? ('Reserva '+mTipo[1].replace(/MANANA/i,'Mañana').toLowerCase().replace(/^\w/,function(c){return c.toUpperCase();})) : '',
+        inicio: horasEncontradas[0] || '',
+        fin: horasEncontradas[1] || ''
+      });
+      return;
+    }
+
     var mTurno = resto.match(reTurno);
     var mPos   = resto.match(rePos);
     var mHora  = resto.match(reHora);
@@ -20859,7 +20952,7 @@ function ciParsearTextoOcr(texto){
       obs: ''
     });
   });
-  return filas;
+  return {filas: filas, reservas: reservas};
 }
 
 // Agrupa por HORA + primer tramo (el número de tren principal) —
@@ -20892,6 +20985,30 @@ function ciAgruparPorPrimerTramo(filas){
   });
   return listaGrupos;
 }
+// NUEVO — pinta la sección de Reservas, ordenadas también por hora de
+// inicio, reutilizando las mismas piezas visuales que el check-in
+// (.ci-grupo/.ci-persona) para que se vea como una parte más de la
+// app y no como algo pegado aparte.
+function ciRenderReservasHtml(reservas){
+  if(!reservas || !reservas.length) return '';
+  var ordenadas = reservas.slice().sort(function(a,b){
+    function min(h){ var m=h&&h.match(/^(\d{1,2}):(\d{2})/); return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):null; }
+    var ma=min(a.inicio), mb=min(b.inicio);
+    if(ma===null && mb===null) return 0;
+    if(ma===null) return 1;
+    if(mb===null) return -1;
+    return ma-mb;
+  });
+  var html = '<div class="ci-seccion-hdr"><span style="font-size:13px">🪑</span><div class="ci-seccion-hdr-tit">Reservas de hoy</div></div><div class="ci-grupo">';
+  ordenadas.forEach(function(r){
+    var horas = (r.inicio||'¿inicio?') + '–' + (r.fin||'¿fin?');
+    var horasCls = (!r.inicio || !r.fin) ? 'ci-res-horas est-falta' : 'ci-res-horas';
+    html += '<div class="ci-persona"><div class="ci-mat">'+r.matricula+'</div>'+
+      '<div class="ci-nom"><div class="ci-nom-tx">'+r.nombre+'</div><div class="ci-res-tramo">'+(r.tipo||'¿tipo?')+'</div></div>'+
+      '<div class="'+horasCls+'">'+horas+'</div></div>';
+  });
+  return html+'</div>';
+}
 function ciRenderGrupoHtml(g){
   var primeroWarn = /DH|UM/i.test(g.primero||'');
   var html = '<div class="ci-grupo"><div class="ci-ghdr">'+
@@ -20919,12 +21036,15 @@ function ciRenderGrupoHtml(g){
   });
   return html+'</div>';
 }
-function renderCiVistazo(filas){
+var _ciReservasPendientes = null;
+function renderCiVistazo(filas, reservas){
   _ciFilasPendientes = filas;
+  _ciReservasPendientes = reservas || [];
   var grupos = ciAgruparPorPrimerTramo(filas);
   var sinHora = filas.filter(function(f){return !f.hora;}).length;
-  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+'). Échale un vistazo antes de confirmar'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
+  var html = '<div class="ci-vistazo-note">📋 Esto es lo que se ha leído de la foto ('+filas.length+' persona'+(filas.length===1?'':'s')+(_ciReservasPendientes.length?' + '+_ciReservasPendientes.length+' reserva'+(_ciReservasPendientes.length===1?'':'s'):'')+'). Échale un vistazo antes de confirmar'+(sinHora?' — hay '+sinHora+' fila(s) sin hora detectada, en naranja':'')+'.</div>';
   grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  html += ciRenderReservasHtml(_ciReservasPendientes);
   document.getElementById('ci-body').innerHTML = html+
     '<div class="ci-vistazo-btns">'+
       '<button class="ci-btn-cancelar" onclick="renderCiVacio()">✕ Repetir foto</button>'+
@@ -20937,7 +21057,7 @@ function renderCiVistazo(filas){
 // "solo admin edita" bloquea a quien no sea Admin — sin necesitar
 // distinguir aquí "es la primera vez o no", lo decide la base de datos.
 async function ciConfirmarSubida(){
-  if(!_ciFilasPendientes || !_ciFilasPendientes.length) return;
+  if(!_ciFilasPendientes || (!_ciFilasPendientes.length && !(_ciReservasPendientes && _ciReservasPendientes.length))) return;
   renderCiProgreso('Subiendo…', 92);
   var identidad = ciIdentidadActual();
   var payload = {
@@ -20947,6 +21067,7 @@ async function ciConfirmarSubida(){
     subido_por_nombre: identidad.nombre || '',
     subido_en: new Date().toISOString(),
     datos: _ciFilasPendientes,
+    reservas: _ciReservasPendientes || [],
     editado_por_admin: !!(typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin')
   };
   try{
@@ -20954,6 +21075,7 @@ async function ciConfirmarSubida(){
     if(resp.error) throw resp.error;
     toast('✅ Check-in subido');
     _ciFilasPendientes = null;
+    _ciReservasPendientes = null;
     renderCiBloqueado(resp.data);
   }catch(err){
     console.error(err);
@@ -20993,6 +21115,7 @@ function renderCiBloqueado(fila){
   try{ horaSubida = new Date(fila.subido_en).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}); }catch(e){}
   var html = ciBarraDiaHtml();
   grupos.forEach(function(g){ html += ciRenderGrupoHtml(g); });
+  html += ciRenderReservasHtml(fila.reservas || []);
   html += '<div class="ci-locked-foot">🔒 Subido por <b>'+(fila.subido_por_nombre||fila.subido_por_matricula||'—')+'</b>'+(horaSubida?' a las '+horaSubida:'')+
     (fila.editado_por_admin ? ' · editado por un administrador' : '')+'</div>';
   if(esAdmin){
