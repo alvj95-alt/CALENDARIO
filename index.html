@@ -5718,6 +5718,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — Aviso de cookies (Google AdSense / Adsterra). Se
+     muestra SOLO la primera vez (comprueba localStorage). Los
+     scripts de publicidad de verdad NO se cargan hasta que la
+     persona pulsa "Aceptar" — así se cumple la normativa europea
+     de cookies (no cargar cookies de terceros sin consentimiento
+     previo). Ver cargarAnunciosSiConsentido() más abajo: ahí es
+     donde se pegará el código real de AdSense/Adsterra en cuanto
+     Alex tenga aprobada alguna de las dos cuentas — de momento no
+     hace nada, solo deja el sitio preparado.
+═══════════════════════════════════════════════════════════ -->
+<div id="cookie-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;
+  background:var(--s1);border-top:1px solid var(--div);padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 30px rgba(0,0,0,.4)">
+  <div style="font-size:12px;color:var(--tx2);line-height:1.5;margin-bottom:12px">
+    🍪 Usamos cookies para poder mostrar publicidad y mantener la app gratis. No se usan para acceder a tus turnos ni a tu matrícula.
+    <a href="./politica-privacidad.html" target="_blank" style="color:var(--acc2);font-weight:700">Más info</a>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button onclick="rechazarCookies()" style="flex:1;padding:11px;background:var(--s2);border:1px solid var(--div);border-radius:9px;color:var(--tx2);font-size:12.5px;font-weight:700;cursor:pointer">Rechazar</button>
+    <button onclick="aceptarCookies()" style="flex:1;padding:11px;background:var(--acc);border:none;border-radius:9px;color:#fff;font-size:12.5px;font-weight:800;cursor:pointer">Aceptar</button>
+  </div>
+</div>
+
 <!-- NUEVO — barra de borrado múltiple (modo selección, maqueta A) -->
 <div id="barra-borrado-masivo">
   <div class="bbm-count"><span id="bbm-contador">0</span> día(s) seleccionados</div>
@@ -20588,6 +20612,40 @@ function ciConTimeout(promesa, ms){
   });
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Consentimiento de cookies (Google AdSense / Adsterra).
+   100% aditivo — no toca ningún dato de TV/AJ/turnos.
+═══════════════════════════════════════════════════════════ */
+function mostrarAvisoCookiesSiHaceFalta(){
+  var decision = localStorage.getItem('cookie_consent');
+  if(decision === 'aceptado'){ cargarAnunciosSiConsentido(); return; }
+  if(decision === 'rechazado') return; // ya decidió que no, no se le vuelve a preguntar
+  var banner = document.getElementById('cookie-banner');
+  if(banner) banner.style.display = 'block';
+}
+function aceptarCookies(){
+  localStorage.setItem('cookie_consent', 'aceptado');
+  document.getElementById('cookie-banner').style.display = 'none';
+  cargarAnunciosSiConsentido();
+}
+function rechazarCookies(){
+  localStorage.setItem('cookie_consent', 'rechazado');
+  document.getElementById('cookie-banner').style.display = 'none';
+}
+// NUEVO — AQUÍ es donde se pega el script real de Google AdSense o
+// de Adsterra en cuanto Alex tenga aprobada la cuenta. De momento no
+// hace nada — solo se carga si la persona ya aceptó las cookies (o
+// ya las había aceptado antes), cumpliendo la ley de cookies europea
+// (nunca se cargan scripts de publicidad sin consentimiento previo).
+function cargarAnunciosSiConsentido(){
+  // Ejemplo de cómo se rellenará esto (NO activo todavía):
+  //
+  // var s = document.createElement('script');
+  // s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX';
+  // s.async = true; s.crossOrigin = 'anonymous';
+  // document.head.appendChild(s);
+}
+
 async function abrirCheckin(){
   _ciFechaViendo = new Date();
   openOv('ov-checkin');
@@ -26597,6 +26655,12 @@ clearBtn.addEventListener('click', ()=>{
     setTimeout(function(){
       if(typeof mostrarPillCheckinSiCorresponde==='function') mostrarPillCheckinSiCorresponde();
     }, 3500);
+    // NUEVO — aviso de cookies (Google AdSense / Adsterra), un poco
+    // más tarde que el resto para no competir visualmente con el
+    // splash de bienvenida.
+    setTimeout(function(){
+      if(typeof mostrarAvisoCookiesSiHaceFalta==='function') mostrarAvisoCookiesSiHaceFalta();
+    }, 4000);
   }
 
   if(document.readyState === 'loading'){
