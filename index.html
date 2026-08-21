@@ -2,10 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>TrenTurnos v5</title>
-<!-- Verificación de propiedad del sitio para Google AdSense -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8590744942912233" crossorigin="anonymous"></script>
 <!-- ═══════════════════════════════════════════════════════════
      NUEVO — PWA (Progressive Web App). Con esto, "Añadir a pantalla
      de inicio" desde el navegador instala TrenTurnos como si fuera
@@ -120,12 +118,24 @@ body.modo-interventor{
   --acc3:#DDD6FE;
 }
 *,*::before,*::after{box-sizing:border-box}
-body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh}
+body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh;min-height:100dvh}
 @media(min-width:480px){body{background:#060D18;padding:20px}
   body::before{content:'TrenTurnos v5';display:block;text-align:center;font-size:11px;letter-spacing:3px;color:var(--tx3);margin-bottom:10px}}
 
 /* ── PHONE SHELL ── */
-.ph{width:min(390px,100vw);height:min(844px,100vh);
+/* FIX — Confirmado por Alex: los botones de abajo "saltaban" al subir
+   y bajar en móvil. Causa: "100vh" en el móvil se calcula sobre el
+   alto MÁXIMO posible de la pantalla (con la barra de direcciones
+   escondida), pero el hueco visible real cambia cuando esa barra
+   aparece o desaparece al hacer scroll — así que este contenedor
+   cambiaba de alto sobre la marcha, y todo lo que cuelga de su borde
+   inferior (como la barra de navegación) se movía con él. "dvh" (alto
+   de viewport DINÁMICO) sí se ajusta solo en tiempo real a como esté
+   el navegador en cada momento — se deja "100vh" primero como
+   respaldo para navegadores muy antiguos que no conozcan "dvh"
+   (si no lo entienden, lo ignoran y se quedan con "100vh"; si sí lo
+   entienden, la segunda línea gana). */
+.ph{width:min(390px,100vw);height:min(844px,100vh);height:min(844px,100dvh);
     background-color:var(--bg); /* respaldo sólido oscuro mientras carga el gradiente */
     background-image:linear-gradient(-45deg,#1A1A2E,#16213E,#0F3460,#16213E,#1A1A2E);
     background-size:400% 400%;
