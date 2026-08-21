@@ -3407,6 +3407,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="htdl-dias-stats-box"></div>
       <div id="cs-info-adicional-box"></div>
       <div id="cs-total-pagar-box"></div>
+
+      <!-- NUEVO — hueco del anuncio "Banner 468x60" (Adsterra). El
+           banner mide 468px de ancho, más que la pantalla del móvil
+           (~390px), así que se encoge con "zoom" para que quepa
+           entero sin desbordar ni forzar scroll lateral — mismo
+           truco que ya se usa con el Native Banner. Vacío hasta que
+           se aceptan las cookies (ver cargarAnunciosSiConsentido()). -->
+      <div style="margin:14px 0 4px;display:flex;justify-content:center;overflow:hidden">
+        <div id="hueco-banner-468x60" style="zoom:0.8"></div>
+      </div>
     </div>
   </div>
 
@@ -20695,6 +20705,32 @@ function cargarAnunciosSiConsentido(){
     s.setAttribute('data-cfasync', 'false');
     s.src = 'https://pl30957316.effectivecpmnetwork.com/3a69e848eafa5ed4cf064fda89d15c87/invoke.js';
     document.body.appendChild(s);
+  }
+  // ADSTERRA — Banner 468x60 (id 30856819). Este formato usa
+  // "document.write" por dentro para dibujarse — si se ejecutara
+  // directamente en la página principal DESPUÉS de que ya haya
+  // cargado (que es justo este caso, se activa al aceptar cookies),
+  // "document.write" borraría sin querer toda la app. Por eso se
+  // mete dentro de un iframe propio, chiquito y sin bordes: dentro de
+  // ESE iframe sí es seguro usar document.write (tiene su propio
+  // documento en blanco), y nada de lo que haga puede tocar el resto
+  // de la página.
+  var huecoBanner = document.getElementById('hueco-banner-468x60');
+  if(huecoBanner && !document.getElementById('adsterra-banner-468x60')){
+    var iframeBanner = document.createElement('iframe');
+    iframeBanner.id = 'adsterra-banner-468x60';
+    iframeBanner.style.cssText = 'width:468px;height:60px;border:none;overflow:hidden';
+    iframeBanner.scrolling = 'no';
+    huecoBanner.appendChild(iframeBanner);
+    var docBanner = iframeBanner.contentWindow.document;
+    docBanner.open();
+    docBanner.write(
+      '<body style="margin:0;padding:0">' +
+      '<script>atOptions={key:"8f85bd49ca05e6f56f1b0ed1672b232f",format:"iframe",height:60,width:468,params:{}};<\/script>' +
+      '<script src="https://www.highrevenueformat.com/8f85bd49ca05e6f56f1b0ed1672b232f/invoke.js"><\/script>' +
+      '</body>'
+    );
+    docBanner.close();
   }
   // QUITADO de aquí (carga global) — Confirmado por Alex: el Social
   // Bar (id 30856818) ahora solo se carga cuando entra en Ajustes
