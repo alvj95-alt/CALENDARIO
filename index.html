@@ -3337,6 +3337,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <span class="turnos-mes-arr" id="turnos-mes-arr">›</span>
     </div>
     <div class="acordeon" id="acordeon" style="display:none"></div>
+
+    <!-- NUEVO — hueco del anuncio "Native Banner" (Adsterra). Vacío
+         hasta que la persona acepta las cookies (ver
+         cargarAnunciosSiConsentido()) — así no ocupa espacio ni
+         carga nada de terceros sin consentimiento previo. -->
+    <div style="margin:14px 16px 4px">
+      <div id="container-3a69e848eafa5ed4cf064fda89d15c87"></div>
+    </div>
   </div>
 
   <!-- ESTADÍSTICAS -->
@@ -20638,12 +20646,19 @@ function rechazarCookies(){
 // ya las había aceptado antes), cumpliendo la ley de cookies europea
 // (nunca se cargan scripts de publicidad sin consentimiento previo).
 function cargarAnunciosSiConsentido(){
-  // Ejemplo de cómo se rellenará esto (NO activo todavía):
-  //
-  // var s = document.createElement('script');
-  // s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXX';
-  // s.async = true; s.crossOrigin = 'anonymous';
-  // document.head.appendChild(s);
+  // ADSTERRA — Native Banner (id 30856817). Se inyecta el script tal
+  // cual lo dio Adsterra; su propio código rellena el div
+  // "container-3a69e848eafa5ed4cf064fda89d15c87" que ya existe en la
+  // pantalla de Calendario. Se comprueba que no se cargue dos veces
+  // si esta función se llama más de una vez en la misma sesión.
+  if(!document.getElementById('adsterra-native-banner')){
+    var s = document.createElement('script');
+    s.id = 'adsterra-native-banner';
+    s.async = true;
+    s.setAttribute('data-cfasync', 'false');
+    s.src = 'https://pl30957316.effectivecpmnetwork.com/3a69e848eafa5ed4cf064fda89d15c87/invoke.js';
+    document.body.appendChild(s);
+  }
 }
 
 async function abrirCheckin(){
