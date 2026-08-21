@@ -3341,9 +3341,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <!-- NUEVO — hueco del anuncio "Native Banner" (Adsterra). Vacío
          hasta que la persona acepta las cookies (ver
          cargarAnunciosSiConsentido()) — así no ocupa espacio ni
-         carga nada de terceros sin consentimiento previo. -->
-    <div style="margin:14px 16px 4px">
-      <div id="container-3a69e848eafa5ed4cf064fda89d15c87"></div>
+         carga nada de terceros sin consentimiento previo.
+         FIX — Confirmado por Alex: se reduce visualmente con "zoom"
+         (a diferencia de "transform:scale", el zoom SÍ reduce el
+         espacio reservado en la página, sin dejar un hueco vacío
+         debajo) — no se puede controlar el tamaño desde el propio
+         script de Adsterra, así que se encoge por fuera. -->
+    <div style="margin:14px 16px 4px;display:flex;justify-content:center">
+      <div id="container-3a69e848eafa5ed4cf064fda89d15c87" style="zoom:0.65"></div>
     </div>
   </div>
 
@@ -14769,6 +14774,16 @@ function goP(n){
     renderStats();
   }
   if(n==='ajustes')loadAjUI();
+  // NUEVO — Confirmado por Alex: el Social Bar (Adsterra) solo debe
+  // aparecer en Ajustes, no en toda la app. Se carga al ENTRAR en
+  // Ajustes, y se retira (elimina del DOM) al SALIR — el propio
+  // script de Adsterra no sabe distinguir pantallas por sí solo, así
+  // que ese control lo hace este mismo goP().
+  if(n==='ajustes'){
+    if(typeof cargarSocialBarSiConsentido==='function') cargarSocialBarSiConsentido();
+  } else {
+    if(typeof quitarSocialBar==='function') quitarSocialBar();
+  }
   // NUEVO — refresca la píldora ✅ Check-in (visible/oculta según rol,
   // y en azul si ya hay check-in subido hoy) cada vez que se entra en
   // Calendario, para que nunca quede desactualizada de una sesión a otra.
@@ -20658,6 +20673,39 @@ function cargarAnunciosSiConsentido(){
     s.setAttribute('data-cfasync', 'false');
     s.src = 'https://pl30957316.effectivecpmnetwork.com/3a69e848eafa5ed4cf064fda89d15c87/invoke.js';
     document.body.appendChild(s);
+  }
+  // QUITADO de aquí (carga global) — Confirmado por Alex: el Social
+  // Bar (id 30856818) ahora solo se carga cuando entra en Ajustes
+  // (ver cargarSocialBarSiConsentido()/quitarSocialBar() más abajo,
+  // enganchados a goP()), no en toda la app como antes.
+}
+
+// NUEVO — Social Bar de Adsterra, SOLO en Ajustes. El script de
+// Adsterra no distingue pantallas por sí solo (suele fijar su
+// elemento directo en <body>, con position:fixed), así que aquí se
+// guarda una "foto" de qué hijos tenía <body> ANTES de cargarlo, y al
+// salir de Ajustes se borra cualquier hijo NUEVO que haya aparecido
+// desde entonces — así se retira de verdad, no solo se deja de
+// cargar el script.
+var _socialBarHijosPrevios = null;
+function cargarSocialBarSiConsentido(){
+  var decision = localStorage.getItem('cookie_consent');
+  if(decision !== 'aceptado') return; // respeta el aviso de cookies igual que el resto de anuncios
+  if(document.getElementById('adsterra-social-bar')) return; // ya está cargado, no se duplica
+  _socialBarHijosPrevios = Array.prototype.slice.call(document.body.children);
+  var s2 = document.createElement('script');
+  s2.id = 'adsterra-social-bar';
+  s2.src = 'https://pl30957317.effectivecpmnetwork.com/30/94/fc/3094fc270290b91a58eca9cd46919b21.js';
+  document.body.appendChild(s2);
+}
+function quitarSocialBar(){
+  var script = document.getElementById('adsterra-social-bar');
+  if(script) script.remove();
+  if(_socialBarHijosPrevios){
+    Array.prototype.slice.call(document.body.children).forEach(function(el){
+      if(_socialBarHijosPrevios.indexOf(el) === -1) el.remove();
+    });
+    _socialBarHijosPrevios = null;
   }
 }
 
