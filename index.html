@@ -2247,39 +2247,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   letter-spacing:.3px;
 }
 
-/* ── BOTÓN FLOTANTE AYUDA (WhatsApp) ──
-   Módulo puramente visual/navegación externa. No lee ni
-   escribe en TV, TV2, AJ, SF, AGENDA ni ninguna otra
-   estructura de datos de la app. No añade dependencias.
-   Arrastrable por touch. */
-#btn-ayuda-whatsapp{
-  position:fixed;
-  top:12px;
-  right:12px;
-  z-index:1000;
-  width:36px;
-  height:36px;
-  border-radius:50%;
-  background:linear-gradient(135deg,#25D366,#1da851);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  box-shadow:0 3px 10px rgba(37,211,102,.4);
-  text-decoration:none;
-  cursor:grab;
-  -webkit-tap-highlight-color:transparent;
-  touch-action:none;
-  will-change:transform;
-  user-select:none;
-  transition:box-shadow .15s ease;
-}
-#btn-ayuda-whatsapp.wa-dragging{
-  cursor:grabbing;
-  box-shadow:0 6px 22px rgba(37,211,102,.6);
-  opacity:.92;
-}
-
 /* ══════════ APP TURNO · PESTAÑA COMPAÑEROS (antes módulo emergente) ══════════ */
 #p-companeros .at-shell{width:100%;height:100%;background:transparent;display:flex;flex-direction:column;overflow:hidden}
 
@@ -2838,6 +2805,32 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .pos-chip.pos-TCF{background:rgba(16,185,129,.15);color:#6ee7b7}
 .pos-chip.pos-JT{background:rgba(249,115,22,.15);color:#fdba74}
 .pos-chip.pos-CC{background:rgba(168,85,247,.15);color:#d8b4fe}
+/* NUEVO — Tutorial (acordeón por tema) */
+.tut-item{border-bottom:1px solid var(--div)}
+.tut-item-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer}
+.tut-item-ico{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+.tut-item-tit{font-size:13px;font-weight:700;color:var(--tx);flex:1}
+.tut-item-arr{font-size:11px;color:var(--tx3);transition:transform .2s;flex-shrink:0}
+.tut-item.open .tut-item-arr{transform:rotate(90deg)}
+.tut-item-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.tut-item.open .tut-item-body{max-height:600px}
+.tut-step{display:flex;gap:10px;padding:9px 18px 9px 40px;font-size:12.5px;color:var(--tx2);line-height:1.55}
+.tut-step-n{width:19px;height:19px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.tut-admin-badge{font-size:8px;font-weight:800;color:var(--nar2);background:rgba(249,115,22,.12);
+  border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:2px 6px;flex-shrink:0}
+/* NUEVO — Chatbot de ayuda (burbujas tipo conversación) */
+.chat-bienvenida{text-align:center;padding:20px 14px;color:var(--tx3);font-size:12px;line-height:1.6}
+.chat-msg{display:flex;margin-bottom:12px}
+.chat-msg.usuario{justify-content:flex-end}
+.chat-bubble{max-width:80%;padding:10px 13px;border-radius:14px;font-size:12.5px;line-height:1.55}
+.chat-msg.usuario .chat-bubble{background:var(--acc);color:#fff;border-bottom-right-radius:4px}
+.chat-msg.bot .chat-bubble{background:var(--s1);border:1px solid var(--div);color:var(--tx2);border-bottom-left-radius:4px}
+.chat-bubble .chat-tit{color:var(--tx);font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.chat-bubble .tut-step{padding:5px 0 5px 26px;font-size:12px}
+.chat-bubble .tut-step-n{width:16px;height:16px;font-size:9px}
+.chat-wa-btn{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:#25D366;color:#fff;
+  border:none;border-radius:9px;padding:9px 14px;font-size:12px;font-weight:800;text-decoration:none;cursor:pointer}
 /* NUEVO — vista "Vía" del check-in (maqueta 3, aprobada por Alex):
    carril vertical con una parada por hora de toma, y los trenes de
    esa hora colgando a la derecha como bloques. */
@@ -3216,17 +3209,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 <div class="ph" id="ph">
 
-<!-- BOTÓN FLOTANTE AYUDA — WhatsApp. Puramente visual/navegación
-     externa. No toca ninguna función ni dato existente de la app. -->
-<a href="https://wa.me/66660753771?text=Hola%2C%20tengo%20una%20duda%20sobre%20el%20calendario"
-   target="_blank" rel="noopener noreferrer"
-   id="btn-ayuda-whatsapp" aria-label="Ayuda por WhatsApp">
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-       stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-  </svg>
-</a>
-
 <!-- STATUS BAR -->
 <div class="sb">
   <div class="sb-left">
@@ -3262,6 +3244,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Acceso de Administrador (discreto, no interfiere con
            el uso normal de la app; solo abre un panel si el usuario
            inicia sesión y su perfil tiene rol='admin' en Supabase). -->
+      <button class="hbtn" id="hbtn-tutorial" onclick="abrirTutorial()" title="Tutorial">📖</button>
+      <button class="hbtn" id="hbtn-chatbot" onclick="abrirChatbot()" title="Ayuda">💬</button>
       <button class="hbtn" id="hbtn-admin" onclick="abrirAccesoAdmin()" title="Mi cuenta">🧑‍💼</button>
     </div>
   </div>
@@ -4193,6 +4177,50 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 <input type="file" id="ci-file-input" accept="application/pdf" multiple style="display:none" onchange="ciArchivosSeleccionados(this.files)">
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — TUTORIAL. Overlay estándar (.ov/.sh), con un acordeón
+     por tema (misma mecánica que "Turnos del mes"). El contenido de
+     cada tema se rellena dinámicamente desde JS (ver TUTORIAL_TEMAS
+     y renderTutorial() en el bloque de JS) — el tema 12 (copia de
+     seguridad) solo se añade a la lista si quien lo abre tiene
+     sesión de Admin, para el resto de la tripulación no aparece.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-tutorial" onclick="closeOv('ov-tutorial')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">📖</div>
+      <div><div class="sh-tit">Tutorial</div><div class="sh-sub">Toca un tema para ver los pasos</div></div>
+      <button class="sh-close" onclick="closeOv('ov-tutorial')">✕</button>
+    </div>
+    <div id="tutorial-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:10px"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — CHATBOT DE AYUDA. Busca por palabras clave sobre el
+     contenido del Tutorial (TUTORIAL_TEMAS, ya existente) — no usa
+     ninguna IA externa ni tiene coste. Si no encuentra ninguna
+     coincidencia razonable, ofrece un botón directo a WhatsApp.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-chatbot" onclick="closeOv('ov-chatbot')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">💬</div>
+      <div><div class="sh-tit">Ayuda</div><div class="sh-sub">Escribe qué necesitas, por ejemplo "check-in" o "retraso"</div></div>
+      <button class="sh-close" onclick="closeOv('ov-chatbot')">✕</button>
+    </div>
+    <div id="chatbot-conversacion" style="flex:1;min-height:0;overflow-y:auto;padding:12px 16px"></div>
+    <div style="display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--div)">
+      <input type="text" id="chatbot-input" placeholder="Escribe tu pregunta..." autocomplete="off"
+        style="flex:1;background:var(--s2);border:1px solid var(--div);border-radius:10px;padding:11px 13px;color:var(--tx);font-size:13px"
+        onkeydown="if(event.key==='Enter') enviarPreguntaChatbot()">
+      <button onclick="enviarPreguntaChatbot()" style="background:var(--acc);border:none;border-radius:10px;color:#fff;font-weight:800;padding:0 16px;cursor:pointer">➤</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
@@ -6179,6 +6207,222 @@ var listaNovedades = [
   }
 ];
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — TUTORIAL (acordeón por tema, confirmado con Alex tras
+   varias rondas de maqueta). Cada tema es independiente; el tema
+   marcado admin:true solo se añade a la lista si quien abre el
+   tutorial tiene sesión de Admin (ver renderTutorial()).
+═══════════════════════════════════════════════════════════ */
+var TUTORIAL_TEMAS = [
+  {
+    ico: '🚆', titulo: 'Registrar un turno Ordinario',
+    pasos: [
+      'Toca el día en el Calendario donde quieres registrar el turno.',
+      'Elige el tipo <b>Ordinario</b> en la pantalla que se abre.',
+      'Rellena la estación de salida/llegada, las horas, y el número de tren.',
+      'Pulsa <b>Guardar</b> — el día queda coloreado en el calendario con el icono del turno.'
+    ]
+  },
+  {
+    ico: '🌙', titulo: 'Registrar una pernocta (ida/vuelta)',
+    pasos: [
+      'Toca el día donde empieza la pernocta (el día de la ida).',
+      'Elige el tipo de jornada, y cuando te pregunte el modo, elige <b>Pernocta</b>.',
+      'Rellena los datos de la ida (salida, llegada, tren) y los de la vuelta.',
+      'Al guardar, se crean automáticamente los dos días: la ida (día actual) y la vuelta (día siguiente), enlazados entre sí.'
+    ]
+  },
+  {
+    ico: '📆', titulo: 'Descanso, Reserva, Vacaciones y DOP',
+    pasos: [
+      'Toca el día y elige el tipo correspondiente: <b>Descanso</b>, <b>Reserva</b>, <b>Vacaciones</b>, o <b>DOP</b> (día de descanso opcional que solicitas tú).',
+      'Estos cuatro tipos se guardan directos, sin pedir más datos — no hacen falta horas ni tren.',
+      'La Reserva cuenta sola 8h de Presencia; el resto no suma horas ni dinero, solo marca el día.'
+    ]
+  },
+  {
+    ico: '📥', titulo: 'Cargar tu horario individual (PDF) al calendario',
+    pasos: [
+      'Ve a la pestaña <b>Horario</b> y sube el PDF de tu horario individual.',
+      'Cuando termine de leerlo, pulsa <b>📅 Cargar en calendario</b>.',
+      'Si hay alguna estación que la app no reconoce todavía, te la pregunta una vez y la recuerda para siempre.',
+      'Revisa el resumen final — te dice cuántos días se cargaron, cuántos ya coincidían, y si hay alguno para revisar a mano.'
+    ]
+  },
+  {
+    ico: '📋', titulo: 'Copiar un turno a otro día',
+    pasos: [
+      'Abre el día que quieres copiar, y en el desplegable de opciones pulsa <b>Copiar turno</b>.',
+      'Elige el día de destino en el mini-calendario (puede ser de otro mes).',
+      'Elige cómo se guarda: <b>Ordinario</b>, <b>Art.51/52</b>, o <b>HTDL</b>.',
+      'Si es HTDL o Art.51/52, elige la compensación: <b>Dinero</b>, <b>Días</b>, o <b>Mixto</b>.',
+      'Si el día de destino ya tenía algo puesto, no se pierde — pasa a turno secundario, y sus horas se siguen contando igual.'
+    ]
+  },
+  {
+    ico: '🔁', titulo: 'Cambiar el tipo de un turno ya puesto',
+    pasos: [
+      'Abre el día y pulsa el botón <b>Cambio</b>.',
+      'Elige la opción <b>🔁 Cambiar tipo de turno</b> (la otra opción es para solicitar un cambio con un compañero, es distinta).',
+      'Elige el nuevo tipo (Ordinario, Art.51/52, o HTDL) y, si aplica, cómo se compensa.',
+      'El turno se actualiza en el mismo día, sin borrar ni volver a escribir nada — si era una pernocta, se aplica a la ida y la vuelta juntas.'
+    ]
+  },
+  {
+    ico: '⏱️', titulo: 'Registrar un retraso',
+    pasos: [
+      'Abre el día afectado y pulsa <b>⏱ Registrar retraso</b>.',
+      'Elige a qué tramo del turno afecta (ida, vuelta, o cualquiera de continuidad) y escribe los minutos.',
+      'La app te avisa en el momento si ese retraso hace que tu descanso con el día siguiente quede por debajo del mínimo legal.',
+      'El aviso de descanso insuficiente se queda guardado en el calendario mientras el retraso siga puesto, no solo mientras lo estás escribiendo.'
+    ]
+  },
+  {
+    ico: '👥', titulo: 'Buscar a un compañero (por nombre o tren)',
+    pasos: [
+      'Ve a la pestaña <b>Compañeros</b>.',
+      'Escribe un nombre para buscarlo directamente en el Horario General publicado, o escribe un número de tren para ver quién más de tu base lo hace ese día.',
+      'Puedes elegir el día con el mini-calendario antes de buscar por tren.',
+      '(Si tienes acceso de Interventor, ahí la búsqueda es solo por tren, y los resultados muestran nombre y base, no matrícula.)'
+    ]
+  },
+  {
+    ico: '✅', titulo: 'Subir el Check-in del día',
+    pasos: [
+      'Con tu Estación Base configurada, verás la píldora <b>✅ Check-in</b> en la parte de arriba del Calendario.',
+      'Tócala, y si nadie ha subido el check-in de hoy todavía, pulsa <b>📤 Subir PDF del check-in</b>.',
+      'Revisa el vistazo antes de confirmar — puedes tocar cualquier dato para corregirlo si algo salió mal.',
+      'Una vez confirmado, queda guardado y visible para toda tu base — puedes navegar a días anteriores con las flechitas ‹ › para consultarlos.'
+    ]
+  },
+  {
+    ico: '📊', titulo: 'Auditoría de Horas y desglose económico en Stats',
+    pasos: [
+      'Ve a la pestaña <b>Stats</b> y pulsa <b>🔍 Auditoría de Horas</b>.',
+      'Ahí comparas tus Horas Efectivas y de Presencia (calculadas por la app) contra el PDF oficial del cómputo mensual.',
+      'Más abajo tienes el desglose económico completo: HTDL, Art.51/52, nocturnidad, pluses, y el Total a Pagar del mes, sumado automáticamente.'
+    ]
+  },
+  {
+    ico: '⚙️', titulo: 'Configurar tu perfil y tarifas en Ajustes',
+    pasos: [
+      'Ve a la pestaña <b>Ajustes</b>.',
+      'Rellena tu nombre, matrícula, y tu rol (esto autocompleta las tarifas de HTDL, nocturnidad y Art.51/52 según tu rol).',
+      'Configura tu Estación Base — la necesitas para el Check-in del día y para varios cálculos de descanso.',
+      'Puedes ajustar cualquier tarifa a mano si la tuya es distinta a la de tu rol.'
+    ]
+  },
+  {
+    ico: '☁️', titulo: 'Copia de seguridad en la nube', admin: true,
+    pasos: [
+      'Esta función es solo para el Administrador de la base.',
+      'Desde el Panel de Administrador puedes subir el Horario General en PDF — se publica al instante para todo el mundo.',
+      'También puedes gestionar accesos, ver quién ha entrado al Buscador de Compañeros, y administrar el Check-in y el Portal de Interventor.'
+    ]
+  },
+  {
+    ico: '🗑️', titulo: 'Borrar varios días a la vez (mantener pulsado)',
+    pasos: [
+      'Mantén pulsado un día del Calendario durante medio segundo — entra en modo selección, con ese día ya marcado.',
+      'Toca los demás días que quieras borrar — cada uno se marca con un círculo naranja.',
+      'Abajo aparece una barra con el número de días seleccionados: <b>Cancelar</b> para salir sin borrar nada, o <b>🗑 Eliminar</b> para confirmar.',
+      'Se pide una confirmación final antes de borrar de verdad, con la lista de días afectados.'
+    ]
+  }
+];
+
+function abrirTutorial(){ renderTutorial(); openOv('ov-tutorial'); }
+function renderTutorial(){
+  var esAdmin = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  var temas = TUTORIAL_TEMAS.filter(function(t){ return !t.admin || esAdmin; });
+  document.getElementById('tutorial-body').innerHTML = temas.map(function(t, i){
+    return '<div class="tut-item" id="tut-item-'+i+'">'
+      + '<div class="tut-item-hdr" onclick="toggleTutorialItem('+i+')">'
+      + '<span class="tut-item-ico">'+t.ico+'</span>'
+      + '<span class="tut-item-tit">'+t.titulo+'</span>'
+      + (t.admin ? '<span class="tut-admin-badge">ADMIN</span>' : '')
+      + '<span class="tut-item-arr">›</span></div>'
+      + '<div class="tut-item-body">'
+      + t.pasos.map(function(p, pi){
+          return '<div class="tut-step"><span class="tut-step-n">'+(pi+1)+'</span><span>'+p+'</span></div>';
+        }).join('')
+      + '</div></div>';
+  }).join('');
+}
+function toggleTutorialItem(i){
+  var el = document.getElementById('tut-item-'+i);
+  if(el) el.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — CHATBOT DE AYUDA. Búsqueda por palabras clave sobre
+   TUTORIAL_TEMAS (el mismo contenido del Tutorial, ver arriba) — sin
+   IA, sin coste. Si no hay ninguna coincidencia razonable, ofrece
+   hablar directamente por WhatsApp con Alex.
+═══════════════════════════════════════════════════════════ */
+var WHATSAPP_SOPORTE = '66660753771'; // +66 660 753 771 (Alex)
+// Palabras muy comunes que no ayudan a encontrar el tema — se
+// ignoran al buscar, para que no distorsionen la puntuación.
+var CHATBOT_PALABRAS_VACIAS = ['de','la','el','en','un','una','como','que','para','con','mi','se','a','y','o','los','las','del','al','es','no','me','tengo','puedo','quiero','hace','hacer','tiempo','manana','necesito','esta','este','hay','soy','muy','mas','pero','sobre'];
+
+function abrirChatbot(){
+  var conv = document.getElementById('chatbot-conversacion');
+  if(conv && !conv.dataset.iniciado){
+    conv.innerHTML = '<div class="chat-bienvenida">👋 Hola, escribe qué necesitas (por ejemplo "check-in", "pernocta", "retraso"...) y te muestro los pasos. Si no encuentro nada, te dejo hablar directamente conmigo.</div>';
+    conv.dataset.iniciado = '1';
+  }
+  openOv('ov-chatbot');
+  setTimeout(function(){ var inp=document.getElementById('chatbot-input'); if(inp) inp.focus(); }, 300);
+}
+
+function _chatbotBuscarTema(pregunta){
+  var palabras = pregunta.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos, para que "vacacion"="vacación"
+    .replace(/[^a-z0-9áéíóúñ\s]/g, ' ')
+    .split(/\s+/)
+    .filter(function(p){ return p.length>2 && CHATBOT_PALABRAS_VACIAS.indexOf(p)===-1; });
+  if(!palabras.length) return null;
+
+  var esAdmin = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  var mejorTema = null, mejorPuntos = 0;
+  TUTORIAL_TEMAS.forEach(function(t){
+    if(t.admin && !esAdmin) return;
+    var textoTema = (t.titulo+' '+t.pasos.join(' ')).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var puntos = 0;
+    palabras.forEach(function(p){ if(textoTema.indexOf(p)>=0) puntos++; });
+    if(puntos>mejorPuntos){ mejorPuntos=puntos; mejorTema=t; }
+  });
+  return mejorPuntos>0 ? mejorTema : null;
+}
+
+function enviarPreguntaChatbot(){
+  var input = document.getElementById('chatbot-input');
+  var pregunta = (input.value||'').trim();
+  if(!pregunta) return;
+  input.value = '';
+
+  var conv = document.getElementById('chatbot-conversacion');
+  conv.innerHTML += '<div class="chat-msg usuario"><div class="chat-bubble">'+pregunta.replace(/</g,'&lt;')+'</div></div>';
+
+  var tema = _chatbotBuscarTema(pregunta);
+  if(tema){
+    var pasosHtml = tema.pasos.map(function(p, pi){
+      return '<div class="tut-step"><span class="tut-step-n">'+(pi+1)+'</span><span>'+p+'</span></div>';
+    }).join('');
+    conv.innerHTML += '<div class="chat-msg bot"><div class="chat-bubble">'
+      + '<div class="chat-tit">'+tema.ico+' '+tema.titulo+'</div>'
+      + pasosHtml + '</div></div>';
+  } else {
+    var waUrl = 'https://wa.me/'+WHATSAPP_SOPORTE+'?text='+encodeURIComponent('Hola, tengo una duda con TrenTurnos: '+pregunta);
+    conv.innerHTML += '<div class="chat-msg bot"><div class="chat-bubble">'
+      + 'No he encontrado nada claro sobre eso en el Tutorial. Puedes intentar con otras palabras, o hablar directamente conmigo:'
+      + '<div><a class="chat-wa-btn" href="'+waUrl+'" target="_blank">💬 Hablar por WhatsApp</a></div>'
+      + '</div></div>';
+  }
+  conv.scrollTop = conv.scrollHeight;
+}
+
 // NUEVO — saludo personal según la hora del día, con el primer nombre
 // de Ajustes si está puesto (si no, un saludo genérico). Se llama al
 // arrancar y cada vez que se actualiza el reloj de la cabecera (cada
@@ -7325,7 +7569,7 @@ if(typeof saveAj === 'function'){
    NUEVO — Botón "Compartir" (Ajustes → Apoyo al Desarrollador)
 ═══════════════════════════════════════════════════════════ */
 async function compartirApp() {
-  const urlCompartir = 'https://alvj95-alt.github.io/CALENDARIO/';
+  const urlCompartir = 'https://trenturnov5.es/';
   if (navigator.share) {
     try {
       await navigator.share({
@@ -20450,114 +20694,6 @@ function mostrarAvisoListaNegra(persona, onContinuar){
   });
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MÓDULO ARRASTRABLE — Botón WhatsApp
-   IIFE 100% aislada. No lee ni escribe TV, TV2, AJ, SF,
-   AGENDA, localStorage ni ninguna otra estructura de la app.
-   Solo manipula el elemento #btn-ayuda-whatsapp.
-═══════════════════════════════════════════════════════════ */
-(function(){
-  var el = document.getElementById('btn-ayuda-whatsapp');
-  if(!el) return;
-
-  var isDragging = false;
-  var wasDragged = false;   // distinguir drag de tap (para no bloquear el href)
-  var startX, startY, origX, origY;
-  var DRAG_THRESHOLD = 6;   // px mínimos para considerar drag vs tap
-
-  function clamp(val, min, max){ return Math.max(min, Math.min(max, val)); }
-
-  function posFix(x, y){
-    // Mantener siempre dentro del viewport visible
-    var w = el.offsetWidth, h = el.offsetHeight;
-    x = clamp(x, 0, window.innerWidth  - w);
-    y = clamp(y, 0, window.innerHeight - h);
-    el.style.left   = x + 'px';
-    el.style.top    = y + 'px';
-    el.style.right  = 'auto';
-    el.style.bottom = 'auto';
-  }
-
-  // ── TOUCH ──
-  el.addEventListener('touchstart', function(e){
-    var touch = e.touches[0];
-    var rect  = el.getBoundingClientRect();
-    startX = touch.clientX;
-    startY = touch.clientY;
-    origX  = rect.left;
-    origY  = rect.top;
-    isDragging = false;
-    wasDragged = false;
-  }, {passive:true});
-
-  el.addEventListener('touchmove', function(e){
-    var touch = e.touches[0];
-    var dx = touch.clientX - startX;
-    var dy = touch.clientY - startY;
-    if(!isDragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)){
-      isDragging = true;
-      wasDragged = true;
-      el.classList.add('wa-dragging');
-    }
-    if(isDragging){
-      e.preventDefault();
-      posFix(origX + dx, origY + dy);
-    }
-  }, {passive:false});
-
-  el.addEventListener('touchend', function(){
-    isDragging = false;
-    el.classList.remove('wa-dragging');
-  }, {passive:true});
-
-  // Bloquear navegación si fue drag (no tap)
-  el.addEventListener('click', function(e){
-    if(wasDragged){
-      e.preventDefault();
-      wasDragged = false;
-    }
-  });
-
-  // ── MOUSE (desktop) ──
-  el.addEventListener('mousedown', function(e){
-    var rect = el.getBoundingClientRect();
-    startX = e.clientX;
-    startY = e.clientY;
-    origX  = rect.left;
-    origY  = rect.top;
-    isDragging = false;
-    wasDragged = false;
-
-    function onMove(ev){
-      var dx = ev.clientX - startX;
-      var dy = ev.clientY - startY;
-      if(!isDragging && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)){
-        isDragging = true;
-        wasDragged = true;
-        el.classList.add('wa-dragging');
-      }
-      if(isDragging){
-        ev.preventDefault();
-        posFix(origX + dx, origY + dy);
-      }
-    }
-    function onUp(){
-      isDragging = false;
-      el.classList.remove('wa-dragging');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    }
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    e.preventDefault();
-  });
-
-  // Reajustar al girar pantalla / resize
-  window.addEventListener('resize', function(){
-    var rect = el.getBoundingClientRect();
-    posFix(rect.left, rect.top);
-  });
-})();
 
 
 /* ═══════════════════════════════════════════════════════════
