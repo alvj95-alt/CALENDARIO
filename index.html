@@ -3101,16 +3101,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="cal-tren-panel" id="calTrenPanel2"></div>
     <button class="tr-go" id="trGoBtn2" style="width:100%;margin-bottom:10px">Buscar</button>
     <div id="trainView2"></div>
-
-    <!-- NUEVO — "hueco de acogida" para el anuncio Native Banner
-         (Adsterra). Vacío por defecto: el contenedor real del
-         anuncio se MUEVE aquí dentro al entrar en el Portal de
-         Interventor, y vuelve al Calendario al salir — así el mismo
-         anuncio nunca vive en dos sitios del DOM a la vez (evita el
-         problema de tener un id duplicado). Ver
-         moverAnuncioAInterventor()/moverAnuncioACalendario().
-    -->
-    <div id="hueco-anuncio-interventor" style="margin-top:14px;display:flex;justify-content:center"></div>
   </div>
 </div>
 
@@ -3343,19 +3333,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <span class="turnos-mes-arr" id="turnos-mes-arr">›</span>
     </div>
     <div class="acordeon" id="acordeon" style="display:none"></div>
-
-    <!-- NUEVO — hueco del anuncio "Native Banner" (Adsterra). Vacío
-         hasta que la persona acepta las cookies (ver
-         cargarAnunciosSiConsentido()) — así no ocupa espacio ni
-         carga nada de terceros sin consentimiento previo.
-         FIX — Confirmado por Alex: se reduce visualmente con "zoom"
-         (a diferencia de "transform:scale", el zoom SÍ reduce el
-         espacio reservado en la página, sin dejar un hueco vacío
-         debajo) — no se puede controlar el tamaño desde el propio
-         script de Adsterra, así que se encoge por fuera. -->
-    <div id="hueco-anuncio-calendario" style="margin:14px 16px 4px;display:flex;justify-content:center">
-      <div id="container-3a69e848eafa5ed4cf064fda89d15c87" style="zoom:0.65"></div>
-    </div>
   </div>
 
   <!-- ESTADÍSTICAS -->
@@ -20829,19 +20806,12 @@ function rechazarCookies(){
 // ya las había aceptado antes), cumpliendo la ley de cookies europea
 // (nunca se cargan scripts de publicidad sin consentimiento previo).
 function cargarAnunciosSiConsentido(){
-  // ADSTERRA — Native Banner (id 30856817). Se inyecta el script tal
-  // cual lo dio Adsterra; su propio código rellena el div
-  // "container-3a69e848eafa5ed4cf064fda89d15c87" que ya existe en la
-  // pantalla de Calendario. Se comprueba que no se cargue dos veces
-  // si esta función se llama más de una vez en la misma sesión.
-  if(!document.getElementById('adsterra-native-banner')){
-    var s = document.createElement('script');
-    s.id = 'adsterra-native-banner';
-    s.async = true;
-    s.setAttribute('data-cfasync', 'false');
-    s.src = 'https://pl30957316.effectivecpmnetwork.com/3a69e848eafa5ed4cf064fda89d15c87/invoke.js';
-    document.body.appendChild(s);
-  }
+  // QUITADO — Confirmado por Alex: el Native Banner (id 30856817) se
+  // eliminó por completo. Estaba mostrando anuncios para adultos que
+  // Adsterra no filtró correctamente pese a tener el interruptor de
+  // "anuncios para adultos" en apagado — no era algo controlable
+  // desde este lado, así que se sacó del todo en vez de arriesgarse
+  // a que volviera a pasar.
   // ADSTERRA — Banner 468x60 (id 30856819). Este formato usa
   // "document.write" por dentro para dibujarse — si se ejecutara
   // directamente en la página principal DESPUÉS de que ya haya
@@ -20901,23 +20871,6 @@ function quitarSocialBar(){
     });
     _socialBarHijosPrevios = null;
   }
-}
-// NUEVO — Confirmado por Alex: el mismo anuncio "Native Banner"
-// también debe verse en el Portal de Interventor, pero SIN duplicar
-// el contenedor (tener dos elementos con el mismo id en la página es
-// inválido y el anuncio solo rellenaría uno de los dos de forma
-// impredecible). En vez de eso, se MUEVE el mismo elemento de un
-// hueco al otro — sigue siendo un único div en todo momento, solo
-// cambia de sitio en el DOM.
-function moverAnuncioAInterventor(){
-  var anuncio = document.getElementById('container-3a69e848eafa5ed4cf064fda89d15c87');
-  var destino = document.getElementById('hueco-anuncio-interventor');
-  if(anuncio && destino) destino.appendChild(anuncio);
-}
-function moverAnuncioACalendario(){
-  var anuncio = document.getElementById('container-3a69e848eafa5ed4cf064fda89d15c87');
-  var destino = document.getElementById('hueco-anuncio-calendario');
-  if(anuncio && destino) destino.appendChild(anuncio);
 }
 
 async function abrirCheckin(){
@@ -26490,9 +26443,6 @@ clearBtn.addEventListener('click', ()=>{
     document.body.classList.add('modo-interventor');
     _marcarUsuarioComoInterventor();
     actualizarSaludoInterventor();
-    // NUEVO — el anuncio Native Banner se muda aquí mientras estés
-    // en el Portal de Interventor (ver moverAnuncioAInterventor()).
-    if(typeof moverAnuncioAInterventor==='function') moverAnuncioAInterventor();
     // FIX — antes se llamaba directamente a cargarHorarioGlobalDesdeAdmin()
     // y activateBase(), pero esas funciones viven DENTRO de un módulo
     // de código aislado (el mismo que usa el Buscador de Compañeros) y
@@ -26509,8 +26459,6 @@ clearBtn.addEventListener('click', ()=>{
     var el = document.getElementById('portal-interventor-screen');
     if(el) el.style.display = 'none';
     document.body.classList.remove('modo-interventor');
-    // NUEVO — el anuncio vuelve al Calendario al salir de Interventor.
-    if(typeof moverAnuncioACalendario==='function') moverAnuncioACalendario();
   }
 
   // ── NUEVO: Saludo personalizado ("Hola, <Nombre> — Buenos días/
