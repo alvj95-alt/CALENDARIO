@@ -18359,35 +18359,49 @@ function _bloqueTieneConflicto(escrituras){
 function _procesarSiguienteBloquePdf(){
   if(_cargaPdfIdx >= _cargaPdfCola.length){ _finalizarCargaPdf(); return; }
   var bloque = _cargaPdfCola[_cargaPdfIdx];
-  var res = _pdfConstruirEscrituras(bloque, _cargaPdfAnio, _cargaPdfMes);
+  // NUEVO — Confirmado por Alex: si un bloque concreto falla al
+  // procesarse (por ejemplo, un día con restos de una pernocta cuyo
+  // otro día ya se borró), antes se quedaba todo colgado en silencio,
+  // sin avisar de nada — parecía que la carga "no hacía nada". Ahora
+  // se avisa con el error exacto y se salta ese día para seguir con
+  // el resto del PDF, en vez de bloquear la carga entera.
+  try{
+    var res = _pdfConstruirEscrituras(bloque, _cargaPdfAnio, _cargaPdfMes);
 
-  // NUEVO — Confirmado por Alex: cuando los descansos llegan antes en
-  // un PDF aparte (que nunca se sube a la app) y ya están puestos a
-  // mano, el PDF individual del mes en curso los vuelve a mostrar
-  // como "día libre" — si el día ya tiene descanso, DOP o COMPE
-  // puesto, ya coincide, no hay nada que preguntar. Los "COMPE" salen
-  // en el PDF como "LD" — son los días de descanso que generó un
-  // HTDL trabajado el mes anterior (compensación "por día"). No se
-  // sobrescribe ninguno de los tres (el DOP y el COMPE perderían su
-  // marca especial y su enlace al turno de origen) — se saltan sin más.
-  if(res.escrituras.length===1 && res.escrituras[0].data.tipo==='descanso'){
-    var kLibre = res.escrituras[0].k;
-    var existenteLibre = TV[kLibre];
-    if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop' || existenteLibre.tipo==='comp')){
-      _cargaPdfResumen.yaCoincidian = (_cargaPdfResumen.yaCoincidian||0) + 1;
+    // Confirmado por Alex: cuando los descansos llegan antes en
+    // un PDF aparte (que nunca se sube a la app) y ya están puestos a
+    // mano, el PDF individual del mes en curso los vuelve a mostrar
+    // como "día libre" — si el día ya tiene descanso, DOP o COMPE
+    // puesto, ya coincide, no hay nada que preguntar. Los "COMPE" salen
+    // en el PDF como "LD" — son los días de descanso que generó un
+    // HTDL trabajado el mes anterior (compensación "por día"). No se
+    // sobrescribe ninguno de los tres (el DOP y el COMPE perderían su
+    // marca especial y su enlace al turno de origen) — se saltan sin más.
+    if(res.escrituras.length===1 && res.escrituras[0].data.tipo==='descanso'){
+      var kLibre = res.escrituras[0].k;
+      var existenteLibre = TV[kLibre];
+      if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop' || existenteLibre.tipo==='comp')){
+        _cargaPdfResumen.yaCoincidian = (_cargaPdfResumen.yaCoincidian||0) + 1;
+        _cargaPdfIdx++;
+        _procesarSiguienteBloquePdf();
+        return;
+      }
+    }
+
+    if(!_bloqueTieneConflicto(res.escrituras)){
+      _escribirBloquePdf(res, 'directo');
+      if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
       _cargaPdfIdx++;
       _procesarSiguienteBloquePdf();
-      return;
+    } else {
+      _mostrarConflictoPdf(bloque, res);
     }
-  }
-
-  if(!_bloqueTieneConflicto(res.escrituras)){
-    _escribirBloquePdf(res, 'directo');
-    if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
+  } catch(errBloque){
+    console.error('Error procesando el día', bloque[0].n, errBloque);
+    alert('⚠️ Error en el día '+bloque[0].n+':\n'+(errBloque&&errBloque.message||errBloque)+'\n\n(Haz captura de esto y envíasela a soporte — se sigue con el resto del PDF)');
+    _cargaPdfResumen.revisar.push('día '+bloque[0].n+' (falló, ver aviso)');
     _cargaPdfIdx++;
     _procesarSiguienteBloquePdf();
-  } else {
-    _mostrarConflictoPdf(bloque, res);
   }
 }
 
@@ -18406,15 +18420,28 @@ function _mostrarConflictoPdf(bloque, res){
 function _resolverConflictoPdf(accion){
   var res = window._cpdfPendiente;
   closeOv('ov-carga-pdf-conflicto');
-  if(accion==='sobrescribir'){
-    _escribirBloquePdf(res, 'sobrescribir');
-    if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
-  } else if(accion==='extra'){
-    _escribirBloquePdf(res, 'extra');
-  } else if(accion==='editar'){
-    _cargaPdfResumen.revisar.push('día '+_cargaPdfCola[_cargaPdfIdx][0].n+' (marcado para editar a mano)');
-  } else {
-    _cargaPdfResumen.omitidos++;
+  // NUEVO — Confirmado por Alex: si algo falla aquí dentro (un turno
+  // guardado con una estructura rara, por ejemplo restos de una
+  // pernocta cuyo otro día ya se borró), antes se quedaba todo
+  // colgado en silencio — el botón parecía "no hacer nada", sin
+  // ningún aviso de qué había pasado. Ahora, si algo revienta, se
+  // avisa con el error exacto en vez de quedarse callado, y aun así
+  // se intenta seguir con el resto de la cola.
+  try{
+    if(accion==='sobrescribir'){
+      _escribirBloquePdf(res, 'sobrescribir');
+      if(res.incompletos.length) _cargaPdfResumen.revisar = _cargaPdfResumen.revisar.concat(res.incompletos);
+    } else if(accion==='extra'){
+      _escribirBloquePdf(res, 'extra');
+    } else if(accion==='editar'){
+      _cargaPdfResumen.revisar.push('día '+_cargaPdfCola[_cargaPdfIdx][0].n+' (marcado para editar a mano)');
+    } else {
+      _cargaPdfResumen.omitidos++;
+    }
+  } catch(errConflicto){
+    console.error('Error al resolver conflicto del día', _cargaPdfCola[_cargaPdfIdx][0].n, errConflicto);
+    alert('⚠️ Error en el día '+_cargaPdfCola[_cargaPdfIdx][0].n+':\n'+(errConflicto&&errConflicto.message||errConflicto)+'\n\n(Haz captura de esto y envíasela a soporte — se sigue con el resto del PDF)');
+    _cargaPdfResumen.revisar.push('día '+_cargaPdfCola[_cargaPdfIdx][0].n+' (falló, ver aviso)');
   }
   _cargaPdfIdx++;
   _procesarSiguienteBloquePdf();
@@ -26964,6 +26991,40 @@ clearBtn.addEventListener('click', ()=>{
   } else {
     iniciarConRetraso();
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     NUEVO — Interceptar el botón "atrás" del móvil. Sin esto, cada
+     pulsación de "atrás" saca directamente del navegador/app. Con
+     esto: si hay algún popup abierto, lo cierra primero; si no hay
+     ninguno pero no estás en Calendario, te lleva ahí; solo si ya
+     estás en Calendario sin nada abierto, deja que "atrás" haga lo
+     normal (salir). Usa el truco estándar de "pushState + popstate":
+     cada vez que se abre algo, se añade un paso al historial del
+     navegador, así "atrás" tiene algo que consumir antes de salir de
+     verdad. 100% aditivo — no reemplaza closeOv()/goP(), los llama.
+  ═══════════════════════════════════════════════════════════ */
+  history.pushState({trenturnos:true}, '', location.href);
+  window.addEventListener('popstate', function(){
+    var overlaysAbiertos = document.querySelectorAll('.ov.on');
+    if(overlaysAbiertos.length){
+      // Cierra el último abierto (el más "de encima" en overlays
+      // anidados, ej. ov-copiar-tipo sobre ov-copiar-cal).
+      var ultimo = overlaysAbiertos[overlaysAbiertos.length-1];
+      if(typeof closeOv==='function') closeOv(ultimo.id);
+      history.pushState({trenturnos:true}, '', location.href);
+      return;
+    }
+    var panelCal = document.getElementById('p-cal');
+    var yaEnCalendario = panelCal && panelCal.classList.contains('on');
+    if(!yaEnCalendario){
+      if(typeof goP==='function') goP('cal');
+      history.pushState({trenturnos:true}, '', location.href);
+      return;
+    }
+    // Ya está en Calendario y no hay nada abierto: no se vuelve a
+    // añadir historial, así el siguiente "atrás" sale de la app de
+    // verdad — es el comportamiento esperado en la pantalla principal.
+  });
 })();
 </script>
 
