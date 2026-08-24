@@ -18096,16 +18096,21 @@ function _pdfDireccionCompleta(entry){
     // tramo de cabeza mostraba el destino final de todo el viaje en
     // vez del suyo propio (ej. mostraba "Barcelona" en vez de
     // "Madrid Chamartín" para un tren que solo llega hasta ahí).
-    // FIX — Confirmado por Alex: a veces hay un traslado real entre dos
-    // estaciones de la misma ciudad (ej. Chamartín → Atocha) que el
-    // PDF nunca refleja como tramo aparte — el siguiente tren figura
-    // saliendo de la estación del traslado, no de donde realmente
-    // llegó el tren anterior. Por eso, si ya conoces el destino real
-    // de ESE tren en concreto (tu historial, SF), se usa ese dato con
-    // prioridad; solo si no lo conoces se usa la suposición de que
-    // llega justo donde sale el siguiente (lo normal, cuando no hay
-    // traslado de por medio).
-    out.llegadaCabeza = _pdfBuscarLlegadaSF(tramos[0].tren) || out.continuidad[0].salida;
+    // FIX — Confirmado por Alex: se había probado a usar el historial
+    // de trenes (SF) con prioridad aquí, para el caso de un traslado
+    // real entre dos estaciones de la misma ciudad que el PDF no
+    // refleja (ej. Chamartín → Atocha). Pero un mismo NÚMERO de tren
+    // se reutiliza en días distintos para combinaciones distintas —
+    // el 3304 de un día puede conectar en Atocha, y el 3304 de otro
+    // día, en Chamartín. "Aprender" el destino por número de tren
+    // aplicaba esa memoria a TODOS los días con ese número, aunque no
+    // hiciera falta ninguna corrección ese día en concreto — el
+    // resultado dejaba de coincidir con lo que decía el PDF de
+    // verdad. Ahora se confía siempre en la conexión real del PDF
+    // (dónde sale el siguiente tramo); si algún día hay un traslado
+    // real de por medio, se corrige a mano ESE día, sin que quede
+    // "pegado" al número de tren para siempre.
+    out.llegadaCabeza = out.continuidad[0].salida;
   }
   // NUEVO — DH en la CABECERA de esta dirección (tramos[0]) — se
   // devuelve para que el llamante (_pdfConstruirEscrituras) decida si
