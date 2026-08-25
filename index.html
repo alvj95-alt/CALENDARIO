@@ -3471,6 +3471,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
               <div class="rol-sub">Jefe de Tripulación</div>
             </div>
           </div>
+          <!-- NUEVO — Confirmado por Alex: el Salario Base (y demás
+               conceptos fijos de la Nómina Estimada) dependen del %
+               de jornada contratada, no siempre es el 100%. -->
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--div);border-radius:12px">
+            <span style="font-size:11.5px;color:var(--tx2);flex:1">📄 % de jornada contratada</span>
+            <input type="text" id="aj-jornada-pct" inputmode="decimal" placeholder="100"
+              style="width:56px;background:var(--s1);border:1px solid var(--div);border-radius:8px;padding:6px 8px;color:var(--tx);font-size:13px;font-weight:800;text-align:center"
+              onchange="AJ.jornadaPct=parseFloat(this.value)||100;localStorage.setItem('aj5',JSON.stringify(AJ))">
+            <span style="color:var(--tx2);font-size:12px">%</span>
+          </div>
         </div>
       </div>
         </div>
@@ -6450,17 +6460,27 @@ var _nominaValoresManuales = { htdlHoras:0, art5152Horas:0, ssPct:6.50, cuotaSin
 
 function _nominaConceptosFijos(rol, anio, mes){
   var c = CONCEPTOS_FIJOS_ROL[rol] || CONCEPTOS_FIJOS_ROL.tripulante;
+  // NUEVO — Confirmado por Alex: los conceptos fijos dependen del %
+  // de jornada contratada (Ajustes → "% de jornada contratada"), no
+  // siempre es el 100% del cartel de UGT. Si no se ha puesto nada,
+  // se asume 100% (jornada completa) por defecto.
+  var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
+  // FIX — c.pagaMarzo es el importe COMPLETO de la paga (del cartel
+  // de UGT) — hay que repartirlo entre los 12 meses, no aplicarlo
+  // entero cada mes.
+  var pagaMarzoMensual = Math.round((c.pagaMarzo*pct/12)*100)/100;
+  var salarioBaseProp = Math.round(c.salarioBase*pct*100)/100;
   var fijos = [
-    {label:'Salario Base', val:c.salarioBase},
-    {label:'Plus Transporte', val:c.plusTransporte},
-    {label:'Plus Manutención', val:c.plusManutencion},
-    {label:'Paga de Marzo (prorrateada)', val:c.pagaMarzo}
+    {label:'Salario Base', val:salarioBaseProp},
+    {label:'Plus Transporte', val:Math.round(c.plusTransporte*pct*100)/100},
+    {label:'Plus Manutención', val:Math.round(c.plusManutencion*pct*100)/100},
+    {label:'Paga de Marzo (prorrateada ÷12)', val:pagaMarzoMensual}
   ];
   // Pagas completas SOLO en su mes: Verano=julio(7), Otoño=septiembre(9), Navidad=diciembre(12).
-  // Mismo importe que el Salario Base (confirmado por Alex).
-  if(mes===7)  fijos.push({label:'Paga Extra de Verano', val:c.salarioBase});
-  if(mes===9)  fijos.push({label:'Paga Extra de Otoño',  val:c.salarioBase});
-  if(mes===12) fijos.push({label:'Paga Extra de Navidad',val:c.salarioBase});
+  // Mismo importe que el Salario Base ya proporcional (confirmado por Alex).
+  if(mes===7)  fijos.push({label:'Paga Extra de Verano', val:salarioBaseProp});
+  if(mes===9)  fijos.push({label:'Paga Extra de Otoño',  val:salarioBaseProp});
+  if(mes===12) fijos.push({label:'Paga Extra de Navidad',val:salarioBaseProp});
   return fijos;
 }
 
@@ -6590,18 +6610,42 @@ function _nominaActualizarManual(){
   document.getElementById('nom-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 }
 
+// NUEVO — Confirmado por Alex: en la Nómina Estimada NO se calculan
+// los enlaces de jornada entre HTDL y Art.51/52 (un caso especial
+// que calculateEarnings() sí incluye, mezclando algo de Art.51/52
+// dentro del total de HTDL — correcto para Stats, pero no para aquí).
+// Esta función usa solo calcularJornadaDiaria() por día (las horas
+// "base" de cada jornada, sin la parte añadida de enlace cruzado con
+// Art.51/52), y las paga a la tarifa de HTDL — un número más simple
+// y limpio, pensado solo para esta pantalla.
+function _nominaHTDLPuro(ks, tarifaHTDL){
+  var minTotal = 0;
+  ks.forEach(function(k){
+    var turnosDelDia = [TV[k]].concat(TV2[k]||[]);
+    var jornada = calcularJornadaDiaria(turnosDelDia, k);
+    minTotal += jornada.efectivasHTDLMin||0;
+  });
+  var horas = Math.round((minTotal/60)*100)/100;
+  return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100 };
+}
+
 function renderNominaCalendario(){
   var anio=statsM.getFullYear(), mes=statsM.getMonth();
   var rol = AJ.rol||'tripulante';
+  var t = TARIFAS_ROL[rol]||TARIFAS_ROL.tripulante;
   var ks = Object.keys(TV).filter(function(k){
     var d = new Date(k+'T00:00:00');
     return d.getFullYear()===anio && d.getMonth()===mes;
   });
   var earn = calculateEarnings(ks);
+  var htdlPuro = _nominaHTDLPuro(ks, t.vh);
 
   var fijos = _nominaConceptosFijos(rol, anio, mes+1);
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
-  var bruto = Math.round((totalFijos + earn.totalBruto)*100)/100;
+  // FIX — se usa htdlPuro.importe en vez de earn.totalHTDL (que
+  // mezcla algo de Art.51/52 en casos de enlace de jornada cruzado).
+  var totalVariablesResto = earn.totalNoc+earn.totalAct+earn.totalJT+earn.totalIntl;
+  var bruto = Math.round((totalFijos + htdlPuro.importe + totalVariablesResto)*100)/100;
 
   // NUEVO — Confirmado por Alex: las mismas deducciones (Seg. Social,
   // Cuota Sindical, IRPF) también aquí, no solo en la pestaña del
@@ -6612,11 +6656,11 @@ function renderNominaCalendario(){
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
 
-  var html = '<div class="nom-disclaimer">🧪 Usa el mismo cálculo que ya ves en Stats → Total a Pagar — si difiere de la pestaña del Excel, puede ser buena señal para revisar algo.</div>';
+  var html = '<div class="nom-disclaimer">🧪 Este HTDL NO incluye enlaces de jornada con Art.51/52 (confirmado por Alex) — puede diferir un poco del Total a Pagar de Stats por eso mismo.</div>';
   html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
   fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
   html += '<div class="nom-sec-hdr">Conceptos variables (de tu Calendario)</div>';
-  html += _nominaFila('HTDL', earn.horasHTDL+' h', earn.totalHTDL);
+  html += _nominaFila('HTDL', htdlPuro.horas+' h × '+t.vh.toFixed(2)+' €', htdlPuro.importe);
   html += _nominaFila('Nocturnidad', null, earn.totalNoc);
   html += _nominaFila('Plus Activación', null, earn.totalAct);
   html += _nominaFila('Plus JT', null, earn.totalJT);
@@ -14510,6 +14554,9 @@ function actualizarCalculo(){
    AJUSTES
 ═══════════════════════════════════════ */
 function loadAjUI(){
+  // NUEVO — % de jornada contratada (para la Nómina Estimada)
+  var ajJornadaInp = document.getElementById('aj-jornada-pct');
+  if(ajJornadaInp) ajJornadaInp.value = AJ.jornadaPct || 100;
   // NUEVO — la Nómina Estimada solo se ve con sesión de Admin activa
   // (Confirmado por Alex: se mantiene oculta al resto hasta que el
   // cálculo esté bien afinado con datos reales).
