@@ -763,19 +763,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .aj-nombre-inp::placeholder{color:var(--tx3);font-weight:400;font-size:13px}
 
 /* Selector de rol */
-.aj-roles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0}
-.aj-rol-btn{border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;
+.aj-roles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:0}
+.aj-rol-btn{border-radius:12px;padding:12px 6px;cursor:pointer;display:flex;
             flex-direction:column;align-items:center;gap:5px;transition:all .18s;
             border:1.5px solid var(--div);background:var(--s2)}
-.aj-rol-btn .rol-ico{font-size:24px}
-.aj-rol-btn .rol-lbl{font-size:12px;font-weight:800;letter-spacing:-.2px}
-.aj-rol-btn .rol-sub{font-size:9px;opacity:.55;text-align:center}
+.aj-rol-btn .rol-ico{font-size:22px}
+.aj-rol-btn .rol-lbl{font-size:11px;font-weight:800;letter-spacing:-.2px}
+.aj-rol-btn .rol-sub{font-size:8px;opacity:.55;text-align:center}
 .aj-rol-btn.activo-t{border-color:var(--acc);background:rgba(59,127,255,.12);
                      box-shadow:0 0 0 3px rgba(59,127,255,.15)}
 .aj-rol-btn.activo-a{border-color:var(--amber);background:rgba(245,158,11,.12);
                      box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+.aj-rol-btn.activo-j{border-color:#a78bfa;background:rgba(167,139,250,.12);
+                     box-shadow:0 0 0 3px rgba(167,139,250,.15)}
 .aj-rol-btn.activo-t .rol-lbl{color:var(--acc2)}
 .aj-rol-btn.activo-a .rol-lbl{color:var(--amber2)}
+.aj-rol-btn.activo-j .rol-lbl{color:#c4b5fd}
 
 /* Campo base */
 .aj-base-btn{display:flex;align-items:center;gap:10px;padding:11px 13px;
@@ -2819,6 +2822,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .tut-admin-badge{font-size:8px;font-weight:800;color:var(--nar2);background:rgba(249,115,22,.12);
   border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:2px 6px;flex-shrink:0}
+/* NUEVO — Nómina Estimada */
+.nom-tab-btn{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:11.5px;font-weight:800;color:var(--tx3);cursor:pointer}
+.nom-tab-btn.act{background:var(--acc);color:#fff}
+.nom-sec-hdr{padding:14px 18px 6px;font-size:11px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px}
+.nom-row{display:flex;justify-content:space-between;align-items:center;padding:8px 18px;font-size:12.5px;border-bottom:1px solid rgba(255,255,255,.04)}
+.nom-row-label{color:var(--tx2)}
+.nom-row-sub{font-size:10px;color:var(--tx3);margin-top:1px}
+.nom-row-val{color:var(--tx);font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
+.nom-row-manual{border:1px dashed var(--acc);border-radius:8px;margin:5px 18px;padding:8px 10px}
+.nom-input-mini{width:64px;background:var(--s1);border:1px solid var(--acc);border-radius:6px;padding:5px 6px;color:var(--tx);font-size:11.5px;font-weight:700;text-align:center}
+.nom-total-bruto{display:flex;justify-content:space-between;align-items:center;margin:14px 16px 8px;padding:12px 16px;background:var(--s1);border:1px solid var(--acc);border-radius:14px}
+.nom-total-bruto-lbl{font-size:11.5px;font-weight:800;color:var(--acc2)}
+.nom-total-bruto-val{font-size:17px;font-weight:900;color:var(--tx)}
+.nom-total-neto{display:flex;justify-content:space-between;align-items:center;margin:8px 16px 8px;padding:14px 16px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border:1px solid rgba(34,197,94,.4);border-radius:14px}
+.nom-total-neto-lbl{font-size:12px;font-weight:800;color:#4ade80}
+.nom-total-neto-val{font-size:19px;font-weight:900;color:#fff}
+.nom-disclaimer{margin:8px 16px 4px;padding:10px 12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px;font-size:10px;color:#fdba74;line-height:1.5}
 /* NUEVO — Chatbot de ayuda (burbujas tipo conversación) */
 .chat-bienvenida{text-align:center;padding:20px 14px;color:var(--tx3);font-size:12px;line-height:1.6}
 .chat-msg{display:flex;margin-bottom:12px}
@@ -3358,6 +3378,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button id="btnGuiaCuentas" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#C4B5FD" onclick="openOv('ov-guia-cuentas')">ℹ️ ¿Qué significa cada cuenta?</button>
       <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
       <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
+      <!-- NUEVO — Nómina Estimada, confirmada con Alex tras varias
+           rondas de maqueta. Reutiliza el Cómputo Excel ya subido
+           (mismo _computoExcelPorMes que ya existe) para la pestaña
+           "Desde el Excel", y calculateEarnings() para "Desde tu
+           Calendario" — no duplica ninguna lógica de cálculo. -->
+      <!-- NUEVO — Confirmado por Alex: la Nómina Estimada se queda
+           SOLO visible para Admin de momento, hasta que el cálculo
+           esté bien afinado (oculto por defecto con display:none;
+           se muestra desde loadAjUI() si hay sesión de admin real). -->
+      <button id="btnNominaEstimada" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);color:#86efac;display:none" onclick="abrirNominaEstimada()">💶 Nómina Estimada</button>
       <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
       <div id="role-card"></div>
       <div class="sg" id="sg"></div>
@@ -3428,12 +3458,17 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="aj-rol-btn" id="rs-t" onclick="setRol('tripulante')">
               <div class="rol-ico">🚆</div>
               <div class="rol-lbl">Tripulante</div>
-              <div class="rol-sub">Jefe / Revisor</div>
+              <div class="rol-sub">Revisor</div>
             </div>
             <div class="aj-rol-btn" id="rs-a" onclick="setRol('auxiliar')">
               <div class="rol-ico">🎫</div>
               <div class="rol-lbl">Auxiliar</div>
               <div class="rol-sub">Auxiliar de tripulante</div>
+            </div>
+            <div class="aj-rol-btn" id="rs-j" onclick="setRol('jefe')">
+              <div class="rol-ico">👨‍✈️</div>
+              <div class="rol-lbl">Jefe</div>
+              <div class="rol-sub">Jefe de Tripulación</div>
             </div>
           </div>
         </div>
@@ -4236,6 +4271,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
       <button onclick="cerrarAvisoPublicidad()" style="width:100%;padding:14px;background:var(--acc);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">✅ Entendido</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NUEVO — NÓMINA ESTIMADA. Confirmada con Alex tras varias rondas
+     de maqueta (ver conversación). Dos pestañas: "Desde el Excel"
+     (usa _computoExcelPorMes, ya subido para la comparación de
+     horas) y "Desde tu Calendario" (reutiliza calculateEarnings()).
+     100% aditivo: no toca ninguna estructura de datos existente,
+     solo LEE de TV/_computoExcelPorMes/AJ.
+═══════════════════════════════════════════════════════════ -->
+<div class="ov" id="ov-nomina" onclick="closeOv('ov-nomina')">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:90%">
+    <div class="sh-handle"></div>
+    <div class="sh-hdr">
+      <div class="sh-ico">💶</div>
+      <div><div class="sh-tit">Nómina Estimada</div><div class="sh-sub" id="nomina-subtitulo">—</div></div>
+      <button class="sh-close" onclick="closeOv('ov-nomina')">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin:12px 16px;background:var(--s2);border-radius:12px;padding:4px">
+      <div class="nom-tab-btn act" id="nom-tab-excel" onclick="cambiarPestanaNomina('excel')">📄 Desde el Excel</div>
+      <div class="nom-tab-btn" id="nom-tab-cal" onclick="cambiarPestanaNomina('calendario')">📅 Desde tu Calendario</div>
+    </div>
+    <div id="nomina-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:16px"></div>
   </div>
 </div>
 
@@ -6042,6 +6101,7 @@ TIPO_INFO.art5152 = {ico:'⚖️', lbl:'Art. 51/52', col:'var(--acc3)', cls:'dc-
 const PLUS_DEF={
   tripulante:{activacion:3.20,internacional:4.50,jt:2.80},
   auxiliar:  {activacion:2.60,internacional:3.80,jt:2.20},
+  jefe:      {activacion:3.20,internacional:4.50,jt:2.80}, // mismos valores que Tripulante (cartel UGT: mismas tarifas por hora)
 };
 const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacional',jt:'Plus JT'};
 
@@ -6050,16 +6110,36 @@ const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacion
 ═══════════════════════════════════════ */
 var _emailCB = null; // callback email — declarado globalmente para evitar implicit global
 /* ═══════════════════════════════════════════════════════════
-   NUEVO — Tarifas por defecto según rol (Tripulante/Auxiliar).
+   NUEVO — Tarifas por defecto según rol (Tripulante/Auxiliar/Jefe).
    Declarada ANTES de inicializar AJ para poder aplicarla también en
    la primera carga (ver más abajo), no solo al pulsar el botón de
    rol. El usuario puede seguir modificando estos valores a mano
    después sin ninguna restricción.
+   AMPLIADO — Confirmado por Alex, para la Nómina Estimada: se añaden
+   horaExtra/presencia/rebase/plusTrasl (antes solo estaban vh/
+   nocturnidad/art5152Monto, que ya se usaban en otras partes de la
+   app). Se añade el rol 'jefe' — según el cartel de tarifas de UGT
+   2026, Jefe de Tripulación tiene EXACTAMENTE las mismas tarifas por
+   hora que Tripulante — solo cambian los conceptos fijos (salario
+   base, pagas extras), ver CONCEPTOS_FIJOS_ROL más abajo.
 ═══════════════════════════════════════════════════════════ */
 var TARIFAS_ROL = {
-  tripulante: { vh:19.77, nocturnidad:2.62, art5152Monto:29.65 },
-  auxiliar:   { vh:14.82, nocturnidad:1.97, art5152Monto:22.23 }
+  tripulante: { vh:19.77, nocturnidad:2.62, art5152Monto:29.65, horaExtra:21.39, presencia:11.49, rebase:11.49, plusTrasl:1.00 },
+  auxiliar:   { vh:14.82, nocturnidad:1.97, art5152Monto:22.23, horaExtra:16.06, presencia:8.60,  rebase:8.60,  plusTrasl:1.00 },
+  jefe:       { vh:19.77, nocturnidad:2.62, art5152Monto:29.65, horaExtra:21.39, presencia:11.49, rebase:11.49, plusTrasl:1.00 }
 };
+// NUEVO — Conceptos fijos de la Nómina Estimada (cartel UGT 2026).
+// Plus Transporte y Plus Manutención son IGUALES para los 3 roles;
+// Salario Base y Paga de Marzo sí cambian según el rol. Las Pagas de
+// Verano/Otoño/Navidad usan el mismo importe que el Salario Base
+// (confirmado por Alex) y solo se aplican en su mes correspondiente
+// (jul/sep/dic) — ver calcularNominaEstimadaExcel().
+var CONCEPTOS_FIJOS_ROL = {
+  tripulante: { salarioBase:1614.15, pagaMarzo:1070.96, plusTransporte:123.62, plusManutencion:158.26 },
+  auxiliar:   { salarioBase:1212.77, pagaMarzo:995.26,  plusTransporte:123.62, plusManutencion:158.26 },
+  jefe:       { salarioBase:1958.42, pagaMarzo:1135.91, plusTransporte:123.62, plusManutencion:158.26 }
+};
+
 
 var AJ=Object.assign({
   nombre:'',matricula:'',rol:'tripulante',vh:12.5,nocturnidad:1.80,base:null,sedeBase:'',
@@ -6346,6 +6426,234 @@ var TUTORIAL_TEMAS = [
     ]
   }
 ];
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — NÓMINA ESTIMADA. Confirmada con Alex tras varias rondas de
+   maqueta:
+   - Pestaña "Desde el Excel": usa las horas ya guardadas del Cómputo
+     Excel (_computoExcelPorMes, el mismo que ya usa la comparación
+     de horas) para Presencia/Nocturnidad/Rebase/Plus Traslación.
+     HTDL y Art.51/52 se ponen A MANO (el Excel los mezcla en la
+     misma columna sin distinguirlos). Seg. Social, Cuota Sindical e
+     IRPF también a mano (varían según cada persona).
+   - Pestaña "Desde tu Calendario": reutiliza calculateEarnings(), el
+     mismo cálculo que ya usa Stats → Total a Pagar.
+   - Conceptos fijos: Salario Base, Plus Transporte, Plus Manutención
+     según el rol (CONCEPTOS_FIJOS_ROL). Paga de Marzo prorrateada
+     TODOS los meses; Pagas de Verano/Otoño/Navidad solo se aplican
+     completas en julio/septiembre/diciembre (mismo importe que el
+     Salario Base, confirmado por Alex).
+   100% de solo lectura sobre TV/AJ — nunca escribe en ellos.
+═══════════════════════════════════════════════════════════ */
+var _nominaTabActiva = 'excel';
+var _nominaValoresManuales = { htdlHoras:0, art5152Horas:0, ssPct:6.50, cuotaSindical:0, irpfPct:15 };
+
+function _nominaConceptosFijos(rol, anio, mes){
+  var c = CONCEPTOS_FIJOS_ROL[rol] || CONCEPTOS_FIJOS_ROL.tripulante;
+  var fijos = [
+    {label:'Salario Base', val:c.salarioBase},
+    {label:'Plus Transporte', val:c.plusTransporte},
+    {label:'Plus Manutención', val:c.plusManutencion},
+    {label:'Paga de Marzo (prorrateada)', val:c.pagaMarzo}
+  ];
+  // Pagas completas SOLO en su mes: Verano=julio(7), Otoño=septiembre(9), Navidad=diciembre(12).
+  // Mismo importe que el Salario Base (confirmado por Alex).
+  if(mes===7)  fijos.push({label:'Paga Extra de Verano', val:c.salarioBase});
+  if(mes===9)  fijos.push({label:'Paga Extra de Otoño',  val:c.salarioBase});
+  if(mes===12) fijos.push({label:'Paga Extra de Navidad',val:c.salarioBase});
+  return fijos;
+}
+
+function abrirNominaEstimada(){
+  var rolLbl = {tripulante:'Tripulante', auxiliar:'Tripulante Auxiliar', jefe:'Jefe de Tripulación'}[AJ.rol] || 'Tripulante';
+  document.getElementById('nomina-subtitulo').textContent = MESES[statsM.getMonth()]+' '+statsM.getFullYear()+' · '+rolLbl;
+  _nominaTabActiva = 'excel';
+  document.getElementById('nom-tab-excel').className = 'nom-tab-btn act';
+  document.getElementById('nom-tab-cal').className = 'nom-tab-btn';
+  renderNominaExcel();
+  openOv('ov-nomina');
+}
+
+function cambiarPestanaNomina(tab){
+  _nominaTabActiva = tab;
+  document.getElementById('nom-tab-excel').className = 'nom-tab-btn'+(tab==='excel'?' act':'');
+  document.getElementById('nom-tab-cal').className = 'nom-tab-btn'+(tab==='calendario'?' act':'');
+  if(tab==='excel') renderNominaExcel(); else renderNominaCalendario();
+}
+
+function _nominaFila(label, sub, val){
+  return '<div class="nom-row"><div><div class="nom-row-label">'+label+'</div>'
+    +(sub?'<div class="nom-row-sub">'+sub+'</div>':'')+'</div>'
+    +'<span class="nom-row-val">'+val.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+}
+
+function renderNominaExcel(){
+  var anio=statsM.getFullYear(), mes=statsM.getMonth()+1;
+  var claveMes = anio+'-'+String(mes).padStart(2,'0');
+  var datosExcel = _computoExcelPorMes[claveMes];
+  var rol = AJ.rol||'tripulante';
+  var t = TARIFAS_ROL[rol]||TARIFAS_ROL.tripulante;
+
+  if(!datosExcel || !datosExcel.porDia){
+    document.getElementById('nomina-body').innerHTML =
+      '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">'
+      +'📊 Primero sube el Cómputo Excel de este mes con el botón "Comparar con Cómputo Oficial", en Ajustes.<br><br>'
+      +'Esta pestaña usa esas mismas horas para calcular la nómina.</div>';
+    return;
+  }
+
+  // Sumar minutos de todo el mes desde el Cómputo Excel ya guardado
+  var sumaMin = {HE:0, HP:0, Noct:0, Rebase:0, PlusTrasl:0};
+  Object.keys(datosExcel.porDia).forEach(function(k){
+    var d = datosExcel.porDia[k];
+    sumaMin.HE += d.HE||0; sumaMin.HP += d.HP||0; sumaMin.Noct += d.Noct||0;
+    sumaMin.Rebase += d.Rebase||0; sumaMin.PlusTrasl += d.PlusTrasl||0;
+  });
+  var horas = {}; Object.keys(sumaMin).forEach(function(k){ horas[k] = Math.round((sumaMin[k]/60)*100)/100; });
+
+  var JORNADA_REF = 163;
+  var horasExtra = Math.max(0, horas.HE - JORNADA_REF);
+  var presenciaCompletar = Math.max(0, JORNADA_REF - horas.HE);
+
+  var fijos = _nominaConceptosFijos(rol, anio, mes);
+  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
+
+  var mv = _nominaValoresManuales;
+  var variables = [
+    {label:'Hora Extraordinaria', sub:horasExtra.toLocaleString('es-ES')+' h × '+t.horaExtra.toFixed(2)+' €'+(horas.HE<JORNADA_REF?' (no llegaste a 163h)':''), val:Math.round(horasExtra*t.horaExtra*100)/100},
+    {label:'Presencia (completar 163h)', sub:presenciaCompletar.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €', val:Math.round(presenciaCompletar*t.presencia*100)/100},
+    {label:'Presencia (de tu cómputo)', sub:horas.HP.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €', val:Math.round(horas.HP*t.presencia*100)/100},
+    {label:'Nocturnidad', sub:horas.Noct.toLocaleString('es-ES')+' h × '+t.nocturnidad.toFixed(2)+' €', val:Math.round(horas.Noct*t.nocturnidad*100)/100},
+    {label:'Rebase', sub:horas.Rebase.toLocaleString('es-ES')+' h × '+t.rebase.toFixed(2)+' €', val:Math.round(horas.Rebase*t.rebase*100)/100},
+    {label:'Plus Traslación', sub:horas.PlusTrasl.toLocaleString('es-ES')+' h × '+t.plusTrasl.toFixed(2)+' €', val:Math.round(horas.PlusTrasl*t.plusTrasl*100)/100},
+  ];
+  var totalVariables = variables.reduce(function(s,v){ return s+v.val; }, 0);
+  var htdlImporte = Math.round(mv.htdlHoras*t.vh*100)/100;
+  var art5152Importe = Math.round(mv.art5152Horas*t.art5152Monto*100)/100;
+
+  var bruto = Math.round((totalFijos+totalVariables+htdlImporte+art5152Importe)*100)/100;
+  var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
+  var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
+
+  var html = '<div class="nom-disclaimer">🧪 Estimación calculada a partir de tu cómputo Excel y las tarifas oficiales — puede no coincidir al céntimo con tu nómina de verdad.</div>';
+  html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
+  fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+  html += '<div class="nom-sec-hdr">Conceptos variables (de tu cómputo Excel)</div>';
+  variables.forEach(function(v){ html += _nominaFila(v.label, v.sub, v.val); });
+
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ HTDL (ponlo tú)</div>'
+    +'<div class="nom-row-sub"><input class="nom-input-mini" id="nom-htdl-horas" value="'+mv.htdlHoras+'" oninput="_nominaActualizarManual()"> h × '+t.vh.toFixed(2)+' €</div></div>'
+    +'<span class="nom-row-val" id="nom-htdl-val">'+htdlImporte.toFixed(2)+' €</span></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ Art.51/52 (ponlo tú)</div>'
+    +'<div class="nom-row-sub"><input class="nom-input-mini" id="nom-art-horas" value="'+mv.art5152Horas+'" oninput="_nominaActualizarManual()"> h × '+t.art5152Monto.toFixed(2)+' €</div></div>'
+    +'<span class="nom-row-val" id="nom-art-val">'+art5152Importe.toFixed(2)+' €</span></div>';
+
+  html += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO</span><span class="nom-total-bruto-val" id="nom-bruto-val">'+bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ Seg. Social (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nom-ss-pct" value="'+mv.ssPct+'" oninput="_nominaActualizarManual()"> %</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ Cuota Sindical (ponlo tú)</div><div class="nom-row-sub">importe fijo</div></div>'
+    +'<div><input class="nom-input-mini" id="nom-cuota" value="'+mv.cuotaSindical+'" oninput="_nominaActualizarManual()"> €</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ IRPF (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nom-irpf-pct" value="'+mv.irpfPct+'" oninput="_nominaActualizarManual()"> %</div></div>';
+
+  html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nom-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  document.getElementById('nomina-body').innerHTML = html;
+  // Guarda lo necesario para recalcular en vivo sin reconstruir todo el HTML
+  window._nominaBaseCalculo = {totalFijos:totalFijos, totalVariables:totalVariables, t:t};
+}
+
+// NUEVO — Recalcula SOLO los totales (Bruto/Neto) cuando la persona
+// edita un campo manual, sin reconstruir toda la pantalla (evita
+// perder el foco del campo que se está editando).
+function _nominaActualizarManual(){
+  var base = window._nominaBaseCalculo; if(!base) return;
+  var htdlHoras = parseFloat(document.getElementById('nom-htdl-horas').value)||0;
+  var artHoras = parseFloat(document.getElementById('nom-art-horas').value)||0;
+  var ssPct = parseFloat(document.getElementById('nom-ss-pct').value)||0;
+  var cuota = parseFloat(document.getElementById('nom-cuota').value)||0;
+  var irpfPct = parseFloat(document.getElementById('nom-irpf-pct').value)||0;
+  _nominaValoresManuales = {htdlHoras:htdlHoras, art5152Horas:artHoras, ssPct:ssPct, cuotaSindical:cuota, irpfPct:irpfPct};
+
+  var htdlImporte = Math.round(htdlHoras*base.t.vh*100)/100;
+  var artImporte = Math.round(artHoras*base.t.art5152Monto*100)/100;
+  var bruto = Math.round((base.totalFijos+base.totalVariables+htdlImporte+artImporte)*100)/100;
+  var ssImporte = Math.round(bruto*ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
+  var neto = Math.round((bruto-ssImporte-cuota-irpfImporte)*100)/100;
+
+  document.getElementById('nom-htdl-val').textContent = htdlImporte.toFixed(2)+' €';
+  document.getElementById('nom-art-val').textContent = artImporte.toFixed(2)+' €';
+  document.getElementById('nom-bruto-val').textContent = bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+  document.getElementById('nom-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+function renderNominaCalendario(){
+  var anio=statsM.getFullYear(), mes=statsM.getMonth();
+  var rol = AJ.rol||'tripulante';
+  var ks = Object.keys(TV).filter(function(k){
+    var d = new Date(k+'T00:00:00');
+    return d.getFullYear()===anio && d.getMonth()===mes;
+  });
+  var earn = calculateEarnings(ks);
+
+  var fijos = _nominaConceptosFijos(rol, anio, mes+1);
+  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
+  var bruto = Math.round((totalFijos + earn.totalBruto)*100)/100;
+
+  // NUEVO — Confirmado por Alex: las mismas deducciones (Seg. Social,
+  // Cuota Sindical, IRPF) también aquí, no solo en la pestaña del
+  // Excel. Comparten el mismo _nominaValoresManuales — son datos de
+  // TU situación personal, iguales sin importar qué pestaña mires.
+  var mv = _nominaValoresManuales;
+  var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
+  var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
+
+  var html = '<div class="nom-disclaimer">🧪 Usa el mismo cálculo que ya ves en Stats → Total a Pagar — si difiere de la pestaña del Excel, puede ser buena señal para revisar algo.</div>';
+  html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
+  fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+  html += '<div class="nom-sec-hdr">Conceptos variables (de tu Calendario)</div>';
+  html += _nominaFila('HTDL', earn.horasHTDL+' h', earn.totalHTDL);
+  html += _nominaFila('Nocturnidad', null, earn.totalNoc);
+  html += _nominaFila('Plus Activación', null, earn.totalAct);
+  html += _nominaFila('Plus JT', null, earn.totalJT);
+  html += _nominaFila('Plus Internacional', null, earn.totalIntl);
+
+  html += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO</span><span class="nom-total-bruto-val" id="nomcal-bruto-val">'+bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ Seg. Social (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nomcal-ss-pct" value="'+mv.ssPct+'" oninput="_nominaActualizarManualCalendario()"> %</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ Cuota Sindical (ponlo tú)</div><div class="nom-row-sub">importe fijo</div></div>'
+    +'<div><input class="nom-input-mini" id="nomcal-cuota" value="'+mv.cuotaSindical+'" oninput="_nominaActualizarManualCalendario()"> €</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">✍️ IRPF (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nomcal-irpf-pct" value="'+mv.irpfPct+'" oninput="_nominaActualizarManualCalendario()"> %</div></div>';
+
+  html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nomcal-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  document.getElementById('nomina-body').innerHTML = html;
+  window._nominaCalBruto = bruto; // guardado para recalcular en vivo sin reconstruir todo el HTML
+}
+
+// NUEVO — Recalcula solo Bruto/Neto de la pestaña "Desde tu
+// Calendario" cuando se edita un campo manual, igual que ya hace
+// _nominaActualizarManual() para la pestaña del Excel.
+function _nominaActualizarManualCalendario(){
+  var bruto = window._nominaCalBruto; if(bruto===undefined) return;
+  var ssPct = parseFloat(document.getElementById('nomcal-ss-pct').value)||0;
+  var cuota = parseFloat(document.getElementById('nomcal-cuota').value)||0;
+  var irpfPct = parseFloat(document.getElementById('nomcal-irpf-pct').value)||0;
+  _nominaValoresManuales.ssPct = ssPct;
+  _nominaValoresManuales.cuotaSindical = cuota;
+  _nominaValoresManuales.irpfPct = irpfPct;
+
+  var ssImporte = Math.round(bruto*ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
+  var neto = Math.round((bruto-ssImporte-cuota-irpfImporte)*100)/100;
+  document.getElementById('nomcal-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
 
 function abrirTutorial(){ renderTutorial(); openOv('ov-tutorial'); }
 function renderTutorial(){
@@ -14202,6 +14510,20 @@ function actualizarCalculo(){
    AJUSTES
 ═══════════════════════════════════════ */
 function loadAjUI(){
+  // NUEVO — la Nómina Estimada solo se ve con sesión de Admin activa
+  // (Confirmado por Alex: se mantiene oculta al resto hasta que el
+  // cálculo esté bien afinado con datos reales).
+  // FIX — "perfilAdminActual" se declara con "let" más abajo en el
+  // script; si loadAjUI() se llega a ejecutar ANTES de que el script
+  // llegue a esa línea (zona muerta temporal de "let"), ni siquiera
+  // "typeof" es seguro — también lanza error. Se envuelve en
+  // try/catch para que esto nunca pueda romper la carga de Ajustes.
+  var btnNomina = document.getElementById('btnNominaEstimada');
+  if(btnNomina){
+    var esAdmin = false;
+    try{ esAdmin = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin'); }catch(errTDZ){ esAdmin = false; }
+    btnNomina.style.display = esAdmin ? 'inline-flex' : 'none';
+  }
   // Inicializar UI de alarmas
   var aSw = document.getElementById('alarm-sw');
   var aFi = document.getElementById('alarm-fichar');
@@ -14329,6 +14651,7 @@ function setRol(r){
 function setRolUI(r){
   document.getElementById('rs-t').className='aj-rol-btn'+(r==='tripulante'?' activo-t':'');
   document.getElementById('rs-a').className='aj-rol-btn'+(r==='auxiliar'?' activo-a':'');
+  var rsJ=document.getElementById('rs-j'); if(rsJ) rsJ.className='aj-rol-btn'+(r==='jefe'?' activo-j':'');
 }
 function renderPlusGrid(){
   var r=AJ.rol||'tripulante',p=AJ.pluses[r]||PLUS_DEF[r];
