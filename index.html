@@ -21264,7 +21264,15 @@ function rechazarCookies(){
 // hace nada — solo se carga si la persona ya aceptó las cookies (o
 // ya las había aceptado antes), cumpliendo la ley de cookies europea
 // (nunca se cargan scripts de publicidad sin consentimiento previo).
+// NUEVO — Confirmado por Alex: toda la publicidad se oculta por
+// ahora, hasta nueva orden. Con este interruptor en "true" no se
+// carga NINGÚN anuncio (Banner 468x60 ni Social Bar), aunque la
+// persona haya aceptado las cookies — para volver a activarla, basta
+// con cambiar esto a "false", sin tocar nada más del código.
+var PUBLICIDAD_OCULTA_TEMPORALMENTE = true;
+
 function cargarAnunciosSiConsentido(){
+  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
   // QUITADO — Confirmado por Alex: el Native Banner (id 30856817) se
   // eliminó por completo. Estaba mostrando anuncios para adultos que
   // Adsterra no filtró correctamente pese a tener el interruptor de
@@ -21312,6 +21320,7 @@ function cargarAnunciosSiConsentido(){
 // cargar el script.
 var _socialBarHijosPrevios = null;
 function cargarSocialBarSiConsentido(){
+  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
   var decision = localStorage.getItem('cookie_consent');
   if(decision !== 'aceptado') return; // respeta el aviso de cookies igual que el resto de anuncios
   if(document.getElementById('adsterra-social-bar')) return; // ya está cargado, no se duplica
