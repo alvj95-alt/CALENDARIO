@@ -3502,6 +3502,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
               style="background:var(--s1);border:1px solid var(--div);border-radius:8px;padding:6px 8px;color:var(--tx);font-size:12px;font-weight:700"
               onchange="AJ.antiguedad=this.value;localStorage.setItem('aj5',JSON.stringify(AJ))">
           </div>
+          <!-- NUEVO — Confirmado por Alex: si hubo una liquidación
+               (fin de contrato/cambio administrativo), las Pagas
+               Extra/Otoño/Marzo deben contar desde esa fecha, no
+               desde la antigüedad original — la liquidación ya
+               "cerró cuentas" con lo devengado hasta ese momento.
+               Campo opcional: si se deja vacío, se usa la antigüedad
+               normal, sin ningún cambio de comportamiento. -->
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;background:var(--s2);border:1px solid var(--div);border-radius:12px">
+            <span style="font-size:11.5px;color:var(--tx2);flex:1">🧾 Fecha de última liquidación</span>
+            <input type="date" id="aj-liquidacion"
+              style="background:var(--s1);border:1px solid var(--div);border-radius:8px;padding:6px 8px;color:var(--tx);font-size:12px;font-weight:700"
+              onchange="AJ.liquidacion=this.value;localStorage.setItem('aj5',JSON.stringify(AJ))">
+          </div>
+          <div style="padding:4px 4px 0;font-size:9.5px;color:var(--tx3);line-height:1.4">Déjalo vacío si nunca te han liquidado. Si te liquidaron, las Pagas Extra/Otoño/Marzo se calculan desde esa fecha, no desde tu antigüedad.</div>
         </div>
       </div>
         </div>
@@ -6496,11 +6510,18 @@ function _guardarNominaValoresManuales(){
 // periodo de devengo, esa paga se cobra proporcional (solo los meses
 // que llevas trabajando dentro de ESE periodo, no el importe
 // completo). "inicioPeriodo"/"finPeriodo" son fechas (Date); cuenta
-// meses completos desde la más tardía entre tu antigüedad y el
+// meses completos desde la más tardía entre tu punto de partida y el
 // inicio del periodo, hasta el fin del periodo.
+// FIX — Confirmado por Alex: si hubo una LIQUIDACIÓN, esa fecha
+// manda por encima de la antigüedad para estas pagas — la
+// liquidación ya "cerró cuentas" con lo devengado hasta ese momento,
+// así que contar desde la antigüedad original pagaría dos veces por
+// el mismo periodo. Si no hay liquidación puesta, se sigue usando la
+// antigüedad de siempre, sin ningún cambio.
 function _nominaFraccionDevengo(inicioPeriodo, finPeriodo){
-  var antig = AJ.antiguedad ? new Date(AJ.antiguedad+'T00:00:00') : null;
-  var inicioReal = (antig && antig>inicioPeriodo) ? antig : inicioPeriodo;
+  var fechaBase = AJ.liquidacion || AJ.antiguedad;
+  var punto = fechaBase ? new Date(fechaBase+'T00:00:00') : null;
+  var inicioReal = (punto && punto>inicioPeriodo) ? punto : inicioPeriodo;
   if(inicioReal > finPeriodo) return 0; // no habías empezado a trabajar en todo el periodo
   var totalMeses = (finPeriodo.getFullYear()-inicioPeriodo.getFullYear())*12 + (finPeriodo.getMonth()-inicioPeriodo.getMonth()) + 1;
   var mesesTrabajados = (finPeriodo.getFullYear()-inicioReal.getFullYear())*12 + (finPeriodo.getMonth()-inicioReal.getMonth()) + 1;
@@ -14873,6 +14894,8 @@ function loadAjUI(){
   if(ajJornadaInp) ajJornadaInp.value = AJ.jornadaPct || 100;
   var ajAntigInp = document.getElementById('aj-antiguedad');
   if(ajAntigInp) ajAntigInp.value = AJ.antiguedad || '';
+  var ajLiqInp = document.getElementById('aj-liquidacion');
+  if(ajLiqInp) ajLiqInp.value = AJ.liquidacion || '';
   // NUEVO — la Nómina Estimada solo se ve con sesión de Admin activa
   // (Confirmado por Alex: se mantiene oculta al resto hasta que el
   // cálculo esté bien afinado con datos reales).
