@@ -6752,7 +6752,12 @@ function _construirCardExcel(){
   var refAjustada = _nominaJornadaRefAjustada(anio, mes);
   var JORNADA_REF = refAjustada.ref;
   var horasExtra = Math.max(0, horas.HE - JORNADA_REF);
-  var presenciaCompletar = Math.max(0, JORNADA_REF - horas.HE);
+  // QUITADO — Confirmado por Alex: las horas de Presencia (tanto la
+  // de "completar la referencia" como la propia columna H.P. del
+  // Excel) YA ESTÁN incluidas dentro del Salario Base — no son un
+  // pago aparte. Sumarlas aquí habría sido pagar dos veces por lo
+  // mismo. Solo se queda la Hora Extraordinaria (por encima de la
+  // referencia), que sí es un concepto adicional real.
 
   var fijos = _nominaConceptosFijos(rol, anio, mes);
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
@@ -6760,9 +6765,7 @@ function _construirCardExcel(){
   var mv = _nominaValoresManuales;
   var refTexto = refAjustada.diasCompe>0 ? (JORNADA_REF+'h (163h − '+refAjustada.diasCompe+' día(s) COMPE × 5,5h)') : '163h';
   var variables = [
-    {label:'Hora Extraordinaria', sub:horasExtra.toLocaleString('es-ES')+' h × '+t.horaExtra.toFixed(2)+' €'+(horas.HE<JORNADA_REF?' (no llegaste a '+refTexto+')':''), val:Math.round(horasExtra*t.horaExtra*100)/100},
-    {label:'Presencia (completar '+Math.round(JORNADA_REF*10)/10+'h)', sub:presenciaCompletar.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €'+(refAjustada.diasCompe>0?' · ref. ajustada por COMPE':''), val:Math.round(presenciaCompletar*t.presencia*100)/100},
-    {label:'Presencia (de tu cómputo)', sub:horas.HP.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €', val:Math.round(horas.HP*t.presencia*100)/100},
+    {label:'Hora Extraordinaria', sub:horasExtra.toLocaleString('es-ES')+' h × '+t.horaExtra.toFixed(2)+' €'+(horas.HE<JORNADA_REF?' (no llegaste a '+refTexto+', ya incluido en el Salario Base)':''), val:Math.round(horasExtra*t.horaExtra*100)/100},
     {label:'Nocturnidad', sub:horas.Noct.toLocaleString('es-ES')+' h × '+t.nocturnidad.toFixed(2)+' €', val:Math.round(horas.Noct*t.nocturnidad*100)/100},
     {label:'Rebase', sub:horas.Rebase.toLocaleString('es-ES')+' h × '+t.rebase.toFixed(2)+' €', val:Math.round(horas.Rebase*t.rebase*100)/100},
     {label:'Plus Traslación', sub:horas.PlusTrasl.toLocaleString('es-ES')+' h × '+t.plusTrasl.toFixed(2)+' €', val:Math.round(horas.PlusTrasl*t.plusTrasl*100)/100},
