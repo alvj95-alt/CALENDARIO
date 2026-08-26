@@ -2822,6 +2822,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .tut-admin-badge{font-size:8px;font-weight:800;color:var(--nar2);background:rgba(249,115,22,.12);
   border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:2px 6px;flex-shrink:0}
+/* NUEVO — Compañeros: selector de tarjetas + detalle estilo Hero
+   (confirmado por Alex tras varias rondas de maqueta) */
+.c4-cards{display:flex;flex-direction:column;gap:12px;padding:16px 14px}
+.c4-card{display:flex;align-items:center;gap:14px;padding:18px;background:var(--s1);border:1px solid var(--div);border-radius:18px;cursor:pointer}
+.c4-card:active{border-color:var(--acc)}
+.c4-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.c4-ico.nombre{background:rgba(37,99,235,.15)}
+.c4-ico.tren{background:rgba(249,115,22,.15)}
+.c4-info-tit{font-size:14.5px;font-weight:800;color:var(--tx)}
+.c4-info-sub{font-size:10.5px;color:var(--tx3);margin-top:2px}
+.c4-arr{margin-left:auto;color:var(--tx3);font-size:16px}
+.vc2-back-top{padding:12px 14px 0;font-size:12px;font-weight:800;color:var(--acc2);cursor:pointer}
+.vc2-hero{padding:16px 18px 16px;background:linear-gradient(135deg,rgba(37,99,235,.15),transparent);display:flex;align-items:center;gap:14px}
+.vc2-hero-ico{width:52px;height:52px;border-radius:16px;background:rgba(37,99,235,.2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+.vc2-hero-tit{font-size:17px;font-weight:900;color:var(--tx)}
+.vc2-hero-sub{font-size:11px;color:var(--tx2);margin-top:2px}
 /* NUEVO — Nómina Estimada */
 .nom-tab-btn{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:11.5px;font-weight:800;color:var(--tx3);cursor:pointer}
 .nom-tab-btn.act{background:var(--acc);color:#fff}
@@ -4153,45 +4169,77 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
     </div>
 
-    <!-- ═══ PANEL 3: BUSCADOR + PERFIL ═══ -->
+    <!-- ═══ PANEL 3: BUSCADOR + PERFIL ═══
+         NUEVO — Confirmado por Alex tras varias rondas de maqueta
+         (Estilo 4 "tarjetas grandes" + Estilo "Hero" para el
+         detalle): sustituye el acordeón apilado de antes. Los
+         elementos internos (#q/#clearBtn/#view para nombre,
+         #trTrainInput/#calTrenPanel/#trGoBtn/#trainView para tren)
+         mantienen EXACTAMENTE los mismos id — toda la lógica de
+         búsqueda ya existente (doSearch, etc.) sigue funcionando sin
+         tocar nada de eso, solo cambia cómo se presentan por fuera. -->
     <div class="at-panel" id="panel-app">
 
-      <div class="acc-section open" id="acc-nombre">
-        <div class="acc-head" data-acc="nombre">
-          <div class="acc-ico">👤</div>
-          <div class="acc-title">Buscar por nombre</div>
-          <div class="acc-chev">›</div>
-        </div>
-        <div class="acc-body">
-          <div class="acc-body-inner">
-            <div class="srch-wrap">
-              <div class="srch">
-                <span class="srch-ico">👤</span>
-                <input type="text" id="q" placeholder="Escribe un nombre..." autocomplete="off">
-                <button class="srch-clear" id="clearBtn">✕</button>
-              </div>
+      <!-- Selector inicial: dos tarjetas grandes -->
+      <div id="comp-selector">
+        <div class="c4-cards">
+          <div class="c4-card" onclick="mostrarDetalleCompaneros('nombre')">
+            <div class="c4-ico nombre">👤</div>
+            <div>
+              <div class="c4-info-tit">Por nombre</div>
+              <div class="c4-info-sub">Busca a un compañero directo por su nombre</div>
             </div>
-            <div id="view"></div>
+            <div class="c4-arr">›</div>
+          </div>
+          <div class="c4-card" onclick="mostrarDetalleCompaneros('tren')">
+            <div class="c4-ico tren">🚆</div>
+            <div>
+              <div class="c4-info-tit">Por número de tren</div>
+              <div class="c4-info-sub">Ve quién más hace ese tren un día en concreto</div>
+            </div>
+            <div class="c4-arr">›</div>
           </div>
         </div>
       </div>
 
-      <div class="acc-section" id="acc-tren">
-        <div class="acc-head" data-acc="tren">
-          <div class="acc-ico at-tren">🚄</div>
-          <div class="acc-title">Buscar por tren</div>
-          <div class="acc-chev">›</div>
-        </div>
-        <div class="acc-body">
-          <div class="acc-body-inner">
-        <div class="srch" style="margin-bottom:10px">
-          <span class="srch-ico">🚆</span>
-          <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
-        </div>
-        <div class="cal-tren-panel" id="calTrenPanel"></div>
-        <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
-        <div id="trainView"></div>
+      <!-- Detalle: Por nombre (estilo Hero) -->
+      <div id="comp-detalle-nombre" style="display:none">
+        <div class="vc2-back-top" onclick="mostrarSelectorCompaneros()">‹ Compañeros</div>
+        <div class="vc2-hero">
+          <div class="vc2-hero-ico">👤</div>
+          <div>
+            <div class="vc2-hero-tit">Buscar por nombre</div>
+            <div class="vc2-hero-sub" id="hdrSedeNombre">—</div>
           </div>
+        </div>
+        <div style="padding:0 14px">
+          <div class="srch">
+            <span class="srch-ico">👤</span>
+            <input type="text" id="q" placeholder="Escribe un nombre..." autocomplete="off">
+            <button class="srch-clear" id="clearBtn">✕</button>
+          </div>
+        </div>
+        <div id="view"></div>
+      </div>
+
+      <!-- Detalle: Por tren (estilo Hero) -->
+      <div id="comp-detalle-tren" style="display:none">
+        <div class="vc2-back-top" onclick="mostrarSelectorCompaneros()">‹ Compañeros</div>
+        <div class="vc2-hero">
+          <div class="vc2-hero-ico" style="background:rgba(249,115,22,.2)">🚆</div>
+          <div>
+            <div class="vc2-hero-tit">Buscar por tren</div>
+            <div class="vc2-hero-sub" id="hdrSedeTren">—</div>
+          </div>
+        </div>
+        <div style="padding:0 14px">
+          <div class="srch" style="margin-bottom:10px">
+            <span class="srch-ico">🚆</span>
+            <input type="text" id="trTrainInput" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+          </div>
+          <div class="cal-tren-panel" id="calTrenPanel"></div>
+          <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
+          <div id="trainView"></div>
         </div>
       </div>
 
@@ -5700,20 +5748,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div style="padding:0 16px">
       <button class="dct-btn-sec sec-red" style="width:100%;margin-bottom:6px" onclick="cerrarSesionAdmin()">🚪 Cerrar sesión de administrador</button>
       <div class="msg-info" style="margin:0 0 10px">Ciérrala cuando termines de revisar o subir algo: mientras la sesión esté activa, cualquier acción de este panel (guardar, publicar, eliminar) queda habilitada. Cerrándola evitas guardar algo por error sin querer.</div>
-    </div>
-
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico" style="background:rgba(124,58,237,.15);color:#C4B5FD">🔍</div>
-        <div>
-          <div class="admin-card-tit">Búsqueda de Interventor por nombre</div>
-          <div class="admin-card-sub" id="estadoFeatureBuscarInterventorNombrePanel">Comprobando estado...</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button style="flex:1;padding:10px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);border-radius:9px;color:#6EE7B7;font-size:12px;font-weight:700;cursor:pointer" onclick="try{_panelActivarBusquedaInterventorNombre();}catch(eA){alert('ERROR activar: '+eA.message);}">✅ Activar para todos</button>
-        <button style="flex:1;padding:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;color:#FCA5A5;font-size:12px;font-weight:700;cursor:pointer" onclick="try{_panelDesactivarBusquedaInterventorNombre();}catch(eD){alert('ERROR desactivar: '+eD.message);}">🚫 Desactivar</button>
-      </div>
     </div>
 
     <div class="admin-card">
@@ -22324,7 +22358,6 @@ function abrirAccesoAdmin(){
     document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
     openOv('ov-panel-admin');
     refrescarEstadoArchivosAdmin();
-    if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
     // NUEVO — solo el badge de pendientes se carga sola al abrir el
     // panel (consulta ligera); la lista completa sigue pidiendo
     // "Actualizar lista", igual que las demás tarjetas del panel.
@@ -22390,9 +22423,6 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
   var btnAdmin = document.getElementById('hbtn-admin');
   if(perfilAdminActual.rol === 'admin'){
     if(btnAdmin) btnAdmin.classList.add('es-admin');
-    // NUEVO — muestra/actualiza el botón de Búsqueda de Interventor
-    // por nombre en la cabecera en cuanto se confirma la sesión admin.
-    if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
     // NUEVO — recolorea toda la app mientras dure la sesión de admin,
     // tanto en un login explícito como en una recarga con sesión ya
     // persistida (así nunca se te olvida que sigues siendo admin,
@@ -24117,10 +24147,6 @@ window.abrirBuscadorConHorarioGlobal = async function(){
     cargarHorarioGlobalDesdeAdmin().then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
     return;
   }
-  // NUEVO — se dispara en segundo plano, sin esperar; si falla, el
-  // buscador sigue funcionando igual, solo que sin la búsqueda de
-  // interventor por nombre (que ya está desactivada por defecto).
-  if(typeof _cargarFeatureBuscarInterventorNombre==='function') _cargarFeatureBuscarInterventorNombre();
   // NUEVO — antes esto abría un overlay aparte (openOv('ov-buscador')).
   // Ahora "Compañeros" es una pestaña normal, ya visible en cuanto se
   // entra por goP('companeros') — no hace falta abrir nada más aquí.
@@ -26007,13 +26033,24 @@ function compararAquiEnBuscador(id, name, days){
   </div>`;
   zone.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
-// ═══ ACORDEONES APILADOS (nombre / tren) ═══
-document.querySelectorAll('.acc-head').forEach(head=>{
-  head.addEventListener('click', ()=>{
-    const section = head.closest('.acc-section');
-    section.classList.toggle('open');
-  });
-});
+// ═══ NUEVO — Compañeros: navegación tarjetas ↔ detalle Hero ═══
+// (sustituye al acordeón apilado de antes; confirmado por Alex)
+function mostrarSelectorCompaneros(){
+  document.getElementById('comp-selector').style.display = '';
+  document.getElementById('comp-detalle-nombre').style.display = 'none';
+  document.getElementById('comp-detalle-tren').style.display = 'none';
+}
+function mostrarDetalleCompaneros(tipo){
+  document.getElementById('comp-selector').style.display = 'none';
+  document.getElementById('comp-detalle-nombre').style.display = tipo==='nombre' ? '' : 'none';
+  document.getElementById('comp-detalle-tren').style.display = tipo==='tren' ? '' : 'none';
+  // Rellena la sede en la cabecera Hero, si ya se conoce (misma
+  // variable 'activeBase' que ya usa el resto del buscador).
+  var sedeTxt = (typeof activeBase!=='undefined' && activeBase && activeBase.label) ? activeBase.label : '—';
+  var elS = document.getElementById(tipo==='nombre' ? 'hdrSedeNombre' : 'hdrSedeTren');
+  if(elS) elS.textContent = sedeTxt;
+  if(tipo==='nombre'){ var inp=document.getElementById('q'); if(inp) setTimeout(function(){inp.focus();}, 150); }
+}
 
 // ═══ BUSCADOR POR TREN (vista animada de vagones) ═══
 let selectedTrainDay = null;
@@ -26286,254 +26323,6 @@ function mostrarConAnimacionTren(contenedor, renderFn){
 // ofuscado: las letras A/E se sustituyen por 4/3. Solo afecta a la
 // tarjeta de Interventor — la tripulación/compañeros se sigue
 // mostrando con su nombre normal, sin tocar.
-// NUEVO — FEATURE FLAG GLOBAL: Buscar Interventor por nombre.
-// Por defecto está desactivado para todos salvo el admin. El admin
-// puede activarlo/desactivarlo globalmente (para todos los
-// compañeros) tocando el icono 🔍 de la cabecera — ver
-// toggleFeatureBuscarInterventorNombre(). Se guarda en
-// config_global (misma tabla que ya usa Horario General/Intervención)
-// como una fila-marcador: si existe, está activado; si no existe,
-// está desactivado. Así no hace falta ninguna columna nueva.
-var FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
-async function _cargarFeatureBuscarInterventorNombre(){
-  try{
-    var resp = await sbAdmin.from('config_global').select('tipo').eq('tipo','feature_buscar_interventor_nombre').maybeSingle();
-    if(resp && resp.error) console.log('[FeatureBuscarInterventorNombre] error al leer estado:', resp.error);
-    FEATURE_BUSCAR_INTERVENTOR_NOMBRE = !!(resp && resp.data);
-  }catch(e){
-    console.log('[FeatureBuscarInterventorNombre] excepción al leer estado:', e);
-    FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
-  }
-  _actualizarBotonFeatureBuscarInterventorNombre();
-  var elPanelInit = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
-  if(elPanelInit){
-    elPanelInit.textContent = FEATURE_BUSCAR_INTERVENTOR_NOMBRE ? 'Activado para todos' : 'Desactivado (solo admin lo ve)';
-  }
-  // NUEVO — el botón solo se revela para el admin; el resto de
-  // compañeros nunca lo ven (sigue con display:none).
-  var btn = document.getElementById('hbtn-toggle-interv-nombre');
-  if(btn && perfilAdminActual && perfilAdminActual.rol==='admin'){
-    btn.style.display = 'flex';
-  }
-}
-function _actualizarBotonFeatureBuscarInterventorNombre(){
-  var btn = document.getElementById('hbtn-toggle-interv-nombre');
-  if(!btn) return;
-  if(FEATURE_BUSCAR_INTERVENTOR_NOMBRE){
-    btn.textContent = '🔓';
-    btn.style.background = 'rgba(16,185,129,.18)';
-    btn.style.color = '#6EE7B7';
-    btn.title = 'Búsqueda de Interventor por nombre: ACTIVADA para todos (toca para desactivar)';
-  } else {
-    btn.textContent = '🔒';
-    btn.style.background = '';
-    btn.style.color = '';
-    btn.title = 'Búsqueda de Interventor por nombre: desactivada para el resto (toca para activar)';
-  }
-}
-function _puedeBuscarInterventorPorNombre(){
-  var esAdminActivo = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
-  return esAdminActivo || FEATURE_BUSCAR_INTERVENTOR_NOMBRE===true;
-}
-// NUEVO — un solo botón que alterna el estado (antes eran dos
-// botones separados). Solo el admin puede llamarla (mismo guard que
-// el resto de acciones del Panel Admin).
-// NUEVO — versiones SIMPLES Y AUTOCONTENIDAS para el Panel Admin
-// (más fiables de depurar que el icono de cabecera): cada botón hace
-// su propia comprobación y su propia escritura, sin depender de
-// ningún estado previo. Actualizan el texto del panel y el icono de
-// la cabecera al terminar.
-window._panelActivarBusquedaInterventorNombre = async function(){
-  var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
-  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
-    alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
-    return;
-  }
-  if(elPanel) elPanel.textContent = 'Activando...';
-  var resp = await sbAdmin.from('config_global').upsert({
-    tipo: 'feature_buscar_interventor_nombre',
-    nombre_archivo: 'feature_flag_on',
-    url_archivo: 'feature_flag',
-    fecha_subida: new Date().toISOString(),
-    subido_por: perfilAdminActual.id
-  });
-  if(resp.error){
-    alert('No se pudo activar: '+resp.error.message);
-    if(elPanel) elPanel.textContent = 'Error: '+resp.error.message;
-    return;
-  }
-  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
-  if(elPanel) elPanel.textContent = 'Activado para todos';
-  if(typeof _actualizarBotonFeatureBuscarInterventorNombre==='function') _actualizarBotonFeatureBuscarInterventorNombre();
-  alert('✅ Activado para todos los compañeros');
-}
-window._panelDesactivarBusquedaInterventorNombre = async function(){
-  var elPanel = document.getElementById('estadoFeatureBuscarInterventorNombrePanel');
-  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
-    alert('No se detecta tu sesión de admin. Cierra este panel, vuelve a iniciar sesión y ábrelo otra vez.');
-    return;
-  }
-  if(elPanel) elPanel.textContent = 'Desactivando...';
-  var resp = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
-  if(resp.error){
-    alert('No se pudo desactivar: '+resp.error.message);
-    if(elPanel) elPanel.textContent = 'Error: '+resp.error.message;
-    return;
-  }
-  FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
-  if(elPanel) elPanel.textContent = 'Desactivado (solo admin lo ve)';
-  if(typeof _actualizarBotonFeatureBuscarInterventorNombre==='function') _actualizarBotonFeatureBuscarInterventorNombre();
-  alert('🚫 Desactivado para el resto de compañeros');
-}
-
-async function toggleFeatureBuscarInterventorNombre(){
-  console.log('[FeatureBuscarInterventorNombre] toggle pulsado. perfilAdminActual:', perfilAdminActual);
-  if(!perfilAdminActual || perfilAdminActual.rol!=='admin'){
-    toast('⚠️ No se detecta tu sesión de admin activa — vuelve a iniciar sesión');
-    return;
-  }
-  var btn = document.getElementById('hbtn-toggle-interv-nombre');
-  if(btn) btn.style.opacity='.5';
-  try{
-    if(FEATURE_BUSCAR_INTERVENTOR_NOMBRE){
-      var respDel = await sbAdmin.from('config_global').delete().eq('tipo','feature_buscar_interventor_nombre');
-      if(respDel.error){ console.log('[FeatureBuscarInterventorNombre] error al desactivar:', respDel.error); toast('❌ No se pudo desactivar: '+respDel.error.message); return; }
-      FEATURE_BUSCAR_INTERVENTOR_NOMBRE = false;
-      toast('🚫 Búsqueda de Interventor por nombre desactivada para el resto');
-    } else {
-      // NUEVO — se incluye url_archivo (placeholder, no es un
-      // archivo real) porque esa columna probablemente sea
-      // obligatoria en config_global — sin ella el guardado podía
-      // estar fallando en silencio.
-      var respIns = await sbAdmin.from('config_global').upsert({
-        tipo: 'feature_buscar_interventor_nombre',
-        nombre_archivo: 'feature_flag_on',
-        url_archivo: 'feature_flag',
-        fecha_subida: new Date().toISOString(),
-        subido_por: perfilAdminActual.id
-      });
-      if(respIns.error){ console.log('[FeatureBuscarInterventorNombre] error al activar:', respIns.error); toast('❌ No se pudo activar: '+respIns.error.message); return; }
-      FEATURE_BUSCAR_INTERVENTOR_NOMBRE = true;
-      toast('✅ Búsqueda de Interventor por nombre activada para todos');
-    }
-  }catch(eToggle){
-    console.log('[FeatureBuscarInterventorNombre] excepción al alternar:', eToggle);
-    toast('❌ Error inesperado: '+(eToggle&&eToggle.message?eToggle.message:String(eToggle)));
-  }finally{
-    if(btn) btn.style.opacity='1';
-    _actualizarBotonFeatureBuscarInterventorNombre();
-  }
-}
-
-// NUEVO — Perfil de Interventor encontrado por nombre: lista sus
-// días/trenes asignados (mismo objeto 'dias' que ya usa
-// buscarInterventor()), con el mismo patrón visual y botón "Volver"
-// que ya usa el perfil de compañero (renderProfile), para que se
-// sienta parte de la misma pantalla.
-function renderPerfilInterventor(id, name, dias, servicioNombre){
-  const fechas = Object.keys(dias||{}).filter(function(k){ return dias[k] && dias[k].trim(); }).sort();
-  const items = fechas.map(function(iso){
-    const p = iso.split('-');
-    const fechaLbl = p[2]+'/'+p[1]+'/'+p[0];
-    return `<div class="tl-item" data-iso="${iso}" data-daynum="${parseInt(p[2],10)}">
-      <div class="tl-rail">
-        <div class="tl-node"><span class="tnum">${p[2]}</span></div>
-        <div class="tl-line"></div>
-      </div>
-      <div class="tl-card">
-        <div class="tl-card-top">
-          <span class="tl-tag" style="background:rgba(249,115,22,.15);color:var(--nar2)">${fechaLbl}</span>
-          <span class="tl-arr">›</span>
-        </div>
-        <div class="tl-val">${dias[iso]}</div>
-      </div>
-    </div>`;
-  }).join('');
-  viewEl.innerHTML = `
-    <div class="profile">
-      <button class="p-back" id="backBtnInterv">‹ Volver a la búsqueda</button>
-      <div class="p-head">
-        <div class="p-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
-        <div>
-          <div class="p-name">${ofuscarNombreInterventor(name)}</div>
-          <div class="p-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${servicioNombre}</div>
-        </div>
-      </div>
-      <div class="hint-empty" style="padding:0 4px 12px;text-align:left;font-size:11px;">Toca un día para ver con qué tripulación coincide (según tu base, o todas si eres admin).</div>
-      <div class="timeline">${items || '<div class="hint-empty">Sin días asignados encontrados.</div>'}</div>
-      <div id="compZoneInterv"></div>
-    </div>
-  `;
-  document.getElementById('backBtnInterv').addEventListener('click', ()=>{ doSearch(); });
-  // NUEVO — cruce interventor → tripulación, reutilizando
-  // findCompanions() SIN modificarla: se le pasa el id/nombre del
-  // interventor como "self" (nunca coincidirá con nadie de
-  // activeBase.data, así que no excluye a ningún compañero real) y
-  // el día de mes + celda de trenes de ese día concreto. La regla de
-  // bases (solo tu base, o todas si eres admin) sale gratis, porque
-  // activeBase.data ya viene filtrado así desde antes.
-  viewEl.querySelectorAll('.tl-item[data-iso]').forEach(item=>{
-    item.addEventListener('click', ()=>{
-      const iso = item.dataset.iso;
-      const dayNum = parseInt(item.dataset.daynum, 10);
-      const cell = dias[iso] || '';
-      viewEl.querySelectorAll('.tl-item[data-iso]').forEach(r=>{
-        r.classList.remove('sel');
-        var arrEl = r.querySelector('.tl-arr');
-        if(arrEl) arrEl.textContent = '›';
-      });
-      item.classList.add('sel');
-      var arrThis = item.querySelector('.tl-arr');
-      if(arrThis) arrThis.textContent = '▾';
-      renderCompaneroDesdeInterventor(dayNum, id, name, cell, iso);
-      document.getElementById('compZoneInterv').scrollIntoView({behavior:'smooth', block:'nearest'});
-    });
-  });
-}
-
-// NUEVO — muestra la tripulación que coincide con el interventor en
-// un tren+día concreto (dirección inversa a renderCompanions, que va
-// de compañero → interventor). Reutiliza findCompanions() tal cual.
-function renderCompaneroDesdeInterventor(dayNum, intervId, intervName, cell, isoLbl){
-  const zone = document.getElementById('compZoneInterv');
-  if(!zone) return;
-  const p = isoLbl.split('-');
-  const fechaLbl = p[2]+'/'+p[1]+'/'+p[0];
-  if(!cell || !cell.trim()){
-    zone.innerHTML = `<div class="comp-wrap">
-      <div class="comp-hdr"><span class="ct">${fechaLbl}</span></div>
-      <div class="comp-none">No hay tren registrado ese día para este interventor.</div>
-    </div>`;
-    return;
-  }
-  const companions = findCompanions(dayNum, intervId, intervName, cell);
-  if(companions.length===0){
-    zone.innerHTML = `<div class="comp-wrap">
-      <div class="comp-hdr"><span class="ct">${fechaLbl}</span><span class="cs">· ${cell}</span></div>
-      <div class="comp-none">Nadie de tu base coincide en ese tren ese día según la plantilla cargada.</div>
-    </div>`;
-    return;
-  }
-  let html = `<div class="comp-wrap">
-    <div class="comp-hdr"><span class="ct">${fechaLbl}</span><span class="cs">· ${companions.length} compañero(s) · ${cell}</span></div>
-    <div class="comp-list">`;
-  for(const c of companions){
-    html += `<div class="pcard" style="cursor:default">
-      <div class="pcard-av">${initials(c.name)}</div>
-      <div class="pcard-info">
-        <div class="pcard-name">${c.name}</div>
-        ${c.id ? `<div class="pcard-id">ID ${c.id}${c.sede ? ' · '+c.sede : ''}</div>` : ''}
-        ${trenBadgeHTML(c.trenesCompartidos)}
-        ${umDhBadgesHTML(c.trenesCompartidos)}
-        ${trenIdaVueltaBadgeHTML(c.cell, ((c.trenesCompartidos[0]||'').match(/\d{2,6}/)||[''])[0])}
-        ${_progresoHorarioHTML(c.horaCI, c.horaCO, dayNum)}
-        <div class="comp-cell">${c.cell}</div>
-      </div>
-    </div>`;
-  }
-  html += '</div></div>';
-  zone.innerHTML = html;
-}
 
 function ofuscarNombreInterventor(nombre){
   if(!nombre) return nombre;
@@ -26659,37 +26448,14 @@ function renderEmptyHint(){
   viewEl.innerHTML = `<div class="hint-empty">Escribe al menos <b>2 letras</b> del nombre de un compañero de <b>${activeBase ? activeBase.label : ''}</b> para ver su turno.</div>`;
 }
 
-function renderList(matches, query, interventorMatches){
-  interventorMatches = interventorMatches || [];
-  if(matches.length===0 && interventorMatches.length===0){
+function renderList(matches, query){
+  if(matches.length===0){
     viewEl.innerHTML = `<div class="hint-empty">Sin resultados para "<b>${query}</b>" en ${activeBase.label}.</div>`;
     return;
   }
   const _render = ()=>{
   let html = '';
-  // NUEVO — sección Interventores, solo si hay coincidencias (ya
-  // filtradas por permiso en doSearch — aquí solo se pintan). Mismo
-  // estilo naranja/pcard que ya usa el resultado de interventor por
-  // tren, para que se vea coherente con el resto de la app. El
-  // nombre se muestra OFUSCADO (ofuscarNombreInterventor), aunque la
-  // búsqueda se hizo contra el nombre real.
-  if(interventorMatches.length){
-    html += '<div class="list-section-lbl">INTERVENTORES</div><div class="list">';
-    for(const im of interventorMatches){
-      html += `<div class="pcard" data-interv-id="${im.id}" data-interv-name="${encodeURIComponent(im.name)}" data-interv-servicio="${encodeURIComponent(im.servicio)}" style="border-color:var(--nar);background:rgba(249,115,22,.08)">
-        <div class="pcard-av" style="background:rgba(249,115,22,.18);color:var(--nar2)">🎫</div>
-        <div class="pcard-info">
-          <span class="pcard-name-full">${ofuscarNombreInterventor(im.name)}</span>
-          <div class="pcard-id" style="color:var(--nar2);font-weight:700">INTERVENTOR · ${im.servicio}</div>
-          ${im.notaSolape ? `<div style="font-size:9px;color:var(--tx3);margin-top:2px;font-weight:600">⚠️ ${im.notaSolape}</div>` : ''}
-        </div>
-        <div class="pcard-arr">›</div>
-      </div>`;
-    }
-    html += '</div>';
-  }
   if(matches.length){
-    if(interventorMatches.length) html += '<div class="list-section-lbl">COMPAÑEROS</div>';
     html += '<div class="list">';
     for(const [id, name, , sede] of matches){
       html += `<div class="pcard perfil-companero" data-id="${id}" data-name="${encodeURIComponent(name)}">
@@ -26710,17 +26476,6 @@ function renderList(matches, query, interventorMatches){
       const name = decodeURIComponent(card.dataset.name);
       const entry = activeBase.data.find(e => e[0]===id && e[1]===name);
       if(entry) renderProfile(entry);
-    });
-  });
-  // NUEVO — click en un resultado de interventor abre su perfil
-  // (días/trenes asignados), igual que un compañero abre su calendario.
-  viewEl.querySelectorAll('.pcard[data-interv-id]').forEach(card=>{
-    card.addEventListener('click', ()=>{
-      const id = card.dataset.intervId;
-      const name = decodeURIComponent(card.dataset.intervName);
-      const servicioNombre = decodeURIComponent(card.dataset.intervServicio);
-      const match = interventorMatches.find(m => String(m.id)===id && m.name===name);
-      if(match) renderPerfilInterventor(match.id, match.name, match.dias, servicioNombre);
     });
   });
   };
@@ -26981,39 +26736,7 @@ function doSearch(){
   clearBtn.style.display = q ? 'block' : 'none';
   if(q.length < 2){ renderEmptyHint(); return; }
   const matches = activeBase.data.filter(([id,name]) => name.toUpperCase().includes(q)).slice(0, 40);
-  // NUEVO — busqueda de interventor por nombre, solo si esta
-  // permitida (admin siempre, el resto solo si el admin lo activo
-  // globalmente - ver _puedeBuscarInterventorPorNombre()). Se busca
-  // contra el nombre REAL guardado (nunca el ofuscado); el ofuscado
-  // solo se usa al pintar el resultado, igual que ya hace la
-  // busqueda por tren.
-  let interventorNameMatches = [];
-  if(_puedeBuscarInterventorPorNombre() && typeof INTERVENTOR_SERVICES!=='undefined'){
-    // NUEVO — solo cuentan los archivos que realmente cubren HOY (la
-    // fecha real del sistema, no una fecha que se esté navegando en
-    // la app). Se comprueba mirando si hoy existe como día real
-    // dentro de los datos del propio interventor en ese archivo —
-    // no el nombre del servicio, que es solo una etiqueta escrita a
-    // mano al subirlo y podría ser ambigua o estar mal puesta.
-    const hoyKeyInterv = key(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
-    INTERVENTOR_SERVICES.forEach(function(servicio){
-      servicio.data.forEach(function(entry){
-        const id2=entry[0], name2=entry[1], dias2=entry[2];
-        if(name2 && name2.toUpperCase().includes(q) && dias2 && dias2[hoyKeyInterv]){
-          interventorNameMatches.push({id:id2, name:name2, dias:dias2, servicio:servicio.name});
-        }
-      });
-    });
-    // NUEVO — si el mismo nombre coincide vigente hoy en más de un
-    // archivo/servicio, se muestran todos, cada uno con una nota
-    // indicando en qué otros servicios también aparece hoy.
-    interventorNameMatches.forEach(function(m, i){
-      const otros = interventorNameMatches.filter(function(m2, j){ return j!==i && m2.name===m.name; });
-      m.notaSolape = otros.length ? ('También vigente hoy en: '+otros.map(function(o){return o.servicio;}).join(', ')) : '';
-    });
-    interventorNameMatches = interventorNameMatches.slice(0, 20);
-  }
-  renderList(matches, qInput.value.trim(), interventorNameMatches);
+  renderList(matches, qInput.value.trim());
 }
 
 qInput.addEventListener('input', doSearch);
