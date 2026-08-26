@@ -6474,7 +6474,23 @@ var TUTORIAL_TEMAS = [
    100% de solo lectura sobre TV/AJ — nunca escribe en ellos.
 ═══════════════════════════════════════════════════════════ */
 var _nominaTabActiva = 'excel';
-var _nominaValoresManuales = { htdlHoras:0, art5152Horas:0, ssPct:6.50, cuotaSindical:0, irpfPct:15 };
+// FIX — Confirmado por Alex: estos valores (HTDL/Art.51/52 a mano,
+// Seg. Social, Cuota Sindical, IRPF) nunca se guardaban de forma
+// permanente — eran solo una variable en memoria, así que se
+// perdían cada vez que se recargaba la página o se cerraba la app.
+// Por eso la Cuota Sindical "aprendida" desde la Nómina Real volvía
+// a cero después. Ahora se guardan en localStorage y se recuperan al
+// abrir la Nómina Estimada.
+var _nominaValoresManuales = (function(){
+  try{
+    var guardado = JSON.parse(localStorage.getItem('nomina_valores_manuales')||'null');
+    if(guardado) return guardado;
+  }catch(e){}
+  return { htdlHoras:0, art5152Horas:0, ssPct:6.50, cuotaSindical:0, irpfPct:15 };
+})();
+function _guardarNominaValoresManuales(){
+  try{ localStorage.setItem('nomina_valores_manuales', JSON.stringify(_nominaValoresManuales)); }catch(e){}
+}
 
 // NUEVO — Confirmado por Alex: si empiezas a trabajar a mitad de un
 // periodo de devengo, esa paga se cobra proporcional (solo los meses
@@ -6591,7 +6607,30 @@ async function procesarNominaRealPdf(file){
   try{
     await asegurarPdfWorkerSeguro();
     var buf = await file.arrayBuffer();
-    var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    // NUEVO — Confirmado por Alex: las nóminas de Serveo suelen venir
+    // protegidas con contraseña (normalmente el DNI/NIF). En vez de
+    // fallar directamente con un error, si el PDF pide contraseña se
+    // pregunta con un prompt() y se reintenta con ella — hasta 3
+    // intentos, por si se escribe mal la primera vez.
+    var pdf = null, intentos = 0;
+    while(!pdf && intentos < 3){
+      try{
+        var opciones = {data: buf};
+        if(intentos > 0 || window._ultimaPasswordNomina){
+          opciones.password = window._ultimaPasswordNomina || '';
+        }
+        pdf = await pdfjsLib.getDocument(opciones).promise;
+      }catch(errPdf){
+        var necesitaPassword = errPdf && (errPdf.name==='PasswordException' || /password/i.test(errPdf.message||''));
+        if(!necesitaPassword) throw errPdf;
+        var pedirDeNuevo = intentos > 0 ? ' (la anterior no era correcta, inténtalo otra vez)' : '';
+        var pass = prompt('🔒 Este PDF está protegido con contraseña'+pedirDeNuevo+'.\nSuele ser tu DNI/NIF. Escríbela aquí:');
+        if(pass === null){ toast('Carga cancelada — hacía falta la contraseña del PDF'); if(statusDiv) renderNominaReal(); return; }
+        window._ultimaPasswordNomina = pass;
+        intentos++;
+      }
+    }
+    if(!pdf){ toast('⚠️ No se pudo abrir el PDF — contraseña incorrecta tras varios intentos'); renderNominaReal(); return; }
     var fullText = '';
     for(var p=1; p<=pdf.numPages; p++){
       var page = await pdf.getPage(p);
@@ -6733,6 +6772,7 @@ function renderNominaReal(){
 // esas dos tarjetas para que se vea el campo ya relleno.
 function _nominaAplicarCuotaSindical(importe){
   _nominaValoresManuales.cuotaSindical = importe;
+  _guardarNominaValoresManuales();
   renderNominaTodasLasCaras();
   toast('✅ Cuota Sindical ('+importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €) aplicada a Excel y Calendario');
 }
@@ -6863,6 +6903,7 @@ function _nominaActualizarManual(){
   var cuota = parseFloat(document.getElementById('nom-cuota').value)||0;
   var irpfPct = parseFloat(document.getElementById('nom-irpf-pct').value)||0;
   _nominaValoresManuales = {htdlHoras:htdlHoras, art5152Horas:artHoras, ssPct:ssPct, cuotaSindical:cuota, irpfPct:irpfPct};
+  _guardarNominaValoresManuales();
 
   var htdlImporte = Math.round(htdlHoras*base.t.vh*100)/100;
   var artImporte = Math.round(artHoras*base.t.art5152Monto*100)/100;
@@ -6959,6 +7000,7 @@ function _nominaActualizarManualCalendario(){
   _nominaValoresManuales.ssPct = ssPct;
   _nominaValoresManuales.cuotaSindical = cuota;
   _nominaValoresManuales.irpfPct = irpfPct;
+  _guardarNominaValoresManuales();
 
   var ssImporte = Math.round(bruto*ssPct/100*100)/100;
   var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
