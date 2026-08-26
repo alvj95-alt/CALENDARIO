@@ -6606,15 +6606,20 @@ async function procesarNominaRealPdf(file){
   if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📄 Leyendo el PDF de tu nómina…</div>';
   try{
     await asegurarPdfWorkerSeguro();
-    var buf = await file.arrayBuffer();
     // NUEVO — Confirmado por Alex: las nóminas de Serveo suelen venir
     // protegidas con contraseña (normalmente el DNI/NIF). En vez de
     // fallar directamente con un error, si el PDF pide contraseña se
     // pregunta con un prompt() y se reintenta con ella — hasta 3
     // intentos, por si se escribe mal la primera vez.
+    // FIX — "Cannot perform Construct on a detached ArrayBuffer":
+    // pdf.js "consume" (transfiere al worker) el ArrayBuffer en el
+    // primer intento, incluso si ese intento falla por pedir
+    // contraseña — reutilizar el mismo buffer en el reintento
+    // revienta. Se lee el archivo de nuevo, fresco, en cada intento.
     var pdf = null, intentos = 0;
     while(!pdf && intentos < 3){
       try{
+        var buf = await file.arrayBuffer();
         var opciones = {data: buf};
         if(intentos > 0 || window._ultimaPasswordNomina){
           opciones.password = window._ultimaPasswordNomina || '';
