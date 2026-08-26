@@ -2839,6 +2839,17 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-total-neto-lbl{font-size:12px;font-weight:800;color:#4ade80}
 .nom-total-neto-val{font-size:19px;font-weight:900;color:#fff}
 .nom-disclaimer{margin:8px 16px 4px;padding:10px 12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px;font-size:10px;color:#fdba74;line-height:1.5}
+/* NUEVO — Nómina Estimada: tres tarjetas apiladas (Estilo 2, aprobado por Alex) */
+.n2-card{margin:12px 16px;border-radius:16px;overflow:hidden;border:1px solid var(--div)}
+.n2-card.excel{border-color:rgba(217,119,6,.4)}
+.n2-card.cal{border-color:rgba(59,127,255,.4)}
+.n2-card.real{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 1px rgba(34,197,94,.2)}
+.n2-hdr{display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:12px;font-weight:800}
+.n2-card.excel .n2-hdr{background:rgba(217,119,6,.12);color:#FCD34D}
+.n2-card.cal .n2-hdr{background:rgba(59,127,255,.12);color:var(--acc2)}
+.n2-card.real .n2-hdr{background:rgba(34,197,94,.12);color:#4ade80}
+.n2-body{padding:6px 0 10px;background:var(--s1)}
+.n2-badge{margin-left:auto;font-size:8px;background:rgba(34,197,94,.2);color:#4ade80;padding:2px 6px;border-radius:6px;font-weight:800}
 /* NUEVO — Chatbot de ayuda (burbujas tipo conversación) */
 .chat-bienvenida{text-align:center;padding:20px 14px;color:var(--tx3);font-size:12px;line-height:1.6}
 .chat-msg{display:flex;margin-bottom:12px}
@@ -3480,6 +3491,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
               style="width:56px;background:var(--s1);border:1px solid var(--div);border-radius:8px;padding:6px 8px;color:var(--tx);font-size:13px;font-weight:800;text-align:center"
               onchange="AJ.jornadaPct=parseFloat(this.value)||100;localStorage.setItem('aj5',JSON.stringify(AJ))">
             <span style="color:var(--tx2);font-size:12px">%</span>
+          </div>
+          <!-- NUEVO — Confirmado por Alex: las Pagas Extra/Otoño se
+               prorratean también según cuánto tiempo llevas
+               trabajando dentro de su periodo de devengo, no solo
+               por el % de jornada. -->
+          <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;background:var(--s2);border:1px solid var(--div);border-radius:12px">
+            <span style="font-size:11.5px;color:var(--tx2);flex:1">📅 Fecha de antigüedad</span>
+            <input type="date" id="aj-antiguedad"
+              style="background:var(--s1);border:1px solid var(--div);border-radius:8px;padding:6px 8px;color:var(--tx);font-size:12px;font-weight:700"
+              onchange="AJ.antiguedad=this.value;localStorage.setItem('aj5',JSON.stringify(AJ))">
           </div>
         </div>
       </div>
@@ -4300,13 +4321,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div><div class="sh-tit">Nómina Estimada</div><div class="sh-sub" id="nomina-subtitulo">—</div></div>
       <button class="sh-close" onclick="closeOv('ov-nomina')">✕</button>
     </div>
-    <div style="display:flex;gap:6px;margin:12px 16px;background:var(--s2);border-radius:12px;padding:4px">
-      <div class="nom-tab-btn act" id="nom-tab-excel" onclick="cambiarPestanaNomina('excel')">📄 Desde el Excel</div>
-      <div class="nom-tab-btn" id="nom-tab-cal" onclick="cambiarPestanaNomina('calendario')">📅 Desde tu Calendario</div>
-    </div>
     <div id="nomina-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:16px"></div>
   </div>
 </div>
+<input type="file" id="fileNominaRealPdf" accept="application/pdf" style="display:none" onchange="procesarNominaRealPdf(this.files[0])">
 
 <!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
      Reubicado como hermano directo de .bnav (mismo contexto que ov-tipo y
@@ -6458,6 +6476,21 @@ var TUTORIAL_TEMAS = [
 var _nominaTabActiva = 'excel';
 var _nominaValoresManuales = { htdlHoras:0, art5152Horas:0, ssPct:6.50, cuotaSindical:0, irpfPct:15 };
 
+// NUEVO — Confirmado por Alex: si empiezas a trabajar a mitad de un
+// periodo de devengo, esa paga se cobra proporcional (solo los meses
+// que llevas trabajando dentro de ESE periodo, no el importe
+// completo). "inicioPeriodo"/"finPeriodo" son fechas (Date); cuenta
+// meses completos desde la más tardía entre tu antigüedad y el
+// inicio del periodo, hasta el fin del periodo.
+function _nominaFraccionDevengo(inicioPeriodo, finPeriodo){
+  var antig = AJ.antiguedad ? new Date(AJ.antiguedad+'T00:00:00') : null;
+  var inicioReal = (antig && antig>inicioPeriodo) ? antig : inicioPeriodo;
+  if(inicioReal > finPeriodo) return 0; // no habías empezado a trabajar en todo el periodo
+  var totalMeses = (finPeriodo.getFullYear()-inicioPeriodo.getFullYear())*12 + (finPeriodo.getMonth()-inicioPeriodo.getMonth()) + 1;
+  var mesesTrabajados = (finPeriodo.getFullYear()-inicioReal.getFullYear())*12 + (finPeriodo.getMonth()-inicioReal.getMonth()) + 1;
+  return Math.max(0, Math.min(1, mesesTrabajados/totalMeses));
+}
+
 function _nominaConceptosFijos(rol, anio, mes){
   var c = CONCEPTOS_FIJOS_ROL[rol] || CONCEPTOS_FIJOS_ROL.tripulante;
   // NUEVO — Confirmado por Alex: los conceptos fijos dependen del %
@@ -6467,7 +6500,9 @@ function _nominaConceptosFijos(rol, anio, mes){
   var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
   // FIX — c.pagaMarzo es el importe COMPLETO de la paga (del cartel
   // de UGT) — hay que repartirlo entre los 12 meses, no aplicarlo
-  // entero cada mes.
+  // entero cada mes. La Paga de Marzo no necesita prorratear por
+  // antigüedad aparte: si no trabajabas ese mes, no hay nómina ese
+  // mes, así que ya queda excluida de forma natural.
   var pagaMarzoMensual = Math.round((c.pagaMarzo*pct/12)*100)/100;
   var salarioBaseProp = Math.round(c.salarioBase*pct*100)/100;
   var fijos = [
@@ -6476,29 +6511,188 @@ function _nominaConceptosFijos(rol, anio, mes){
     {label:'Plus Manutención', val:Math.round(c.plusManutencion*pct*100)/100},
     {label:'Paga de Marzo (prorrateada ÷12)', val:pagaMarzoMensual}
   ];
-  // Pagas completas SOLO en su mes: Verano=julio(7), Otoño=septiembre(9), Navidad=diciembre(12).
-  // Mismo importe que el Salario Base ya proporcional (confirmado por Alex).
-  if(mes===7)  fijos.push({label:'Paga Extra de Verano', val:salarioBaseProp});
-  if(mes===9)  fijos.push({label:'Paga Extra de Otoño',  val:salarioBaseProp});
-  if(mes===12) fijos.push({label:'Paga Extra de Navidad',val:salarioBaseProp});
+  // CONFIRMADO con la tabla oficial del convenio (CCOO 2026) + Alex:
+  // "Paga Extra" se paga 2 veces al año (Verano=julio, devengo
+  // ene-jun; Navidad=diciembre, devengo jul-dic). "Paga Otoño" es un
+  // concepto DISTINTO, 1 vez al año (septiembre, devengo ene-dic
+  // completo). Las tres se prorratean si no llevas todo el periodo
+  // de devengo trabajando (ver _nominaFraccionDevengo()).
+  if(mes===7){
+    var fracVerano = _nominaFraccionDevengo(new Date(anio,0,1), new Date(anio,5,30));
+    fijos.push({label:'Paga Extra (Verano)'+(fracVerano<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracVerano*100)/100});
+  }
+  if(mes===9){
+    var fracOtono = _nominaFraccionDevengo(new Date(anio,0,1), new Date(anio,11,31));
+    fijos.push({label:'Paga Otoño'+(fracOtono<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracOtono*100)/100});
+  }
+  if(mes===12){
+    var fracNavidad = _nominaFraccionDevengo(new Date(anio,6,1), new Date(anio,11,31));
+    fijos.push({label:'Paga Extra (Navidad)'+(fracNavidad<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracNavidad*100)/100});
+  }
   return fijos;
 }
 
 function abrirNominaEstimada(){
   var rolLbl = {tripulante:'Tripulante', auxiliar:'Tripulante Auxiliar', jefe:'Jefe de Tripulación'}[AJ.rol] || 'Tripulante';
   document.getElementById('nomina-subtitulo').textContent = MESES[statsM.getMonth()]+' '+statsM.getFullYear()+' · '+rolLbl;
-  _nominaTabActiva = 'excel';
-  document.getElementById('nom-tab-excel').className = 'nom-tab-btn act';
-  document.getElementById('nom-tab-cal').className = 'nom-tab-btn';
-  renderNominaExcel();
+  renderNominaTodasLasCaras();
   openOv('ov-nomina');
 }
 
-function cambiarPestanaNomina(tab){
-  _nominaTabActiva = tab;
-  document.getElementById('nom-tab-excel').className = 'nom-tab-btn'+(tab==='excel'?' act':'');
-  document.getElementById('nom-tab-cal').className = 'nom-tab-btn'+(tab==='calendario'?' act':'');
-  if(tab==='excel') renderNominaExcel(); else renderNominaCalendario();
+// NUEVO — Confirmado por Alex: las tres caras (Excel/Calendario/Real)
+// se muestran TODAS a la vez, apiladas (Estilo 2 de la maqueta), en
+// vez de en pestañas. Cada _construirCard*() ahora DEVUELVE su HTML
+// (ya no escribe directo en la pantalla), y aquí se juntan las tres
+// en un único innerHTML.
+function renderNominaTodasLasCaras(){
+  var html = _construirCardExcel() + _construirCardCalendario() + _construirCardReal();
+  document.getElementById('nomina-body').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — NÓMINA REAL (PDF). Confirmada con Alex: una tercera cara
+   de la Nómina Estimada, leyendo el PDF real que manda Serveo cada
+   mes. Reutiliza EXACTAMENTE el mismo patrón de lectura de PDF que
+   ya usa el Horario (pdfjsLib + asegurarPdfWorkerSeguro + ordenar por
+   Y/X) — nada nuevo en esa parte. Guardado por mes en localStorage
+   (_nominaRealPorMes), igual que _computoExcelPorMes.
+   NUNCA se usa para calcular nada — solo se MUESTRA como referencia,
+   para comparar contra las otras dos caras.
+═══════════════════════════════════════════════════════════ */
+var _nominaRealPorMes = (function(){
+  try{ return JSON.parse(localStorage.getItem('nomina_real_por_mes')||'{}'); }catch(e){ return {}; }
+})();
+function _guardarNominaRealPorMes(){
+  try{ localStorage.setItem('nomina_real_por_mes', JSON.stringify(_nominaRealPorMes)); }catch(e){}
+}
+
+// Códigos de deducción conocidos (empiezan por "/", o conceptos fijos
+// como cuota sindical / IRPF) — todo lo demás que tenga importe se
+// interpreta como devengo. Heurística simple, pero cubre los 5 casos
+// de deducción vistos en las nóminas reales de Alex.
+function _esCodigoDeduccion(codigo, concepto){
+  if(codigo && codigo.indexOf('/')===0) return true;
+  var c = (concepto||'').toUpperCase();
+  return c.indexOf('CUOTA SINDICAL')>=0 || c.indexOf('RETENCIÓN')>=0 || c.indexOf('RETENCION')>=0;
+}
+
+async function procesarNominaRealPdf(file){
+  if(!file) return;
+  var statusDiv = document.getElementById('nomina-body');
+  if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📄 Leyendo el PDF de tu nómina…</div>';
+  try{
+    await asegurarPdfWorkerSeguro();
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    var fullText = '';
+    for(var p=1; p<=pdf.numPages; p++){
+      var page = await pdf.getPage(p);
+      var content = await page.getTextContent();
+      var items = content.items.map(function(it){ return {str:it.str, x:it.transform[4], y:it.transform[5]}; });
+      items.sort(function(a,b){ return b.y-a.y || a.x-b.x; });
+      var lastY = null;
+      items.forEach(function(it){
+        if(lastY !== null && Math.abs(it.y - lastY) > 2){ fullText += '\n'; }
+        else if(lastY !== null){ fullText += ' '; }
+        fullText += it.str;
+        lastY = it.y;
+      });
+      fullText += '\n';
+    }
+    var parseo = _parsearNominaRealTexto(fullText);
+    if(!parseo.periodo){ toast('⚠️ No se pudo leer el periodo del PDF — revisa que sea una nómina de Serveo'); renderNominaReal(); return; }
+    _nominaRealPorMes[parseo.claveMes] = parseo;
+    _guardarNominaRealPorMes();
+    toast('✅ Nómina real de '+parseo.periodoTexto+' guardada');
+    renderNominaReal();
+  }catch(err){
+    console.error(err);
+    alert('⚠️ Error al leer el PDF de la nómina:\n'+(err&&err.message||err));
+    renderNominaReal();
+  }
+}
+
+// Parser de texto: busca líneas con un CÓDIGO (4 caracteres tipo
+// "0001", "00TA", "1182", "/350", "9IDA") seguido de un CONCEPTO y,
+// al final de la línea, uno o más números con coma decimal — el
+// ÚLTIMO número de la línea es el importe (devengo o deducción según
+// el código/concepto).
+function _parsearNominaRealTexto(texto){
+  var mPeriodo = texto.match(/PERIODO:\s*(\d{2}\.\d{2}\.\d{4})\s*a\s*(\d{2}\.\d{2}\.\d{4})/);
+  var claveMes = null, periodoTexto = null;
+  if(mPeriodo){
+    var partes = mPeriodo[2].split('.'); // usa la fecha FIN del periodo para decidir el mes
+    claveMes = partes[2]+'-'+partes[1];
+    periodoTexto = mPeriodo[1]+' a '+mPeriodo[2];
+  }
+  var lineas = texto.split('\n');
+  var devengos = [], deducciones = [];
+  var reLinea = /^([\/A-Z0-9]{3,5})\s+([A-ZÁÉÍÓÚÑ0-9./ ,\-]+?)\s+((?:[\d.]+,\d{2}\s*%?\s*)+)$/;
+  lineas.forEach(function(linea){
+    linea = linea.trim();
+    if(!linea) return;
+    // Quita el prefijo "R " (reserva) de PERIODO si aparece al principio de la fila
+    var lineaLimpia = linea.replace(/^R\s+/, '');
+    var m = lineaLimpia.match(reLinea);
+    if(!m) return;
+    var codigo = m[1], concepto = m[2].trim();
+    // Todos los números de la cola de la línea, en orden
+    var numeros = (m[3].match(/[\d.]+,\d{2}/g)||[]).map(function(n){
+      return parseFloat(n.replace(/\./g,'').replace(',','.'));
+    });
+    if(!numeros.length) return;
+    var importe = numeros[numeros.length-1]; // el importe siempre es el último número de la fila
+    if(_esCodigoDeduccion(codigo, concepto)){
+      deducciones.push({codigo:codigo, concepto:concepto, importe:importe});
+    } else {
+      devengos.push({codigo:codigo, concepto:concepto, importe:importe});
+    }
+  });
+  // FIX — probado con texto real: la fila de totales (T.DEVENGO) va
+  // en una línea separada de su propio título en el PDF, así que
+  // buscar "T.DEVENGO 1234,56" en la misma línea no es fiable. En vez
+  // de eso, se suman directamente los devengos ya extraídos —
+  // matemáticamente es el mismo número, y no depende de cómo el PDF
+  // reparta las líneas.
+  var bruto = Math.round(devengos.reduce(function(s,d){ return s+d.importe; }, 0)*100)/100;
+  var mLiquido = texto.match(/LÍQUIDO A PERCIBIR\s+([\d.]+,\d{2})/) || texto.match(/LIQUIDO A PERCIBIR\s+([\d.]+,\d{2})/);
+  var toNum = function(s){ return s ? parseFloat(s.replace(/\./g,'').replace(',','.')) : null; };
+  return {
+    claveMes: claveMes, periodoTexto: periodoTexto,
+    devengos: devengos, deducciones: deducciones,
+    bruto: bruto,
+    liquido: toNum(mLiquido && mLiquido[1])
+  };
+}
+
+function _construirCardReal(){
+  var anio=statsM.getFullYear(), mes=statsM.getMonth()+1;
+  var claveMes = anio+'-'+String(mes).padStart(2,'0');
+  var datos = _nominaRealPorMes[claveMes];
+
+  var cuerpo = '<div style="margin:0 16px 12px;padding:14px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealPdf\').click()">'
+    + '<div style="font-size:22px;margin-bottom:4px">📤</div>'
+    + '<div style="font-size:11.5px;color:var(--tx2);font-weight:700">'+(datos?'Volver a subir / actualizar':'Subir Nómina Real (PDF)')+'</div>'
+    + '<div style="font-size:9.5px;color:var(--tx3);margin-top:2px">El PDF que te manda Serveo cada mes</div></div>';
+
+  if(!datos){
+    cuerpo += '<div style="padding:6px 20px 16px;text-align:center;color:var(--tx3);font-size:11.5px">Todavía no has subido la nómina real de este mes.</div>';
+  } else {
+    cuerpo += '<div class="nom-sec-hdr">Devengos (tal cual el PDF) · '+datos.periodoTexto+'</div>';
+    datos.devengos.forEach(function(d){ cuerpo += _nominaFila(d.concepto, null, d.importe); });
+    if(datos.bruto!==null) cuerpo += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO (T.DEVENGO)</span><span class="nom-total-bruto-val">'+datos.bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+    cuerpo += '<div class="nom-sec-hdr">Deducciones</div>';
+    datos.deducciones.forEach(function(d){ cuerpo += _nominaFila(d.concepto, null, -d.importe); });
+    if(datos.liquido!==null) cuerpo += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">LÍQUIDO A PERCIBIR</span><span class="nom-total-neto-val">'+datos.liquido.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+  }
+  return '<div class="n2-card real"><div class="n2-hdr">🧾 Nómina Real (PDF)<span class="n2-badge">REFERENCIA</span></div><div class="n2-body">'+cuerpo+'</div></div>';
+}
+// Vuelve a construir solo esta tarjeta tras subir un PDF nuevo, sin
+// tocar las otras dos (evita perder lo que se haya escrito a mano ahí).
+function renderNominaReal(){
+  var el = document.querySelector('.n2-card.real');
+  if(el) el.outerHTML = _construirCardReal();
+  else renderNominaTodasLasCaras();
 }
 
 function _nominaFila(label, sub, val){
@@ -6507,19 +6701,35 @@ function _nominaFila(label, sub, val){
     +'<span class="nom-row-val">'+val.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
 }
 
-function renderNominaExcel(){
+// NUEVO — Confirmado por Alex: si trabajaste de más un mes y elegiste
+// que se te compensara con un DÍA LIBRE (no con dinero), ese día se
+// disfruta más adelante como "COMPE" (tipo:'comp' en el calendario).
+// El mes en que lo disfrutas, la referencia de 163h efectivas baja
+// 5,5h por cada día COMPE de ese mes — ese día ya no ibas a trabajar
+// de todas formas, así que no debe contar en tu contra. El nuevo
+// número (ej. 163 - 2×5,5 = 152h) pasa a ser el "100%" real de ese
+// mes, tanto para calcular Hora Extraordinaria como Presencia.
+function _nominaJornadaRefAjustada(anio, mes){
+  var diasCompe = 0;
+  Object.keys(TV).forEach(function(k){
+    var d = new Date(k+'T00:00:00');
+    if(d.getFullYear()===anio && d.getMonth()===mes-1 && TV[k] && TV[k].tipo==='comp') diasCompe++;
+  });
+  return { ref: Math.max(0, 163 - diasCompe*5.5), diasCompe: diasCompe };
+}
+
+function _construirCardExcel(){
   var anio=statsM.getFullYear(), mes=statsM.getMonth()+1;
   var claveMes = anio+'-'+String(mes).padStart(2,'0');
   var datosExcel = _computoExcelPorMes[claveMes];
   var rol = AJ.rol||'tripulante';
   var t = TARIFAS_ROL[rol]||TARIFAS_ROL.tripulante;
+  var envolver = function(cuerpo){ return '<div class="n2-card excel"><div class="n2-hdr">📄 Desde el Excel</div><div class="n2-body">'+cuerpo+'</div></div>'; };
 
   if(!datosExcel || !datosExcel.porDia){
-    document.getElementById('nomina-body').innerHTML =
-      '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">'
-      +'📊 Primero sube el Cómputo Excel de este mes con el botón "Comparar con Cómputo Oficial", en Ajustes.<br><br>'
-      +'Esta pestaña usa esas mismas horas para calcular la nómina.</div>';
-    return;
+    window._nominaBaseCalculo = null;
+    return envolver('<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
+      +'📊 Primero sube el Cómputo Excel de este mes con el botón "Comparar con Cómputo Oficial", en Ajustes.</div>');
   }
 
   // Sumar minutos de todo el mes desde el Cómputo Excel ya guardado
@@ -6531,7 +6741,8 @@ function renderNominaExcel(){
   });
   var horas = {}; Object.keys(sumaMin).forEach(function(k){ horas[k] = Math.round((sumaMin[k]/60)*100)/100; });
 
-  var JORNADA_REF = 163;
+  var refAjustada = _nominaJornadaRefAjustada(anio, mes);
+  var JORNADA_REF = refAjustada.ref;
   var horasExtra = Math.max(0, horas.HE - JORNADA_REF);
   var presenciaCompletar = Math.max(0, JORNADA_REF - horas.HE);
 
@@ -6539,9 +6750,10 @@ function renderNominaExcel(){
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
 
   var mv = _nominaValoresManuales;
+  var refTexto = refAjustada.diasCompe>0 ? (JORNADA_REF+'h (163h − '+refAjustada.diasCompe+' día(s) COMPE × 5,5h)') : '163h';
   var variables = [
-    {label:'Hora Extraordinaria', sub:horasExtra.toLocaleString('es-ES')+' h × '+t.horaExtra.toFixed(2)+' €'+(horas.HE<JORNADA_REF?' (no llegaste a 163h)':''), val:Math.round(horasExtra*t.horaExtra*100)/100},
-    {label:'Presencia (completar 163h)', sub:presenciaCompletar.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €', val:Math.round(presenciaCompletar*t.presencia*100)/100},
+    {label:'Hora Extraordinaria', sub:horasExtra.toLocaleString('es-ES')+' h × '+t.horaExtra.toFixed(2)+' €'+(horas.HE<JORNADA_REF?' (no llegaste a '+refTexto+')':''), val:Math.round(horasExtra*t.horaExtra*100)/100},
+    {label:'Presencia (completar '+Math.round(JORNADA_REF*10)/10+'h)', sub:presenciaCompletar.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €'+(refAjustada.diasCompe>0?' · ref. ajustada por COMPE':''), val:Math.round(presenciaCompletar*t.presencia*100)/100},
     {label:'Presencia (de tu cómputo)', sub:horas.HP.toLocaleString('es-ES')+' h × '+t.presencia.toFixed(2)+' €', val:Math.round(horas.HP*t.presencia*100)/100},
     {label:'Nocturnidad', sub:horas.Noct.toLocaleString('es-ES')+' h × '+t.nocturnidad.toFixed(2)+' €', val:Math.round(horas.Noct*t.nocturnidad*100)/100},
     {label:'Rebase', sub:horas.Rebase.toLocaleString('es-ES')+' h × '+t.rebase.toFixed(2)+' €', val:Math.round(horas.Rebase*t.rebase*100)/100},
@@ -6580,9 +6792,9 @@ function renderNominaExcel(){
 
   html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nom-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
 
-  document.getElementById('nomina-body').innerHTML = html;
   // Guarda lo necesario para recalcular en vivo sin reconstruir todo el HTML
   window._nominaBaseCalculo = {totalFijos:totalFijos, totalVariables:totalVariables, t:t};
+  return envolver(html);
 }
 
 // NUEVO — Recalcula SOLO los totales (Bruto/Neto) cuando la persona
@@ -6629,7 +6841,7 @@ function _nominaHTDLPuro(ks, tarifaHTDL){
   return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100 };
 }
 
-function renderNominaCalendario(){
+function _construirCardCalendario(){
   var anio=statsM.getFullYear(), mes=statsM.getMonth();
   var rol = AJ.rol||'tripulante';
   var t = TARIFAS_ROL[rol]||TARIFAS_ROL.tripulante;
@@ -6677,8 +6889,8 @@ function renderNominaCalendario(){
 
   html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nomcal-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
 
-  document.getElementById('nomina-body').innerHTML = html;
   window._nominaCalBruto = bruto; // guardado para recalcular en vivo sin reconstruir todo el HTML
+  return '<div class="n2-card cal"><div class="n2-hdr">📅 Desde tu Calendario</div><div class="n2-body">'+html+'</div></div>';
 }
 
 // NUEVO — Recalcula solo Bruto/Neto de la pestaña "Desde tu
@@ -14554,9 +14766,11 @@ function actualizarCalculo(){
    AJUSTES
 ═══════════════════════════════════════ */
 function loadAjUI(){
-  // NUEVO — % de jornada contratada (para la Nómina Estimada)
+  // NUEVO — % de jornada contratada y fecha de antigüedad (para la Nómina Estimada)
   var ajJornadaInp = document.getElementById('aj-jornada-pct');
   if(ajJornadaInp) ajJornadaInp.value = AJ.jornadaPct || 100;
+  var ajAntigInp = document.getElementById('aj-antiguedad');
+  if(ajAntigInp) ajAntigInp.value = AJ.antiguedad || '';
   // NUEVO — la Nómina Estimada solo se ve con sesión de Admin activa
   // (Confirmado por Alex: se mantiene oculta al resto hasta que el
   // cálculo esté bien afinado con datos reales).
