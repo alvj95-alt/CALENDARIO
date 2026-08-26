@@ -4339,6 +4339,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 <input type="file" id="fileNominaRealPdf" accept="application/pdf" style="display:none" onchange="procesarNominaRealPdf(this.files[0])">
+<input type="file" id="fileNominaRealImg" accept="image/*" style="display:none" onchange="procesarNominaRealImagen(this.files[0])">
 
 <!-- NUEVO: Modal Paso 1 — Selección de días libres/disponibles para HTDL
      Reubicado como hermano directo de .bnav (mismo contexto que ov-tipo y
@@ -6621,6 +6622,46 @@ function _esCodigoDeduccion(codigo, concepto){
   return c.indexOf('CUOTA SINDICAL')>=0 || c.indexOf('RETENCIÓN')>=0 || c.indexOf('RETENCION')>=0;
 }
 
+// NUEVO — mínimo, para diagnosticar el fallo del periodo con datos
+// reales en vez de seguir adivinando (confirmado por Alex).
+function _nominaVerTextoCrudo(){
+  var texto = window._nominaRealTextoCrudo || '(sin texto)';
+  document.getElementById('nomina-body').innerHTML =
+    '<div style="padding:10px 16px 4px;font-size:11px;color:var(--tx2)">Toca para seleccionar todo y copiarlo:</div>'
+    + '<textarea readonly onclick="this.select()" style="width:calc(100% - 32px);margin:0 16px 14px;min-height:200px;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx2);font-family:monospace;font-size:10px;padding:8px;white-space:pre">'+texto.replace(/</g,'&lt;')+'</textarea>';
+}
+
+// NUEVO — Confirmado por Alex: alternativa a subir el PDF, por si da
+// problemas (contraseña, formato raro). Reutiliza Tesseract (el
+// mismo OCR que ya usa el Check-in) y el MISMO _parsearNominaRealTexto()
+// del PDF — nada duplicado, solo cambia de dónde sale el texto.
+async function procesarNominaRealImagen(file){
+  if(!file) return;
+  var statusDiv = document.getElementById('nomina-body');
+  if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📷 Leyendo la foto de tu nómina…</div>';
+  try{
+    var resultadoOcr = await Tesseract.recognize(file, 'spa');
+    var fullText = resultadoOcr.data.text;
+    var parseo = _parsearNominaRealTexto(fullText);
+    if(!parseo.claveMes){
+      window._nominaRealTextoCrudo = fullText;
+      toast('⚠️ No se pudo leer el periodo en la foto');
+      if(statusDiv) statusDiv.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
+        +'⚠️ No se encontró el periodo en la foto.<br><br>'
+        +'<button onclick="_nominaVerTextoCrudo()" style="padding:9px 14px;background:var(--acc);border:none;border-radius:9px;color:#fff;font-weight:800;font-size:11.5px;cursor:pointer">🔍 Ver texto leído (para diagnóstico)</button></div>';
+      return;
+    }
+    _nominaRealPorMes[parseo.claveMes] = parseo;
+    _guardarNominaRealPorMes();
+    toast('✅ Nómina real de '+parseo.periodoTexto+' guardada');
+    renderNominaReal();
+  }catch(err){
+    console.error(err);
+    alert('⚠️ Error al leer la foto de la nómina:\n'+(err&&err.message||err));
+    renderNominaReal();
+  }
+}
+
 async function procesarNominaRealPdf(file){
   if(!file) return;
   var statusDiv = document.getElementById('nomina-body');
@@ -6673,7 +6714,17 @@ async function procesarNominaRealPdf(file){
       fullText += '\n';
     }
     var parseo = _parsearNominaRealTexto(fullText);
-    if(!parseo.claveMes){ toast('⚠️ No se pudo leer el periodo del PDF — revisa que sea una nómina de Serveo'); renderNominaReal(); return; }
+    if(!parseo.claveMes){
+      // NUEVO — Confirmado por Alex: en vez de seguir adivinando por
+      // qué falla, se guarda el texto crudo para poder verlo y
+      // mandármelo tal cual — mínimo añadido, nada de relleno.
+      window._nominaRealTextoCrudo = fullText;
+      toast('⚠️ No se pudo leer el periodo del PDF');
+      if(statusDiv) statusDiv.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
+        +'⚠️ No se encontró el periodo en el PDF.<br><br>'
+        +'<button onclick="_nominaVerTextoCrudo()" style="padding:9px 14px;background:var(--acc);border:none;border-radius:9px;color:#fff;font-weight:800;font-size:11.5px;cursor:pointer">🔍 Ver texto leído (para diagnóstico)</button></div>';
+      return;
+    }
     _nominaRealPorMes[parseo.claveMes] = parseo;
     _guardarNominaRealPorMes();
     toast('✅ Nómina real de '+parseo.periodoTexto+' guardada');
@@ -6749,10 +6800,15 @@ function _construirCardReal(){
   var claveMes = anio+'-'+String(mes).padStart(2,'0');
   var datos = _nominaRealPorMes[claveMes];
 
-  var cuerpo = '<div style="margin:0 16px 12px;padding:14px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealPdf\').click()">'
-    + '<div style="font-size:22px;margin-bottom:4px">📤</div>'
-    + '<div style="font-size:11.5px;color:var(--tx2);font-weight:700">'+(datos?'Volver a subir / actualizar':'Subir Nómina Real (PDF)')+'</div>'
-    + '<div style="font-size:9.5px;color:var(--tx3);margin-top:2px">El PDF que te manda Serveo cada mes</div></div>';
+  var cuerpo = '<div style="display:flex;gap:8px;margin:0 16px 12px">'
+    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealPdf\').click()">'
+    + '<div style="font-size:20px;margin-bottom:4px">📄</div>'
+    + '<div style="font-size:10.5px;color:var(--tx2);font-weight:700">PDF</div></div>'
+    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealImg\').click()">'
+    + '<div style="font-size:20px;margin-bottom:4px">📷</div>'
+    + '<div style="font-size:10.5px;color:var(--tx2);font-weight:700">Foto/captura</div></div>'
+    + '</div>'
+    + '<div style="margin:-6px 16px 12px;text-align:center;font-size:9.5px;color:var(--tx3)">'+(datos?'Ya tienes una guardada — sube otra para actualizarla':'Sube el PDF de Serveo, o una foto/captura si el PDF da problemas')+'</div>';
 
   if(!datos){
     cuerpo += '<div style="padding:6px 20px 16px;text-align:center;color:var(--tx3);font-size:11.5px">Todavía no has subido la nómina real de este mes.</div>';
