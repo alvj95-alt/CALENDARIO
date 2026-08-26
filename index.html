@@ -6651,7 +6651,13 @@ function _parsearNominaRealTexto(texto){
     if(!numeros.length) return;
     var importe = numeros[numeros.length-1]; // el importe siempre es el último número de la fila
     if(_esCodigoDeduccion(codigo, concepto)){
-      deducciones.push({codigo:codigo, concepto:concepto, importe:importe});
+      // NUEVO — Confirmado por Alex: guardar también la base y el
+      // porcentaje de cada deducción (cuando la fila los trae), no
+      // solo el importe final — así se puede mostrar "4,85% sobre
+      // 2.842,26 €" en vez de solo "-137,85 €".
+      var deduccion = {codigo:codigo, concepto:concepto, importe:importe};
+      if(numeros.length>=3){ deduccion.base = numeros[0]; deduccion.porcentaje = numeros[1]; }
+      deducciones.push(deduccion);
     } else {
       devengos.push({codigo:codigo, concepto:concepto, importe:importe});
     }
@@ -6690,8 +6696,26 @@ function _construirCardReal(){
     datos.devengos.forEach(function(d){ cuerpo += _nominaFila(d.concepto, null, d.importe); });
     if(datos.bruto!==null) cuerpo += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO (T.DEVENGO)</span><span class="nom-total-bruto-val">'+datos.bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
     cuerpo += '<div class="nom-sec-hdr">Deducciones</div>';
-    datos.deducciones.forEach(function(d){ cuerpo += _nominaFila(d.concepto, null, -d.importe); });
+    // NUEVO — Confirmado por Alex: se muestra la base y el % de cada
+    // deducción cuando el PDF lo trae (ej. "4,85% sobre 2.842,26 €"),
+    // no solo el importe final. La Cuota Sindical es la ÚNICA que se
+    // puede "aprender" y aplicar directo a Excel/Calendario, por ser
+    // un importe fijo — el IRPF cambia cada mes y la Seg. Social se
+    // deja siempre a mano en las otras pestañas, por seguridad, tal
+    // como pidió Alex ("es mejor así por si algo cambia").
+    var cuotaSindicalDetectada = null;
+    datos.deducciones.forEach(function(d){
+      var sub = (d.base!==undefined && d.porcentaje!==undefined) ? (d.porcentaje.toLocaleString('es-ES')+'% sobre '+d.base.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €') : null;
+      cuerpo += _nominaFila(d.concepto, sub, -d.importe);
+      if(d.concepto.toUpperCase().indexOf('CUOTA SINDICAL')>=0) cuotaSindicalDetectada = d.importe;
+    });
     if(datos.liquido!==null) cuerpo += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">LÍQUIDO A PERCIBIR</span><span class="nom-total-neto-val">'+datos.liquido.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+    if(cuotaSindicalDetectada!==null){
+      cuerpo += '<div style="margin:12px 16px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.04));border:1px solid rgba(124,58,237,.4);border-radius:14px">'
+        + '<div style="font-size:11.5px;font-weight:800;color:#c4b5fd;margin-bottom:6px">🧠 Cuota Sindical detectada: '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
+        + '<div style="font-size:10.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">Es un importe fijo — puedes aplicarlo directo a las pestañas Excel y Calendario, sin escribirlo a mano. (El IRPF y la Seg. Social se quedan siempre manuales, ya que pueden cambiar cada mes.)</div>'
+        + '<button onclick="_nominaAplicarCuotaSindical('+cuotaSindicalDetectada+')" style="width:100%;padding:11px;background:#7c3aed;border:none;border-radius:10px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">✅ Usar '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' € en Excel y Calendario</button></div>';
+    }
   }
   return '<div class="n2-card real"><div class="n2-hdr">🧾 Nómina Real (PDF)<span class="n2-badge">REFERENCIA</span></div><div class="n2-body">'+cuerpo+'</div></div>';
 }
@@ -6701,6 +6725,16 @@ function renderNominaReal(){
   var el = document.querySelector('.n2-card.real');
   if(el) el.outerHTML = _construirCardReal();
   else renderNominaTodasLasCaras();
+}
+
+// NUEVO — Confirmado por Alex: solo la Cuota Sindical (importe fijo)
+// se puede aplicar directo a Excel y Calendario desde la Nómina Real
+// leída — IRPF y Seg. Social se quedan siempre manuales. Reconstruye
+// esas dos tarjetas para que se vea el campo ya relleno.
+function _nominaAplicarCuotaSindical(importe){
+  _nominaValoresManuales.cuotaSindical = importe;
+  renderNominaTodasLasCaras();
+  toast('✅ Cuota Sindical ('+importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €) aplicada a Excel y Calendario');
 }
 
 function _nominaFila(label, sub, val){
