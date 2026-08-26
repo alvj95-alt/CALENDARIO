@@ -6673,7 +6673,7 @@ async function procesarNominaRealPdf(file){
       fullText += '\n';
     }
     var parseo = _parsearNominaRealTexto(fullText);
-    if(!parseo.periodo){ toast('⚠️ No se pudo leer el periodo del PDF — revisa que sea una nómina de Serveo'); renderNominaReal(); return; }
+    if(!parseo.claveMes){ toast('⚠️ No se pudo leer el periodo del PDF — revisa que sea una nómina de Serveo'); renderNominaReal(); return; }
     _nominaRealPorMes[parseo.claveMes] = parseo;
     _guardarNominaRealPorMes();
     toast('✅ Nómina real de '+parseo.periodoTexto+' guardada');
