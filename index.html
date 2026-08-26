@@ -25445,10 +25445,21 @@ function activateBase(key){
   });
   qInput.value = '';
   renderEmptyHint();
-  // FIX — antes reseteaba el acordeón viejo (acc-nombre/acc-tren),
-  // que ya no existe tras el cambio a tarjetas + Hero. Ahora vuelve
-  // al selector de tarjetas, que es el estado "de entrada" natural.
-  if(typeof mostrarSelectorCompaneros==='function') mostrarSelectorCompaneros();
+  // FIX — Confirmado por Alex: activateBase() se llama también en
+  // segundo plano (tras comprobar si hay algo nuevo publicado), no
+  // solo al entrar en la pestaña. Antes, esto forzaba SIEMPRE la
+  // vuelta al selector de tarjetas, deshaciendo la navegación si la
+  // persona ya había tocado "Por nombre" o "Por tren" justo antes de
+  // que la comprobación en segundo plano terminase — daba la
+  // sensación de que el botón "no hacía nada". Ahora solo vuelve al
+  // selector si esta es la PRIMERA vez que se activa la base en esta
+  // pestaña (no hay ninguna pantalla de detalle abierta todavía).
+  var yaHayDetalleAbierto = (function(){
+    var dn = document.getElementById('comp-detalle-nombre');
+    var dt = document.getElementById('comp-detalle-tren');
+    return (dn && dn.style.display !== 'none') || (dt && dt.style.display !== 'none');
+  })();
+  if(!yaHayDetalleAbierto && typeof mostrarSelectorCompaneros==='function') mostrarSelectorCompaneros();
   document.getElementById('trainView').innerHTML = '';
   document.getElementById('trTrainInput').value = '';
   fecha_seleccionada_busqueda = null;
