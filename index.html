@@ -6498,35 +6498,43 @@ function _nominaConceptosFijos(rol, anio, mes){
   // siempre es el 100% del cartel de UGT. Si no se ha puesto nada,
   // se asume 100% (jornada completa) por defecto.
   var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
-  // FIX — c.pagaMarzo es el importe COMPLETO de la paga (del cartel
-  // de UGT) — hay que repartirlo entre los 12 meses, no aplicarlo
-  // entero cada mes. La Paga de Marzo no necesita prorratear por
-  // antigüedad aparte: si no trabajabas ese mes, no hay nómina ese
-  // mes, así que ya queda excluida de forma natural.
-  var pagaMarzoMensual = Math.round((c.pagaMarzo*pct/12)*100)/100;
+  // FIX — Confirmado por Alex: la Paga de Marzo también se prorratea
+  // por antigüedad, con su propia ventana de 12 meses terminando en
+  // marzo (abril del año anterior → marzo de este año) — igual que
+  // las otras tres pagas. El importe ya prorrateado por esa fracción
+  // es el que luego se reparte entre los 12 meses del año.
+  var fracMarzo = ventanaPaga(3);
+  var pagaMarzoMensual = Math.round((c.pagaMarzo*pct*fracMarzo/12)*100)/100;
   var salarioBaseProp = Math.round(c.salarioBase*pct*100)/100;
   var fijos = [
     {label:'Salario Base', val:salarioBaseProp},
     {label:'Plus Transporte', val:Math.round(c.plusTransporte*pct*100)/100},
     {label:'Plus Manutención', val:Math.round(c.plusManutencion*pct*100)/100},
-    {label:'Paga de Marzo (prorrateada ÷12)', val:pagaMarzoMensual}
+    {label:'Paga de Marzo (÷12)'+(fracMarzo<1?' · prorrateada':''), val:pagaMarzoMensual}
   ];
-  // CONFIRMADO con la tabla oficial del convenio (CCOO 2026) + Alex:
-  // "Paga Extra" se paga 2 veces al año (Verano=julio, devengo
-  // ene-jun; Navidad=diciembre, devengo jul-dic). "Paga Otoño" es un
-  // concepto DISTINTO, 1 vez al año (septiembre, devengo ene-dic
-  // completo). Las tres se prorratean si no llevas todo el periodo
-  // de devengo trabajando (ver _nominaFraccionDevengo()).
+  // CONFIRMADO por Alex (última versión): las tres pagas (Verano,
+  // Otoño, Navidad) usan la MISMA regla — cada una tiene su propia
+  // ventana de 12 meses que termina en su propio mes de pago
+  // (Verano=julio, Otoño=septiembre, Navidad=diciembre), no un año
+  // natural compartido ni semestres. Ej.: Navidad mira de enero a
+  // diciembre de ESTE año; Verano mira de agosto del año anterior a
+  // julio de este año; Otoño mira de octubre del año anterior a
+  // septiembre de este año.
+  function ventanaPaga(mesPago){
+    var fin = new Date(anio, mesPago, 0); // último día del mes de pago
+    var inicio = new Date(anio-1, mesPago, 1); // mismo mes, año anterior, día siguiente
+    return _nominaFraccionDevengo(inicio, fin);
+  }
   if(mes===7){
-    var fracVerano = _nominaFraccionDevengo(new Date(anio,0,1), new Date(anio,5,30));
+    var fracVerano = ventanaPaga(7);
     fijos.push({label:'Paga Extra (Verano)'+(fracVerano<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracVerano*100)/100});
   }
   if(mes===9){
-    var fracOtono = _nominaFraccionDevengo(new Date(anio,0,1), new Date(anio,11,31));
+    var fracOtono = ventanaPaga(9);
     fijos.push({label:'Paga Otoño'+(fracOtono<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracOtono*100)/100});
   }
   if(mes===12){
-    var fracNavidad = _nominaFraccionDevengo(new Date(anio,6,1), new Date(anio,11,31));
+    var fracNavidad = ventanaPaga(12);
     fijos.push({label:'Paga Extra (Navidad)'+(fracNavidad<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracNavidad*100)/100});
   }
   return fijos;
