@@ -6734,10 +6734,24 @@ function _construirCardExcel(){
   var t = TARIFAS_ROL[rol]||TARIFAS_ROL.tripulante;
   var envolver = function(cuerpo){ return '<div class="n2-card excel"><div class="n2-hdr">📄 Desde el Excel</div><div class="n2-body">'+cuerpo+'</div></div>'; };
 
+  // FIX — Confirmado por Alex: los conceptos fijos (Salario Base,
+  // Paga de Marzo, etc.) NO dependen del Cómputo Excel — solo
+  // dependen de tu rol y tu antigüedad. Antes, si no habías subido el
+  // Excel de ese mes, TODA la tarjeta se quedaba vacía, incluida la
+  // Paga de Marzo, aunque no tuviera nada que ver con el Excel. Ahora
+  // los fijos siempre se calculan y se muestran; solo la parte de
+  // horas variables pide el Excel si falta.
+  var fijos = _nominaConceptosFijos(rol, anio, mes);
+  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
+  var htmlFijos = '<div class="nom-sec-hdr">Conceptos fijos</div>';
+  fijos.forEach(function(f){ htmlFijos += _nominaFila(f.label, null, f.val); });
+
   if(!datosExcel || !datosExcel.porDia){
     window._nominaBaseCalculo = null;
-    return envolver('<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
-      +'📊 Primero sube el Cómputo Excel de este mes con el botón "Comparar con Cómputo Oficial", en Ajustes.</div>');
+    return envolver(htmlFijos
+      + '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">FIJOS (parcial)</span><span class="nom-total-bruto-val">'+totalFijos.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+      + '<div style="padding:16px 18px;text-align:center;color:var(--tx3);font-size:11.5px">'
+      +'📊 Sube el Cómputo Excel de este mes con el botón "Comparar con Cómputo Oficial", en Ajustes, para ver también las horas variables y el Bruto/Neto completos.</div>');
   }
 
   // Sumar minutos de todo el mes desde el Cómputo Excel ya guardado
@@ -6759,9 +6773,6 @@ function _construirCardExcel(){
   // mismo. Solo se queda la Hora Extraordinaria (por encima de la
   // referencia), que sí es un concepto adicional real.
 
-  var fijos = _nominaConceptosFijos(rol, anio, mes);
-  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
-
   var mv = _nominaValoresManuales;
   var refTexto = refAjustada.diasCompe>0 ? (JORNADA_REF+'h (163h − '+refAjustada.diasCompe+' día(s) COMPE × 5,5h)') : '163h';
   var variables = [
@@ -6780,8 +6791,7 @@ function _construirCardExcel(){
   var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
 
   var html = '<div class="nom-disclaimer">🧪 Estimación calculada a partir de tu cómputo Excel y las tarifas oficiales — puede no coincidir al céntimo con tu nómina de verdad.</div>';
-  html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
-  fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+  html += htmlFijos;
   html += '<div class="nom-sec-hdr">Conceptos variables (de tu cómputo Excel)</div>';
   variables.forEach(function(v){ html += _nominaFila(v.label, v.sub, v.val); });
 
@@ -18876,7 +18886,21 @@ var _cargaPdfCola = [], _cargaPdfIdx = 0, _cargaPdfAnio=null, _cargaPdfMes=null;
 var _cargaPdfResumen = {cargados:0, sobrescritos:0, extra:0, omitidos:0, revisar:[]};
 var _cargaPdfEstPendientes = [];
 
+// NUEVO — Confirmado por Alex con capturas reales: si se pulsa
+// "Cargar en calendario" dos veces seguidas (por ejemplo porque
+// parecía que no pasaba nada al primer toque), la segunda pulsación
+// reiniciaba la cola de carga desde cero MIENTRAS la primera todavía
+// estaba a mitad de un conflicto sin resolver — el diálogo de
+// conflicto viejo se quedaba en pantalla, desincronizado del proceso
+// nuevo, y pulsar sus botones ya no hacía nada coherente. Este
+// seguro impide que se pueda arrancar una segunda carga mientras la
+// primera sigue en marcha.
+var _cargaPdfEnProgreso = false;
 function cargarPdfEnCalendarioAuto(){
+  if(_cargaPdfEnProgreso){
+    toast('⏳ Ya hay una carga en curso — resuelve el diálogo que tienes en pantalla antes de volver a pulsar');
+    return;
+  }
   if(!horarioActualDias || !horarioActualDias.length){
     toast('⚠️ Primero sube el PDF de este mes en Horario individual');
     return;
@@ -18946,6 +18970,7 @@ function _iniciarColaCargaPdf(){
   }
   _cargaPdfCola = cola; _cargaPdfIdx = 0;
   _cargaPdfResumen = {cargados:0, sobrescritos:0, extra:0, omitidos:0, revisar:[]};
+  _cargaPdfEnProgreso = true; // se libera en _finalizarCargaPdf()
   toast('📅 Cargando '+cola.length+' día(s) del PDF...');
   _procesarSiguienteBloquePdf();
 }
@@ -19087,6 +19112,7 @@ function _escribirBloquePdf(res, modo){
 }
 
 function _finalizarCargaPdf(){
+  _cargaPdfEnProgreso = false;
   saveTV(); saveTV2();
   renderCal(); renderStats();
   var r = _cargaPdfResumen;
