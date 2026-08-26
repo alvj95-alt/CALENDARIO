@@ -25445,8 +25445,10 @@ function activateBase(key){
   });
   qInput.value = '';
   renderEmptyHint();
-  document.getElementById('acc-nombre').classList.add('open');
-  document.getElementById('acc-tren').classList.remove('open');
+  // FIX — antes reseteaba el acordeón viejo (acc-nombre/acc-tren),
+  // que ya no existe tras el cambio a tarjetas + Hero. Ahora vuelve
+  // al selector de tarjetas, que es el estado "de entrada" natural.
+  if(typeof mostrarSelectorCompaneros==='function') mostrarSelectorCompaneros();
   document.getElementById('trainView').innerHTML = '';
   document.getElementById('trTrainInput').value = '';
   fecha_seleccionada_busqueda = null;
