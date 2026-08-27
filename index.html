@@ -18615,6 +18615,14 @@ function _pdfDetectarBloques(dias){
   return bloques;
 }
 
+// NOTA — Confirmado por Alex (27/08/2026): esta función YA NO se usa en
+// ningún punto de la carga automática de PDF. Adivinaba la estación de
+// llegada con el historial de Servicios Frecuentes (SF), que podía
+// sustituir en silencio el destino real del PDF por una ruta guardada de
+// otro momento con el mismo número de tren — bug real detectado por
+// Alex. Se deja definida sin llamadas, por si hiciera falta consultarla
+// en el futuro; no se borra para no tocar más de lo estrictamente
+// necesario (regla de oro).
 function _pdfBuscarLlegadaSF(tren){
   var r = SF.filter(function(s){ return s.numTren===tren; })[0];
   return r ? (r.lle||null) : null;
@@ -18743,7 +18751,17 @@ function _pdfConstruirDiaSuelto(entry){
   out.sal = salTxt || primero.est; out.hF = primero.CI; out.numTren = primero.tren;
   if(!salTxt) out.incompleto = true;
   if(tramos.length===1){
-    out.lle = _pdfBuscarLlegadaSF(primero.tren);
+    // FIX — Confirmado por Alex (bug real detectado en producción): antes
+    // se adivinaba aquí la estación de llegada con el historial de
+    // Servicios Frecuentes (SF) — esa lista guarda, por número de tren,
+    // la última ruta usada CUALQUIER día anterior, y un mismo número de
+    // tren puede tener destinos distintos según el día. Eso sustituía en
+    // silencio el destino real de ESTE PDF por un dato guardado de otro
+    // momento, sin avisar. El PDF individual no trae el nombre de la
+    // estación de llegada del único tramo del día, así que ahora se deja
+    // sin adivinar: el día queda marcado para revisar/completar a mano,
+    // nunca con un dato inventado o heredado.
+    out.lle = null;
     // FIX — este es el ÚNICO tramo del día (nada continúa después), así
     // que el final real de la jornada es el CHECK-OUT (CO), no la mera
     // llegada del tren (arr). El PDF ya deja claro que ese margen final
@@ -18758,7 +18776,13 @@ function _pdfConstruirDiaSuelto(entry){
     var sal2Txt = _pdfTraducirEstacion(ultimo.est);
     out.sal2 = sal2Txt || ultimo.est; out.hF2 = ultimo.CI; out.numTrenVuelta = ultimo.tren;
     if(!sal2Txt) out.incompleto = true;
-    out.lle2 = _pdfBuscarLlegadaSF(ultimo.tren) || (AJ.base || null);
+    // FIX — Confirmado por Alex (bug real detectado en producción): mismo
+    // problema que arriba — no se adivina más con el historial de
+    // Servicios Frecuentes (SF), que puede guardar una ruta de otro día
+    // con ese mismo número de tren y sustituir en silencio el destino
+    // real. El final del día vuelve a tu Estación Base (mismo criterio
+    // que ya se usa para el cierre de una pernocta), nunca al historial.
+    out.lle2 = AJ.base || null;
     // FIX — mismo criterio: 'ultimo' es el ÚLTIMO tramo del día (la
     // vuelta), nada continúa después, así que el final real es su
     // CO, no su arr.
@@ -18849,11 +18873,29 @@ function _pdfDireccionCompleta(entry){
     // después, así que el final real es su CO (check-out), igual que
     // en _pdfConstruirDiaSuelto — si no, se perdía ese margen final.
     out.horaFinal = tramos[0].CO || tramos[0].arr || null;
-    out.destino = _pdfBuscarLlegadaSF(tramos[0].tren);
-    out.llegadaCabeza = out.destino;
+    // FIX — Confirmado por Alex (bug real detectado en producción): antes
+    // se adivinaba aquí con el historial de Servicios Frecuentes (SF) —
+    // mismo problema que en _pdfConstruirDiaSuelto: un mismo número de
+    // tren puede tener destinos distintos en días distintos, y esto
+    // sustituía en silencio la conexión real del PDF por una ruta
+    // guardada de otro momento. Se deja sin resolver: _pdfConstruirEscrituras
+    // ya lo rellena después con datos 100% reales — la salida real del
+    // día siguiente del propio bloque, o tu Estación Base si es el
+    // último día de la pernocta.
+    out.destino = null;
+    out.llegadaCabeza = null;
   } else {
     for(var i=1;i<tramos.length;i++){
-      var llegadaTxt = (i+1<tramos.length) ? _pdfTraducirEstacion(tramos[i+1].est) : _pdfBuscarLlegadaSF(tramos[tramos.length-1].tren);
+      // FIX — Confirmado por Alex (bug real detectado en producción):
+      // mismo problema que en el resto de este bug — no se adivina el
+      // destino del ÚLTIMO tramo con el historial de Servicios Frecuentes
+      // (SF). Si se rellenaba aquí con SF, "out.destino" (más abajo)
+      // quedaba con un valor "ya puesto" y el respaldo correcto de
+      // _pdfConstruirEscrituras (salida real del día siguiente, o tu
+      // Estación Base si es el último día) nunca llegaba a aplicarse. Se
+      // deja sin resolver aquí para que ese respaldo con datos 100%
+      // reales sí pueda entrar en acción.
+      var llegadaTxt = (i+1<tramos.length) ? _pdfTraducirEstacion(tramos[i+1].est) : null;
       var llegadaCodigoBruto = (i+1<tramos.length) ? tramos[i+1].est : null;
       if(i+1<tramos.length && !llegadaTxt) out.incompleto = true;
       // FIX — misma corrección que en _pdfConstruirDiaSuelto: la
@@ -19002,6 +19044,17 @@ function _pdfConstruirEscrituras(bloque, anio, mesNum){
     }
     var dirFinal = direcciones[direcciones.length-1];
     if(!dirFinal.destino) dirFinal.destino = AJ.base || null;
+    // FIX — Confirmado por Alex (bug real detectado en producción):
+    // cuando la dirección de un día tenía un solo tramo, "llegadaCabeza"
+    // (lo que de verdad se guarda como lle/lle2 del turno final) se dejó
+    // vacío a propósito en _pdfDireccionCompleta, para no adivinarlo con
+    // el historial de Servicios Frecuentes (SF). Se rellena aquí con el
+    // "destino" YA CORREGIDO justo arriba con datos 100% reales (la
+    // salida real del día siguiente del propio bloque, o tu Estación
+    // Base en el último día) — nunca con el historial de otro momento.
+    direcciones.forEach(function(dir){
+      if(!dir.llegadaCabeza) dir.llegadaCabeza = dir.destino;
+    });
     // Si ese día tenía tramos de continuidad, su último tramo interno
     // apuntaba al mismo destino sin resolver — se sincroniza para que
     // también se vea su ruta (antes se quedaba con salida pero sin
@@ -25653,7 +25706,17 @@ function isShiftCode(text){
 function getDayColumns(words){
   const cands = words.filter(w => /^[0-9]{1,2}$/.test(w.text) && w.top>=50 && w.top<=65);
   cands.sort((a,b)=>a.x0-b.x0);
-  if(cands.length>=31) return cands.slice(0,31).map(w=>w.x0);
+  // FIX — Confirmado por Alex (bug real detectado en producción): esto
+  // exigía SIEMPRE 31 columnas (día 1 a 31), así que cualquier mes de
+  // 28, 29 o 30 días (febrero, abril, junio, septiembre, noviembre)
+  // nunca llegaba al umbral y la página se descartaba ENTERA como "no
+  // reconocida" — 0 empleados cargados, aunque el PDF fuera
+  // perfectamente válido y viniera con su mes completo. Ahora se acepta
+  // cualquier cantidad de columnas entre 28 (el mes más corto, febrero)
+  // y 31 (el más largo) — las que de verdad tenga ese mes concreto. Se
+  // mantiene el tope de 31 al final (por si se colara algún número
+  // suelto de más en esa franja) igual que antes.
+  if(cands.length>=28) return cands.slice(0, Math.min(cands.length,31)).map(w=>w.x0);
   return null;
 }
 // FIX — cuando dos o más días SEGUIDOS tienen exactamente el mismo
