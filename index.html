@@ -16236,8 +16236,6 @@ function calcularJornadaDiaria(turnos, fecha){
     if(t.tipo==='ordinario' || t.tipo==='trabajado' || t.tipo==='art5152'){
       var minI = (t.hF&&t.hL) ? calcMins(t.hF,t.hL) : 0;
       var minV = (t.hF2&&t.hL2) ? calcMins(t.hF2,t.hL2) : 0;
-      var efEste = minI + minV;
-      var prEste = 0;
 
       // Escala entre ida y vuelta del MISMO turno (mismo día): el hueco
       // entre la llegada de ida (hL) y la salida de vuelta (hF2) es
@@ -16252,6 +16250,21 @@ function calcularJornadaDiaria(turnos, fecha){
       // sumando a Presencia como si fuera una escala del mismo día.
       // En pernocta ese descanso no debe contar para nada.
       var esPernoctaTurno = (t.modo==='pernocta' || t.modo==='pernocta3');
+
+      // NUEVO — Confirmado por Alex (Opción A: repartir por mes real,
+      // cuidando de no romper nada más): en pernocta, la parte de
+      // VUELTA (minV, su propio DH, su continuidadVuelta y el retraso
+      // del tramo 2) ya NO se cuenta aquí — se mueve a la rama
+      // 'vuelta-pernocta' más abajo, que vive en la celda del día
+      // REAL de llegada. Así, si ida y vuelta caen en el mismo mes
+      // (el caso normal), el total del mes no cambia — solo se
+      // reparte entre las dos celdas; si cruzan de mes, cada parte
+      // cuenta para su mes de verdad. Para un turno NO-pernocta (ida
+      // y vuelta el mismo día), nada de esto cambia: sigue exactamente
+      // igual que antes.
+      var efEste = esPernoctaTurno ? minI : (minI + minV);
+      var prEste = 0;
+
       // FIX — cuando la ida tiene tramos de continuidad (más de un
       // tren), el hueco hacia la vuelta se estaba midiendo SIEMPRE
       // desde t.hL — que es el fin del PRIMER tramo de la ida, no el
@@ -16286,11 +16299,20 @@ function calcularJornadaDiaria(turnos, fecha){
         if(t.dhMismoTren) efEste = Math.max(0, efEste - t.dhMinutos);
         prEste += t.dhMinutos;
       }
-      if(t.estadoServicioVuelta==='dh' && typeof t.dhMismoTrenVuelta==='boolean' && t.dhMinutosVuelta!=null){
+      // NUEVO — DH de vuelta: solo se aplica aquí si NO es pernocta
+      // (mismo día). En pernocta, esto se mueve a la rama
+      // 'vuelta-pernocta', que ya usa este mismo campo pero leído
+      // desde la celda de llegada.
+      if(!esPernoctaTurno && t.estadoServicioVuelta==='dh' && typeof t.dhMismoTrenVuelta==='boolean' && t.dhMinutosVuelta!=null){
         if(t.dhMismoTrenVuelta) efEste = Math.max(0, efEste - t.dhMinutosVuelta);
         prEste += t.dhMinutosVuelta;
       }
-      [t.continuidad, t.continuidadVuelta].forEach(function(arr){
+      // NUEVO — continuidadVuelta: solo se procesa aquí si NO es
+      // pernocta — en pernocta se mueve también a la rama
+      // 'vuelta-pernocta'. La continuidad de IDA (t.continuidad)
+      // sigue procesándose siempre aquí, sea o no pernocta.
+      var _arraysContinuidad = esPernoctaTurno ? [t.continuidad] : [t.continuidad, t.continuidadVuelta];
+      _arraysContinuidad.forEach(function(arr){
         if(!arr || !arr.length) return;
         arr.forEach(function(c){
           if(c.horaInicio && c.horaFin){
@@ -16332,24 +16354,20 @@ function calcularJornadaDiaria(turnos, fecha){
       });
 
       // FIX — Retraso del tramo de VUELTA (tramo 2): suma a Efectivas
-      // en todos los tipos de turno (ordinario, pernocta, HTDL,
-      // Art.51/52). El retraso del tramo de IDA (tramo 1) es solo
-      // informativo — nunca cambia ninguna hora. En pernocta, el
-      // tramo 2 vive en la celda del día siguiente (t.diaSiguiente),
-      // no en la de origen — mismo criterio ya usado en
-      // calculateEarnings() para el importe económico de HTDL (ver
-      // comentario "MÓDULO A" más abajo en el archivo), generalizado
-      // aquí a Efectivas/Presencia para todos los tipos.
-      var _tConRetrasoT2 = (esPernoctaTurno && t.diaSiguiente && typeof TV!=='undefined') ? TV[t.diaSiguiente] : t;
-      var minRetT2 = 0;
-      if(_tConRetrasoT2){
-        if(_tConRetrasoT2.retrasos && _tConRetrasoT2.retrasos.length){
-          _tConRetrasoT2.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2 += r.minutos||0; });
-        } else if(_tConRetrasoT2.retrasoMin>0 && !_tConRetrasoT2.retrasos){
-          minRetT2 += _tConRetrasoT2.retrasoMin; // retraso legacy sin tramo: se trata como T2
+      // en todos los tipos de turno (ordinario, HTDL, Art.51/52) —
+      // salvo en pernocta, donde ahora se cuenta en la rama
+      // 'vuelta-pernocta' (vive de verdad en la celda de llegada).
+      // El retraso del tramo de IDA (tramo 1) es solo informativo —
+      // nunca cambia ninguna hora.
+      if(!esPernoctaTurno){
+        var minRetT2 = 0;
+        if(t.retrasos && t.retrasos.length){
+          t.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2 += r.minutos||0; });
+        } else if(t.retrasoMin>0 && !t.retrasos){
+          minRetT2 += t.retrasoMin; // retraso legacy sin tramo: se trata como T2
         }
+        efEste += minRetT2;
       }
-      efEste += minRetT2;
 
       // FIX — cada turno suma a SU bucket (Cal u HTDL) según su
       // propio tipo, no al del día completo.
@@ -16359,10 +16377,71 @@ function calcularJornadaDiaria(turnos, fecha){
       // Límites del turno (inicio de ida → fin de vuelta, o fin de ida
       // si no hay vuelta) para poder calcular el hueco con el siguiente
       // turno del MISMO bucket.
+      // NUEVO — en pernocta, el "fin" de este bloque (para huecos con
+      // otro turno del MISMO día) es el fin de la IDA, no de la
+      // vuelta (que ahora vive en otro día/celda por completo).
       var inicioMin = t.hF ? _horasToMin(t.hF) : null;
-      var finMin = (t.hF2&&t.hL2) ? _horasToMin(t.hL2) : (t.hL ? _horasToMin(t.hL) : null);
+      var finMin = (!esPernoctaTurno && t.hF2&&t.hL2) ? _horasToMin(t.hL2) : (t.hL ? _horasToMin(t.hL) : null);
       if(inicioMin!=null && finMin!=null){
         (esHTDLEste?intervalosHTDL:intervalosCal).push({inicio:inicioMin, fin:finMin});
+      }
+
+    } else if(t.tipo==='vuelta-pernocta'){
+      // NUEVO — Confirmado por Alex (Opción A): esta es la celda del
+      // día REAL de llegada de una pernocta. Antes no contaba nada
+      // (todo se contaba de golpe en el día de origen/salida) — ahora
+      // recupera aquí la parte de VUELTA (sus propias horas, su DH,
+      // su continuidadVuelta y el retraso del tramo 2), leyéndolas
+      // del turno de origen (TV[origenPernocta]), que es donde siguen
+      // guardadas de verdad. Así, esta celda se lleva sus horas para
+      // SU PROPIO mes/día real, en vez de que se las lleve siempre el
+      // día de salida — que es justo lo que arregla que una pernocta
+      // que cruza de mes contara mal las horas de vuelta.
+      var origenV = t.origenPernocta ? TV[t.origenPernocta] : null;
+      if(origenV && (origenV.tipo==='ordinario' || origenV.tipo==='trabajado' || origenV.tipo==='art5152')){
+        var esHTDLVuelta = (origenV.tipo==='trabajado' || origenV.tipo==='art5152');
+        var efV = (origenV.hF2&&origenV.hL2) ? calcMins(origenV.hF2,origenV.hL2) : 0;
+        var prV = 0;
+        if(origenV.estadoServicioVuelta==='dh' && typeof origenV.dhMismoTrenVuelta==='boolean' && origenV.dhMinutosVuelta!=null){
+          if(origenV.dhMismoTrenVuelta) efV = Math.max(0, efV - origenV.dhMinutosVuelta);
+          prV += origenV.dhMinutosVuelta;
+        }
+        if(origenV.continuidadVuelta && origenV.continuidadVuelta.length){
+          origenV.continuidadVuelta.forEach(function(c){
+            if(c.horaInicio && c.horaFin){
+              var durC = calcMins(c.horaInicio, c.horaFin);
+              if(c.tipoTramo==='dh'){
+                if(c.dhHoraInicio && c.dhHoraFin){
+                  var durDH = calcMins(c.dhHoraInicio, c.dhHoraFin);
+                  durDH = Math.min(durDH, durC);
+                  prV += durDH;
+                  efV += Math.max(0, durC - durDH);
+                } else {
+                  prV += durC;
+                }
+              } else {
+                efV += durC;
+              }
+            }
+            if(c.escalaMin!=null && c.escalaMin>0){
+              prV += c.escalaMin;
+            }
+          });
+        }
+        // Retraso del tramo 2: vive de verdad en ESTA celda (t.retrasos),
+        // no en la de origen — mismo dato que ya leía antes la rama de
+        // arriba vía TV[diaSiguiente], ahora leído directamente porque
+        // "t" YA ES esa celda.
+        var minRetT2v = 0;
+        if(t.retrasos && t.retrasos.length){
+          t.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2v += r.minutos||0; });
+        } else if(t.retrasoMin>0 && !t.retrasos){
+          minRetT2v += t.retrasoMin;
+        }
+        efV += minRetT2v;
+
+        if(esHTDLVuelta){ efectivasHTDL += efV; presenciaHTDL += prV; }
+        else { efectivasCal += efV; presenciaCal += prV; }
       }
 
     } else if(t.tipo==='reserva'){
@@ -16496,6 +16575,16 @@ function calculateEarnings(ks){
     minPresenciaCal  += jornada.presenciaMin;
     minEfectivasHTDL += jornada.efectivasHTDLMin;
     minPresenciaHTDL += jornada.presenciaHTDLMin;
+    // NUEVO — Confirmado por Alex (Opción A del dinero, mismo criterio
+    // que ya se aplicó a las horas): en pernocta, la parte de VUELTA
+    // del dinero (nocturnidad de esos tramos, el HTDL económico de la
+    // vuelta) ya no se cuenta aquí — se mueve a la rama
+    // 'vuelta-pernocta' de más abajo, que vive en el día REAL de
+    // llegada. Así, si ida y vuelta caen en el mismo mes, el total no
+    // cambia — solo se reparte; si cruzan de mes, cada parte cuenta
+    // para su mes de verdad (el "mes vencido" ya queda bien aplicado
+    // también al dinero, no solo a las horas).
+    var esPernoctaDinero = (t.modo==='pernocta' || t.modo==='pernocta3');
     if(t.tipo==='ordinario'){tHr+=h;
       if(t.nocturno&&h>0){
         var nOrd1=cn(t.hF,t.hL), nOrd2=cn(t.hF2,t.hL2);
@@ -16506,14 +16595,19 @@ function calculateEarnings(ks){
         // nocturno (22:00-06:00), esa nocturnidad real se perdía por
         // completo — no es una etiqueta mal puesta, es dinero real
         // que faltaba.
-        var nOrdCont = 0;
-        [t.continuidad, t.continuidadVuelta].forEach(function(arr){
-          if(!arr || !arr.length) return;
-          arr.forEach(function(c){
-            if(c.horaInicio && c.horaFin) nOrdCont += cn(c.horaInicio, c.horaFin);
-          });
-        });
-        var nOrd=nOrd1+nOrd2+nOrdCont;
+        var nOrdContIda = 0, nOrdContVuelta = 0;
+        if(t.continuidad && t.continuidad.length){
+          t.continuidad.forEach(function(c){ if(c.horaInicio && c.horaFin) nOrdContIda += cn(c.horaInicio, c.horaFin); });
+        }
+        // NUEVO — la continuidad de VUELTA solo se suma aquí si NO es
+        // pernocta (mismo día); en pernocta se mueve a la rama
+        // 'vuelta-pernocta', igual que su propia nocturnidad (nOrd2).
+        if(!esPernoctaDinero && t.continuidadVuelta && t.continuidadVuelta.length){
+          t.continuidadVuelta.forEach(function(c){ if(c.horaInicio && c.horaFin) nOrdContVuelta += cn(c.horaInicio, c.horaFin); });
+        }
+        // NUEVO — en pernocta, nOrd2 (nocturnidad de la vuelta) tampoco
+        // se suma aquí — se cuenta en la celda de vuelta.
+        var nOrd = esPernoctaDinero ? (nOrd1+nOrdContIda) : (nOrd1+nOrd2+nOrdContIda+nOrdContVuelta);
         if(nOrd>0){
           tN+=nOrd*NOC;
           dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nOrd,importe:Math.round(nOrd*NOC*100)/100});
@@ -16669,22 +16763,26 @@ function calculateEarnings(ks){
           hEscalaHTDL = Math.round(minEscalaHTDL/60*100)/100; // recalculado con los huecos añadidos
         }
         var hExtraHTDL = Math.round(minExtraHTDL/60*100)/100;
-        // NUEVO — Confirmado por Alex: la dormida entre ida y vuelta
-        // NO se paga, salvo que sea un ENLACE DE JORNADA (descanso
-        // real por debajo del mínimo legal: 12h en base, 8h fuera).
-        // Mismo cálculo que checkDescansoInternoPernocta().
-        var hEnlaceJornadaHTDL = 0;
-        if(esPernoctaHTDL && t.hL && t.hF2){
-          var toMinHTDL=function(hh){var p=hh.split(':').map(Number);return p[0]*60+p[1];};
-          var dMHTDL=(1440-toMinHTDL(t.hL))+toMinHTDL(t.hF2); if(dMHTDL<0)dMHTDL+=1440;
-          var estDescansoHTDL = t.sal2||t.lle||'';
-          var limHTDL = (AJ.base && estDescansoHTDL===AJ.base) ? 720 : 480;
-          if(dMHTDL < limHTDL) hEnlaceJornadaHTDL = Math.round(dMHTDL/60*100)/100;
-        }
+        // NOTA — Confirmado por Alex: la dormida entre ida y vuelta NO
+        // se paga aquí — eso lo cubre por separado el mecanismo ya
+        // existente checkDescansoInternoPernocta() (sección "Descanso
+        // INTERNO de una pernocta", más abajo en esta función), que
+        // sigue atado al mes del día de ORIGEN por ahora.
+        // NUEVO — Confirmado por Alex (Opción A del dinero): en
+        // pernocta, esta celda (el origen/día de salida) ya SOLO
+        // cuenta la parte de IDA (hI + su continuidad) — la vuelta
+        // (hV, su continuidadVuelta, la escala y el retraso T2) se
+        // cuenta aparte, en la rama 'vuelta-pernocta' de más abajo,
+        // que vive en el día REAL de llegada. Si ida y vuelta caen en
+        // el mismo mes, el total no cambia — solo se reparte entre
+        // las dos celdas; si cruzan de mes, cada parte cuenta para su
+        // mes de verdad.
         var hComputable = esPernoctaHTDL
-          ? Math.round((h+hEscalaHTDL+hContinuidadHTDL+hContinuidadVueltaHTDL+hEnlaceJornadaHTDL)*100)/100
+          ? Math.round((hI+hContinuidadHTDL)*100)/100
           : Math.round((hI+hEscalaHTDL+hContinuidadHTDL+hV+hContinuidadVueltaHTDL+hExtraHTDL)*100)/100;
-        var hTotalHTDL=Math.round((hComputable+hRetT2)*100)/100;
+        var hTotalHTDL = esPernoctaHTDL
+          ? hComputable // el retraso T2 y todo lo demás de la vuelta van en su propia celda
+          : Math.round((hComputable+hRetT2)*100)/100;
         hHTDL+=hTotalHTDL;
         tH+=hTotalHTDL*HTDL;
         // Guardar detalle: fecha, tren, horas desglosadas
@@ -16704,13 +16802,16 @@ function calculateEarnings(ks){
           })(),
           tren:t.numTren||'',
           esPernocta:esPernoctaHTDL,
+          // NUEVO — en pernocta, esta ficha ya solo representa la
+          // IDA (la vuelta tiene su propia ficha, en su propia celda)
+          soloIda: esPernoctaHTDL,
           hIda:hI,
-          hEscala:hEscalaHTDL,
+          hEscala: esPernoctaHTDL ? 0 : hEscalaHTDL,
           hContinuidad:hContinuidadHTDL,
-          hContinuidadVuelta:hContinuidadVueltaHTDL,
-          hVuelta:hV,
-          hRetT2:hRetT2,
-          minRetT2:minRetT2,
+          hContinuidadVuelta: esPernoctaHTDL ? 0 : hContinuidadVueltaHTDL,
+          hVuelta: esPernoctaHTDL ? 0 : hV,
+          hRetT2: esPernoctaHTDL ? 0 : hRetT2,
+          minRetT2: esPernoctaHTDL ? 0 : minRetT2,
           hExtra:hExtraHTDL,
           hTotal:hTotalHTDL,
           importe:Math.round(hTotalHTDL*HTDL*100)/100
@@ -16720,19 +16821,101 @@ function calculateEarnings(ks){
       // FIX — mismo problema que en jornada ordinaria: la nocturnidad
       // de los tramos de Continuidad no se calculaba. Se suma aquí
       // igual, para HTDL.
-      var nTrabCont = 0;
-      [t.continuidad, t.continuidadVuelta].forEach(function(arr){
-        if(!arr || !arr.length) return;
-        arr.forEach(function(c){
-          if(c.horaInicio && c.horaFin) nTrabCont += cn(c.horaInicio, c.horaFin);
-        });
-      });
-      var nTrab=nTrab1+nTrab2+nTrabCont;
+      var nTrabContIda = 0, nTrabContVuelta = 0;
+      if(t.continuidad && t.continuidad.length){
+        t.continuidad.forEach(function(c){ if(c.horaInicio && c.horaFin) nTrabContIda += cn(c.horaInicio, c.horaFin); });
+      }
+      // NUEVO — en pernocta, la nocturnidad de la vuelta (nTrab2 y su
+      // continuidadVuelta) se mueve a la rama 'vuelta-pernocta' — se
+      // cuenta ahí, en el día real de llegada.
+      if(!esPernoctaDinero && t.continuidadVuelta && t.continuidadVuelta.length){
+        t.continuidadVuelta.forEach(function(c){ if(c.horaInicio && c.horaFin) nTrabContVuelta += cn(c.horaInicio, c.horaFin); });
+      }
+      var nTrab = esPernoctaDinero ? (nTrab1+nTrabContIda) : (nTrab1+nTrab2+nTrabContIda+nTrabContVuelta);
       if(nTrab>0&&t.nocturno){
         tN+=nTrab*NOC;
         dN.push({lbl:dL,tren:t.numTren||'',hF1:t.hF,hL1:t.hL,hF2:t.hF2,hL2:t.hL2,hNoc:nTrab,importe:Math.round(nTrab*NOC*100)/100});
       }
       if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
+    }
+    if(t.tipo==='vuelta-pernocta'){
+      // NUEVO — Confirmado por Alex (Opción A del dinero, mismo
+      // criterio ya aplicado a las horas): esta es la celda del día
+      // REAL de llegada de una pernocta. Antes no aportaba nada de
+      // dinero (todo se contaba de golpe en el día de origen/salida)
+      // — ahora recupera aquí la parte de VUELTA (su nocturnidad y su
+      // HTDL económico), leídas del turno de origen
+      // (TV[origenPernocta]), que es donde siguen guardadas de
+      // verdad. Así esta celda se lleva su dinero para SU PROPIO
+      // mes/día real — el "mes vencido" ya aplica también al dinero,
+      // no solo a las horas.
+      var origenDinero2 = t.origenPernocta ? TV[t.origenPernocta] : null;
+      if(origenDinero2){
+        // Retraso del tramo 2: vive de verdad en ESTA celda
+        // (t.retrasos), no en la de origen.
+        var minRetT2b = 0;
+        if(t.retrasos && t.retrasos.length){
+          t.retrasos.forEach(function(r){ if(r.tramo===2) minRetT2b += r.minutos||0; });
+        } else if(t.retrasoMin>0 && !t.retrasos){
+          minRetT2b = t.retrasoMin;
+        }
+        var hRetT2b = Math.round(minRetT2b/60*100)/100;
+
+        // ── Nocturnidad de la vuelta (aplica igual a Ordinario y a HTDL/Art.51-52) ──
+        if(origenDinero2.nocturno){
+          var nVuelta2 = cn(origenDinero2.hF2, origenDinero2.hL2);
+          var nVueltaCont = 0;
+          if(origenDinero2.continuidadVuelta && origenDinero2.continuidadVuelta.length){
+            origenDinero2.continuidadVuelta.forEach(function(c){ if(c.horaInicio && c.horaFin) nVueltaCont += cn(c.horaInicio, c.horaFin); });
+          }
+          var nVueltaTotal = nVuelta2 + nVueltaCont;
+          if(nVueltaTotal>0){
+            tN += nVueltaTotal*NOC;
+            dN.push({lbl:dL, tren:origenDinero2.numTren||'', hF1:null, hL1:null, hF2:origenDinero2.hF2, hL2:origenDinero2.hL2, hNoc:nVueltaTotal, importe:Math.round(nVueltaTotal*NOC*100)/100});
+          }
+        }
+
+        // ── HTDL económico de la vuelta (solo si el origen es
+        // trabajado/art5152 y se paga en dinero, no en días) ──
+        if((origenDinero2.tipo==='trabajado'||origenDinero2.tipo==='art5152') && origenDinero2.comp==='dinero'){
+          var hV2 = (origenDinero2.hF2&&origenDinero2.hL2) ? Math.round(calcMins(origenDinero2.hF2,origenDinero2.hL2)/60*100)/100 : 0;
+          var minContinuidadVueltaHTDLb = 0;
+          var minEscalaHTDLb = 0;
+          if(origenDinero2.continuidadVuelta && origenDinero2.continuidadVuelta.length){
+            origenDinero2.continuidadVuelta.forEach(function(c){
+              if(c.horaInicio && c.horaFin) minContinuidadVueltaHTDLb += calcMins(c.horaInicio, c.horaFin);
+              if(c.escalaMin!=null && c.escalaMin>0) minEscalaHTDLb += c.escalaMin;
+            });
+          }
+          var hContinuidadVueltaHTDLb = Math.round(minContinuidadVueltaHTDLb/60*100)/100;
+          var hEscalaHTDLb = Math.round(minEscalaHTDLb/60*100)/100;
+          // NOTA — el "enlace de jornada" (dormida por debajo del
+          // mínimo legal) NO se calcula aquí — ya lo cubre, por
+          // separado, el mecanismo existente
+          // checkDescansoInternoPernocta() más abajo en esta misma
+          // función (sección "Descanso INTERNO de una pernocta").
+          // Sumarlo también aquí lo contaría dos veces. Ese mecanismo,
+          // de momento, sigue atado al mes del día de ORIGEN — no se
+          // ha movido al mes de la vuelta todavía (pendiente, a
+          // decidir aparte si Alex lo pide).
+          var hVueltaPortionHTDL = Math.round((hV2+hContinuidadVueltaHTDLb+hEscalaHTDLb+hRetT2b)*100)/100;
+          if(hVueltaPortionHTDL>0){
+            hHTDL += hVueltaPortionHTDL;
+            tH += hVueltaPortionHTDL*HTDL;
+            dHTDL.push({
+              lbl: dL,
+              lblVuelta: null,
+              tren: origenDinero2.numTren||'',
+              esPernocta: true,
+              soloVuelta: true,
+              hIda: 0, hEscala: hEscalaHTDLb, hContinuidad: 0, hContinuidadVuelta: hContinuidadVueltaHTDLb,
+              hVuelta: hV2, hRetT2: hRetT2b, minRetT2: minRetT2b, hExtra: 0,
+              hTotal: hVueltaPortionHTDL,
+              importe: Math.round(hVueltaPortionHTDL*HTDL*100)/100
+            });
+          }
+        }
+      }
     }
     if(['reserva','descanso','baja'].includes(t.tipo)){
       if(t.plusAct){tA+=P_ACT;dA.push(dL);}if(t.plusJT){tJ+=P_JT;dJ.push(dL);}if(t.plusIntlAuto){tI+=P_INTL;dI.push(dL);}
