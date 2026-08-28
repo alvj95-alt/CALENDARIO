@@ -16052,7 +16052,17 @@ function esTurnoParking(t){
 }
 function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
 function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
-function openOv(id){document.getElementById(id).classList.add('on');}
+function openOv(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  // FIX — Confirmado por Alex (bug real, detectado en producción): si
+  // este overlay tenía pendiente un cierre con animación (ver
+  // closeOv(), 140ms de retraso), cancelarlo aquí — abrirlo de nuevo
+  // significa que hay algo nuevo que mostrar, y el cierre retrasado de
+  // la vez anterior no debe llegar a quitarle la clase 'on' a esto.
+  el.classList.remove('closing');
+  el.classList.add('on');
+}
 // Cierre del formulario de turno — limpia las banderas de edición de
 // turnos adicionales (TV2) para que un cierre a medias nunca deje el
 // siguiente turno que se guarde apuntando por error al array TV2.
@@ -16066,6 +16076,14 @@ function closeOv(id){
   if(!el||!el.classList.contains('on')) return;
   el.classList.add('closing');
   setTimeout(function(){
+    // FIX — Confirmado por Alex (bug real, detectado en producción):
+    // si mientras tanto se volvió a abrir este mismo overlay
+    // (openOv() ya quitó 'closing' al reabrir), este cierre retrasado
+    // ya no tiene nada que ver con lo que hay en pantalla ahora mismo
+    // — no se toca nada, para no cerrar por error algo que se acaba
+    // de mostrar de verdad (ej. el siguiente conflicto al cargar un
+    // PDF con varios días ya guardados).
+    if(!el.classList.contains('closing')) return;
     el.classList.remove('on');
     el.classList.remove('closing');
   },140);
