@@ -19491,19 +19491,29 @@ function _procesarSiguienteBloquePdf(){
   try{
     var res = _pdfConstruirEscrituras(bloque, _cargaPdfAnio, _cargaPdfMes);
 
-    // Confirmado por Alex: cuando los descansos llegan antes en
-    // un PDF aparte (que nunca se sube a la app) y ya están puestos a
-    // mano, el PDF individual del mes en curso los vuelve a mostrar
-    // como "día libre" — si el día ya tiene descanso, DOP o COMPE
-    // puesto, ya coincide, no hay nada que preguntar. Los "COMPE" salen
-    // en el PDF como "LD" — son los días de descanso que generó un
-    // HTDL trabajado el mes anterior (compensación "por día"). No se
-    // sobrescribe ninguno de los tres (el DOP y el COMPE perderían su
-    // marca especial y su enlace al turno de origen) — se saltan sin más.
-    if(res.escrituras.length===1 && res.escrituras[0].data.tipo==='descanso'){
-      var kLibre = res.escrituras[0].k;
-      var existenteLibre = TV[kLibre];
-      if(existenteLibre && (existenteLibre.tipo==='descanso' || existenteLibre.tipo==='dop' || existenteLibre.tipo==='comp')){
+    // Confirmado por Alex: cuando un día ya tiene guardado exactamente
+    // el mismo tipo simple que trae el PDF para ese día — sea día
+    // libre (DO/DL/DOP), Vacaciones (CP) o Reserva (R) — ya coincide,
+    // no hay nada que preguntar. Los descansos, además, cubren DOP y
+    // COMPE como "ya coincide" (ver detalle de cada uno abajo); no se
+    // sobrescribe ninguno de los dos (perderían su marca especial y su
+    // enlace al turno de origen) — se saltan sin más.
+    //   · 'descanso' (DO/DL del PDF) coincide con: descanso, dop, comp
+    //     — DOP = "Día Libre Pedido" (marcado a mano), COMPE = "LD" en
+    //     el PDF, el descanso que genera un HTDL trabajado el mes
+    //     anterior (compensación "por día").
+    //   · 'vacaciones' (CP del PDF) coincide con: vacaciones.
+    //   · 'reserva' (R del PDF) coincide con: reserva.
+    var MAPA_TIPOS_YA_COINCIDEN = {
+      'descanso':   ['descanso', 'dop', 'comp'],
+      'vacaciones': ['vacaciones'],
+      'reserva':    ['reserva']
+    };
+    if(res.escrituras.length===1 && MAPA_TIPOS_YA_COINCIDEN[res.escrituras[0].data.tipo]){
+      var kSimple = res.escrituras[0].k;
+      var existenteSimple = TV[kSimple];
+      var tiposValidos = MAPA_TIPOS_YA_COINCIDEN[res.escrituras[0].data.tipo];
+      if(existenteSimple && tiposValidos.indexOf(existenteSimple.tipo)!==-1){
         _cargaPdfResumen.yaCoincidian = (_cargaPdfResumen.yaCoincidian||0) + 1;
         _cargaPdfIdx++;
         _procesarSiguienteBloquePdf();
