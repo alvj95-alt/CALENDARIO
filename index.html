@@ -24502,10 +24502,19 @@ function _hgListarMesesUnicos(filasConMes){
 // usando los meses que _hgMesesDisponibles ya dejó guardados en la
 // última llamada a cargarHorarioGlobalDesdeAdmin(). Si solo hay un
 // mes guardado, no tiene sentido elegir — se deja vacío.
+// APAGADO — Confirmado por Alex: el selector de mes con chips
+// ("Ago/Sep") queda desactivado — ahora Compañeros e Interventor usan
+// automáticamente el mes puesto en el Calendario (ver
+// _mesCalendarioActual(), usada en abrirBuscadorConHorarioGlobal() y
+// cargarDatosParaInterventor()), sin ningún botón que elegir. No se
+// borra el código de los chips (mismo criterio que con Novedades): si
+// algún día se quiere volver a este modelo, basta con quitar el
+// "return" de aquí abajo.
 var _hgCargandoMes = null; // {anio,mes} mientras esa carga está en curso, o null si no hay ninguna
 function hgPintarSelectorMes(){
   var zona = document.getElementById('hgMesSelectorZona');
-  if(!zona) return;
+  if(zona) zona.innerHTML = '';
+  return;
   var meses = window._hgMesesDisponibles || [];
   if(meses.length<2){ zona.innerHTML = ''; return; }
   var actual = (typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio) ? BASES.global.mesAnio : meses[0];
@@ -24723,6 +24732,16 @@ window.validarAccesoBuscador = async function(){
   abrirBuscadorConHorarioGlobal();
 };
 
+// NUEVO — Confirmado por Alex: en vez de un selector de mes aparte
+// (los chips "Ago/Sep" que había antes), el Buscador de Compañeros y
+// la pantalla de Interventor reutilizan el mes que YA está puesto en
+// la pantalla de Calendario — la misma variable (curM) que mueven las
+// flechas ‹ › de ahí. Así, mover el Calendario a otro mes y luego ir a
+// buscar ya usa ese mes automáticamente, sin ningún botón nuevo.
+function _mesCalendarioActual(){
+  return { anio: curM.getFullYear(), mes: curM.getMonth()+1 };
+}
+
 window.abrirBuscadorConHorarioGlobal = async function(){
   // NUEVO — FIX de lentitud: la primera vez en la sesión se hace la
   // carga completa de siempre (con su comprobación de red). A partir
@@ -24732,9 +24751,19 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // pero en segundo plano, sin bloquear la pantalla. Antes se repetía
   // la consulta a Supabase (y se esperaba a que respondiera) cada vez
   // que se tocaba la pestaña, aunque no hubiera nada nuevo que leer.
-  if(window._companerosCargadoEnEstaSesion && BASES.global && BASES.global.data && BASES.global.data.length){
+  var mesObjetivo = _mesCalendarioActual();
+  // NUEVO — Confirmado por Alex: el atajo rápido (entrar al instante
+  // con lo que ya había en memoria) solo vale si ese dato en memoria
+  // es del MISMO mes que ahora mismo tienes puesto en el Calendario.
+  // Si moviste el Calendario a otro mes desde la última vez que
+  // entraste aquí, se fuerza una recarga completa para el mes nuevo —
+  // si no, te seguiría saliendo el mes viejo aunque hubieras movido
+  // el Calendario.
+  var mesYaCargadoCoincide = BASES.global && BASES.global.mesAnio
+    && BASES.global.mesAnio.anio===mesObjetivo.anio && BASES.global.mesAnio.mes===mesObjetivo.mes;
+  if(window._companerosCargadoEnEstaSesion && mesYaCargadoCoincide && BASES.global.data && BASES.global.data.length){
     activateBase('global');
-    cargarHorarioGlobalDesdeAdmin().then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
+    cargarHorarioGlobalDesdeAdmin(mesObjetivo).then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
     return;
   }
   // NUEVO — antes esto abría un overlay aparte (openOv('ov-buscador')).
@@ -24752,7 +24781,7 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // la app. Ahora todo el bloque está blindado con try/catch, y si
   // falla, aparece un botón para reintentar sin salir de la pestaña.
   try{
-    var ok = await cargarHorarioGlobalDesdeAdmin();
+    var ok = await cargarHorarioGlobalDesdeAdmin(mesObjetivo);
     if(ok){
       activateBase('global');
       window._companerosCargadoEnEstaSesion = true;
@@ -24796,7 +24825,11 @@ window.abrirBuscadorConHorarioGlobal = async function(){
 // Se expone a window por el mismo motivo que la de arriba: el Portal
 // de Perfil vive fuera de este módulo aislado.
 window.cargarDatosParaInterventor = async function(){
-  var ok = await cargarHorarioGlobalDesdeAdmin();
+  // NUEVO — Confirmado por Alex: mismo mecanismo que Compañeros — el
+  // mes a buscar es el que YA está puesto en la pantalla de
+  // Calendario (curM), no "el más reciente subido". Así, mover el
+  // Calendario a otro mes y entrar a Interventor ya busca en ese mes.
+  var ok = await cargarHorarioGlobalDesdeAdmin(_mesCalendarioActual());
   if(ok) activateBase('global');
   try{
     await cargarIntervencionGlobalDesdeAdmin();
@@ -26792,9 +26825,43 @@ function generarCalendarioUI(contenedorId, callback){
 // disparador — es parte fija de esta vista, visible desde el primer
 // momento. Se renderiza una única vez con generarCalendarioUI()
 // (la misma función reutilizable de siempre, sin tocar su lógica).
+// NUEVO — Confirmado por Alex (bug real, detectado en producción):
+// este mini-calendario es independiente del Calendario principal —
+// cambiar de mes AQUÍ no disparaba ninguna recarga del Horario
+// General, así que "Buscar" seguía mirando los datos del mes anterior
+// aunque se eligiera un día de otro mes. Por eso, buscando el mismo
+// tren en un día de agosto y en el "mismo" día de septiembre, salían
+// las mismas personas — en realidad ambas búsquedas miraban agosto.
+// Ahora, si el día elegido es de un mes distinto al que ya está
+// cargado, se recarga el Horario General de ESE mes antes de buscar.
+// _cargaMesTrenPromise se comparte con el listener de "Buscar" de más
+// abajo, para que este espere a que la recarga termine si hiciera falta.
+var _cargaMesTrenPromise = null;
 generarCalendarioUI('calTrenPanel', (fecha)=>{
   selectedTrainDay = fecha.getDate();
   fecha_seleccionada_busqueda = fecha;
+  var mesFecha = { anio: fecha.getFullYear(), mes: fecha.getMonth()+1 };
+  var yaCargado = BASES.global && BASES.global.mesAnio
+    && BASES.global.mesAnio.anio===mesFecha.anio && BASES.global.mesAnio.mes===mesFecha.mes;
+  if(!yaCargado){
+    _cargaMesTrenPromise = cargarHorarioGlobalDesdeAdmin(mesFecha).then(function(ok){
+      // FIX — Confirmado por Alex (bug propio, detectado antes de
+      // entregar): NO se llama a activateBase('global') aquí —
+      // esa función reinicia SIEMPRE selectedTrainDay/trTrainInput/
+      // trainView (pensada para cuando se entra de cero a la
+      // pestaña), así que borraría el día que el usuario acaba de
+      // elegir en este mismo mini-calendario, justo antes de poder
+      // pulsar "Buscar". Solo se actualiza la cabecera — activeBase
+      // ya apunta al mismo objeto BASES.global, así que su .data ya
+      // queda al día automáticamente en cuanto cargarHorarioGlobalDesdeAdmin
+      // lo actualiza, sin necesitar reactivar nada más.
+      if(ok){
+        document.getElementById('hdrTitulo').textContent = BASES.global.label;
+        document.getElementById('hdrPill').textContent = '📍 ' + (BASES.global.month || 'BASE ACTIVA');
+      }
+      _cargaMesTrenPromise = null;
+    }).catch(function(){ _cargaMesTrenPromise = null; });
+  }
 });
 iniciarCalendarioInterventor();
 
@@ -26924,6 +26991,14 @@ document.getElementById('trGoBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('trGoBtn');
   const textoOriginal = btn.textContent;
   btn.disabled = true;
+  // NUEVO — Confirmado por Alex: si elegir el día disparó una recarga
+  // del mes (ver generarCalendarioUI('calTrenPanel', ...) más arriba),
+  // se espera a que termine antes de mirar activeBase.data — así nunca
+  // se busca a mitad de una recarga, con datos todavía del mes viejo.
+  if(_cargaMesTrenPromise){
+    btn.textContent = 'Cargando el mes...';
+    await _cargaMesTrenPromise;
+  }
   btn.textContent = 'Buscando...';
   try{
     const matches = [];
@@ -27556,10 +27631,32 @@ clearBtn.addEventListener('click', ()=>{
 (function(){
   let selectedTrainDay2 = null;
   let fecha_seleccionada_busqueda2 = null;
+  // NUEVO — Confirmado por Alex: mismo arreglo que en la copia de
+  // Compañeros — este mini-calendario (calTrenPanel2) es propio de
+  // Interventor y también es independiente del Calendario principal.
+  let _cargaMesTrenPromise2 = null;
 
   generarCalendarioUI('calTrenPanel2', (fecha)=>{
     selectedTrainDay2 = fecha.getDate();
     fecha_seleccionada_busqueda2 = fecha;
+    var mesFecha2 = { anio: fecha.getFullYear(), mes: fecha.getMonth()+1 };
+    var yaCargado2 = BASES.global && BASES.global.mesAnio
+      && BASES.global.mesAnio.anio===mesFecha2.anio && BASES.global.mesAnio.mes===mesFecha2.mes;
+    if(!yaCargado2){
+      _cargaMesTrenPromise2 = cargarHorarioGlobalDesdeAdmin(mesFecha2).then(function(ok){
+        // FIX — Confirmado por Alex (mismo bug, misma causa que en
+        // Compañeros): no se llama a activateBase('global') aquí —
+        // además de reiniciar la búsqueda en curso, esa función toca
+        // variables y HTML de la pantalla de Compañeros (trTrainInput,
+        // trainView, comp-selector...), que no tienen nada que ver con
+        // Interventor. Solo se actualiza la cabecera de Interventor.
+        if(ok){
+          var hdrT = document.getElementById('interventorHdrTitulo');
+          if(hdrT) hdrT.textContent = BASES.global.label || 'Portal de Interventor';
+        }
+        _cargaMesTrenPromise2 = null;
+      }).catch(function(){ _cargaMesTrenPromise2 = null; });
+    }
   });
 
   const trainView2 = document.getElementById('trainView2');
@@ -27647,6 +27744,12 @@ clearBtn.addEventListener('click', ()=>{
     const btn = document.getElementById('trGoBtn2');
     const textoOriginal = btn.textContent;
     btn.disabled = true;
+    // NUEVO — Confirmado por Alex: mismo arreglo que en Compañeros —
+    // esperar a la recarga del mes (si la hay) antes de buscar.
+    if(_cargaMesTrenPromise2){
+      btn.textContent = 'Cargando el mes...';
+      await _cargaMesTrenPromise2;
+    }
     btn.textContent = 'Buscando...';
     try{
       const matches = [];
@@ -28329,7 +28432,18 @@ function _nadmDescartadas(){ try{ return JSON.parse(localStorage.getItem('notif_
 function _nadmDescartar(id){
   var d = _nadmDescartadas();
   if(d.indexOf(id) === -1){ d.push(id); localStorage.setItem('notif_admin_descartadas', JSON.stringify(d)); }
+  // FIX — Confirmado por Alex (bug real, detectado en producción): el
+  // botón "X" es el mismo en las dos pantallas (nadmBannerHTML() se
+  // reutiliza en ambas), pero solo se refrescaba el banner de
+  // Calendario. En Interventor, el descarte SÍ se guardaba bien en
+  // localStorage, pero como nunca se volvía a pintar
+  // notifBannerZonaInterventor, el aviso se quedaba visible en
+  // pantalla aunque ya estuviera descartado. Ahora se refrescan las
+  // dos, y cada una comprueba si su propio contenedor existe en el
+  // DOM antes de intentar nada (no rompe nada si una de las dos
+  // pantallas no está montada en ese momento).
   nadmRenderBanners();
+  nadmRenderBannersInterventor();
 }
 
 var _nadmActivasCache = [];   // filtrado por sede — usado en Calendario (tripulación)
