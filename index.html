@@ -21292,6 +21292,13 @@ function cerrarNovedades(){
 }
 
 function mostrarNovedadesSiNuevas(){
+  // APAGADO — Confirmado por Alex: el popup de "Novedades" queda
+  // desactivado para todo el mundo, a propósito, hasta nuevo aviso.
+  // No se borra nada (ni este código, ni listaNovedades, ni el HTML
+  // del modal) — el día que haya una actualización grande que merezca
+  // avisar con el popup, basta con quitar este "return" para
+  // reactivarlo tal cual estaba.
+  return;
   try{
     if(!localStorage.getItem(NOV_VERSION)){
       setTimeout(mostrarNovedades, 1200);
@@ -22631,6 +22638,11 @@ function abrirAccesoAdmin(){
     document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
     openOv('ov-panel-admin');
     refrescarEstadoArchivosAdmin();
+    // NUEVO — Confirmado por Alex: la lista de Horarios Generales
+    // guardados (con el botón "Eliminar" de cada mes) se carga sola
+    // al abrir el panel, sin tener que pulsar "Actualizar lista" a
+    // mano — así nunca da la sensación de que el botón "desapareció".
+    if(typeof cargarHistorialHorarioGeneral==='function') cargarHistorialHorarioGeneral();
     // NUEVO — solo el badge de pendientes se carga sola al abrir el
     // panel (consulta ligera); la lista completa sigue pidiendo
     // "Actualizar lista", igual que las demás tarjetas del panel.
@@ -22706,6 +22718,10 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
       openOv('ov-panel-admin');
       refrescarEstadoArchivosAdmin();
+      // NUEVO — Confirmado por Alex: mismo autocargado que en
+      // abrirAccesoAdmin() — el historial con el botón "Eliminar" se
+      // ve sin tener que pulsar nada, también tras un login nuevo.
+      if(typeof cargarHistorialHorarioGeneral==='function') cargarHistorialHorarioGeneral();
       if(typeof cargarSolicitudesAccesoAdmin==='function') cargarSolicitudesAccesoAdmin();
       // NUEVO — solo se comprueba en un login EXPLÍCITO (abrirPanel=true,
       // que es justo lo que pasa al entrar desde un dispositivo nuevo sin
@@ -28243,7 +28259,32 @@ async function refrescarNotificacionesActivas(){
   try{
     var r = await sbAdmin.from('notificaciones_admin').select('*').eq('activa', true).order('fecha_hora', { ascending:false }).limit(20);
     if(!r || !r.data) return;
-    _nadmActivasTodas = r.data;
+    // NUEVO — Confirmado por Alex: caducidad de 24h. Como no hay
+    // ningún proceso corriendo solo en el servidor (nada de "tareas
+    // programadas" en segundo plano — todo lo hace la propia app), la
+    // forma de que esto se cumpla es que la primera persona que
+    // vuelva a abrir la app después de esas 24h sea quien, de paso,
+    // desactive el aviso para todo el mundo. En la práctica, con
+    // cualquier cantidad normal de gente usando la app a diario, esto
+    // pasa casi al momento — pero no es "al segundo exacto".
+    var ahora = Date.now();
+    var VEINTICUATRO_HORAS_MS = 24*60*60*1000;
+    var vigentes = [];
+    var expiradas = [];
+    r.data.forEach(function(n){
+      var edadMs = ahora - new Date(n.fecha_hora).getTime();
+      (edadMs > VEINTICUATRO_HORAS_MS ? expiradas : vigentes).push(n);
+    });
+    if(expiradas.length){
+      // Se desactivan en segundo plano (no se espera a que termine
+      // para seguir pintando la pantalla con lo vigente) — así ya no
+      // aparecen para nadie más que las compruebe después.
+      expiradas.forEach(function(n){
+        sbAdmin.from('notificaciones_admin').update({activa:false}).eq('id', n.id).then(function(){});
+      });
+      console.log('Notificaciones caducadas (24h) desactivadas:', expiradas.map(function(n){return n.id;}).join(', '));
+    }
+    _nadmActivasTodas = vigentes;
     // NUEVO — Confirmado por Alex: Interventor no tiene una Estación
     // Base como el tripulante (se valida por matrícula contra el
     // Informe de Intervención, organizado por servicio, no por sede),
@@ -28251,7 +28292,7 @@ async function refrescarNotificacionesActivas(){
     // activas, sin filtrar. En Calendario (tripulación) se sigue
     // filtrando por sede como hasta ahora.
     var miSede = (typeof _sedeUsuarioActual === 'function') ? _sedeUsuarioActual() : '';
-    _nadmActivasCache = r.data.filter(function(n){
+    _nadmActivasCache = vigentes.filter(function(n){
       return !n.sede || (miSede && n.sede.trim().toLowerCase() === miSede.trim().toLowerCase());
     });
     nadmRenderBanners();
