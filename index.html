@@ -4020,6 +4020,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <div class="stats">
     <div class="stat"><div class="stat-label">Horas efectivas</div><div class="stat-value" data-stat="HE">–</div></div>
     <div class="stat"><div class="stat-label">Horas presencia</div><div class="stat-value" data-stat="HP">–</div></div>
+    <!-- NUEVO — Confirmado por Alex: HDJ, solo reflejado por ahora
+         (leído tal cual del PDF), sin cálculo ni significado propio
+         todavía — a la espera de que Alex diga qué debe hacer con él. -->
+    <div class="stat"><div class="stat-label">HDJ</div><div class="stat-value" data-stat="HDJ">–</div></div>
     <div class="stat"><div class="stat-label">Días servicio</div><div class="stat-value" id="cServicio">–</div></div>
     <div class="stat"><div class="stat-label">Días libres</div><div class="stat-value" id="cLibre">–</div></div>
     <div class="stat"><div class="stat-label">Reservas</div><div class="stat-value" id="cReserva">–</div></div>
@@ -18578,6 +18582,7 @@ function renderAll(diasData, meta){
           <div class="day-foot">
             <div>Horas efectivas: <b>${d.HE||'00:00'}</b></div>
             <div>Horas presencia: <b>${d.HP||'00:00'}</b></div>
+            <div>HDJ: <b>${d.HDJ||'00:00'}</b></div>
           </div>
         </div>`;
     }
@@ -18648,6 +18653,8 @@ function renderAll(diasData, meta){
       (meta.empleado||'Empleado') + (meta.mes ? ('  —  ' + meta.mes) : '');
     document.querySelector('[data-stat="HE"]').textContent = meta.totalHE || '–';
     document.querySelector('[data-stat="HP"]').textContent = meta.totalHP || '–';
+    // NUEVO — Confirmado por Alex: solo reflejado, sin cálculo propio.
+    document.querySelector('[data-stat="HDJ"]').textContent = meta.totalHDJ || '–';
   }
 
   renderToday(diasData, meta);
@@ -18698,6 +18705,7 @@ function renderToday(diasData, meta){
         <div class="day-foot">
           <div>Horas efectivas: <b>${hoy.HE||'00:00'}</b></div>
           <div>Horas presencia: <b>${hoy.HP||'00:00'}</b></div>
+          <div>HDJ: <b>${hoy.HDJ||'00:00'}</b></div>
         </div>
       </div>`;
   }
@@ -18728,14 +18736,28 @@ function parseSchedulePdfText(text){
     const diaSemana = m[2].replace('MIE','MIÉ').replace('SAB','SÁB');
     let resto = m[3];
 
-    const heHpMatch = resto.match(/(\d{1,3}:\d{2})\s+(\d{1,3}:\d{2})\s*$/);
-    let HE = null, HP = null;
+    // FIX — Confirmado por Alex (bug real, detectado en producción con
+    // su PDF de septiembre 2026): esta línea real trae TRES columnas
+    // finales (HE, HP, HDJ) — ej. "...23:19  08:29 00:00 00:00" — pero
+    // el regex solo capturaba las ÚLTIMAS DOS como si fueran HE/HP.
+    // Con 3 columnas, eso significaba quedarse con HP y HDJ (que suelen
+    // ser 00:00) en vez de con las verdaderas HE y HP — de ahí que
+    // salieran en 00:00 para casi todo el mundo. Ahora se detectan
+    // entre 2 y 3 valores de horas al final de la línea, y se asignan
+    // en el orden correcto según cuántos haya (2 = HE/HP; 3 = HE/HP/HDJ).
+    const heHpMatch = resto.match(/((?:\d{1,3}:\d{2}\s+){1,2}\d{1,3}:\d{2})\s*$/);
+    let HE = null, HP = null, HDJ = null;
     if(heHpMatch){
-      HE = heHpMatch[1]; HP = heHpMatch[2];
+      const horasTrail = heHpMatch[1].trim().split(/\s+/);
       resto = resto.slice(0, heHpMatch.index).trim();
+      if(horasTrail.length>=3){
+        HE = horasTrail[0]; HP = horasTrail[1]; HDJ = horasTrail[2];
+      } else if(horasTrail.length===2){
+        HE = horasTrail[0]; HP = horasTrail[1];
+      }
     }
 
-    let entry = {n: numero, d: diaSemana, codigo: null, tipo: null, tramos: [], HE, HP};
+    let entry = {n: numero, d: diaSemana, codigo: null, tipo: null, tramos: [], HE, HP, HDJ};
 
     if(/DÍA LIBRE|DIA LIBRE/i.test(resto)){
       entry.tipo = 'LIBRE'; entry.codigo = 'DO';
@@ -18759,14 +18781,22 @@ function parseSchedulePdfText(text){
     diasOut.push(entry);
   }
 
-  let totalHE = null, totalHP = null;
-  const totalLine = lines.find(l=>/^\d{1,3}:\d{2}\s+\d{1,3}:\d{2}$/.test(l));
+  // FIX — Confirmado por Alex (mismo bug, misma causa): la línea de
+  // totales al final del PDF también trae 3 valores ("74:25 18:10
+  // 01:00" = Total HE, Total HP, Total HDJ), no 2 — el regex exigía
+  // EXACTAMENTE 2 valores en toda la línea, así que nunca la
+  // encontraba, y totalHE/totalHP se quedaban siempre en null (por
+  // eso el resumen de "Horas efectivas/presencia" en Stats salía
+  // vacío). Ahora acepta también la línea con 3 valores.
+  let totalHE = null, totalHP = null, totalHDJ = null;
+  const totalLine = lines.find(l=>/^\d{1,3}:\d{2}\s+\d{1,3}:\d{2}(\s+\d{1,3}:\d{2})?\s*$/.test(l));
   if(totalLine){
-    const tm = totalLine.match(/^(\d{1,3}:\d{2})\s+(\d{1,3}:\d{2})$/);
-    totalHE = tm[1]; totalHP = tm[2];
+    const partes = totalLine.trim().split(/\s+/);
+    totalHE = partes[0]; totalHP = partes[1];
+    if(partes.length>=3) totalHDJ = partes[2];
   }
 
-  return {dias: diasOut, meta: {empleado, mes, totalHE, totalHP}};
+  return {dias: diasOut, meta: {empleado, mes, totalHE, totalHP, totalHDJ}};
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -20783,6 +20813,7 @@ document.getElementById('deleteBtn').addEventListener('click', async ()=>{
     document.querySelector('.board-sub').textContent = 'Sin horario cargado';
     document.querySelector('[data-stat="HE"]').textContent = '–';
     document.querySelector('[data-stat="HP"]').textContent = '–';
+    document.querySelector('[data-stat="HDJ"]').textContent = '–';
     document.getElementById('cServicio').textContent = '–';
     document.getElementById('cLibre').textContent = '–';
     document.getElementById('cReserva').textContent = '–';
@@ -20878,6 +20909,7 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
   document.querySelector('.board-sub').textContent = 'Sin horario cargado';
   document.querySelector('[data-stat="HE"]').textContent = '–';
   document.querySelector('[data-stat="HP"]').textContent = '–';
+  document.querySelector('[data-stat="HDJ"]').textContent = '–';
   document.getElementById('cServicio').textContent = '–';
   document.getElementById('cLibre').textContent = '–';
   document.getElementById('cReserva').textContent = '–';
@@ -20949,6 +20981,7 @@ async function eliminarHorarioIndividual(mesKey){
       document.querySelector('.board-sub').textContent = 'Sin horario cargado';
       document.querySelector('[data-stat="HE"]').textContent = '–';
       document.querySelector('[data-stat="HP"]').textContent = '–';
+      document.querySelector('[data-stat="HDJ"]').textContent = '–';
       document.getElementById('cServicio').textContent = '–';
       document.getElementById('cLibre').textContent = '–';
       document.getElementById('cReserva').textContent = '–';
