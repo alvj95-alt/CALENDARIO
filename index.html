@@ -24045,11 +24045,34 @@ async function refrescarEstadoArchivosAdmin(){
 // sede/año/mes sin necesitar columnas nuevas en la tabla.
 function _hgParsearTipo(fila){
   var m = fila.tipo.match(/^horario_general_(.+)_(\d{4})-(\d{2})$/);
+  var anio = null, mes = null, sedeDeTipo = null;
+  if(m){
+    sedeDeTipo = m[1];
+    anio = parseInt(m[2],10);
+    mes = parseInt(m[3],10);
+  } else {
+    // FIX — Confirmado por Alex (bug real, detectado en producción):
+    // las filas subidas ANTES de este cambio usan el formato antiguo
+    // horario_general_<sede>, sin mes en la clave. Si se descartaban
+    // sin más (por no traer año/mes), TODO lo ya publicado
+    // desaparecía de golpe del Buscador ("Ninguna fila con el formato
+    // de mes esperado"), aunque siguiera siendo válido. Se sigue
+    // aceptando ese formato antiguo: como no hay mes real que leer de
+    // la clave, se usa fecha_subida como mejor aproximación
+    // disponible — no es perfecto, pero mantiene visible lo que ya
+    // estaba publicado sin obligar a nadie a volver a subir nada.
+    sedeDeTipo = fila.tipo.replace('horario_general_', '');
+    if(fila.fecha_subida){
+      var dSubida = new Date(fila.fecha_subida);
+      anio = dSubida.getFullYear();
+      mes = dSubida.getMonth()+1;
+    }
+  }
   return {
     tipo: fila.tipo,
-    sede: fila.sede || (m ? m[1] : fila.tipo.replace('horario_general_','')),
-    anio: m ? parseInt(m[2],10) : null,
-    mes: m ? parseInt(m[3],10) : null,
+    sede: fila.sede || sedeDeTipo,
+    anio: anio,
+    mes: mes,
     fecha_subida: fila.fecha_subida,
     nombre_archivo: fila.nombre_archivo,
     fila: fila // referencia a la fila original completa (url_archivo, etc.)
@@ -24351,10 +24374,23 @@ async function cargarHorarioGlobalDesdeAdmin(mesElegido){
     // guardados para la misma sede (horario_general_<sede>_<AAAA-MM>),
     // así que se piden TODAS las filas de esa sede y se elige la del
     // mes objetivo (el pedido, o el más reciente si no se indica).
+    //
+    // FIX — Confirmado por Alex (bug real, detectado en producción):
+    // antes se pedía con like('tipo','horario_general_'+sede+'_%'),
+    // que EXIGE un guión bajo justo después de la sede — eso excluía,
+    // ya a nivel de la propia consulta, las filas del formato ANTIGUO
+    // (horario_general_barcelona, SIN ese guión bajo final), que ni
+    // siquiera llegaban a JS para poder aceptarlas. Ahora se pide todo
+    // lo de horario_general_% y se filtra aquí a la sede, aceptando
+    // los dos formatos (nuevo con mes, y el antiguo exacto).
     var sedeSlugUsuario = _baseSlug(miSede);
-    var respSede = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_'+sedeSlugUsuario+'_%');
-    if(respSede.error){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Error en consulta: '+respSede.error.message; return false; }
-    if(!respSede.data || !respSede.data.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Sin filas para esta sede'; return false; }
+    var respTodasUsuario = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
+    if(respTodasUsuario.error){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Error en consulta: '+respTodasUsuario.error.message; return false; }
+    if(!respTodasUsuario.data || !respTodasUsuario.data.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Sin filas horario_general_% en absoluto'; return false; }
+    var respSede = { data: respTodasUsuario.data.filter(function(f){
+      return f.tipo === 'horario_general_'+sedeSlugUsuario || f.tipo.indexOf('horario_general_'+sedeSlugUsuario+'_')===0;
+    }) };
+    if(!respSede.data.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Sin filas para esta sede'; return false; }
     var filasConMesUsuario = respSede.data.map(_hgParsearTipo).filter(function(x){ return x.anio && x.mes; });
     if(!filasConMesUsuario.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Ninguna fila con el formato de mes esperado'; return false; }
     window._hgMesesDisponibles = _hgListarMesesUnicos(filasConMesUsuario);
