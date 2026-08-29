@@ -11807,7 +11807,13 @@ function renderDiaArea(){
   // NUEVO — "con quién viajas": rellena automáticamente, bajo demanda
   // (solo el día que se está viendo, no todo el mes de golpe), los
   // huecos de compañeros que acaban de pintarse en este detalle.
-  rellenarCompanerosAutomaticos(area);
+  // FIX — Confirmado por Alex (bug real): se pasa el mes REAL del día
+  // que se está viendo (derivado de "k", ej. "2026-08-14"), para que
+  // siempre compare contra el Horario General de ESE mes — antes
+  // podía quedarse con el último mes mirado en Compañeros/Interventor,
+  // dando compañeros de un mes distinto al que de verdad se está viendo.
+  var _mesDeEsteDia = (function(){ var p = k.split('-'); return {anio: parseInt(p[0],10), mes: parseInt(p[1],10)}; })();
+  rellenarCompanerosAutomaticos(area, _mesDeEsteDia);
 }
 
 /* ─── ACORDEÓN — historial del mes (ExpansionTile) ─── */
@@ -16164,7 +16170,7 @@ function _huecoCompaneros(tren, diaKey){
 // Recorre TODOS los huecos pendientes dentro del área del día que se
 // acaba de mostrar y los rellena, uno a uno, buscando en el Horario
 // General ya publicado (o cargándolo la primera vez que haga falta).
-async function rellenarCompanerosAutomaticos(areaEl){
+async function rellenarCompanerosAutomaticos(areaEl, mesObjetivo){
   if(!areaEl) return;
   var huecos = areaEl.querySelectorAll('.tramo-companeros-cal[data-buscado="0"]');
   if(!huecos.length) return;
@@ -16174,7 +16180,7 @@ async function rellenarCompanerosAutomaticos(areaEl){
     return;
   }
   var listo = false;
-  try{ listo = await window.asegurarHorarioGeneralCargado(); }catch(e){ listo = false; }
+  try{ listo = await window.asegurarHorarioGeneralCargado(mesObjetivo); }catch(e){ listo = false; }
   huecos.forEach(function(h){
     if(!listo){
       h.innerHTML = '<div class="tc-vacio">Sin Horario General publicado todavía.</div>';
@@ -18664,7 +18670,11 @@ function renderDiaAreaMulti(){
   // hace renderDiaArea() para el camino de un solo turno. Antes esta
   // llamada no existía aquí, por eso los compañeros nunca aparecían
   // en un día con varios turnos.
-  rellenarCompanerosAutomaticos(area);
+  // FIX — Confirmado por Alex (mismo bug real, misma causa): mismo
+  // mes real derivado de "k", para no comparar contra el Horario
+  // General de un mes distinto al que se está viendo.
+  var _mesDeEsteDia2 = (function(){ var p = k.split('-'); return {anio: parseInt(p[0],10), mes: parseInt(p[1],10)}; })();
+  rellenarCompanerosAutomaticos(area, _mesDeEsteDia2);
 }
 /* ═══════════════════════════════════════════════════════════ */
 
@@ -19227,7 +19237,22 @@ function renderAll(diasData, meta){
                 cont.innerHTML = '';
                 return;
               }
-              var listo = await window.asegurarHorarioGeneralCargado();
+              // FIX — Confirmado por Alex (mismo bug que en el
+              // Calendario, misma causa): esta copia del acordeón
+              // (Historial de Horario Individual) tampoco pasaba
+              // ningún mes a asegurarHorarioGeneralCargado() — aquí
+              // el mes real vive en currentMonthKey (ej. "MARZO
+              // 2026"), no en un {anio,mes} ya hecho, así que se
+              // convierte antes de pasarlo.
+              var mesObjetivoHist = null;
+              if(typeof currentMonthKey!=='undefined' && currentMonthKey){
+                var partesMesHist = currentMonthKey.split(' ');
+                var idxMesHist = MESES.findIndex(function(m){ return m.toUpperCase()===partesMesHist[0]; });
+                if(idxMesHist>=0 && partesMesHist[1]){
+                  mesObjetivoHist = {anio: parseInt(partesMesHist[1],10), mes: idxMesHist+1};
+                }
+              }
+              var listo = await window.asegurarHorarioGeneralCargado(mesObjetivoHist);
               if(!listo){
                 cont.innerHTML = '<div class="tc-vacio">Sin Horario General publicado todavía para buscar compañeros.</div>';
                 return;
@@ -25632,7 +25657,7 @@ var _ultimoModoCargaHorarioGeneral = null;
 // (Horario individual). Reutiliza activeBase/cellContainsTrain ya
 // existentes, sin duplicar esa lógica. Se expone a window por el
 // mismo motivo de siempre: ese panel vive fuera de este módulo.
-window.asegurarHorarioGeneralCargado = async function(){
+window.asegurarHorarioGeneralCargado = async function(mesObjetivo){
   // FIX — antes, en cuanto activeBase.data se cargaba UNA vez (por
   // ejemplo, como tripulante normal de una sola sede, ANTES de
   // iniciar sesión de admin o entrar como interventor), esos datos se
@@ -25643,8 +25668,20 @@ window.asegurarHorarioGeneralCargado = async function(){
   // vuelve a pedir todo de cero.
   var esAdminOInterventorAhora = !!(perfilAdminActual && perfilAdminActual.rol==='admin') || !!(usuarioActual && usuarioActual.esInterventor);
   var modoEsperado = esAdminOInterventorAhora ? 'todas-las-sedes' : ('sede:'+_sedeUsuarioActual());
-  if(activeBase && activeBase.data && _ultimoModoCargaHorarioGeneral === modoEsperado) return true;
-  var ok = await cargarHorarioGlobalDesdeAdmin();
+  // FIX — Confirmado por Alex (bug real, detectado en producción): la
+  // comprobación de aquí abajo nunca miraba de qué MES eran los datos
+  // ya cargados — solo si existían y si el modo (sede/todas) coincidía.
+  // Si antes se había consultado Interventor o Compañeros en
+  // septiembre, y luego se abría un día de AGOSTO en el propio
+  // Calendario, "Viajas con" seguía buscando en los datos de
+  // septiembre — dando compañeros de otro mes con el mismo número de
+  // día (el "14" de septiembre, no el "14" de agosto). Ahora, si se
+  // indica un mes objetivo, también se comprueba que coincida con lo
+  // ya cargado — y si no, se recarga el mes correcto antes de seguir.
+  var mesYaCargadoCoincide = !mesObjetivo || (activeBase && activeBase.mesAnio
+    && activeBase.mesAnio.anio===mesObjetivo.anio && activeBase.mesAnio.mes===mesObjetivo.mes);
+  if(activeBase && activeBase.data && _ultimoModoCargaHorarioGeneral === modoEsperado && mesYaCargadoCoincide) return true;
+  var ok = await cargarHorarioGlobalDesdeAdmin(mesObjetivo);
   if(ok){
     activateBase('global');
     _ultimoModoCargaHorarioGeneral = modoEsperado;
