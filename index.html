@@ -869,11 +869,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .rc-name{font-size:13px;font-weight:800}
 .rc-sub{font-size:9px;color:var(--tx2);margin-top:2px}
 .rc-tasa{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums}
-.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.sc{background:var(--s1);border-radius:12px;padding:12px;border:1px solid var(--div);display:flex;flex-direction:column;gap:6px}
-.sc-i{font-size:18px}
-.sc-v{font-size:20px;font-weight:900;font-variant-numeric:tabular-nums}
-.sc-l{font-size:9px;color:var(--tx2)}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.sc{background:var(--s1);border-radius:10px;padding:8px 4px;border:1px solid var(--div);display:flex;flex-direction:column;align-items:center;gap:2px}
+.sc-i{font-size:13px}
+.sc-v{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+.sc-l{font-size:7.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.2px;text-align:center}
 .cs-box{background:rgba(59,127,255,.07);border:1px solid rgba(59,127,255,.18);border-radius:12px;padding:14px;margin-bottom:10px}
 /* ═══════════════════════════════════════════════════════════
    NUEVO — Reorganización visual del Desglose Económico (TAS).
@@ -2936,6 +2936,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-row-val{color:var(--tx);font-weight:700;font-variant-numeric:tabular-nums;flex-shrink:0}
 .nom-row-manual{border:1px dashed var(--acc);border-radius:8px;margin:5px 18px;padding:8px 10px}
 .nom-input-mini{width:64px;background:var(--s1);border:1px solid var(--acc);border-radius:6px;padding:5px 6px;color:var(--tx);font-size:11.5px;font-weight:700;text-align:center}
+.rol-opt-stats{flex:1;text-align:center;padding:7px 4px;border-radius:9px;font-size:11px;font-weight:800;color:var(--tx3);cursor:pointer;background:var(--s2);border:1px solid var(--div)}
+.rol-opt-stats.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 .nom-total-bruto{display:flex;justify-content:space-between;align-items:center;margin:14px 16px 8px;padding:12px 16px;background:var(--s1);border:1px solid var(--acc);border-radius:14px}
 .nom-total-bruto-lbl{font-size:11.5px;font-weight:800;color:var(--acc2)}
 .nom-total-bruto-val{font-size:17px;font-weight:900;color:var(--tx)}
@@ -3497,9 +3499,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
            y calculateEarnings() ya existentes — sin duplicar ni un
            carácter de esa matemática. No escribe en TV ni en ningún
            dato de la app: es de solo lectura. -->
-      <button id="btnGuiaCuentas" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.4);color:#C4B5FD" onclick="openOv('ov-guia-cuentas')">ℹ️ ¿Qué significa cada cuenta?</button>
+      <!-- APAGADO — Confirmado por Alex (Estilo A): el botón "¿Qué
+           significa cada cuenta?" se movió al Tutorial (ver
+           renderTutorial/abrirTutorial) — aquí ya no aparece. El
+           overlay ov-guia-cuentas y su contenido siguen exactamente
+           igual, solo cambió desde dónde se abre. -->
       <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
-      <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);color:#FCD34D" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
+      <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:transparent;border:1px dashed rgba(217,119,6,.4);color:#FCD34D;font-size:12px;padding:10px" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
       <!-- NUEVO — Nómina Estimada, confirmada con Alex tras varias
            rondas de maqueta. Reutiliza el Cómputo Excel ya subido
            (mismo _computoExcelPorMes que ya existe) para la pestaña
@@ -3520,6 +3526,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
            Rebase y Plus Traslación, calculados desde el calendario. -->
       <div id="cs-rebase-box"></div>
       <div id="cs-plustrasl-box"></div>
+      <!-- FIX — Confirmado por Alex: Conceptos Fijos de Nómina es
+           visible para todo el mundo, no solo el administrador
+           (a diferencia de Rebase/Plus Traslación, justo arriba). -->
+      <div id="cs-fijos-box"></div>
       <div id="cs-pluses-box"></div>
       <div id="htdl-dias-stats-box"></div>
       <div id="cs-info-adicional-box"></div>
@@ -4408,6 +4418,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-tutorial')">✕</button>
     </div>
     <div id="convenio-entrada-tutorial"></div>
+    <div id="guia-cuentas-entrada-tutorial"></div>
     <div id="tutorial-body" style="flex:1;min-height:0;overflow-y:auto;padding-bottom:10px"></div>
   </div>
 </div>
@@ -6476,6 +6487,15 @@ var AJ=Object.assign({
 
 var TV=JSON.parse(localStorage.getItem('tv5')||'{}');
 var curM=new Date(), selDay=null, statsM=new Date();
+// FIX — Confirmado por Alex (bug propio, detectado en pruebas):
+// perfilAdminActual se declaraba mucho más abajo en el archivo. Mi
+// nueva sección "Conceptos Fijos" la usa dentro de renderStats(), que
+// se llama durante la carga inicial de la app — si eso pasaba antes
+// de llegar a la declaración original, toda la carga se rompía con un
+// error de "variable no inicializada". Se adelanta aquí, junto a las
+// demás variables globales tempranas — sigue siendo el mismo null
+// inicial de siempre, no cambia ningún comportamiento.
+let perfilAdminActual = null; // {id, email, rol}
 
 // NUEVO — Cómputo Excel: persistente en localStorage, indexado por mes
 // ('YYYY-MM'). FIX: esto tiene que declararse AQUÍ, antes de init(),
@@ -7390,6 +7410,16 @@ function abrirTutorial(){
       + '<div class="conv-entrada-tit">📜 Convenio Colectivo</div>'
       + '<div class="conv-entrada-sub">El convenio de Serveo, digitalizado y organizado como el resto de la app — busca por artículo o por tema.</div>'
       + '<div class="conv-entrada-btn">Abrir el Convenio →</div></div>';
+  }
+  // FIX — Confirmado por Alex (Estilo A de Stats): "¿Qué significa
+  // cada cuenta?" se movió aquí desde Stats — mismo overlay
+  // ov-guia-cuentas de siempre, solo cambia desde dónde se abre.
+  var entradaGuia = document.getElementById('guia-cuentas-entrada-tutorial');
+  if(entradaGuia){
+    entradaGuia.innerHTML = '<div class="conv-entrada" style="background:linear-gradient(135deg, rgba(124,58,237,.14), rgba(37,99,235,.08));border-color:rgba(124,58,237,.35)" onclick="openOv(\'ov-guia-cuentas\')">'
+      + '<div class="conv-entrada-tit">ℹ️ ¿Qué significa cada cuenta?</div>'
+      + '<div class="conv-entrada-sub">HTDL, Nocturnidad, Rebase, Plus Traslación... una guía rápida de cada concepto que ves en Stats.</div>'
+      + '<div class="conv-entrada-btn">Ver la guía →</div></div>';
   }
   openOv('ov-tutorial');
 }
@@ -15639,6 +15669,98 @@ function updHeader(){
 /* ═══════════════════════════════════════
    ESTADÍSTICAS
 ═══════════════════════════════════════ */
+// NUEVO — Confirmado por Alex: rol elegido para la vista de
+// "Conceptos Fijos" en Stats — empieza igual que AJ.rol, pero es
+// independiente (para que el admin pueda mirar otros roles sin
+// cambiar su propio perfil real).
+var _rolVistaFijosStats = null;
+
+function renderConceptosFijosStats(cajaFijos){
+  if(!_rolVistaFijosStats) _rolVistaFijosStats = AJ.rol || 'tripulante';
+  var rol = _rolVistaFijosStats;
+  var y = statsM.getFullYear(), m = statsM.getMonth()+1;
+  // Reutiliza _nominaConceptosFijos() tal cual, ya probada en Nómina
+  // Estimada — no se reinventa el cálculo de Salario Base/Plus
+  // Transporte/Plus Manutención/pagas extra.
+  var fijos = _nominaConceptosFijos(rol, y, m);
+  // NUEVO — Confirmado por Alex: por ahora, "Paga de Marzo" se deja en
+  // 0€ en ESTA tarjeta concreta (no se toca _nominaConceptosFijos ni
+  // Nómina Estimada, que siguen calculándola igual que siempre).
+  fijos = fijos.map(function(f){
+    if(f.label.indexOf('Paga de Marzo')===0) return {label:f.label, val:0};
+    return f;
+  });
+  var totalFijos = fijos.reduce(function(s,f){return s+f.val;},0);
+
+  var mv = _nominaValoresManuales;
+  var ssPct = parseFloat(mv.ssPct)||0;
+  var cuota = parseFloat(mv.cuotaSindical)||0;
+  var irpfPct = parseFloat(mv.irpfPct)||0;
+  var ss = Math.round(totalFijos*ssPct/100*100)/100;
+  var irpf = Math.round(totalFijos*irpfPct/100*100)/100;
+  var neto = Math.round((totalFijos-ss-cuota-irpf)*100)/100;
+
+  var rolesBtn = [['auxiliar','Auxiliar'],['tripulante','Tripulante'],['jefe','Jefe Trip.']].map(function(r){
+    return '<div class="rol-opt-stats'+(rol===r[0]?' on':'')+'" onclick="_rolVistaFijosStats=\''+r[0]+'\';renderConceptosFijosStats(document.getElementById(\'cs-fijos-box\'))">'+r[1]+'</div>';
+  }).join('');
+
+  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+    +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
+    +'<div class="acc-ico" style="background:rgba(37,99,235,.15);color:var(--acc3);font-size:15px">🧾</div>'
+    +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px">Conceptos Fijos</div>'
+    +'<div style="font-size:9.5px;color:var(--tx3)">Salario Base, pluses...</div></div>'
+    +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+totalFijos.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
+    +'<div class="acc-chev">›</div></div>'
+    +'<div class="acc-body"><div class="acc-body-inner" style="padding:10px 15px 14px">'
+    +'<div style="display:flex;gap:6px;padding:2px 0 10px">'+rolesBtn+'</div>';
+
+  fijos.forEach(function(f){
+    html += '<div class="cs-r"><span class="cl">'+f.label+'</span><span class="cv" style="font-weight:800">'+f.val.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+  });
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px;padding:10px 12px;background:var(--s2);border:1px solid var(--acc);border-radius:12px">'
+    + '<span style="font-size:11px;font-weight:800;color:var(--acc2)">TOTAL BRUTO (fijo)</span>'
+    + '<span style="font-size:15px;font-weight:900">'+totalFijos.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  html += '<div class="nom-row-manual"><div><div class="nom-row-label">✍️ Seg. Social (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    + '<div><input class="nom-input-mini" id="cs-fijos-ss" value="'+mv.ssPct+'" oninput="_actualizarConceptosFijosStats()"> %</div></div>';
+  html += '<div class="nom-row-manual"><div><div class="nom-row-label">✍️ Cuota Sindical (ponlo tú)</div><div class="nom-row-sub">importe fijo</div></div>'
+    + '<div><input class="nom-input-mini" id="cs-fijos-cuota" value="'+mv.cuotaSindical+'" oninput="_actualizarConceptosFijosStats()"> €</div></div>';
+  html += '<div class="nom-row-manual"><div><div class="nom-row-label">✍️ IRPF (ponlo tú)</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    + '<div><input class="nom-input-mini" id="cs-fijos-irpf" value="'+mv.irpfPct+'" oninput="_actualizarConceptosFijosStats()"> %</div></div>';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 2px;padding:12px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(34,197,94,.05));border:1px solid rgba(34,197,94,.4);border-radius:12px">'
+    + '<span style="font-size:11.5px;font-weight:800;color:#4ade80">TOTAL NETO ESTIMADO (solo fijo)</span>'
+    + '<span id="cs-fijos-neto" style="font-size:16px;font-weight:900">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  html += '<div class="cs-r cs-r-sub" style="color:var(--tx3);font-size:10px;margin-top:4px">Esto es solo la parte FIJA de la nómina (sin HTDL, Nocturnidad ni el resto de variables) — cambia el rol arriba para ver otra categoría, sin tocar tu propio perfil.</div>';
+
+  html += '</div></div></div>';
+  cajaFijos.innerHTML = html;
+  cajaFijos.dataset.totalFijos = totalFijos;
+}
+
+// NUEVO — Confirmado por Alex: recalcular Neto en vivo al escribir en
+// los 3 campos manuales, y guardar esos valores compartidos con
+// Nómina Estimada (mismo localStorage, un solo sitio de verdad).
+function _actualizarConceptosFijosStats(){
+  var caja = document.getElementById('cs-fijos-box');
+  if(!caja) return;
+  var totalFijos = parseFloat(caja.dataset.totalFijos)||0;
+  var ssPct = parseFloat((document.getElementById('cs-fijos-ss')||{}).value)||0;
+  var cuota = parseFloat((document.getElementById('cs-fijos-cuota')||{}).value)||0;
+  var irpfPct = parseFloat((document.getElementById('cs-fijos-irpf')||{}).value)||0;
+  _nominaValoresManuales.ssPct = ssPct;
+  _nominaValoresManuales.cuotaSindical = cuota;
+  _nominaValoresManuales.irpfPct = irpfPct;
+  _guardarNominaValoresManuales();
+  var ss = Math.round(totalFijos*ssPct/100*100)/100;
+  var irpf = Math.round(totalFijos*irpfPct/100*100)/100;
+  var neto = Math.round((totalFijos-ss-cuota-irpf)*100)/100;
+  var elNeto = document.getElementById('cs-fijos-neto');
+  if(elNeto) elNeto.textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
 function renderStats(){
   var y=statsM.getFullYear(), m=statsM.getMonth()+1;
   document.getElementById('smlbl').textContent=MESES[m-1]+' '+y;
@@ -15674,16 +15796,17 @@ function renderStats(){
     }
   });
   var e=calculateEarnings(ks);
+  // APAGADO — Confirmado por Alex (Estilo A): el banner de "Tripulante/
+  // Auxiliar" con las tarifas ya no se muestra — ocupaba espacio
+  // arriba sin aportar mucho. Se deja el cálculo (rolCls/rolIco/etc.)
+  // sin usar, por si algún día se quisiera recuperar; el contenedor
+  // simplemente se deja vacío.
   var rolCls=AJ.rol==='tripulante'?'trip':'aux';
   var rolIco=AJ.rol==='tripulante'?'🚆':'🎫';
   var rolNom=AJ.rol==='tripulante'?'Tripulante':'Auxiliar';
   var rolCol=AJ.rol==='tripulante'?'var(--acc2)':'var(--amber2)';
-  document.getElementById('role-card').innerHTML=
-    '<div class="role-card '+rolCls+'">'
-    +'<div class="rc-emo">'+rolIco+'</div>'
-    +'<div class="rc-info"><div class="rc-name">'+rolNom+'</div>'
-    +'<div class="rc-sub">HTDL '+e.HTDL.toFixed(2)+'€ · Noc '+e.NOC.toFixed(2)+'€ · Límites 8h/12h</div></div>'
-    +'<div class="rc-tasa" style="color:'+rolCol+'">'+e.HTDL.toFixed(2)+' €/h</div></div>';
+  var _elRoleCard = document.getElementById('role-card');
+  if(_elRoleCard) _elRoleCard.innerHTML = '';
   document.getElementById('sg').innerHTML=[
     {i:'🚂',v:ct.ordinario, l:'Ordinarios', c:'var(--c-ord)'},
     {i:'⏳',v:ct.reserva,   l:'Reservas',   c:'var(--c-res)'},
@@ -15748,8 +15871,9 @@ function renderStats(){
     var _diasHTDLSolo = e.diasHTDLPuroDetail || e.diasHTDLdetail;
     des+='<div class="acc-section open" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
       +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-      +'<div class="acc-ico" style="background:transparent;font-size:18px">⏱</div>'
-      +'<div class="acc-title">HTDL</div>'
+      +'<div class="acc-ico" style="background:rgba(217,119,6,.15);color:var(--amber2);font-size:15px">🏆</div>'
+      +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px">HTDL</div>'
+      +(e.horasHTDL>0?'<div style="font-size:9.5px;color:var(--tx3)">'+e.horasHTDL.toFixed(2)+'h este mes</div>':'')+'</div>'
       +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'
       +(_totalHTDLSolo>0?_totalHTDLSolo.toFixed(2)+' €':(e.totalHoras>0?'En nómina':''))+'</div>'
       +'<div class="acc-chev">›</div></div>'
@@ -15828,8 +15952,9 @@ function renderStats(){
     if(e.totalNoc>0){
       desNoc='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
         +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-        +'<div class="acc-ico" style="background:transparent;font-size:18px">🌙</div>'
-        +'<div class="acc-title">Nocturnidad</div>'
+        +'<div class="acc-ico" style="background:rgba(139,92,246,.15);color:var(--violet2);font-size:15px">🌙</div>'
+        +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px">Nocturnidad</div>'
+        +(e.NOC>0?'<div style="font-size:9.5px;color:var(--tx3)">'+(e.totalNoc/e.NOC).toFixed(2)+'h este mes</div>':'')+'</div>'
         +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+e.totalNoc.toFixed(2)+' €</div>'
         +'<div class="acc-chev">›</div></div>'
         +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">';
@@ -15855,11 +15980,16 @@ function renderStats(){
 
     // NUEVO — Confirmado por Alex (Art. 64 del Convenio): Rebase,
     // acordeón propio, mismo patrón que Nocturnidad.
-    if(e.totalRebase>0){
+    // NUEVO — Confirmado por Alex: Rebase y Plus Traslación se ocultan
+    // para cualquier tripulante normal (todavía tienen un hueco de
+    // horas sin explicar del todo frente a la nómina real) — solo el
+    // administrador los sigue viendo aquí, con su propia etiqueta.
+    var _esAdminVistaStats = !!(perfilAdminActual && perfilAdminActual.rol==='admin');
+    if(_esAdminVistaStats && e.totalRebase>0){
       desRebase='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
         +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
         +'<div class="acc-ico" style="background:transparent;font-size:18px">⏫</div>'
-        +'<div class="acc-title">Rebase</div>'
+        +'<div class="acc-title">Rebase <span style="font-size:9px;font-weight:900;background:var(--amber);color:#1a1400;padding:2px 7px;border-radius:20px;margin-left:4px">SOLO ADMIN</span></div>'
         +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+e.totalRebase.toFixed(2)+' €</div>'
         +'<div class="acc-chev">›</div></div>'
         +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">'
@@ -15875,11 +16005,11 @@ function renderStats(){
 
     // NUEVO — Confirmado por Alex (Art. 58 del Convenio): Plus
     // Traslación, acordeón propio, mismo patrón que Nocturnidad.
-    if(e.totalPlusTrasl>0){
+    if(_esAdminVistaStats && e.totalPlusTrasl>0){
       desTrasl='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
         +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
         +'<div class="acc-ico" style="background:transparent;font-size:18px">🧳</div>'
-        +'<div class="acc-title">Plus Traslación</div>'
+        +'<div class="acc-title">Plus Traslación <span style="font-size:9px;font-weight:900;background:var(--amber);color:#1a1400;padding:2px 7px;border-radius:20px;margin-left:4px">SOLO ADMIN</span></div>'
         +'<div style="font-size:13px;font-weight:800;color:var(--green2);margin-right:6px">'+e.totalPlusTrasl.toFixed(2)+' €</div>'
         +'<div class="acc-chev">›</div></div>'
         +'<div class="acc-body"><div class="acc-body-inner" style="padding:8px 15px 12px">'
@@ -15940,8 +16070,9 @@ function renderStats(){
     if(_totalAvisos>0){
       desInfo='<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
         +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
-        +'<div class="acc-ico" style="background:transparent;font-size:18px">📋</div>'
-        +'<div class="acc-title">Información adicional del mes</div>'
+        +'<div class="acc-ico" style="background:rgba(244,63,94,.15);color:#fda4af;font-size:15px">📋</div>'
+        +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px">Información adicional</div>'
+        +'<div style="font-size:9.5px;color:var(--tx3)">Avisos del mes</div></div>'
         +'<div style="font-size:12px;font-weight:700;color:var(--red2);margin-right:6px">'
         +_totalAvisos+' aviso'+(_totalAvisos>1?'s':'')+'</div>'
         +'<div class="acc-chev">›</div></div>'
@@ -16005,17 +16136,27 @@ function renderStats(){
     // (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin tocar)
     // — solo cambia dónde y cuándo se pinta, no la suma.
     if(e.totalBruto>0){
-      desTotal='<div class="tas-total-final">'
-        +'<div class="tas-total-final-lbl">💰 Total a Pagar (Mes Vencido)</div>'
-        +'<div class="tas-total-final-val">'+e.totalBruto.toFixed(2)+' €</div>'
-        +'<div class="tas-total-final-sub">Suma de HTDL, Art.51/52, enlaces, nocturnidad y pluses del mes</div>'
-        +'</div>';
+      desTotal='<div class="acc-section" style="margin:0 0 10px;background:linear-gradient(135deg,rgba(34,197,94,.14),rgba(34,197,94,.05));border:1px solid rgba(74,222,128,.4);border-radius:14px;overflow:hidden">'
+        +'<div class="acc-head" style="cursor:default">'
+        +'<div class="acc-ico" style="background:rgba(34,197,94,.2);color:#4ade80;font-size:15px">💶</div>'
+        +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px;color:#bbf7d0">Total a pagar</div>'
+        +'<div style="font-size:9.5px;color:var(--tx3)">Mes vencido · estimado</div></div>'
+        +'<div style="font-size:15px;font-weight:900;color:#4ade80">'+e.totalBruto.toFixed(2)+' €</div>'
+        +'</div></div>';
     }
   }
   cs.innerHTML=des;
   document.getElementById('cs-noc-box').innerHTML=desNoc;
   document.getElementById('cs-rebase-box').innerHTML=desRebase;
   document.getElementById('cs-plustrasl-box').innerHTML=desTrasl;
+  // FIX — Confirmado por Alex: "Conceptos Fijos de Nómina" NO es
+  // solo-admin — lo puede ver cualquier tripulante, igual que HTDL o
+  // Nocturnidad. Solo Rebase y Plus Traslación (más arriba en esta
+  // misma función) se quedan restringidos a admin — eso no se toca.
+  // Reutiliza _nominaConceptosFijos() (ya existente, usada en Nómina
+  // Estimada) — no se reinventa el cálculo.
+  var cajaFijos = document.getElementById('cs-fijos-box');
+  if(cajaFijos) renderConceptosFijosStats(cajaFijos);
   document.getElementById('cs-pluses-box').innerHTML=desPlus;
   document.getElementById('cs-info-adicional-box').innerHTML=desInfo;
   document.getElementById('cs-total-pagar-box').innerHTML=desTotal;
@@ -23318,7 +23459,9 @@ async function ciConfirmarSubida(){
   esHoyDestino ? renderCiBloqueado(filaGuardada) : renderCiHistorico(filaGuardada);
 }
 
-let perfilAdminActual = null; // {id, email, rol}
+// perfilAdminActual ya se declara mucho más arriba, junto a curM/
+// statsM (ver fix) — no se repite aquí para evitar una redeclaración
+// de "let".
 
 // NUEVO — cualquier persona con sesión iniciada (admin o con
 // matrícula+PIN), para la copia de seguridad personal en la nube.
