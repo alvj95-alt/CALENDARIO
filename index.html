@@ -6909,19 +6909,17 @@ function _guardarDiasCompeManual(){
 
 function _nominaConceptosFijos(rol, anio, mes){
   var c = CONCEPTOS_FIJOS_ROL[rol] || CONCEPTOS_FIJOS_ROL.tripulante;
-  // FIX — Confirmado por el usuario: su jornada SIEMPRE es del 100% —
-  // lo que variaba entre meses no era su contrato, sino los días
-  // compensatorios (COMPE/LD) que la empresa descuenta de la
-  // referencia de 163h efectivas (5,5h por cada día). Antes, el % se
-  // sacaba de un valor fijo puesto a mano en Ajustes (AJ.jornadaPct),
-  // igual todos los meses — ahora se calcula automáticamente CADA MES
-  // a partir de esa misma referencia ajustada (163h − 5,5h × días
-  // COMPE de ESTE mes), reutilizando _nominaJornadaRefAjustada() ya
-  // existente. Si ese mes no se puede detectar el COMPE automáticamente
-  // (no se cargó día a día en el calendario), esa misma función ya
-  // respeta el valor puesto a mano (_diasCompeManual).
-  var refInfoFijos = _nominaJornadaRefAjustada(anio, mes);
-  var pct = Math.max(0, Math.min(1, refInfoFijos.ref / 163));
+  // CORREGIDO — el usuario detectó el error: la referencia ajustada
+  // (163h − 5,5h × días COMPE) existe para GARANTIZAR el sueldo
+  // completo del mes pese a haber trabajado menos horas por el día
+  // compensatorio (y para que cualquier hora de más cuente antes como
+  // Hora Extraordinaria) — NO para reducir el Salario Base ni las
+  // demás pagas fijas. Usarla como "%" para multiplicar el Salario
+  // Base hacía justo lo contrario de lo que debía. Se revierte: los
+  // Conceptos Fijos vuelven a usar el % de jornada contratada real,
+  // puesto en Ajustes → "% de jornada contratada" (100% si no se ha
+  // tocado nada), sin que los días COMPE lo afecten en absoluto.
+  var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
   // FIX — Confirmado el bug (reportado por el usuario): la ventana de
   // la Paga de Marzo SIEMPRE apuntaba al marzo del mismo "anio" que se
   // está viendo, incluso cuando el mes visto es POSTERIOR a marzo. Eso
@@ -7632,12 +7630,13 @@ function renderNominaPublica(){
   }
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
 
-  // NUEVO — días COMPE (LD) del mes que se está viendo, para el aviso
-  // y el campo editable de más abajo. Reutiliza _nominaJornadaRefAjustada,
-  // que ya respeta el valor MANUAL si este mes lo tiene guardado.
-  var claveMesFijos = anio+'-'+String(mes).padStart(2,'0');
+  // NUEVO — días COMPE (LD) del mes que se está viendo. Esta cifra NO
+  // afecta a los Conceptos Fijos (el usuario detectó y corrigió ese
+  // error) — se deja calculada y disponible aquí para el día en que
+  // se añada la Hora Extraordinaria a esta pantalla (donde SÍ se
+  // usa de verdad, igual que ya hace la pestaña Excel de Admin), pero
+  // de momento no se muestra ninguna fila para ella en Nómina.
   var refInfoPub = _nominaJornadaRefAjustada(anio, mes);
-  var pctFijosParaMostrar = Math.max(0, Math.min(100, (refInfoPub.ref/163)*100));
 
   // Variables: se pagan a mes vencido — lo trabajado el mes ANTERIOR
   // es lo que se cobra en la nómina de este mes.
@@ -7662,13 +7661,6 @@ function renderNominaPublica(){
 
   html += '<div class="nom-sec-hdr">📌 Conceptos fijos ('+MESES[mes-1]+')</div>';
   fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
-
-  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Días COMPE (LD) de '+MESES[mes-1]+'</div>'
-    + '<div class="nom-row-sub">'+(refInfoPub.manual ? 'Puesto a mano · ' : 'Detectados del calendario · ')+'referencia '+refInfoPub.ref.toFixed(1)+'h de 163h ('+(pctFijosParaMostrar).toFixed(1)+'%)</div></div>'
-    + '<div style="display:flex;align-items:center;gap:6px">'
-    + '<input class="nom-input-mini" id="nompub-compe-dias" value="'+refInfoPub.diasCompe+'" onchange="_nominaPubActualizarCompeDias()"> días'
-    + (refInfoPub.manual ? '<span class="nom-compe-reset" onclick="_nominaPubResetCompeDias()" title="Volver a automático">↺</span>' : '')
-    + '</div></div>';
 
   if(!tieneCAPH){
     html += '<div class="nom-caph-hint" onclick="goP(\'ajustes\');abrirAjEconomia()">'
