@@ -2948,6 +2948,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-caph-hint{margin:2px 16px 10px;padding:9px 12px;background:rgba(37,99,235,.08);border:1px dashed var(--acc);border-radius:10px;font-size:10.5px;color:var(--acc3);line-height:1.5;cursor:pointer}
 .nom-caph-hint u{color:var(--tx)}
 .nom-badge-prev{display:inline-block;font-size:8.5px;font-weight:800;color:var(--nar3);background:rgba(249,115,22,.16);border-radius:6px;padding:2px 6px;margin-left:4px;text-transform:none;letter-spacing:0}
+.nom-nota-precision{margin:2px 16px 14px;padding:10px 12px;background:var(--s1);border:1px solid var(--div);border-radius:10px;font-size:10.5px;color:var(--tx2);line-height:1.55}
 /* NUEVO — Nómina Estimada: tres tarjetas apiladas (Estilo 2, aprobado por Alex) */
 .n2-card{margin:12px 16px;border-radius:16px;overflow:hidden;border:1px solid var(--div)}
 .n2-card.excel{border-color:rgba(217,119,6,.4)}
@@ -3565,6 +3566,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="mn-btn" onclick="chNomM(1)">›</button>
     </div>
     <div id="nomina-pub-body"></div>
+
+    <div class="nom-sec-hdr" style="margin-top:6px">🧾 Nómina Real — para comparar tú mismo</div>
+    <div id="nomina-real-pub-wrap"></div>
   </div>
 
   <!-- AJUSTES -->
@@ -6991,7 +6995,7 @@ function _nominaVerTextoCrudo(){
 // del PDF — nada duplicado, solo cambia de dónde sale el texto.
 async function procesarNominaRealImagen(file){
   if(!file) return;
-  var statusDiv = document.getElementById('nomina-body');
+  var statusDiv = _nominaRealStatusContainer();
   if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📷 Leyendo la foto de tu nómina…</div>';
   try{
     var resultadoOcr = await Tesseract.recognize(file, 'spa');
@@ -7018,7 +7022,7 @@ async function procesarNominaRealImagen(file){
 
 async function procesarNominaRealPdf(file){
   if(!file) return;
-  var statusDiv = document.getElementById('nomina-body');
+  var statusDiv = _nominaRealStatusContainer();
   if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📄 Leyendo el PDF de tu nómina…</div>';
   try{
     await asegurarPdfWorkerSeguro();
@@ -7149,16 +7153,18 @@ function _parsearNominaRealTexto(texto){
   };
 }
 
-function _construirCardReal(){
-  var anio=statsM.getFullYear(), mes=statsM.getMonth()+1;
+function _construirCardReal(anioParam, mesParam, origenParam){
+  var anio = anioParam || statsM.getFullYear();
+  var mes = mesParam || (statsM.getMonth()+1);
+  var origen = origenParam || 'admin';
   var claveMes = anio+'-'+String(mes).padStart(2,'0');
   var datos = _nominaRealPorMes[claveMes];
 
   var cuerpo = '<div style="display:flex;gap:8px;margin:0 16px 12px">'
-    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealPdf\').click()">'
+    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="_nominaRealAbrirSelector(\'pdf\',\''+origen+'\')">'
     + '<div style="font-size:20px;margin-bottom:4px">📄</div>'
     + '<div style="font-size:10.5px;color:var(--tx2);font-weight:700">PDF</div></div>'
-    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="document.getElementById(\'fileNominaRealImg\').click()">'
+    + '<div style="flex:1;padding:14px 8px;border:1.5px dashed var(--div);border-radius:14px;text-align:center;cursor:pointer" onclick="_nominaRealAbrirSelector(\'img\',\''+origen+'\')">'
     + '<div style="font-size:20px;margin-bottom:4px">📷</div>'
     + '<div style="font-size:10.5px;color:var(--tx2);font-weight:700">Foto/captura</div></div>'
     + '</div>'
@@ -7186,31 +7192,64 @@ function _construirCardReal(){
     });
     if(datos.liquido!==null) cuerpo += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">LÍQUIDO A PERCIBIR</span><span class="nom-total-neto-val">'+datos.liquido.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
     if(cuotaSindicalDetectada!==null){
+      var _destinoTxt = origen==='publica' ? 'tu Nómina' : 'las pestañas Excel y Calendario';
       cuerpo += '<div style="margin:12px 16px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(124,58,237,.04));border:1px solid rgba(124,58,237,.4);border-radius:14px">'
         + '<div style="font-size:11.5px;font-weight:800;color:#c4b5fd;margin-bottom:6px">🧠 Cuota Sindical detectada: '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
-        + '<div style="font-size:10.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">Es un importe fijo — puedes aplicarlo directo a las pestañas Excel y Calendario, sin escribirlo a mano. (El IRPF y la Seg. Social se quedan siempre manuales, ya que pueden cambiar cada mes.)</div>'
-        + '<button onclick="_nominaAplicarCuotaSindical('+cuotaSindicalDetectada+')" style="width:100%;padding:11px;background:#7c3aed;border:none;border-radius:10px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">✅ Usar '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' € en Excel y Calendario</button></div>';
+        + '<div style="font-size:10.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">Es un importe fijo — puedes aplicarlo directo a '+_destinoTxt+', sin escribirlo a mano. (El IRPF y la Seg. Social se quedan siempre manuales, ya que pueden cambiar cada mes.)</div>'
+        + '<button onclick="_nominaAplicarCuotaSindical('+cuotaSindicalDetectada+',\''+origen+'\')" style="width:100%;padding:11px;background:#7c3aed;border:none;border-radius:10px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">✅ Usar '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' € en '+_destinoTxt+'</button></div>';
     }
   }
   return '<div class="n2-card real"><div class="n2-hdr">🧾 Nómina Real (PDF)<span class="n2-badge">REFERENCIA</span></div><div class="n2-body">'+cuerpo+'</div></div>';
 }
+// NUEVO — un único par de <input type="file"> ocultos se comparten
+// entre el modal de Admin y la pantalla pública de Nómina. Antes de
+// abrir el selector, se anota "quién" lo pidió (window._nominaRealOrigen)
+// para que, al terminar de leer el archivo, se actualice el sitio
+// correcto (y con el mes correcto: statsM en Admin, nomM en público).
+function _nominaRealAbrirSelector(tipo, origen){
+  window._nominaRealOrigen = origen || 'admin';
+  var idInput = tipo==='pdf' ? 'fileNominaRealPdf' : 'fileNominaRealImg';
+  var el = document.getElementById(idInput);
+  if(el) el.click();
+}
+// Contenedor donde mostrar "Leyendo tu nómina…" mientras se procesa,
+// y donde reconstruir el resultado — depende de quién lo pidió.
+function _nominaRealStatusContainer(){
+  var origen = window._nominaRealOrigen || 'admin';
+  return document.getElementById(origen==='publica' ? 'nomina-real-pub-wrap' : 'nomina-body');
+}
 // Vuelve a construir solo esta tarjeta tras subir un PDF nuevo, sin
 // tocar las otras dos (evita perder lo que se haya escrito a mano ahí).
 function renderNominaReal(){
-  var el = document.querySelector('.n2-card.real');
-  if(el) el.outerHTML = _construirCardReal();
+  var origen = window._nominaRealOrigen || 'admin';
+  if(origen==='publica'){
+    var wrap = document.getElementById('nomina-real-pub-wrap');
+    if(!wrap) return;
+    var anioPub = nomM ? nomM.getFullYear() : undefined;
+    var mesPub = nomM ? (nomM.getMonth()+1) : undefined;
+    wrap.innerHTML = _construirCardReal(anioPub, mesPub, 'publica');
+    return;
+  }
+  var el = document.querySelector('#nomina-body .n2-card.real');
+  if(el) el.outerHTML = _construirCardReal(undefined, undefined, 'admin');
   else renderNominaTodasLasCaras();
 }
 
 // NUEVO — Confirmado por Alex: solo la Cuota Sindical (importe fijo)
 // se puede aplicar directo a Excel y Calendario desde la Nómina Real
 // leída — IRPF y Seg. Social se quedan siempre manuales. Reconstruye
-// esas dos tarjetas para que se vea el campo ya relleno.
-function _nominaAplicarCuotaSindical(importe){
+// las tarjetas que corresponda según quién lo pidió (Admin o Nómina
+// pública) para que se vea el campo ya relleno.
+function _nominaAplicarCuotaSindical(importe, origen){
   _nominaValoresManuales.cuotaSindical = importe;
   _guardarNominaValoresManuales();
-  renderNominaTodasLasCaras();
-  toast('✅ Cuota Sindical ('+importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €) aplicada a Excel y Calendario');
+  if(origen==='publica'){
+    if(typeof renderNominaPublica==='function') renderNominaPublica();
+    toast('✅ Cuota Sindical ('+importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €) aplicada a tu Nómina');
+  } else {
+    renderNominaTodasLasCaras();
+    toast('✅ Cuota Sindical ('+importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €) aplicada a Excel y Calendario');
+  }
 }
 
 function _nominaFila(label, sub, val){
@@ -7583,8 +7622,23 @@ function renderNominaPublica(){
 
   html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
 
+  // NUEVO — Confirmado por Alex: nota aparte (no el disclaimer legal
+  // de arriba, que habla de responsabilidad) explicando POR QUÉ el
+  // estimado puede no cuadrar — todavía faltan variables por agregar
+  // al cálculo que la Nómina Real (de abajo) ya trae calculadas.
+  html += '<div class="nom-nota-precision">📐 Este cálculo todavía no es 100% exacto: faltan por incorporar algunas variables que tu nómina real ya trae calculadas (por ejemplo Rebase, Plus Traslación u otros pluses puntuales). Usa la Nómina Real de abajo como referencia para comparar.</div>';
+
   window._nominaPubBruto = bruto;
   body.innerHTML = html;
+
+  // NUEVO — Nómina Real (PDF/foto), movida aquí abajo desde Stats →
+  // Admin. Se indexa por el MISMO mes que se está viendo (el mes de
+  // cobro), igual que hacía la versión de Admin con statsM — solo que
+  // aquí usa nomM. No se compara nada automáticamente: se enseña tal
+  // cual el PDF, debajo de la estimación, para que la persona compare
+  // a simple vista.
+  var wrapReal = document.getElementById('nomina-real-pub-wrap');
+  if(wrapReal) wrapReal.innerHTML = _construirCardReal(anio, mes, 'publica');
 }
 
 // Recalcula Neto en vivo al tocar los campos de Seg. Social / IRPF /
