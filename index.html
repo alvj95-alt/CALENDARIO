@@ -6934,8 +6934,17 @@ function _nominaConceptosFijos(rol, anio, mes){
     var inicio = new Date(anioPago-1, mesPago, 1); // mismo mes, año anterior, día siguiente
     return _nominaFraccionDevengo(inicio, fin);
   }
-  if(mes===7){
-    var fracVerano = ventanaPaga(7);
+  // FIX — Confirmado por el usuario y el propio convenio (art. 41): la
+  // Paga de Verano se cobra CON LA MENSUALIDAD DE JUNIO, no de julio.
+  // El código decía "mes===7" (julio) cuando debía decir "mes===6"
+  // (junio) — por eso nunca se mostraba en el mes correcto. De paso,
+  // esto también corrige la ventana de devengo: al pasar mesPago=6,
+  // ventanaPaga() calcula "1 de julio del año anterior → 30 de junio
+  // de este año", que es EXACTAMENTE el periodo de devengo que dice
+  // el convenio para esta paga (antes, con mesPago=7, la ventana
+  // quedaba desplazada un mes de más).
+  if(mes===6){
+    var fracVerano = ventanaPaga(6);
     fijos.push({label:'Paga Extra (Verano)'+(fracVerano<1?' · prorrateada':''), val:Math.round(salarioBaseProp*fracVerano*100)/100});
   }
   if(mes===9){
