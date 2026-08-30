@@ -8028,10 +8028,27 @@ function checkDescansoInternoPernocta(turno){
     min2 = ret2Obj ? (parseInt(ret2Obj.minutos)||0) : (parseInt(tVuelta.retrasoMin)||0);
   }
   var retA = min1 + min2;
+  // FIX — Confirmado por Alex (bug real, detectado comparando contra
+  // el Cómputo Excel oficial): cuando la IDA tiene trenes de conexión
+  // (continuidad), el descanso se estaba midiendo desde que acababa
+  // el PRIMER tren (turno.hL) — pero si hay un tren de conexión
+  // después, la persona sigue trabajando hasta que ACABA ESE tren, no
+  // hasta el primero. Contar desde turno.hL en ese caso metía dentro
+  // del "descanso" varias horas que en realidad eran trabajo real
+  // (el tren de conexión), inflando muchísimo el resultado — se
+  // comprobó un caso real donde salían 13h de descanso de más.
+  // Ahora, si hay continuidad, se usa el fin del ÚLTIMO tramo de
+  // conexión de la ida; si no hay continuidad, sigue siendo
+  // turno.hL exactamente como antes — ningún caso simple cambia.
+  var finIdaReal = turno.hL;
+  if(turno.continuidad && turno.continuidad.length){
+    var ultimoTramoIdaDesc = turno.continuidad[turno.continuidad.length-1];
+    if(ultimoTramoIdaDesc && ultimoTramoIdaDesc.horaFin) finIdaReal = ultimoTramoIdaDesc.horaFin;
+  }
   // Tramo 2 empieza siempre al día siguiente del fin del tramo 1
   // (misma lógica de "un día de diferencia" que ya usa checkRestTime
   // para los cruces de medianoche).
-  var dM=(1440-toM(turno.hL)-retA)+toM(turno.hF2);
+  var dM=(1440-toM(finIdaReal)-retA)+toM(turno.hF2);
   if(dM<0)dM+=1440;
   var estacionDescanso=turno.sal2||turno.lle||'';
   var enB=AJ.base&&estacionDescanso===AJ.base,lim=enB?720:480;
@@ -14305,9 +14322,9 @@ function guardarTurno(){
       // siguiente ya está guardado en TV (aquí puede que aún no lo
       // esté, se está guardando ahora mismo).
       var hEnlaceJornadaImp = 0;
-      if(esPernoctaImp && F.hL && F.hF2){
+      if(esPernoctaImp && finIdaRealImp && F.hF2){
         var toMinImp=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
-        var dMImp=(1440-toMinImp(F.hL))+toMinImp(F.hF2); if(dMImp<0)dMImp+=1440;
+        var dMImp=(1440-toMinImp(finIdaRealImp))+toMinImp(F.hF2); if(dMImp<0)dMImp+=1440;
         var estDescansoImp = F.sal2||F.lle||'';
         var limImp = (AJ.base && estDescansoImp===AJ.base) ? 720 : 480;
         if(dMImp < limImp) hEnlaceJornadaImp = Math.round(dMImp/60*100)/100;
@@ -14523,9 +14540,9 @@ function guardarTurno(){
       // real por debajo del mínimo legal: 12h en base, 8h fuera) hace
       // que la dormida entera pase a contar.
       var hEnlaceJornadaArt = 0;
-      if(esPernoctaArt && F.hL && F.hF2){
+      if(esPernoctaArt && finIdaRealArt && F.hF2){
         var toMinArt=function(h){var p=h.split(':').map(Number);return p[0]*60+p[1];};
-        var dMArt=(1440-toMinArt(F.hL))+toMinArt(F.hF2); if(dMArt<0)dMArt+=1440;
+        var dMArt=(1440-toMinArt(finIdaRealArt))+toMinArt(F.hF2); if(dMArt<0)dMArt+=1440;
         var estDescansoArt = F.sal2||F.lle||'';
         var limArt = (AJ.base && estDescansoArt===AJ.base) ? 720 : 480;
         if(dMArt < limArt) hEnlaceJornadaArt = Math.round(dMArt/60*100)/100;
