@@ -6894,12 +6894,22 @@ function _nominaConceptosFijos(rol, anio, mes){
   // siempre es el 100% del cartel de UGT. Si no se ha puesto nada,
   // se asume 100% (jornada completa) por defecto.
   var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
-  // FIX — Confirmado por Alex: la Paga de Marzo también se prorratea
-  // por antigüedad, con su propia ventana de 12 meses terminando en
-  // marzo (abril del año anterior → marzo de este año) — igual que
-  // las otras tres pagas. El importe ya prorrateado por esa fracción
-  // es el que luego se reparte entre los 12 meses del año.
-  var fracMarzo = ventanaPaga(3);
+  // FIX — Confirmado el bug (reportado por el usuario): la ventana de
+  // la Paga de Marzo SIEMPRE apuntaba al marzo del mismo "anio" que se
+  // está viendo, incluso cuando el mes visto es POSTERIOR a marzo. Eso
+  // hacía que, para alguien que empezó a trabajar después de marzo (ej.
+  // en agosto) y mira la nómina de agosto, la ventana comparada fuera
+  // "abril del año pasado → marzo de ESTE año" — un periodo que ya
+  // terminó ANTES de que la persona empezara, dando siempre 0,00 €.
+  // Ahora, si el mes que se ve es posterior a marzo, la Paga de Marzo
+  // relevante es la del AÑO QUE VIENE (la próxima a cobrarse), así que
+  // la ventana se corre un año hacia adelante: abril de este año →
+  // marzo del año que viene. Si el mes visto es marzo o anterior, la
+  // ventana se queda igual que antes (abril del año pasado → marzo de
+  // este año), porque esa es la que está a punto de cobrarse o se
+  // acaba de cobrar.
+  var anioPagoMarzo = mes<=3 ? anio : anio+1;
+  var fracMarzo = ventanaPaga(3, anioPagoMarzo);
   var pagaMarzoMensual = Math.round((c.pagaMarzo*pct*fracMarzo/12)*100)/100;
   var salarioBaseProp = Math.round(c.salarioBase*pct*100)/100;
   var fijos = [
@@ -6915,10 +6925,13 @@ function _nominaConceptosFijos(rol, anio, mes){
   // natural compartido ni semestres. Ej.: Navidad mira de enero a
   // diciembre de ESTE año; Verano mira de agosto del año anterior a
   // julio de este año; Otoño mira de octubre del año anterior a
-  // septiembre de este año.
-  function ventanaPaga(mesPago){
-    var fin = new Date(anio, mesPago, 0); // último día del mes de pago
-    var inicio = new Date(anio-1, mesPago, 1); // mismo mes, año anterior, día siguiente
+  // septiembre de este año. Estas tres solo se calculan cuando "mes"
+  // coincide exactamente con su mes de pago, así que nunca tienen el
+  // problema de la Paga de Marzo (que se muestra TODOS los meses).
+  function ventanaPaga(mesPago, anioOverride){
+    var anioPago = anioOverride || anio;
+    var fin = new Date(anioPago, mesPago, 0); // último día del mes de pago
+    var inicio = new Date(anioPago-1, mesPago, 1); // mismo mes, año anterior, día siguiente
     return _nominaFraccionDevengo(inicio, fin);
   }
   if(mes===7){
