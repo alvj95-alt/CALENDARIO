@@ -2945,6 +2945,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-total-neto-lbl{font-size:12px;font-weight:800;color:#4ade80}
 .nom-total-neto-val{font-size:19px;font-weight:900;color:#fff}
 .nom-disclaimer{margin:8px 16px 4px;padding:10px 12px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:10px;font-size:10px;color:#fdba74;line-height:1.5}
+.nom-caph-hint{margin:2px 16px 10px;padding:9px 12px;background:rgba(37,99,235,.08);border:1px dashed var(--acc);border-radius:10px;font-size:10.5px;color:var(--acc3);line-height:1.5;cursor:pointer}
+.nom-caph-hint u{color:var(--tx)}
+.nom-badge-prev{display:inline-block;font-size:8.5px;font-weight:800;color:var(--nar3);background:rgba(249,115,22,.16);border-radius:6px;padding:2px 6px;margin-left:4px;text-transform:none;letter-spacing:0}
 /* NUEVO — Nómina Estimada: tres tarjetas apiladas (Estilo 2, aprobado por Alex) */
 .n2-card{margin:12px 16px;border-radius:16px;overflow:hidden;border:1px solid var(--div)}
 .n2-card.excel{border-color:rgba(217,119,6,.4)}
@@ -3547,6 +3550,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
   </div>
 
+  <!-- NÓMINA (pública) — maqueta aprobada por Alex: mueve aquí los
+       Conceptos Fijos que antes vivían en Stats, y añade automáticamente
+       las variables (HTDL/Nocturnidad/Art.51-52) del mes anterior, que
+       es lo que realmente se cobra este mes (pago a mes vencido).
+       Reutiliza _nominaConceptosFijos(), calculateEarnings(),
+       calcImporteArt5152Vivo() y _nominaValoresManuales — ya existentes
+       para la Nómina Estimada de Admin — sin duplicar ese cálculo. -->
+  <div class="panel" id="p-nomina">
+    <div class="mes-nav">
+      <button class="mn-btn" onclick="chNomM(-1)">‹</button>
+      <div class="mn-lbl" id="nom-pub-mlbl"></div>
+      <div class="mn-hoy" onclick="nomM=new Date();renderNominaPublica()">Este mes</div>
+      <button class="mn-btn" onclick="chNomM(1)">›</button>
+    </div>
+    <div id="nomina-pub-body"></div>
+  </div>
+
   <!-- AJUSTES -->
   <div class="panel" id="p-ajustes">
     <div class="aj-body">
@@ -3713,6 +3733,40 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <div class="aj-num-right">
               <input class="aj-num-inp" id="aj-noc" type="number" step="0.10" min="0">
               <span class="aj-num-unit">€/h</span>
+            </div>
+          </div>
+          <!-- NUEVO — Complemento Ad Personam (CAPH): concepto fijo
+               PERSONAL, no todo el mundo lo cobra (art. 44 del
+               convenio) — por eso empieza desactivado y solo aparece
+               en la pantalla de Nómina si la persona lo activa aquí y
+               pone su importe. -->
+          <div class="aj-num-row">
+            <div class="aj-num-ico">🧾</div>
+            <div class="aj-num-info">
+              <div class="aj-num-lbl">Tengo Complemento Ad Personam (CAPH)</div>
+              <div class="aj-num-sub">Importe personal — solo si tu nómina lo incluye</div>
+            </div>
+            <div class="aj-num-right">
+              <label class="alarm-toggle">
+                <input type="checkbox" id="aj-caph-on" onchange="
+                  AJ.tieneCAPH=this.checked;
+                  localStorage.setItem('aj5',JSON.stringify(AJ));
+                  document.getElementById('aj-caph-importe-row').style.display=this.checked?'flex':'none';
+                ">
+                <span class="alarm-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="aj-num-row" id="aj-caph-importe-row" style="display:none">
+            <div class="aj-num-ico">💶</div>
+            <div class="aj-num-info">
+              <div class="aj-num-lbl">Importe del CAPH</div>
+              <div class="aj-num-sub">Cantidad mensual fija de tu nómina real</div>
+            </div>
+            <div class="aj-num-right">
+              <input class="aj-num-inp" id="aj-caph-importe" type="number" step="0.50" min="0"
+                onchange="AJ.caphImporte=parseFloat(this.value)||0;localStorage.setItem('aj5',JSON.stringify(AJ));if(typeof renderNominaPublica==='function')renderNominaPublica();">
+              <span class="aj-num-unit">€</span>
             </div>
           </div>
           <div class="aj-plus-hdr">PLUSES POR VIAJE — importes configurables</div>
@@ -4376,6 +4430,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <button class="bni on" id="nav-cal" onclick="goP('cal')"><div class="bi">📅</div><div class="bl">CALENDARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-horario" onclick="goP('horario')"><div class="bi">🗂️</div><div class="bl">HORARIO</div><div class="bd"></div></button>
   <button class="bni" id="nav-companeros" onclick="goP('companeros')"><div class="bi">👥</div><div class="bl">COMPAÑEROS</div><div class="bd"></div></button>
+  <button class="bni" id="nav-nomina" onclick="goP('nomina')"><div class="bi">💰</div><div class="bl">NÓMINA</div><div class="bd"></div></button>
   <button class="bni" id="nav-stats" onclick="goP('stats')"><div class="bi">📊</div><div class="bl">STATS</div><div class="bd"></div></button>
   <button class="bni" id="nav-ajustes" onclick="goP('ajustes')"><div class="bi">⚙️</div><div class="bl">AJUSTES</div><div class="bd"></div></button>
 </div>
@@ -5181,6 +5236,28 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="conf-btns">
       <button class="conf-cancel" onclick="closeOv('ov-del')">Cancelar</button>
       <button class="conf-del" onclick="confirmarEliminar()">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OV: AVISO NÓMINA (una vez al día, al entrar en el botón Nómina) -->
+<div class="ov" id="ov-aviso-nomina">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">⚠️</div>
+    <div class="conf-tit">Esto es una prueba de sistema,<br>no una nómina real</div>
+    <div class="conf-txt">
+      Los importes que ves aquí son una <b>estimación calculada con los datos que tú mismo has introducido</b>
+      en la app (turnos, horas, porcentajes de retención...). No provienen de ningún sistema oficial de la
+      empresa ni de la Seguridad Social.
+    </div>
+    <div class="conf-txt" style="margin-top:8px">
+      Verifica siempre el importe real con tu <b>sindicato</b> o directamente con la <b>empresa</b>.
+      No nos hacemos responsables de los datos mostrados, ya que dependen enteramente de lo que cada
+      persona haya introducido.
+    </div>
+    <div class="conf-btns">
+      <button class="conf-del" style="background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff" onclick="cerrarAvisoNomina()">Entendido, continuar</button>
     </div>
   </div>
 </div>
@@ -7400,6 +7477,158 @@ function _nominaActualizarManualCalendario(){
   var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
   var neto = Math.round((bruto-ssImporte-cuota-irpfImporte)*100)/100;
   document.getElementById('nomcal-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — NÓMINA (pública, botón propio de la barra inferior).
+   Aprobada por Alex tras maqueta: reutiliza EXACTAMENTE los mismos
+   cálculos ya existentes para la Nómina Estimada de Admin
+   (_nominaConceptosFijos, calculateEarnings, calcImporteArt5152Vivo,
+   _nominaValoresManuales) — nada se duplica ni se recalcula distinto.
+   Diferencias a propósito frente a la de Admin:
+   - Visible para todo el mundo, no solo Admin.
+   - El CAPH NO sale por defecto — solo si AJ.tieneCAPH está activado
+     desde Ajustes → Economía.
+   - Muestra Art.51/52 como su propia fila (la Admin lo mezclaba
+     dentro de "HTDL puro"); aquí van separados para que se entienda
+     mejor de dónde sale cada euro.
+═══════════════════════════════════════════════════════════ */
+var nomM = null; // mes que se está VIENDO (el mes en que se cobra la nómina)
+
+function chNomM(delta){
+  if(!nomM) nomM = new Date();
+  nomM = new Date(nomM.getFullYear(), nomM.getMonth()+delta, 1);
+  renderNominaPublica();
+}
+
+// Suma el importe en dinero de los registros de Art.51/52 (Dinero puro
+// y la parte Dinero de un Mix) dentro de un conjunto de claves de día
+// — mismo criterio que ya usa _renderArt5152Stats() en Stats.
+function _nominaArt5152Importe(ks){
+  var total = 0;
+  ks.forEach(function(k){
+    var t = TV[k];
+    if(t && t.tipo==='art5152'){
+      if(t.compensacion==='dinero') total += calcImporteArt5152Vivo(t, false);
+      else if(t.compensacion==='mix') total += calcImporteArt5152Vivo(t, true);
+    }
+  });
+  return Math.round(total*100)/100;
+}
+
+function renderNominaPublica(){
+  var body = document.getElementById('nomina-pub-body');
+  if(!body) return;
+  if(!nomM) nomM = new Date();
+  var anio = nomM.getFullYear(), mes = nomM.getMonth()+1; // 1-12, mes que se cobra
+  document.getElementById('nom-pub-mlbl').textContent = MESES[mes-1]+' '+anio;
+
+  var rol = AJ.rol || 'tripulante';
+  var t = TARIFAS_ROL[rol] || TARIFAS_ROL.tripulante;
+
+  // Conceptos fijos del mes que se está viendo — SIN retraso.
+  var fijos = _nominaConceptosFijos(rol, anio, mes);
+  var tieneCAPH = !!AJ.tieneCAPH && parseFloat(AJ.caphImporte)>0;
+  if(tieneCAPH){
+    fijos.push({label:'Complemento Ad Personam (CAPH)', val: Math.round(parseFloat(AJ.caphImporte)*100)/100});
+  }
+  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
+
+  // Variables: se pagan a mes vencido — lo trabajado el mes ANTERIOR
+  // es lo que se cobra en la nómina de este mes.
+  var mesTrabajado = _nominaMesAnterior(anio, mes);
+  var ks = Object.keys(TV).filter(function(k){
+    var d = new Date(k+'T00:00:00');
+    return d.getFullYear()===mesTrabajado.anio && d.getMonth()===mesTrabajado.mes-1;
+  });
+  var earn = calculateEarnings(ks);
+  var htdlPuro = _nominaHTDLPuro(ks, t.vh);
+  var art5152Importe = _nominaArt5152Importe(ks);
+  var totalVariablesResto = earn.totalNoc + earn.totalAct + earn.totalJT + earn.totalIntl;
+
+  var bruto = Math.round((totalFijos + htdlPuro.importe + art5152Importe + totalVariablesResto)*100)/100;
+
+  var mv = _nominaValoresManuales;
+  var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
+  var neto = Math.round((bruto - ssImporte - mv.cuotaSindical - irpfImporte)*100)/100;
+
+  var html = '<div class="nom-disclaimer">🧪 Estimación orientativa a partir de tu calendario — no sustituye tu nómina real. Los pluses se pagan a mes vencido: los de abajo corresponden a lo trabajado en <b>'+MESES[mesTrabajado.mes-1]+'</b>, que es lo que se cobra en esta nómina de '+MESES[mes-1]+'.</div>';
+
+  html += '<div class="nom-sec-hdr">📌 Conceptos fijos ('+MESES[mes-1]+')</div>';
+  fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+  if(!tieneCAPH){
+    html += '<div class="nom-caph-hint" onclick="goP(\'ajustes\');abrirAjEconomia()">'
+      + '¿Tienes <b>Complemento Ad Personam (CAPH)</b>? Actívalo y ponlo desde <u>Ajustes → Economía</u> y aparecerá aquí.'
+      + '</div>';
+  }
+
+  html += '<div class="nom-sec-hdr">⏱ Variables de '+MESES[mesTrabajado.mes-1]+' <span class="nom-badge-prev">se cobran ahora</span></div>';
+  html += _nominaFila('🏆 HTDL', htdlPuro.horas.toLocaleString('es-ES')+' h × '+t.vh.toFixed(2)+' €', htdlPuro.importe);
+  html += _nominaFila('🌙 Nocturnidad', null, earn.totalNoc);
+  html += _nominaFila('📄 Art. 51-52', null, art5152Importe);
+  if(earn.totalAct>0) html += _nominaFila('🔘 Plus Activación', null, earn.totalAct);
+  if(earn.totalJT>0) html += _nominaFila('👔 Plus JT', null, earn.totalJT);
+  if(earn.totalIntl>0) html += _nominaFila('🌍 Plus Internacional', null, earn.totalIntl);
+
+  html += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO</span><span class="nom-total-bruto-val" id="nompub-bruto-val">'+bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  html += '<div class="nom-sec-hdr">➖ Deducciones <span style="font-weight:600;text-transform:none;letter-spacing:0">✍️ tú pones los % / importes</span></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Seg. Social</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nompub-ss-pct" value="'+mv.ssPct+'" oninput="_nominaPubActualizarManual()"> %</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">IRPF</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
+    +'<div><input class="nom-input-mini" id="nompub-irpf-pct" value="'+mv.irpfPct+'" oninput="_nominaPubActualizarManual()"> %</div></div>';
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Cuota Sindical</div><div class="nom-row-sub">Importe fijo</div></div>'
+    +'<div><input class="nom-input-mini" id="nompub-cuota" value="'+mv.cuotaSindical+'" oninput="_nominaPubActualizarManual()"> €</div></div>';
+
+  html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+
+  window._nominaPubBruto = bruto;
+  body.innerHTML = html;
+}
+
+// Recalcula Neto en vivo al tocar los campos de Seg. Social / IRPF /
+// Cuota Sindical — comparte _nominaValoresManuales con la Nómina
+// Estimada de Admin, así que cambiar un valor aquí también lo
+// actualiza allí (es el mismo dato: TU situación personal).
+function _nominaPubActualizarManual(){
+  var bruto = window._nominaPubBruto; if(bruto===undefined) return;
+  var ssPct = parseFloat(document.getElementById('nompub-ss-pct').value)||0;
+  var irpfPct = parseFloat(document.getElementById('nompub-irpf-pct').value)||0;
+  var cuota = parseFloat(document.getElementById('nompub-cuota').value)||0;
+  _nominaValoresManuales.ssPct = ssPct;
+  _nominaValoresManuales.irpfPct = irpfPct;
+  _nominaValoresManuales.cuotaSindical = cuota;
+  _guardarNominaValoresManuales();
+
+  var ssImporte = Math.round(bruto*ssPct/100*100)/100;
+  var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
+  var neto = Math.round((bruto-ssImporte-cuota-irpfImporte)*100)/100;
+  document.getElementById('nompub-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+// Abre el acordeón "Economía" de Ajustes (usado por el enlace del
+// aviso de CAPH dentro de Nómina, para llevar directo hasta el campo).
+function abrirAjEconomia(){
+  var acc = document.getElementById('aj-acc-economia');
+  if(acc && !acc.classList.contains('aj-acc-open')) toggleAjAcc('aj-acc-economia');
+}
+
+// NUEVO — Aviso legal de Nómina: "esto no es una nómina real". Debe
+// verse SIEMPRE la primera vez que se entra en Nómina cada día — se
+// guarda solo la FECHA (no un "ya no mostrar nunca"), para que el
+// recordatorio vuelva a aparecer al día siguiente.
+function mostrarAvisoNominaSiCorresponde(){
+  var hoy = new Date().toISOString().slice(0,10);
+  var vistoHoy = false;
+  try{ vistoHoy = localStorage.getItem('nomina_aviso_visto_fecha')===hoy; }catch(e){}
+  if(vistoHoy) return;
+  openOv('ov-aviso-nomina');
+}
+function cerrarAvisoNomina(){
+  var hoy = new Date().toISOString().slice(0,10);
+  try{ localStorage.setItem('nomina_aviso_visto_fecha', hoy); }catch(e){}
+  closeOv('ov-aviso-nomina');
 }
 
 function abrirTutorial(){
@@ -15482,6 +15711,16 @@ function loadAjUI(){
   if(ajAntigInp) ajAntigInp.value = AJ.antiguedad || '';
   var ajLiqInp = document.getElementById('aj-liquidacion');
   if(ajLiqInp) ajLiqInp.value = AJ.liquidacion || '';
+  // NUEVO — Complemento Ad Personam (CAPH): concepto opcional/personal,
+  // se recupera el estado guardado cada vez que se entra en Ajustes.
+  var ajCaphOn = document.getElementById('aj-caph-on');
+  if(ajCaphOn){
+    ajCaphOn.checked = !!AJ.tieneCAPH;
+    var ajCaphRow = document.getElementById('aj-caph-importe-row');
+    if(ajCaphRow) ajCaphRow.style.display = AJ.tieneCAPH ? 'flex' : 'none';
+  }
+  var ajCaphImp = document.getElementById('aj-caph-importe');
+  if(ajCaphImp) ajCaphImp.value = AJ.caphImporte || '';
   // NUEVO — la Nómina Estimada solo se ve con sesión de Admin activa
   // (Confirmado por Alex: se mantiene oculta al resto hasta que el
   // cálculo esté bien afinado con datos reales).
@@ -16536,7 +16775,7 @@ function closeOv(id){
   },140);
 }
 function goP(n){
-  ['cal','horario','stats','ajustes','companeros'].forEach(function(p){
+  ['cal','horario','stats','ajustes','companeros','nomina'].forEach(function(p){
     var elPanel = document.getElementById(p==='companeros' ? 'p-companeros' : 'p-'+p);
     var elNav = document.getElementById('nav-'+p);
     if(elPanel) elPanel.className='panel'+(p===n?' on':'');
@@ -16550,6 +16789,14 @@ function goP(n){
     renderStats();
   }
   if(n==='ajustes')loadAjUI();
+  // NUEVO — Nómina pública: al entrar, se pinta con el mes actual (si
+  // es la primera vez) y se comprueba el aviso legal de "esto no es
+  // una nómina real", que solo debe aparecer una vez al día.
+  if(n==='nomina'){
+    if(!nomM) nomM = new Date(curM.getFullYear(), curM.getMonth(), 1);
+    renderNominaPublica();
+    mostrarAvisoNominaSiCorresponde();
+  }
   // NUEVO — Confirmado por Alex: el Social Bar (Adsterra) solo debe
   // aparecer en Ajustes, no en toda la app. Se carga al ENTRAR en
   // Ajustes, y se retira (elimina del DOM) al SALIR — el propio
