@@ -2949,6 +2949,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-caph-hint u{color:var(--tx)}
 .nom-badge-prev{display:inline-block;font-size:8.5px;font-weight:800;color:var(--nar3);background:rgba(249,115,22,.16);border-radius:6px;padding:2px 6px;margin-left:4px;text-transform:none;letter-spacing:0}
 .nom-nota-precision{margin:2px 16px 14px;padding:10px 12px;background:var(--s1);border:1px solid var(--div);border-radius:10px;font-size:10.5px;color:var(--tx2);line-height:1.55}
+.nom-compe-reset{font-size:14px;color:var(--acc3);cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(37,99,235,.12)}
 /* NUEVO — Nómina Estimada: tres tarjetas apiladas (Estilo 2, aprobado por Alex) */
 .n2-card{margin:12px 16px;border-radius:16px;overflow:hidden;border:1px solid var(--div)}
 .n2-card.excel{border-color:rgba(217,119,6,.4)}
@@ -6887,13 +6888,40 @@ function _nominaFraccionDevengo(inicioPeriodo, finPeriodo){
   return Math.max(0, Math.min(1, mesesTrabajados/totalMeses));
 }
 
+// NUEVO — Confirmado por el usuario: aunque su jornada contratada
+// siempre es del 100%, la empresa resta 5,5h de la referencia de
+// 163h efectivas por cada día compensatorio (COMPE/LD) que pide por
+// trabajar en su descanso — así que el % "efectivo" de cada mes varía
+// solo por eso, no porque su contrato cambie. _nominaJornadaRefAjustada()
+// ya contaba los días COMPE automáticamente desde el calendario (TV),
+// pero solo para calcular la Hora Extraordinaria — nunca se usaba
+// para los Conceptos Fijos (Salario Base, Paga de Marzo, Verano...).
+// Además, si ese mes no se cargó día a día en el calendario (p.ej. se
+// subió el Horario Individual en su lugar), el conteo automático da 0
+// aunque sí hubiera días COMPE reales — para esos casos se guarda un
+// valor MANUAL por mes, que manda por encima del conteo automático.
+var _diasCompeManual = (function(){
+  try{ return JSON.parse(localStorage.getItem('dias_compe_manual')||'{}'); }catch(e){ return {}; }
+})();
+function _guardarDiasCompeManual(){
+  try{ localStorage.setItem('dias_compe_manual', JSON.stringify(_diasCompeManual)); }catch(e){}
+}
+
 function _nominaConceptosFijos(rol, anio, mes){
   var c = CONCEPTOS_FIJOS_ROL[rol] || CONCEPTOS_FIJOS_ROL.tripulante;
-  // NUEVO — Confirmado por Alex: los conceptos fijos dependen del %
-  // de jornada contratada (Ajustes → "% de jornada contratada"), no
-  // siempre es el 100% del cartel de UGT. Si no se ha puesto nada,
-  // se asume 100% (jornada completa) por defecto.
-  var pct = (parseFloat(AJ.jornadaPct)||100) / 100;
+  // FIX — Confirmado por el usuario: su jornada SIEMPRE es del 100% —
+  // lo que variaba entre meses no era su contrato, sino los días
+  // compensatorios (COMPE/LD) que la empresa descuenta de la
+  // referencia de 163h efectivas (5,5h por cada día). Antes, el % se
+  // sacaba de un valor fijo puesto a mano en Ajustes (AJ.jornadaPct),
+  // igual todos los meses — ahora se calcula automáticamente CADA MES
+  // a partir de esa misma referencia ajustada (163h − 5,5h × días
+  // COMPE de ESTE mes), reutilizando _nominaJornadaRefAjustada() ya
+  // existente. Si ese mes no se puede detectar el COMPE automáticamente
+  // (no se cargó día a día en el calendario), esa misma función ya
+  // respeta el valor puesto a mano (_diasCompeManual).
+  var refInfoFijos = _nominaJornadaRefAjustada(anio, mes);
+  var pct = Math.max(0, Math.min(1, refInfoFijos.ref / 163));
   // FIX — Confirmado el bug (reportado por el usuario): la ventana de
   // la Paga de Marzo SIEMPRE apuntaba al marzo del mismo "anio" que se
   // está viendo, incluso cuando el mes visto es POSTERIOR a marzo. Eso
@@ -7289,12 +7317,21 @@ function _nominaFila(label, sub, val){
 // número (ej. 163 - 2×5,5 = 152h) pasa a ser el "100%" real de ese
 // mes, tanto para calcular Hora Extraordinaria como Presencia.
 function _nominaJornadaRefAjustada(anio, mes){
+  var claveMes = anio+'-'+String(mes).padStart(2,'0');
+  // FIX — Confirmado por el usuario: si ese mes tiene un valor MANUAL
+  // guardado (porque ese mes no se cargó día a día en el calendario,
+  // p.ej. se subió el Horario Individual), ese número manda por
+  // encima del conteo automático de días 'comp' en TV.
+  if(Object.prototype.hasOwnProperty.call(_diasCompeManual, claveMes)){
+    var diasCompeMan = parseFloat(_diasCompeManual[claveMes]) || 0;
+    return { ref: Math.max(0, 163 - diasCompeMan*5.5), diasCompe: diasCompeMan, manual: true };
+  }
   var diasCompe = 0;
   Object.keys(TV).forEach(function(k){
     var d = new Date(k+'T00:00:00');
     if(d.getFullYear()===anio && d.getMonth()===mes-1 && TV[k] && TV[k].tipo==='comp') diasCompe++;
   });
-  return { ref: Math.max(0, 163 - diasCompe*5.5), diasCompe: diasCompe };
+  return { ref: Math.max(0, 163 - diasCompe*5.5), diasCompe: diasCompe, manual: false };
 }
 
 // NUEVO — Confirmado por Alex: los conceptos variables/pluses (Hora
@@ -7595,6 +7632,13 @@ function renderNominaPublica(){
   }
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
 
+  // NUEVO — días COMPE (LD) del mes que se está viendo, para el aviso
+  // y el campo editable de más abajo. Reutiliza _nominaJornadaRefAjustada,
+  // que ya respeta el valor MANUAL si este mes lo tiene guardado.
+  var claveMesFijos = anio+'-'+String(mes).padStart(2,'0');
+  var refInfoPub = _nominaJornadaRefAjustada(anio, mes);
+  var pctFijosParaMostrar = Math.max(0, Math.min(100, (refInfoPub.ref/163)*100));
+
   // Variables: se pagan a mes vencido — lo trabajado el mes ANTERIOR
   // es lo que se cobra en la nómina de este mes.
   var mesTrabajado = _nominaMesAnterior(anio, mes);
@@ -7618,6 +7662,14 @@ function renderNominaPublica(){
 
   html += '<div class="nom-sec-hdr">📌 Conceptos fijos ('+MESES[mes-1]+')</div>';
   fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+
+  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Días COMPE (LD) de '+MESES[mes-1]+'</div>'
+    + '<div class="nom-row-sub">'+(refInfoPub.manual ? 'Puesto a mano · ' : 'Detectados del calendario · ')+'referencia '+refInfoPub.ref.toFixed(1)+'h de 163h ('+(pctFijosParaMostrar).toFixed(1)+'%)</div></div>'
+    + '<div style="display:flex;align-items:center;gap:6px">'
+    + '<input class="nom-input-mini" id="nompub-compe-dias" value="'+refInfoPub.diasCompe+'" onchange="_nominaPubActualizarCompeDias()"> días'
+    + (refInfoPub.manual ? '<span class="nom-compe-reset" onclick="_nominaPubResetCompeDias()" title="Volver a automático">↺</span>' : '')
+    + '</div></div>';
+
   if(!tieneCAPH){
     html += '<div class="nom-caph-hint" onclick="goP(\'ajustes\');abrirAjEconomia()">'
       + '¿Tienes <b>Complemento Ad Personam (CAPH)</b>? Actívalo y ponlo desde <u>Ajustes → Economía</u> y aparecerá aquí.'
@@ -7681,6 +7733,36 @@ function _nominaPubActualizarManual(){
   var irpfImporte = Math.round(bruto*irpfPct/100*100)/100;
   var neto = Math.round((bruto-ssImporte-cuota-irpfImporte)*100)/100;
   document.getElementById('nompub-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+}
+
+// NUEVO — días COMPE (LD) manuales por mes. A diferencia de Seg.
+// Social/IRPF/Cuota (que solo recalculan el Neto en vivo), cambiar
+// los días COMPE afecta a los Conceptos Fijos enteros (Salario Base,
+// Paga de Marzo, Verano...) — así que aquí se reconstruye toda la
+// pantalla con renderNominaPublica(). Por eso el campo usa "onchange"
+// (al salir del campo) y no "oninput" (cada tecla): reconstruir en
+// cada pulsación le quitaría el foco al campo mientras se escribe.
+function _nominaPubActualizarCompeDias(){
+  if(!nomM) return;
+  var claveMes = nomM.getFullYear()+'-'+String(nomM.getMonth()+1).padStart(2,'0');
+  var inputEl = document.getElementById('nompub-compe-dias');
+  if(!inputEl) return;
+  var val = inputEl.value.trim();
+  if(val===''){
+    delete _diasCompeManual[claveMes];
+  } else {
+    _diasCompeManual[claveMes] = parseFloat(val)||0;
+  }
+  _guardarDiasCompeManual();
+  renderNominaPublica();
+}
+// Vuelve al conteo automático (borra el valor manual de este mes).
+function _nominaPubResetCompeDias(){
+  if(!nomM) return;
+  var claveMes = nomM.getFullYear()+'-'+String(nomM.getMonth()+1).padStart(2,'0');
+  delete _diasCompeManual[claveMes];
+  _guardarDiasCompeManual();
+  renderNominaPublica();
 }
 
 // Abre el acordeón "Economía" de Ajustes (usado por el enlace del
