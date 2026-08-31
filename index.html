@@ -3493,24 +3493,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="mn-btn" onclick="chSM(1)">›</button>
     </div>
     <div class="st-body">
-      <button id="btnAuditoriaHoras" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.4);color:#93C5FD" onclick="toggleAuditoriaHoras()">🔍 Auditoría de Horas</button>
-      <div id="auditoria-horas-panel" style="display:none;margin-bottom:10px"></div>
+      <!-- QUITADO — Confirmado por el usuario: la Auditoría de Horas
+           se movió a la pantalla de Nómina (ver renderNominaPublica),
+           ya no vive aquí en Stats. -->
 
-      <!-- ── NUEVO — Comparativa con Cómputo Oficial (Excel) ──
-           Módulo aditivo e independiente de "Auditoría de Horas" de
-           arriba (que compara App vs. PDF). Este compara App vs. el
-           Excel "ComputoTurnos_XXXXX_AAAAMM.xlsx" oficial de Serveo,
-           día a día, reutilizando exclusivamente calcularJornadaDiaria()
-           y calculateEarnings() ya existentes — sin duplicar ni un
-           carácter de esa matemática. No escribe en TV ni en ningún
-           dato de la app: es de solo lectura. -->
-      <!-- APAGADO — Confirmado por Alex (Estilo A): el botón "¿Qué
-           significa cada cuenta?" se movió al Tutorial (ver
-           renderTutorial/abrirTutorial) — aquí ya no aparece. El
-           overlay ov-guia-cuentas y su contenido siguen exactamente
-           igual, solo cambió desde dónde se abre. -->
-      <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
-      <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:transparent;border:1px dashed rgba(217,119,6,.4);color:#FCD34D;font-size:12px;padding:10px" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
+      <!-- QUITADO — Confirmado por el usuario: la Comparativa con
+           Cómputo Oficial (Excel) se movió a la pantalla de Nómina,
+           debajo de la Auditoría de Horas — ya no vive aquí. -->
       <!-- NUEVO — Nómina Estimada, confirmada con Alex tras varias
            rondas de maqueta. Reutiliza el Cómputo Excel ya subido
            (mismo _computoExcelPorMes que ya existe) para la pestaña
@@ -3521,7 +3510,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
            esté bien afinado (oculto por defecto con display:none;
            se muestra desde loadAjUI() si hay sesión de admin real). -->
       <button id="btnNominaEstimada" class="upload-btn" style="width:100%;justify-content:center;margin-bottom:10px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);color:#86efac;display:none" onclick="abrirNominaEstimada()">💶 Nómina Estimada</button>
-      <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
       <div id="role-card"></div>
       <div class="sg" id="sg"></div>
       <div id="cs-box"></div>
@@ -3531,10 +3519,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
            Rebase y Plus Traslación, calculados desde el calendario. -->
       <div id="cs-rebase-box"></div>
       <div id="cs-plustrasl-box"></div>
-      <!-- FIX — Confirmado por Alex: Conceptos Fijos de Nómina es
-           visible para todo el mundo, no solo el administrador
-           (a diferencia de Rebase/Plus Traslación, justo arriba). -->
-      <div id="cs-fijos-box"></div>
+      <!-- QUITADO — Confirmado por el usuario: Conceptos Fijos de
+           Nómina se movió a la pantalla de Nómina; ya no se duplica
+           aquí en Stats. -->
       <div id="cs-pluses-box"></div>
       <div id="htdl-dias-stats-box"></div>
       <div id="cs-info-adicional-box"></div>
@@ -3567,6 +3554,16 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="mn-btn" onclick="chNomM(1)">›</button>
     </div>
     <div id="nomina-pub-body"></div>
+
+    <div class="nom-sec-hdr" style="margin-top:6px">🔍 Auditoría de Horas</div>
+    <div id="nomina-auditoria-box"></div>
+
+    <!-- MOVIDO — Confirmado por el usuario: Comparativa con Cómputo
+         Oficial (Excel), antes en Stats, ahora aquí debajo de la
+         Auditoría de Horas. Solo lectura, no escribe en TV. -->
+    <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
+    <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin:10px 0;background:transparent;border:1px dashed rgba(217,119,6,.4);color:#FCD34D;font-size:12px;padding:10px" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
+    <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
 
     <div class="nom-sec-hdr" style="margin-top:6px">🧾 Nómina Real — para comparar tú mismo</div>
     <div id="nomina-real-pub-wrap"></div>
@@ -7630,14 +7627,6 @@ function renderNominaPublica(){
   }
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
 
-  // NUEVO — días COMPE (LD) del mes que se está viendo. Esta cifra NO
-  // afecta a los Conceptos Fijos (el usuario detectó y corrigió ese
-  // error) — se deja calculada y disponible aquí para el día en que
-  // se añada la Hora Extraordinaria a esta pantalla (donde SÍ se
-  // usa de verdad, igual que ya hace la pestaña Excel de Admin), pero
-  // de momento no se muestra ninguna fila para ella en Nómina.
-  var refInfoPub = _nominaJornadaRefAjustada(anio, mes);
-
   // Variables: se pagan a mes vencido — lo trabajado el mes ANTERIOR
   // es lo que se cobra en la nómina de este mes.
   var mesTrabajado = _nominaMesAnterior(anio, mes);
@@ -7650,6 +7639,11 @@ function renderNominaPublica(){
   var art5152Importe = _nominaArt5152Importe(ks);
   var totalVariablesResto = earn.totalNoc + earn.totalAct + earn.totalJT + earn.totalIntl;
 
+  // QUITADO — Confirmado por el usuario: Hora Extraordinaria y el campo
+  // manual de días COMPE ya no van aquí. La referencia ajustada por
+  // días COMPE sigue existiendo, pero ahora solo se usa de forma
+  // informativa en la Auditoría de Horas (más abajo en esta misma
+  // pantalla), no para calcular ningún pago.
   var bruto = Math.round((totalFijos + htdlPuro.importe + art5152Importe + totalVariablesResto)*100)/100;
 
   var mv = _nominaValoresManuales;
@@ -7697,6 +7691,17 @@ function renderNominaPublica(){
   window._nominaPubBruto = bruto;
   body.innerHTML = html;
 
+  // MOVIDO — Confirmado por el usuario: Auditoría de Horas, antes en
+  // Stats, ahora vive aquí. Puramente informativa — no toca el Bruto/
+  // Neto de arriba. renderAuditoriaHoras() ya calcula el mes trabajado
+  // por su cuenta a partir de nomM, así que no hace falta pasarle nada.
+  renderAuditoriaHoras();
+
+  // MOVIDO — Confirmado por el usuario: Comparativa con Cómputo Excel,
+  // justo debajo de la Auditoría de Horas. También decide por sí sola
+  // si mostrarse u ocultarse, según el mes trabajado de nomM.
+  renderComparativaComputoExcel();
+
   // NUEVO — Nómina Real (PDF/foto), movida aquí abajo desde Stats →
   // Admin. Se indexa por el MISMO mes que se está viendo (el mes de
   // cobro), igual que hacía la versión de Admin con statsM — solo que
@@ -7727,16 +7732,18 @@ function _nominaPubActualizarManual(){
   document.getElementById('nompub-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 }
 
-// NUEVO — días COMPE (LD) manuales por mes. A diferencia de Seg.
-// Social/IRPF/Cuota (que solo recalculan el Neto en vivo), cambiar
-// los días COMPE afecta a los Conceptos Fijos enteros (Salario Base,
-// Paga de Marzo, Verano...) — así que aquí se reconstruye toda la
-// pantalla con renderNominaPublica(). Por eso el campo usa "onchange"
-// (al salir del campo) y no "oninput" (cada tecla): reconstruir en
-// cada pulsación le quitaría el foco al campo mientras se escribe.
+// NUEVO — días COMPE (LD) manuales por mes. Afecta a la Hora
+// Extraordinaria del "mes trabajado" (nomM menos 1 mes, ya que las
+// variables se cobran a mes vencido) — no al mes que se está viendo
+// en pantalla, ni a los Conceptos Fijos. Cambiar este valor reconstruye
+// toda la pantalla con renderNominaPublica(). Por eso el campo usa
+// "onchange" (al salir del campo) y no "oninput" (cada tecla):
+// reconstruir en cada pulsación le quitaría el foco al campo mientras
+// se escribe.
 function _nominaPubActualizarCompeDias(){
   if(!nomM) return;
-  var claveMes = nomM.getFullYear()+'-'+String(nomM.getMonth()+1).padStart(2,'0');
+  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+  var claveMes = mesTrab.anio+'-'+String(mesTrab.mes).padStart(2,'0');
   var inputEl = document.getElementById('nompub-compe-dias');
   if(!inputEl) return;
   var val = inputEl.value.trim();
@@ -7751,7 +7758,8 @@ function _nominaPubActualizarCompeDias(){
 // Vuelve al conteo automático (borra el valor manual de este mes).
 function _nominaPubResetCompeDias(){
   if(!nomM) return;
-  var claveMes = nomM.getFullYear()+'-'+String(nomM.getMonth()+1).padStart(2,'0');
+  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+  var claveMes = mesTrab.anio+'-'+String(mesTrab.mes).padStart(2,'0');
   delete _diasCompeManual[claveMes];
   _guardarDiasCompeManual();
   renderNominaPublica();
@@ -16538,29 +16546,19 @@ function renderStats(){
   document.getElementById('cs-noc-box').innerHTML=desNoc;
   document.getElementById('cs-rebase-box').innerHTML=desRebase;
   document.getElementById('cs-plustrasl-box').innerHTML=desTrasl;
-  // FIX — Confirmado por Alex: "Conceptos Fijos de Nómina" NO es
-  // solo-admin — lo puede ver cualquier tripulante, igual que HTDL o
-  // Nocturnidad. Solo Rebase y Plus Traslación (más arriba en esta
-  // misma función) se quedan restringidos a admin — eso no se toca.
-  // Reutiliza _nominaConceptosFijos() (ya existente, usada en Nómina
-  // Estimada) — no se reinventa el cálculo.
-  var cajaFijos = document.getElementById('cs-fijos-box');
-  if(cajaFijos) renderConceptosFijosStats(cajaFijos);
+  // QUITADO — Confirmado por el usuario: "Conceptos Fijos de Nómina"
+  // ya no se pinta aquí en Stats (`cs-fijos-box` no existe), porque
+  // ahora vive en la pantalla de Nómina. La función renderConceptosFijosStats()
+  // se deja sin usar, por si se necesita en el futuro.
   document.getElementById('cs-pluses-box').innerHTML=desPlus;
   document.getElementById('cs-info-adicional-box').innerHTML=desInfo;
   document.getElementById('cs-total-pagar-box').innerHTML=desTotal;
 
-  // La Auditoría de Horas usa el mismo mes visible que Estadísticas
-  // (statsM). Si el panel está cerrado, renderAuditoriaHoras() no hace
-  // nada (early-return propio) — llamarla aquí es seguro siempre.
-  renderAuditoriaHoras();
+  // QUITADO — la Auditoría de Horas se movió a Nómina (renderNominaPublica);
+  // ya no se llama aquí.
 
-  // NUEVO — misma idea para la Comparativa con Cómputo Excel: se
-  // re-evalúa cada vez que cambia el mes visible, para que el Excel
-  // subido SOLO se muestre cuando coincide con el mes que estás
-  // mirando (si subiste el de julio y navegas a agosto, desaparece
-  // solo; si vuelves a julio, reaparece — sin volver a subir nada).
-  renderComparativaComputoExcel();
+  // QUITADO — la Comparativa con Cómputo Excel también se movió a
+  // Nómina (renderNominaPublica); ya no se llama aquí.
 }
 
 function chSM(d){statsM.setMonth(statsM.getMonth()+d);renderStats();}
@@ -20994,38 +20992,34 @@ function _duracionDHLegacy(dh){
    No escribe en ningún sitio — es puramente informativa.
 ═══════════════════════════════════════════════════════════ */
 async function toggleAuditoriaHoras(){
-  var panel = document.getElementById('auditoria-horas-panel');
-  if(!panel) return;
-  var abierto = panel.style.display !== 'none';
-  if(abierto){ panel.style.display='none'; return; }
-  panel.style.display='block';
-  await renderAuditoriaHoras();
+  // QUITADO — ya no existe el botón/panel colapsable de Stats. Se deja
+  // la función por compatibilidad (no-op) por si algo la sigue llamando.
+  return;
 }
 
+// MOVIDO — Confirmado por el usuario: esta auditoría vivía en Stats
+// (con su propio botón/panel colapsable) y ahora vive SIEMPRE VISIBLE
+// dentro de la pantalla de Nómina, comparando el mes TRABAJADO (el
+// mismo mes que ya usan HTDL/Nocturnidad/Art.51-52 ahí, por pagarse a
+// mes vencido) — no el mes de cobro que se está viendo.
 async function renderAuditoriaHoras(){
-  var panel = document.getElementById('auditoria-horas-panel');
-  if(!panel || panel.style.display==='none') return;
+  var panel = document.getElementById('nomina-auditoria-box');
+  if(!panel) return;
 
-  // Mes visible del Calendario/Estadísticas — variable statsM. Es el
-  // mes que filtra el array de servicios (TV) para la columna App.
-  var y=statsM.getFullYear(), m=statsM.getMonth()+1;
+  if(!nomM) nomM = new Date();
+  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+  var y = mesTrab.anio, m = mesTrab.mes;
   var mesVisibleLbl = MESES[m-1]+' '+y;
+  var fechaRefMes = new Date(y, m-1, 1);
 
-  // Columna A — PDF Oficial: indexado estrictamente por el mismo mes
-  // visible que la columna App (statsM). Ya NO se lee currentMonthKey
-  // — ese era el bug: currentMonthKey es el selector de la pestaña
-  // Horario individual, independiente del mes que navegas aquí, y
-  // podía dejar la Auditoría "pegada" al último PDF visto en esa
-  // pestaña en vez del mes que realmente estás mirando.
-  var data = await buscarPdfDelMes(statsM);
+  // Columna A — PDF Oficial: indexado por el mes TRABAJADO.
+  var data = await buscarPdfDelMes(fechaRefMes);
   var meta = (data && data.meta) ? data.meta : {};
   var pdfEfectivas = meta.totalHE || 'No registrado';
   var pdfPresencia = meta.totalHP || 'No registrado';
   var pdfMesLbl = meta.mes || 'sin PDF para este mes';
 
-  // Columna B — Registro App (calendario): variable ya existente, sin
-  // recalcular. Filtrada exclusivamente por el mes visible (statsM):
-  // solo entran las claves de TV cuyo prefijo AÑO-MES coincide.
+  // Columna B — Registro App (calendario): mismo mes trabajado.
   var pref=y+'-'+pad(m);
   var ksCal=Object.keys(TV).filter(function(k){return k.startsWith(pref);});
   var eCal = calculateEarnings(ksCal);
@@ -21039,6 +21033,11 @@ async function renderAuditoriaHoras(){
   var htdlEfectivas = _minToHoras(eCal.efectivasHTDLMin) || '00:00';
   var htdlPresencia = _minToHoras(eCal.presenciaHTDLMin) || '00:00';
 
+  // Columna C — Referencia ajustada (163h − 5,5h × días COMPE de ESTE
+  // mes trabajado). Puramente informativa — no calcula ningún pago.
+  var refInfoAud = _nominaJornadaRefAjustada(y, m);
+  var refAjustadaLbl = refInfoAud.ref.toFixed(1)+'h'+(refInfoAud.diasCompe>0 ? ' (163h − '+refInfoAud.diasCompe+'×5,5h)' : '');
+
   panel.innerHTML =
     '<div class="cs-box">'
     +'<div class="cs-t">Auditoría de Horas · '+mesVisibleLbl+'</div>'
@@ -21047,18 +21046,22 @@ async function renderAuditoriaHoras(){
       +'<td style="padding:6px 4px;color:var(--tx3)"></td>'
       +'<td style="padding:6px 4px;color:var(--acc2);font-weight:800;text-align:center">PDF Oficial<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+pdfMesLbl+'</span></td>'
       +'<td style="padding:6px 4px;color:var(--green2);font-weight:800;text-align:center">Registro App<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">'+mesVisibleLbl+'</span></td>'
+      +'<td style="padding:6px 4px;color:#c4b5fd;font-weight:800;text-align:center">Ref. Ajustada<br><span style="font-weight:600;font-size:9px;color:var(--tx3)">163h − COMPE</span></td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Efectivas</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfEfectivas+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appEfectivas+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:#c4b5fd">'+refAjustadaLbl+'</td>'
     +'</tr>'
     +'<tr style="border-top:1px solid var(--div)">'
       +'<td style="padding:8px 4px;color:var(--tx2)">Horas Presencia</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--acc2)">'+pdfPresencia+'</td>'
       +'<td style="padding:8px 4px;text-align:center;font-weight:800;color:var(--green2)">'+appPresencia+'</td>'
+      +'<td style="padding:8px 4px;text-align:center;color:var(--tx3);font-size:10px">—</td>'
     +'</tr>'
     +'</table>'
+    +'<div style="margin-top:8px;font-size:9.5px;color:var(--tx3);line-height:1.5">📐 Si los tres números de Horas Efectivas coinciden (PDF, App y Referencia Ajustada), tu calendario está completo y vas a cobrar el Salario Base íntegro ese mes. Esto no calcula ningún pago — es solo para que compares tú mismo.</div>'
     +'<div style="height:1px;background:var(--div);margin:10px 0"></div>'
     +'<div style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--amber2);margin-bottom:6px">HTDL (HORAS EN DÍAS DE DESCANSO) · INDEPENDIENTE DE LA JORNADA ORDINARIA</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px">'
@@ -21155,10 +21158,13 @@ function handleComputoExcelUpload(file){
       var claveMes = parsed.y+'-'+pad(parsed.m);
       _computoExcelPorMes[claveMes] = parsed;
       _guardarComputoExcelPorMes();
-      renderComparativaComputoExcel(); // decide por sí sola si mostrar u ocultar, según el mes visible
-      var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
-      if(parsed.y!==yVisible || parsed.m!==mVisible){
-        alert('Excel de '+parsed.mesLbl+' guardado. Se mostrará automáticamente cuando navegues a '+parsed.mesLbl+' en Estadísticas.');
+      renderComparativaComputoExcel(); // decide por sí sola si mostrar u ocultar, según el mes trabajado
+      // MOVIDO — el aviso ahora compara contra el mes TRABAJADO que
+      // muestra Nómina (nomM menos un mes), no contra Estadísticas.
+      if(!nomM) nomM = new Date();
+      var mesTrabAviso = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+      if(parsed.y!==mesTrabAviso.anio || parsed.m!==mesTrabAviso.mes){
+        alert('Excel de '+parsed.mesLbl+' guardado. Se mostrará automáticamente en Nómina cuando esa nómina corresponda a lo trabajado en '+parsed.mesLbl+'.');
       }
     }catch(err){
       console.log('Error leyendo Cómputo Excel:', err);
@@ -21275,11 +21281,16 @@ function renderComparativaComputoExcel(){
   var panel=document.getElementById('computo-excel-panel');
   if(!panel) return;
 
-  // El Excel a mostrar es el que corresponda al mes visible de
-  // Estadísticas (statsM), buscado directamente en el almacén
-  // persistente por mes — así sobrevive a recargar la página y
-  // aparece solo, sin volver a subir nada, en cuanto navegas a ESE mes.
-  var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
+  // MOVIDO — Confirmado por el usuario: el Excel a mostrar es el que
+  // corresponda al mes TRABAJADO de Nómina (nomM menos un mes, ya que
+  // las variables se cobran a mes vencido) — igual criterio que ya
+  // usa la Auditoría de Horas justo arriba en esta misma pantalla.
+  // Buscado directamente en el almacén persistente por mes — así
+  // sobrevive a recargar la página y aparece solo, sin volver a
+  // subir nada, en cuanto navegas a ESE mes trabajado.
+  if(!nomM) nomM = new Date();
+  var mesTrabExcel = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+  var yVisible=mesTrabExcel.anio, mVisible=mesTrabExcel.mes;
   var claveMes = yVisible+'-'+pad(mVisible);
   var datos = _computoExcelPorMes[claveMes];
   if(!datos){ panel.style.display='none'; return;
