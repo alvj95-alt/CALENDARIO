@@ -6488,10 +6488,15 @@ const TIPO_INFO={
 // propiedad nueva justo después de su declaración.
 TIPO_INFO.art5152 = {ico:'⚖️', lbl:'Art. 51/52', col:'var(--acc3)', cls:'dc-art5152'};
 // ── PLUSES: Activación, Internacional, JT — fijos por viaje ──
+// FIX — Confirmado por el usuario: estos tres pluses son el MISMO
+// importe para los tres roles (no varían por categoría), verificado
+// contra el convenio: Plus Activación = Art. 53 (PTVP), 44,31 € "para
+// toda la vigencia del convenio y para los trabajadores afectados por
+// el mismo" — coincide exacto y confirma que NO depende del rol.
 const PLUS_DEF={
-  tripulante:{activacion:3.20,internacional:4.50,jt:2.80},
-  auxiliar:  {activacion:2.60,internacional:3.80,jt:2.20},
-  jefe:      {activacion:3.20,internacional:4.50,jt:2.80}, // mismos valores que Tripulante (cartel UGT: mismas tarifas por hora)
+  tripulante:{activacion:44.31,internacional:16.00,jt:16.73},
+  auxiliar:  {activacion:44.31,internacional:16.00,jt:16.73},
+  jefe:      {activacion:44.31,internacional:16.00,jt:16.73},
 };
 const PLUS_LABELS={activacion:'Plus Activación',internacional:'Plus Internacional',jt:'Plus JT'};
 
@@ -6561,6 +6566,35 @@ var AJ=Object.assign({
     AJ.vh = t.vh;
     AJ.nocturnidad = t.nocturnidad;
     AJ.art5152Monto = t.art5152Monto;
+  }
+})();
+
+// FIX — Confirmado por el usuario: Plus Activación/Internacional/JT
+// deben valer lo MISMO en los tres roles (verificado contra el
+// convenio — Activación coincide exacto con el Art. 53, PTVP: 44,31€
+// "para toda la vigencia del convenio y para los trabajadores
+// afectados por el mismo", que ya de por sí confirma que NO depende
+// del rol). Como AJ.pluses.tripulante/auxiliar ya venían GUARDADOS en
+// localStorage con los valores viejos (distintos por rol) desde la
+// primera vez que se abrió la app, cambiar solo PLUS_DEF no bastaba
+// — el valor guardado seguía mandando. Aquí se migran los importes
+// SOLO si siguen siendo exactamente los valores viejos por defecto
+// (si el usuario los cambió a mano alguna vez, nunca se tocan).
+(function(){
+  var VIEJOS = {
+    tripulante:{activacion:3.20,internacional:4.50,jt:2.80},
+    auxiliar:  {activacion:2.60,internacional:3.80,jt:2.20},
+  };
+  var tocado = false;
+  ['tripulante','auxiliar'].forEach(function(rol){
+    var p = AJ.pluses[rol], v = VIEJOS[rol];
+    if(p && p.activacion===v.activacion && p.internacional===v.internacional && p.jt===v.jt){
+      AJ.pluses[rol] = Object.assign({}, PLUS_DEF[rol]);
+      tocado = true;
+    }
+  });
+  if(tocado){
+    try{ localStorage.setItem('aj5', JSON.stringify(AJ)); }catch(e){}
   }
 })();
 
@@ -7666,9 +7700,13 @@ function renderNominaPublica(){
   html += _nominaFila('🏆 HTDL', htdlPuro.horas.toLocaleString('es-ES')+' h × '+t.vh.toFixed(2)+' €', htdlPuro.importe);
   html += _nominaFila('🌙 Nocturnidad', null, earn.totalNoc);
   html += _nominaFila('📄 Art. 51-52', null, art5152Importe);
-  if(earn.totalAct>0) html += _nominaFila('🔘 Plus Activación', null, earn.totalAct);
-  if(earn.totalJT>0) html += _nominaFila('👔 Plus JT', null, earn.totalJT);
-  if(earn.totalIntl>0) html += _nominaFila('🌍 Plus Internacional', null, earn.totalIntl);
+  // FIX — Confirmado por el usuario: Activación/JT/Internacional deben
+  // verse SIEMPRE, igual que HTDL/Nocturnidad/Art.51-52 (antes solo
+  // aparecían si eran >0€, así que algunos meses "desaparecían" en vez
+  // de mostrar 0,00 €, mientras las otras tres sí se veían siempre).
+  html += _nominaFila('🔘 Plus Activación', null, earn.totalAct);
+  html += _nominaFila('👔 Plus JT', null, earn.totalJT);
+  html += _nominaFila('🌍 Plus Internacional', null, earn.totalIntl);
 
   html += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO</span><span class="nom-total-bruto-val" id="nompub-bruto-val">'+bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
 
