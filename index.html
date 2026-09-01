@@ -2950,6 +2950,47 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .nom-badge-prev{display:inline-block;font-size:8.5px;font-weight:800;color:var(--nar3);background:rgba(249,115,22,.16);border-radius:6px;padding:2px 6px;margin-left:4px;text-transform:none;letter-spacing:0}
 .nom-nota-precision{margin:2px 16px 14px;padding:10px 12px;background:var(--s1);border:1px solid var(--div);border-radius:10px;font-size:10.5px;color:var(--tx2);line-height:1.55}
 .nom-compe-reset{font-size:14px;color:var(--acc3);cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(37,99,235,.12)}
+
+/* NUEVO — Confirmado por el usuario: rediseño "paso a paso" de Nómina,
+   pensado para que también lo entiendan personas mayores — números
+   grandes, palabras normales, un paso a la vez en vez de todo junto. */
+.ns-step{display:flex;gap:12px;margin-bottom:2px}
+.ns-line{display:flex;flex-direction:column;align-items:center;width:32px;flex-shrink:0}
+.ns-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:#fff;flex-shrink:0}
+.ns-num.n1{background:var(--acc)}
+.ns-num.n2{background:#16a34a}
+.ns-num.n3{background:#dc2626}
+.ns-num.n4{background:#d97706}
+.ns-connector{width:2px;flex:1;background:var(--div);margin:2px 0;min-height:16px}
+.ns-body{flex:1;padding-bottom:18px;min-width:0}
+.ns-tit{font-size:15px;font-weight:800;margin-bottom:3px;padding-top:4px;color:var(--tx)}
+.ns-sub{font-size:11.5px;color:var(--tx3);margin-bottom:8px;line-height:1.4}
+.ns-card{background:var(--s1);border:1px solid var(--div);border-radius:14px;padding:2px 14px}
+.ns-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;font-size:13px;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.ns-row:last-child{border-bottom:none}
+.ns-row-lbl{color:var(--tx2)}
+.ns-row-lbl small{color:var(--tx3);font-weight:500}
+.ns-row-val{font-weight:800;color:var(--tx);font-variant-numeric:tabular-nums}
+.ns-mini-inp{width:46px;background:var(--s2);border:1px dashed var(--tx3);border-radius:7px;color:var(--tx);
+  font-size:13px;font-weight:800;text-align:center;padding:4px 3px;margin-right:2px;font-variant-numeric:tabular-nums}
+.ns-final{background:linear-gradient(135deg,rgba(34,197,94,.18),rgba(34,197,94,.06));
+  border:2px solid rgba(34,197,94,.5);border-radius:16px;padding:20px 18px;text-align:center;margin:6px 0 8px}
+.ns-final-lbl{font-size:13px;color:#86efac;font-weight:700;margin-bottom:6px}
+.ns-final-val{font-size:30px;font-weight:900;color:#fff}
+
+.nom-extras-tit{font-size:12px;font-weight:800;color:var(--tx3);letter-spacing:.4px;text-transform:uppercase;
+  margin:20px 2px 10px}
+.nom-extra-btn{width:100%;display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--s1);
+  border:1px solid var(--div);border-radius:14px;margin-bottom:8px;text-align:left;cursor:pointer}
+.nom-extra-ico{width:36px;height:36px;border-radius:11px;background:rgba(124,58,237,.16);display:flex;
+  align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.nom-extra-txt{flex:1;min-width:0}
+.nom-extra-tit{font-size:13.5px;font-weight:700;color:var(--tx)}
+.nom-extra-sub{font-size:11px;color:var(--tx3);margin-top:1px}
+.nom-extra-arr{color:var(--tx3);font-size:15px;flex-shrink:0}
+.nom-extra-content{margin-bottom:10px}
 /* NUEVO — Nómina Estimada: tres tarjetas apiladas (Estilo 2, aprobado por Alex) */
 .n2-card{margin:12px 16px;border-radius:16px;overflow:hidden;border:1px solid var(--div)}
 .n2-card.excel{border-color:rgba(217,119,6,.4)}
@@ -3555,18 +3596,39 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
     <div id="nomina-pub-body"></div>
 
-    <div class="nom-sec-hdr" style="margin-top:6px">🔍 Auditoría de Horas</div>
-    <div id="nomina-auditoria-box"></div>
+    <div class="nom-extras-tit">¿Quieres comprobarlo mejor?</div>
+
+    <div class="nom-extra-btn" onclick="_nominaToggleExtra('nomina-auditoria-wrap')">
+      <div class="nom-extra-ico">🔍</div>
+      <div class="nom-extra-txt"><div class="nom-extra-tit">Comparar tus horas</div><div class="nom-extra-sub">Lo que dice el PDF de la empresa contra tu calendario</div></div>
+      <div class="nom-extra-arr" id="arr-nomina-auditoria-wrap">›</div>
+    </div>
+    <div id="nomina-auditoria-wrap" class="nom-extra-content" style="display:none">
+      <div id="nomina-auditoria-box"></div>
+    </div>
 
     <!-- MOVIDO — Confirmado por el usuario: Comparativa con Cómputo
          Oficial (Excel), antes en Stats, ahora aquí debajo de la
          Auditoría de Horas. Solo lectura, no escribe en TV. -->
-    <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
-    <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin:10px 0;background:transparent;border:1px dashed rgba(217,119,6,.4);color:#FCD34D;font-size:12px;padding:10px" onclick="document.getElementById('fileComputoExcel').click()">📊 Comparar con Cómputo Oficial (Excel)</button>
-    <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
+    <div class="nom-extra-btn" onclick="_nominaToggleExtra('nomina-excel-wrap')">
+      <div class="nom-extra-ico">📊</div>
+      <div class="nom-extra-txt"><div class="nom-extra-tit">Comparar con el Excel oficial</div><div class="nom-extra-sub">Si tienes el Cómputo Oficial de Serveo</div></div>
+      <div class="nom-extra-arr" id="arr-nomina-excel-wrap">›</div>
+    </div>
+    <div id="nomina-excel-wrap" class="nom-extra-content" style="display:none">
+      <input type="file" id="fileComputoExcel" style="display:none" onchange="handleComputoExcelUpload(this.files[0])">
+      <button id="btnComputoExcel" class="upload-btn" style="width:100%;justify-content:center;margin:0 0 10px;background:transparent;border:1px dashed rgba(217,119,6,.4);color:#FCD34D;font-size:12px;padding:10px" onclick="document.getElementById('fileComputoExcel').click()">📊 Subir Cómputo Oficial (Excel)</button>
+      <div id="computo-excel-panel" style="display:none;margin-bottom:10px"></div>
+    </div>
 
-    <div class="nom-sec-hdr" style="margin-top:6px">🧾 Nómina Real — para comparar tú mismo</div>
-    <div id="nomina-real-pub-wrap"></div>
+    <div class="nom-extra-btn" onclick="_nominaToggleExtra('nomina-real-wrap-outer')">
+      <div class="nom-extra-ico">🧾</div>
+      <div class="nom-extra-txt"><div class="nom-extra-tit">Comparar con tu nómina real</div><div class="nom-extra-sub">Sube el PDF o una foto de tu nómina de verdad</div></div>
+      <div class="nom-extra-arr" id="arr-nomina-real-wrap-outer">›</div>
+    </div>
+    <div id="nomina-real-wrap-outer" class="nom-extra-content" style="display:none">
+      <div id="nomina-real-pub-wrap"></div>
+    </div>
   </div>
 
   <!-- AJUSTES -->
@@ -7628,6 +7690,20 @@ function chNomM(delta){
   renderNominaPublica();
 }
 
+// NUEVO — Confirmado por el usuario: los tres apartados "para
+// comprobarlo mejor" (Auditoría de Horas, Excel oficial, Nómina Real)
+// empiezan cerrados, para que la pantalla principal quede simple.
+// Cada botón abre/cierra SOLO el suyo (no acordeón — pueden estar
+// varios abiertos a la vez sin problema).
+function _nominaToggleExtra(id){
+  var el = document.getElementById(id);
+  if(!el) return;
+  var abierto = el.style.display !== 'none';
+  el.style.display = abierto ? 'none' : 'block';
+  var arr = document.getElementById('arr-'+id);
+  if(arr) arr.textContent = abierto ? '›' : '⌄';
+}
+
 // Suma el importe en dinero de los registros de Art.51/52 (Dinero puro
 // y la parte Dinero de un Mix) dentro de un conjunto de claves de día
 // — mismo criterio que ya usa _renderArt5152Stats() en Stats.
@@ -7685,46 +7761,69 @@ function renderNominaPublica(){
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto - ssImporte - mv.cuotaSindical - irpfImporte)*100)/100;
 
-  var html = '<div class="nom-disclaimer">🧪 Estimación orientativa a partir de tu calendario — no sustituye tu nómina real. Los pluses se pagan a mes vencido: los de abajo corresponden a lo trabajado en <b>'+MESES[mesTrabajado.mes-1]+'</b>, que es lo que se cobra en esta nómina de '+MESES[mes-1]+'.</div>';
+  var html = '<div class="nom-disclaimer">🧪 Estimación orientativa a partir de tu calendario — no sustituye tu nómina real.</div>';
 
-  html += '<div class="nom-sec-hdr">📌 Conceptos fijos ('+MESES[mes-1]+')</div>';
-  fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
+  // NUEVO — Confirmado por el usuario: formato "paso a paso", pensado
+  // para que también lo entienda gente mayor — un paso a la vez, con
+  // palabras normales en el título y los nombres reales del convenio
+  // dentro de cada tarjeta (sin perder precisión, solo ordenado mejor).
 
+  // Paso 1 — Conceptos fijos
+  html += '<div class="ns-step"><div class="ns-line"><div class="ns-num n1">1</div><div class="ns-connector"></div></div>'
+    + '<div class="ns-body">'
+    + '<div class="ns-tit">Tu sueldo fijo</div>'
+    + '<div class="ns-sub">Esto lo cobras todos los meses, siempre igual</div>'
+    + '<div class="ns-card">';
+  fijos.forEach(function(f){
+    html += '<div class="ns-row"><span class="ns-row-lbl">'+f.label+'</span><span class="ns-row-val">'+f.val.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+  });
+  html += '</div>';
   if(!tieneCAPH){
     html += '<div class="nom-caph-hint" onclick="goP(\'ajustes\');abrirAjEconomia()">'
       + '¿Tienes <b>Complemento Ad Personam (CAPH)</b>? Actívalo y ponlo desde <u>Ajustes → Economía</u> y aparecerá aquí.'
       + '</div>';
   }
+  html += '</div></div>';
 
-  html += '<div class="nom-sec-hdr">⏱ Variables de '+MESES[mesTrabajado.mes-1]+' <span class="nom-badge-prev">se cobran ahora</span></div>';
-  html += _nominaFila('🏆 HTDL', htdlPuro.horas.toLocaleString('es-ES')+' h × '+t.vh.toFixed(2)+' €', htdlPuro.importe);
-  html += _nominaFila('🌙 Nocturnidad', null, earn.totalNoc);
-  html += _nominaFila('📄 Art. 51-52', null, art5152Importe);
-  // FIX — Confirmado por el usuario: Activación/JT/Internacional deben
-  // verse SIEMPRE, igual que HTDL/Nocturnidad/Art.51-52 (antes solo
-  // aparecían si eran >0€, así que algunos meses "desaparecían" en vez
-  // de mostrar 0,00 €, mientras las otras tres sí se veían siempre).
-  html += _nominaFila('🔘 Plus Activación', null, earn.totalAct);
-  html += _nominaFila('👔 Plus JT', null, earn.totalJT);
-  html += _nominaFila('🌍 Plus Internacional', null, earn.totalIntl);
+  // Paso 2 — Variables (mes vencido)
+  html += '<div class="ns-step"><div class="ns-line"><div class="ns-num n2">2</div><div class="ns-connector"></div></div>'
+    + '<div class="ns-body">'
+    + '<div class="ns-tit">+ Lo que trabajaste de más</div>'
+    + '<div class="ns-sub">De '+MESES[mesTrabajado.mes-1]+' — se cobra un mes después</div>'
+    + '<div class="ns-card">'
+    + '<div class="ns-row"><span class="ns-row-lbl">🏆 HTDL <small>(días libres trabajados)</small></span><span class="ns-row-val">'+htdlPuro.importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">🌙 Nocturnidad <small>(horas de noche)</small></span><span class="ns-row-val">'+earn.totalNoc.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">📄 Art. 51-52 <small>(cambios de descanso)</small></span><span class="ns-row-val">'+art5152Importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">🔘 Plus Activación</span><span class="ns-row-val">'+earn.totalAct.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">👔 Plus JT</span><span class="ns-row-val">'+earn.totalJT.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">🌍 Plus Internacional</span><span class="ns-row-val">'+earn.totalIntl.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '</div></div></div>';
 
-  html += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO</span><span class="nom-total-bruto-val" id="nompub-bruto-val">'+bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+  // Paso 3 — Deducciones (editables)
+  html += '<div class="ns-step"><div class="ns-line"><div class="ns-num n3">3</div><div class="ns-connector"></div></div>'
+    + '<div class="ns-body">'
+    + '<div class="ns-tit">− Lo que te descuentan</div>'
+    + '<div class="ns-sub">Esto puede variar cada mes — pon tú los números si los conoces</div>'
+    + '<div class="ns-card">'
+    + '<div class="ns-row"><span class="ns-row-lbl">Seg. Social</span><span class="ns-row-val"><input class="ns-mini-inp" id="nompub-ss-pct" value="'+mv.ssPct+'" oninput="_nominaPubActualizarManual()">%</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">IRPF</span><span class="ns-row-val"><input class="ns-mini-inp" id="nompub-irpf-pct" value="'+mv.irpfPct+'" oninput="_nominaPubActualizarManual()">%</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">Cuota Sindical</span><span class="ns-row-val"><input class="ns-mini-inp" id="nompub-cuota" value="'+mv.cuotaSindical+'" oninput="_nominaPubActualizarManual()">€</span></div>'
+    + '</div></div></div>';
 
-  html += '<div class="nom-sec-hdr">➖ Deducciones <span style="font-weight:600;text-transform:none;letter-spacing:0">✍️ tú pones los % / importes</span></div>';
-  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Seg. Social</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
-    +'<div><input class="nom-input-mini" id="nompub-ss-pct" value="'+mv.ssPct+'" oninput="_nominaPubActualizarManual()"> %</div></div>';
-  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">IRPF</div><div class="nom-row-sub">% sobre el Bruto</div></div>'
-    +'<div><input class="nom-input-mini" id="nompub-irpf-pct" value="'+mv.irpfPct+'" oninput="_nominaPubActualizarManual()"> %</div></div>';
-  html += '<div class="nom-row nom-row-manual"><div><div class="nom-row-label">Cuota Sindical</div><div class="nom-row-sub">Importe fijo</div></div>'
-    +'<div><input class="nom-input-mini" id="nompub-cuota" value="'+mv.cuotaSindical+'" oninput="_nominaPubActualizarManual()"> €</div></div>';
-
-  html += '<div class="nom-total-neto"><span class="nom-total-neto-lbl">TOTAL NETO ESTIMADO</span><span class="nom-total-neto-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+  // Paso 4 — Total final
+  html += '<div class="ns-step"><div class="ns-line"><div class="ns-num n4">4</div></div>'
+    + '<div class="ns-body" style="padding-bottom:0">'
+    + '<div class="ns-tit">= Lo que te queda</div>'
+    + '<div class="ns-final">'
+    + '<div class="ns-final-lbl">Vas a cobrar aproximadamente</div>'
+    + '<div class="ns-final-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
+    + '</div></div></div>';
 
   // NUEVO — Confirmado por Alex: nota aparte (no el disclaimer legal
   // de arriba, que habla de responsabilidad) explicando POR QUÉ el
   // estimado puede no cuadrar — todavía faltan variables por agregar
   // al cálculo que la Nómina Real (de abajo) ya trae calculadas.
-  html += '<div class="nom-nota-precision">📐 Este cálculo todavía no es 100% exacto: faltan por incorporar algunas variables que tu nómina real ya trae calculadas (por ejemplo Rebase, Plus Traslación u otros pluses puntuales). Usa la Nómina Real de abajo como referencia para comparar.</div>';
+  html += '<div class="nom-nota-precision">📐 Este cálculo todavía no es 100% exacto: faltan por incorporar algunas variables que tu nómina real ya trae calculadas (por ejemplo Rebase, Plus Traslación u otros pluses puntuales). Usa "Comparar con tu nómina real", más abajo, para comprobarlo.</div>';
 
   window._nominaPubBruto = bruto;
   body.innerHTML = html;
