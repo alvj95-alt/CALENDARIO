@@ -119,30 +119,38 @@ body.modo-interventor{
 }
 *,*::before,*::after{box-sizing:border-box}
 body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;align-items:center;min-height:100vh;min-height:100dvh}
-@media(min-width:480px){body{background:#060D18;padding:20px}
-  body::before{content:'TrenTurnos v5';display:block;text-align:center;font-size:11px;letter-spacing:3px;color:var(--tx3);margin-bottom:10px}}
 
-/* ── PHONE SHELL ── */
-/* FIX — Confirmado por Alex: los botones de abajo "saltaban" al subir
-   y bajar en móvil. Causa: "100vh" en el móvil se calcula sobre el
-   alto MÁXIMO posible de la pantalla (con la barra de direcciones
-   escondida), pero el hueco visible real cambia cuando esa barra
-   aparece o desaparece al hacer scroll — así que este contenedor
-   cambiaba de alto sobre la marcha, y todo lo que cuelga de su borde
-   inferior (como la barra de navegación) se movía con él. "dvh" (alto
-   de viewport DINÁMICO) sí se ajusta solo en tiempo real a como esté
-   el navegador en cada momento — se deja "100vh" primero como
-   respaldo para navegadores muy antiguos que no conozcan "dvh"
-   (si no lo entienden, lo ignoran y se quedan con "100vh"; si sí lo
-   entienden, la segunda línea gana). */
-.ph{width:min(390px,100vw);height:min(844px,100vh);height:min(844px,100dvh);
+/* ── RESPONSIVE — Confirmado por el usuario: la app entra tanto desde
+   el móvil como desde el PC, y tiene que funcionar bien en las dos.
+   Antes, .ph tenía un ancho fijo de 390px con esquinas redondeadas
+   simulando un teléfono — en el móvil eso ya ES la pantalla entera
+   (bien), pero en un ordenador quedaba una cajita pequeña flotando en
+   medio de mucho espacio vacío (mal). Se probó también quitar el
+   límite del todo (estirar a pantalla completa) — pero eso rompía
+   más de 50 ventanas emergentes (.sh, .confirm-sh, etc.) que usan
+   "100% de ancho": sin límite arriba, esas ventanas se estiraban de
+   punta a punta de un monitor grande.
+   Solución: .ph mide el 100% del ancho disponible SIEMPRE, pero con
+   un tope de 480px. En el móvil (pantallas más estrechas que eso) no
+   cambia nada — sigue ocupando toda la pantalla, igual que hasta
+   ahora. En el PC, se queda centrada con un ancho cómodo de lectura,
+   ni diminuta ni estirada — y como las 50+ ventanas emergentes miden
+   "100%" relativo a ESTE contenedor, quedan arregladas solas, sin
+   tocar ni una de ellas por separado. */
+.ph{width:100%;max-width:480px;height:100vh;height:100dvh; /* dvh se ajusta solo cuando la barra de direcciones del móvil aparece/desaparece; 100vh es el respaldo para navegadores muy antiguos que no conozcan dvh */
     background-color:var(--bg); /* respaldo sólido oscuro mientras carga el gradiente */
     background-image:linear-gradient(-45deg,#1A1A2E,#16213E,#0F3460,#16213E,#1A1A2E);
     background-size:400% 400%;
     animation:gradientAnimation 22s ease infinite;
-    border-radius:clamp(0px,44px,44px);
-    border:1.5px solid #1a2f50;overflow:hidden;position:relative;display:flex;flex-direction:column;
-    box-shadow:0 40px 120px rgba(0,0,0,.85)}
+    overflow:hidden;position:relative;display:flex;flex-direction:column}
+/* Solo en pantallas más anchas que la propia app (PC): un fondo algo
+   más oscuro alrededor y una sombra suave, para distinguir la app del
+   espacio vacío de los lados — sin bordes ni esquinas redondeadas que
+   compliquen el alto exacto de la pantalla. */
+@media(min-width:520px){
+  body{background:#060D18}
+  .ph{box-shadow:0 0 70px rgba(0,0,0,.55)}
+}
 
 @keyframes gradientAnimation{
   0%{background-position:0% 50%}
@@ -7869,39 +7877,6 @@ function _nominaPubActualizarManual(){
   document.getElementById('nompub-neto-val').textContent = neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
 }
 
-// NUEVO — días COMPE (LD) manuales por mes. Afecta a la Hora
-// Extraordinaria del "mes trabajado" (nomM menos 1 mes, ya que las
-// variables se cobran a mes vencido) — no al mes que se está viendo
-// en pantalla, ni a los Conceptos Fijos. Cambiar este valor reconstruye
-// toda la pantalla con renderNominaPublica(). Por eso el campo usa
-// "onchange" (al salir del campo) y no "oninput" (cada tecla):
-// reconstruir en cada pulsación le quitaría el foco al campo mientras
-// se escribe.
-function _nominaPubActualizarCompeDias(){
-  if(!nomM) return;
-  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
-  var claveMes = mesTrab.anio+'-'+String(mesTrab.mes).padStart(2,'0');
-  var inputEl = document.getElementById('nompub-compe-dias');
-  if(!inputEl) return;
-  var val = inputEl.value.trim();
-  if(val===''){
-    delete _diasCompeManual[claveMes];
-  } else {
-    _diasCompeManual[claveMes] = parseFloat(val)||0;
-  }
-  _guardarDiasCompeManual();
-  renderNominaPublica();
-}
-// Vuelve al conteo automático (borra el valor manual de este mes).
-function _nominaPubResetCompeDias(){
-  if(!nomM) return;
-  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
-  var claveMes = mesTrab.anio+'-'+String(mesTrab.mes).padStart(2,'0');
-  delete _diasCompeManual[claveMes];
-  _guardarDiasCompeManual();
-  renderNominaPublica();
-}
-
 // Abre el acordeón "Economía" de Ajustes (usado por el enlace del
 // aviso de CAPH dentro de Nómina, para llevar directo hasta el campo).
 function abrirAjEconomia(){
@@ -9345,15 +9320,6 @@ function _abrirCorreoMixArt5152(kIda, kVuelta, d, origenTipo){
   _abrirCorreoMixUnificado(kIda, kVuelta, mixInfo, origenTipo);
 }
 
-// ── Ajustes: guardado de los campos propios (no toca saveAj()) ──
-function guardarAjustesArt5152(){
-  var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
-  AJ.art5152Monto = iM ? (parseFloat(iM.value)||0) : (parseFloat(AJ.art5152Monto)||0);
-  AJ.art5152ValorBase = iB ? (parseFloat(iB.value)||0) : (parseFloat(AJ.art5152ValorBase)||0);
-  localStorage.setItem('aj5', JSON.stringify(AJ));
-  toast('✅ Ajustes de Art. 51/52 guardados');
-}
-
 // ── Enganche a loadAjUI() (rellenar campos) — wrapper, sin tocar el original ──
 if(typeof loadAjUI === 'function'){
   var _loadAjUI_base_art5152 = loadAjUI;
@@ -10586,19 +10552,6 @@ function guardarEdicionTren(idx){
   // reflejen el dato corregido de inmediato.
   if(typeof actualizarDatalistTrenes==='function') actualizarDatalistTrenes();
   toast('✅ Tren actualizado');
-}
-
-function searchByTrainNumber(n){
-  if(!n) return [];
-  var q = String(n).trim();
-  var exactas   = [];
-  var parciales = [];
-  for(var si=0; si<SF.length; si++){
-    var s = SF[si];
-    if(s.numTren === q)               exactas.push(s);
-    else if(s.numTren.indexOf(q)===0) parciales.push(s);
-  }
-  return exactas.concat(parciales).slice(0,6);
 }
 
 // NUEVO — autocompleta estación de inicio, estación final y horario
@@ -12853,12 +12806,6 @@ function toggleReservaActiva(activa){
   saveTV();
   selDay.t = TV[selDay.k];
   renderDiaArea();
-}
-function actualizarReservaHora(campo, valor){
-  if(!selDay||!selDay.t||selDay.t.tipo!=='reserva') return;
-  TV[selDay.k][campo] = valor.trim();
-  saveTV();
-  selDay.t = TV[selDay.k];
 }
 
 function convertirDescanso(){
@@ -18301,13 +18248,6 @@ function enviarSolicitudCompensacion(k){
 }
 
 
-function guardarCompanero(nombre,mat){
-  var e=null;for(var i=0;i<AGENDA.length;i++){if(AGENDA[i].matricula===mat&&mat){e=AGENDA[i];break;}}
-  if(e){e.nombre=nombre;e.ultimoUso=Date.now();saveAgenda();return e;}
-  var c={id:Date.now().toString(),nombre:nombre.trim(),matricula:mat.trim(),ultimoUso:Date.now()};
-  AGENDA.unshift(c);saveAgenda();return c;
-}
-
 function handleEmailSubmission(tit,sub,asunto,cuerpo,cb,mostrarPosponer){
   _emailCB=cb;
   document.getElementById('ec-tit').textContent=tit;
@@ -18689,18 +18629,6 @@ function getTV2Badge(kk){
   return (TV2[kk]&&TV2[kk].length)
     ? '<span style="position:absolute;bottom:1px;left:1px;font-size:7px;background:var(--acc);color:#fff;border-radius:4px;padding:0 3px;line-height:1.4;font-weight:800">+'+TV2[kk].length+'</span>'
     : '';
-}
-
-function getTV2HorasExtra(pref){
-  var total = 0;
-  var keys  = Object.keys(TV2);
-  for(var ii=0; ii<keys.length; ii++){
-    if(keys[ii].indexOf(pref)===0){
-      var arr = TV2[keys[ii]] || [];
-      for(var jj=0; jj<arr.length; jj++) total += arr[jj].horas || 0;
-    }
-  }
-  return Math.round(total*100)/100;
 }
 /* ═══════ FIN MÓDULO TV2 ════════════════════════════════════ */
 
@@ -20176,18 +20104,13 @@ function _pdfDetectarBloques(dias){
   return bloques;
 }
 
-// NOTA — Confirmado por Alex (27/08/2026): esta función YA NO se usa en
-// ningún punto de la carga automática de PDF. Adivinaba la estación de
-// llegada con el historial de Servicios Frecuentes (SF), que podía
-// sustituir en silencio el destino real del PDF por una ruta guardada de
-// otro momento con el mismo número de tren — bug real detectado por
-// Alex. Se deja definida sin llamadas, por si hiciera falta consultarla
-// en el futuro; no se borra para no tocar más de lo estrictamente
-// necesario (regla de oro).
-function _pdfBuscarLlegadaSF(tren){
-  var r = SF.filter(function(s){ return s.numTren===tren; })[0];
-  return r ? (r.lle||null) : null;
-}
+// NOTA — Confirmado por el usuario: se retira definitivamente
+// _pdfBuscarLlegadaSF() (limpieza de código sin usar). Adivinaba la
+// estación de llegada con el historial de Servicios Frecuentes (SF),
+// que podía sustituir en silencio el destino real del PDF por una
+// ruta guardada de otro momento con el mismo número de tren — bug
+// real detectado por Alex, ya corregido dejando de usar esta función
+// en la carga automática de PDF.
 
 /* ═══════════════════════════════════════════════════════════
    NUEVO — Detección de tramos DH a partir del propio código de
@@ -21107,15 +21030,6 @@ function _minToHoras(mins){
   var h = Math.floor(mins/60), m = mins%60;
   return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;
 }
-// Compatibilidad con validaciones DH guardadas antes de este cambio,
-// cuando el dato se guardaba como salida/llegada en vez de minutos.
-function _duracionDHLegacy(dh){
-  if(!dh || !dh.salida || !dh.llegada) return 0;
-  var s=_horasToMin(dh.salida), l=_horasToMin(dh.llegada);
-  if(s==null || l==null) return 0;
-  var d=l-s; if(d<0) d+=1440;
-  return d;
-}
 
 /* ═══════════════════════════════════════════════════════════
    AUDITORÍA DE HORAS — vista de solo lectura.
@@ -21128,11 +21042,6 @@ function _duracionDHLegacy(dh){
        calendario principal para Estadísticas).
    No escribe en ningún sitio — es puramente informativa.
 ═══════════════════════════════════════════════════════════ */
-async function toggleAuditoriaHoras(){
-  // QUITADO — ya no existe el botón/panel colapsable de Stats. Se deja
-  // la función por compatibilidad (no-op) por si algo la sigue llamando.
-  return;
-}
 
 // MOVIDO — Confirmado por el usuario: esta auditoría vivía en Stats
 // (con su propio botón/panel colapsable) y ahora vive SIEMPRE VISIBLE
@@ -21380,18 +21289,22 @@ function _parseComputoExcelFilas(filas){
   return {porDia:porDia, y:y, m:m, mesLbl:MESES[m-1]+' '+y};
 }
 
-function toggleComputoExcelPanel(){
-  var panel=document.getElementById('computo-excel-panel');
-  if(!panel) return;
-  panel.style.display = (panel.style.display==='none') ? 'block' : 'none';
-}
-
-// NUEVO — Quita SOLO la comparación del mes que estás viendo ahora
-// mismo (no borra nada de TV/AJ, ni los demás meses guardados). Si
-// subiste junio y julio, y quitas julio, junio sigue intacto.
+// FIX — Confirmado por el usuario: este botón sigue usando statsM (el
+// mes de Stats) para decidir qué comparación borrar, aunque la
+// Comparativa con Cómputo Excel ya no vive en Stats — ahora vive en
+// Nómina y se indexa por el mes TRABAJADO (nomM menos un mes, igual
+// que renderComparativaComputoExcel(), justo arriba). Con el bug, si
+// mirabas julio en Nómina pero statsM seguía en agosto (por ejemplo),
+// el botón "✕ Quitar esta comparación" borraba el Excel de agosto en
+// vez del de julio que estabas viendo — ahora usa el mismo criterio
+// que la propia pantalla que muestra el botón.
+// Quita SOLO la comparación del mes que estás viendo ahora mismo (no
+// borra nada de TV/AJ, ni los demás meses guardados). Si subiste
+// junio y julio, y quitas julio, junio sigue intacto.
 function quitarComputoExcel(){
-  var yVisible=statsM.getFullYear(), mVisible=statsM.getMonth()+1;
-  var claveMes = yVisible+'-'+pad(mVisible);
+  if(!nomM) nomM = new Date();
+  var mesTrab = _nominaMesAnterior(nomM.getFullYear(), nomM.getMonth()+1);
+  var claveMes = mesTrab.anio+'-'+pad(mesTrab.mes);
   delete _computoExcelPorMes[claveMes];
   _guardarComputoExcelPorMes();
   var panel=document.getElementById('computo-excel-panel');
@@ -23780,26 +23693,6 @@ function ciParsearTextoOcr(texto){
   return {filas:filas, reservas:reservas};
 }
 
-function ciAgruparPorPrimerTramo(filas){
-  var grupos = {}, orden = [];
-  filas.forEach(function(f){
-    var primero = (f.turno||'').split('-')[0] || '';
-    var key = (f.hora||'?')+'|'+(primero || ('__sin_leer_'+f.matricula));
-    if(!grupos[key]){ grupos[key]={hora:f.hora, primero:primero, personas:[]}; orden.push(key); }
-    grupos[key].personas.push(f);
-  });
-  var lista = orden.map(function(k){ return grupos[k]; });
-  function min(h){ var m=h&&h.match(/^(\d{1,2}):(\d{2})/); return m?(parseInt(m[1],10)*60+parseInt(m[2],10)):null; }
-  lista.sort(function(a,b){
-    var ma=min(a.hora), mb=min(b.hora);
-    if(ma===null && mb===null) return 0;
-    if(ma===null) return 1;
-    if(mb===null) return -1;
-    return ma-mb;
-  });
-  return lista;
-}
-
 // NUEVO — agrupado en DOS niveles para la vista "Vía" (maqueta
 // aprobada por Alex): primero por HORA de toma, y dentro de cada
 // hora, por primer tramo de tren — así un mismo tren que entra dos
@@ -24913,9 +24806,6 @@ function rechazarCargaNube(){
    un correo de confirmación real.
 ═══════════════════════════════════════════════════════════ */
 
-function _dominioInternoCuenta(matricula){
-  return matricula.trim() + '@interno.trenturnov5';
-}
 // NUEVO — cifra el PIN antes de guardarlo, para no tener nunca el PIN
 // en texto plano en la base de datos. Usa SHA-256 (disponible en
 // cualquier navegador moderno, sin librerías externas). No es
