@@ -7131,9 +7131,18 @@ function _esCodigoDeduccion(codigo, concepto){
 
 // NUEVO — mínimo, para diagnosticar el fallo del periodo con datos
 // reales en vez de seguir adivinando (confirmado por Alex).
+// FIX — Confirmado por el usuario: esta función seguía escribiendo
+// siempre en 'nomina-body' (el contenedor de la Nómina Estimada de
+// Admin), aunque la Nómina Real ya se movió a la pantalla pública —
+// ahí ese elemento no existe, así que el botón "Ver texto leído" no
+// hacía nada visible. Ahora usa _nominaRealStatusContainer(), la
+// misma función que ya decide el sitio correcto según quién lo pidió
+// (Admin o pantalla pública) — igual que hace el resto del flujo.
 function _nominaVerTextoCrudo(){
   var texto = window._nominaRealTextoCrudo || '(sin texto)';
-  document.getElementById('nomina-body').innerHTML =
+  var contenedor = _nominaRealStatusContainer();
+  if(!contenedor) return;
+  contenedor.innerHTML =
     '<div style="padding:10px 16px 4px;font-size:11px;color:var(--tx2)">Toca para seleccionar todo y copiarlo:</div>'
     + '<textarea readonly onclick="this.select()" style="width:calc(100% - 32px);margin:0 16px 14px;min-height:200px;background:var(--s2);border:1px solid var(--div);border-radius:8px;color:var(--tx2);font-family:monospace;font-size:10px;padding:8px;white-space:pre">'+texto.replace(/</g,'&lt;')+'</textarea>';
 }
@@ -7145,13 +7154,30 @@ function _nominaVerTextoCrudo(){
 async function procesarNominaRealImagen(file){
   if(!file) return;
   var statusDiv = _nominaRealStatusContainer();
-  if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px">📷 Leyendo la foto de tu nómina…</div>';
+  if(statusDiv) statusDiv.innerHTML = '<div style="padding:30px 20px;text-align:center;color:var(--tx3);font-size:12.5px" id="nomreal-ocr-status">📷 Leyendo la foto de tu nómina… 0%</div>';
   try{
-    var resultadoOcr = await Tesseract.recognize(file, 'spa');
+    // FIX — Confirmado por el usuario: esta lectura no mostraba ningún
+    // progreso mientras trabajaba (solo el mensaje fijo de arriba). Con
+    // una foto de nómina, que tiene bastante texto, Tesseract puede
+    // tardar 15-30 segundos — sin barra de progreso, parece que la app
+    // se ha quedado colgada aunque siga trabajando por dentro. Se añade
+    // el mismo "logger" con porcentaje que ya usa la lectura de fotos
+    // del Horario Individual, para que se note que sigue viva.
+    var resultadoOcr = await Tesseract.recognize(file, 'spa', {
+      logger: function(m){
+        var el = document.getElementById('nomreal-ocr-status');
+        if(el && m.status==='recognizing text'){
+          el.textContent = '📷 Leyendo la foto de tu nómina… '+Math.round((m.progress||0)*100)+'%';
+        }
+      }
+    });
     var fullText = resultadoOcr.data.text;
     var parseo = _parsearNominaRealTexto(fullText);
+    // FIX — Confirmado por el usuario: guardar el texto SIEMPRE, no
+    // solo cuando falla la detección del periodo (ver mismo fix en
+    // procesarNominaRealPdf, arriba).
+    window._nominaRealTextoCrudo = fullText;
     if(!parseo.claveMes){
-      window._nominaRealTextoCrudo = fullText;
       toast('⚠️ No se pudo leer el periodo en la foto');
       if(statusDiv) statusDiv.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
         +'⚠️ No se encontró el periodo en la foto.<br><br>'
@@ -7221,11 +7247,18 @@ async function procesarNominaRealPdf(file){
       fullText += '\n';
     }
     var parseo = _parsearNominaRealTexto(fullText);
+    // FIX — Confirmado por el usuario: antes el texto crudo solo se
+    // guardaba cuando fallaba la detección del periodo. Pero puede
+    // fallar algo MÁS ADENTRO (una línea concreta mal leída, aunque el
+    // periodo sí se detecte) sin que hubiera forma de ver el texto
+    // real para diagnosticarlo — como pasó con la línea negativa de la
+    // regularización, que desapareció sin que el aviso lo detectara.
+    // Ahora se guarda SIEMPRE, haya fallado o no.
+    window._nominaRealTextoCrudo = fullText;
     if(!parseo.claveMes){
       // NUEVO — Confirmado por Alex: en vez de seguir adivinando por
       // qué falla, se guarda el texto crudo para poder verlo y
       // mandármelo tal cual — mínimo añadido, nada de relleno.
-      window._nominaRealTextoCrudo = fullText;
       toast('⚠️ No se pudo leer el periodo del PDF');
       if(statusDiv) statusDiv.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3);font-size:11.5px">'
         +'⚠️ No se encontró el periodo en el PDF.<br><br>'
@@ -7249,7 +7282,12 @@ async function procesarNominaRealPdf(file){
 // ÚLTIMO número de la línea es el importe (devengo o deducción según
 // el código/concepto).
 function _parsearNominaRealTexto(texto){
-  var mPeriodo = texto.match(/PERIODO:\s*(\d{2}\.\d{2}\.\d{4})\s*a\s*(\d{2}\.\d{2}\.\d{4})/);
+  // FIX — Confirmado por el usuario con una foto real: el OCR a veces
+  // mete un guión largo "—" (u otro carácter suelto) entre "PERIODO:"
+  // y la fecha, ej. "PERIODO: — 01.08.2026 a 31.08.2026" — la
+  // expresión anterior solo aceptaba espacios ahí, así que fallaba
+  // SIEMPRE con fotos, aunque la fecha en sí se leyera perfectamente.
+  var mPeriodo = texto.match(/PERIODO:\s*[-—–:.]*\s*(\d{2}\.\d{2}\.\d{4})\s*a\s*(\d{2}\.\d{2}\.\d{4})/);
   var claveMes = null, periodoTexto = null;
   if(mPeriodo){
     var partes = mPeriodo[2].split('.'); // usa la fecha FIN del periodo para decidir el mes
@@ -7258,14 +7296,34 @@ function _parsearNominaRealTexto(texto){
   }
   var lineas = texto.split('\n');
   var devengos = [], deducciones = [];
-  var reLinea = /^([\/A-Z0-9]{3,5})\s+([A-ZÁÉÍÓÚÑ0-9./ ,\-]+?)\s+((?:[\d.]+,\d{2}\s*%?\s*)+)$/;
+  var lineasPerdidas = 0; // líneas que parecían de la tabla pero no se pudieron leer bien
+  var reLinea = /^([\/A-Z0-9]{3,5})\s+([A-ZÁÉÍÓÚÑ0-9./ ,\-]+?)\s+((?:[\d.]+,\d{2}\s*%?\s*)+-?)$/;
   lineas.forEach(function(linea){
     linea = linea.trim();
     if(!linea) return;
-    // Quita el prefijo "R " (reserva) de PERIODO si aparece al principio de la fila
+    // FIX — Confirmado por el usuario: antes se quitaba el prefijo "R"
+    // (Regularización — no "Reserva", como decía el comentario viejo)
+    // y se fundía silenciosamente con las líneas normales del mes. Eso
+    // producía conceptos duplicados sin explicación (dos "SALARIO
+    // BASE", uno positivo y otro con signo raro) y hacía que comparar
+    // esa nómina con el calendario o el Excel del mes NUNCA cuadrara,
+    // sin que la persona supiera por qué. Ahora se marca cada línea
+    // regularizada (esRegularizacion:true) en vez de esconderla.
+    var esRegularizacion = /^R\s+/.test(linea);
     var lineaLimpia = linea.replace(/^R\s+/, '');
     var m = lineaLimpia.match(reLinea);
-    if(!m) return;
+    if(!m){
+      // NUEVO — Confirmado por el usuario, con una foto real donde el
+      // OCR desfiguró 23 de 25 líneas de la tabla (comas perdidas,
+      // "0001" leído como letras, etc.): si una línea CLARAMENTE
+      // parecía una fila de la tabla (trae al menos un número con
+      // decimales tipo "1234,56") pero no encajó en el patrón, se
+      // cuenta como "línea perdida" — así se puede avisar de una
+      // lectura incompleta en vez de mostrar un desglose a medias
+      // como si estuviera completo.
+      if(/\d[.,]\d{2}/.test(linea)) lineasPerdidas++;
+      return;
+    }
     var codigo = m[1], concepto = m[2].trim();
     // Todos los números de la cola de la línea, en orden
     var numeros = (m[3].match(/[\d.]+,\d{2}/g)||[]).map(function(n){
@@ -7273,16 +7331,30 @@ function _parsearNominaRealTexto(texto){
     });
     if(!numeros.length) return;
     var importe = numeros[numeros.length-1]; // el importe siempre es el último número de la fila
+    // Detecta el signo "-" final en los devengos (ej. "59,80-"), que en
+    // esta nómina aparece para anular en un bloque lo que se sumó en
+    // el otro — sin esto, ese importe se contaría siempre en positivo.
+    if(/-\s*$/.test(m[3].trim())) importe = -importe;
     if(_esCodigoDeduccion(codigo, concepto)){
       // NUEVO — Confirmado por Alex: guardar también la base y el
       // porcentaje de cada deducción (cuando la fila los trae), no
       // solo el importe final — así se puede mostrar "4,85% sobre
       // 2.842,26 €" en vez de solo "-137,85 €".
-      var deduccion = {codigo:codigo, concepto:concepto, importe:importe};
+      var deduccion = {codigo:codigo, concepto:concepto, importe:importe, esRegularizacion:esRegularizacion};
       if(numeros.length>=3){ deduccion.base = numeros[0]; deduccion.porcentaje = numeros[1]; }
       deducciones.push(deduccion);
     } else {
-      devengos.push({codigo:codigo, concepto:concepto, importe:importe});
+      // NUEVO — Confirmado por el usuario: distingue HTDL normal
+      // (código 1182, voluntario) de HTDL Forzoso (código 118A —
+      // último recurso del protocolo de llamamiento del Art. 51, se
+      // paga a 1,5× la tarifa normal). El concepto ya viene tal cual
+      // del PDF ("HTDL" vs "HTDL FORZOSO"), así que basta con
+      // etiquetar cuál es cuál para poder tratarlas por separado en
+      // vez de sumarlas juntas sin distinción.
+      var esHTDLForzoso = codigo==='118A' || /FORZOSO/.test(concepto);
+      var esHTDL = codigo==='1182' || (!esHTDLForzoso && /^HTDL\b/.test(concepto));
+      devengos.push({codigo:codigo, concepto:concepto, importe:importe, esRegularizacion:esRegularizacion,
+        esHTDL:esHTDL, esHTDLForzoso:esHTDLForzoso});
     }
   });
   // FIX — probado con texto real: la fila de totales (T.DEVENGO) va
@@ -7292,14 +7364,132 @@ function _parsearNominaRealTexto(texto){
   // matemáticamente es el mismo número, y no depende de cómo el PDF
   // reparta las líneas.
   var bruto = Math.round(devengos.reduce(function(s,d){ return s+d.importe; }, 0)*100)/100;
+  // NUEVO — total y bandera de regularización: si hay alguna línea "R",
+  // se avisa en la tarjeta de que parte del importe de esta nómina no
+  // corresponde al mes en sí, sino a un ajuste de un mes anterior —
+  // así no sorprende que no cuadre con el calendario o el Excel de
+  // ESTE mes.
+  var lineasRegularizacion = devengos.filter(function(d){return d.esRegularizacion;})
+    .concat(deducciones.filter(function(d){return d.esRegularizacion;}));
+  var tieneRegularizacion = lineasRegularizacion.length>0;
+  var totalRegularizacion = Math.round(devengos.filter(function(d){return d.esRegularizacion;})
+    .reduce(function(s,d){return s+d.importe;},0)*100)/100;
   var mLiquido = texto.match(/LÍQUIDO A PERCIBIR\s+([\d.]+,\d{2})/) || texto.match(/LIQUIDO A PERCIBIR\s+([\d.]+,\d{2})/);
   var toNum = function(s){ return s ? parseFloat(s.replace(/\./g,'').replace(',','.')) : null; };
   return {
     claveMes: claveMes, periodoTexto: periodoTexto,
     devengos: devengos, deducciones: deducciones,
     bruto: bruto,
-    liquido: toNum(mLiquido && mLiquido[1])
+    liquido: toNum(mLiquido && mLiquido[1]),
+    tieneRegularizacion: tieneRegularizacion,
+    totalRegularizacion: totalRegularizacion,
+    lineasPerdidas: lineasPerdidas
   };
+}
+
+// NUEVO — Confirmado por el usuario: cuando algo no coincide entre la
+// App y la Nómina Real, el sistema busca automáticamente EN QUÉ
+// concepto está la diferencia y explica el motivo más probable — no
+// es una IA investigando en vivo, es un conjunto de reglas fijas
+// basadas en los patrones ya comprobados con nóminas reales
+// (regularización, HTDL Forzoso sin distinguir todavía, conceptos que
+// la app no calcula). Si aparece un motivo nuevo que no está aquí, se
+// explica de forma genérica en vez de intentar acertar la causa exacta.
+var REAL_CONCEPTO_A_APP = [
+  {re:/SALARIO BASE/i, appKey:'Salario Base'},
+  {re:/PLUS TRANSPORTE/i, appKey:'Plus Transporte'},
+  {re:/PLUS MANUTENCI/i, appKey:'Plus Manutención'},
+  {re:/PAGA EXTRA MARZO/i, appKey:'Paga de Marzo (÷12)'},
+  {re:/JT|COOR\.?\s*SUPLENTE/i, appKey:'Plus JT'},
+  {re:/TRASLACI/i, appKey:'Plus Traslación'},
+  {re:/NOCTURNIDAD/i, appKey:'Nocturnidad'},
+  {re:/REBASE/i, appKey:'Hora Rebase'}
+];
+
+// Recalcula, para el MISMO mes que muestra la Nómina Real (anio, mes),
+// exactamente lo mismo que ya calcula renderNominaPublica() — mismos
+// fijos, mismas variables del mes trabajado — y lo compara concepto a
+// concepto con lo que trae el PDF/foto real ya guardado.
+function _nominaCompararConReal(anio, mes, datos){
+  if(!datos) return null;
+  var rol = AJ.rol || 'tripulante';
+  var t = TARIFAS_ROL[rol] || TARIFAS_ROL.tripulante;
+  var fijos = _nominaConceptosFijos(rol, anio, mes);
+  if(AJ.tieneCAPH && parseFloat(AJ.caphImporte)>0){
+    fijos.push({label:'Complemento Ad Personam (CAPH)', val: Math.round(parseFloat(AJ.caphImporte)*100)/100});
+  }
+  var mesTrabajado = _nominaMesAnterior(anio, mes);
+  var ks = Object.keys(TV).filter(function(k){
+    var d = new Date(k+'T00:00:00');
+    return d.getFullYear()===mesTrabajado.anio && d.getMonth()===mesTrabajado.mes-1;
+  });
+  var earn = calculateEarnings(ks);
+  var htdlPuro = _nominaHTDLPuro(ks, t.vh);
+  var art5152Importe = _nominaArt5152Importe(ks);
+  var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
+
+  var conceptosApp = {};
+  fijos.forEach(function(f){ conceptosApp[f.label] = (conceptosApp[f.label]||0) + f.val; });
+  conceptosApp['HTDL'] = htdlPuro.importe;
+  conceptosApp['Nocturnidad'] = earn.totalNoc;
+  conceptosApp['Art. 51-52'] = art5152Importe;
+  conceptosApp['Plus Activación'] = earn.totalAct;
+  conceptosApp['Plus JT'] = earn.totalJT;
+  conceptosApp['Plus Internacional'] = earn.totalIntl;
+  conceptosApp['Hora Rebase'] = earn.totalRebase;
+  conceptosApp['Plus Traslación'] = earn.totalPlusTrasl;
+
+  var brutoApp = Math.round((totalFijos+htdlPuro.importe+art5152Importe+earn.totalNoc+earn.totalAct+earn.totalJT+earn.totalIntl+earn.totalRebase+earn.totalPlusTrasl)*100)/100;
+
+  // Agrupa los devengos REALES (sin las líneas de regularización, que
+  // se explican aparte) por concepto de la App que les corresponde.
+  var realPorApp = {}, realSinEmparejar = {}, realHTDLForzoso = 0;
+  datos.devengos.forEach(function(d){
+    if(d.esRegularizacion) return;
+    if(d.esHTDLForzoso){ realHTDLForzoso += d.importe; return; }
+    if(d.esHTDL){ realPorApp['HTDL'] = (realPorApp['HTDL']||0)+d.importe; return; }
+    var encontrado = null;
+    for(var i=0;i<REAL_CONCEPTO_A_APP.length;i++){
+      if(REAL_CONCEPTO_A_APP[i].re.test(d.concepto)){ encontrado = REAL_CONCEPTO_A_APP[i].appKey; break; }
+    }
+    if(encontrado) realPorApp[encontrado] = (realPorApp[encontrado]||0)+d.importe;
+    else realSinEmparejar[d.concepto] = (realSinEmparejar[d.concepto]||0)+d.importe;
+  });
+
+  var diffs = [];
+  Object.keys(conceptosApp).forEach(function(key){
+    var appVal = Math.round((conceptosApp[key]||0)*100)/100;
+    var realVal = Math.round((realPorApp[key]||0)*100)/100;
+    var dif = Math.round((realVal-appVal)*100)/100;
+    if(Math.abs(dif)>=1) diffs.push({concepto:key, appVal:appVal, realVal:realVal, dif:dif, tipo:'concepto'});
+  });
+  if(realHTDLForzoso>=1) diffs.push({concepto:'HTDL Forzoso', appVal:0, realVal:Math.round(realHTDLForzoso*100)/100, dif:Math.round(realHTDLForzoso*100)/100, tipo:'no_calculado'});
+  Object.keys(realSinEmparejar).forEach(function(concepto){
+    var val = Math.round(realSinEmparejar[concepto]*100)/100;
+    if(Math.abs(val)>=1) diffs.push({concepto:concepto, appVal:0, realVal:val, dif:val, tipo:'no_calculado'});
+  });
+  if(datos.bruto!==null){
+    var difBruto = Math.round((datos.bruto-brutoApp)*100)/100;
+    if(Math.abs(difBruto)>=1) diffs.push({concepto:'Total Bruto', appVal:brutoApp, realVal:datos.bruto, dif:difBruto, tipo:'total'});
+  }
+  return {diffs:diffs, brutoApp:brutoApp};
+}
+
+// El "por qué" de cada diferencia — reglas fijas, no una IA en vivo.
+function _nominaMotivoDiferencia(item, datos){
+  if(item.concepto==='HTDL Forzoso'){
+    return 'La app todavía no distingue el HTDL Forzoso del HTDL normal en tu calendario — por eso aquí sale 0,00 €. Es un tipo de día que se paga más (1,5×) y que tu nómina real sí identifica.';
+  }
+  if(item.tipo==='no_calculado'){
+    return 'Este concepto ("'+item.concepto+'") todavía no lo calcula la app por su cuenta — no está en el calendario ni en las fórmulas de Nómina.';
+  }
+  if(item.concepto==='Total Bruto' && datos.tieneRegularizacion){
+    return 'Parte de esta diferencia es por una <b>regularización de otro mes</b> incluida en esta nómina ('+(datos.totalRegularizacion>=0?'+':'')+datos.totalRegularizacion.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €), que la app no puede prever porque pertenece a otro periodo. El resto de la diferencia lo explican los conceptos marcados arriba.';
+  }
+  if(item.concepto==='Total Bruto'){
+    return 'La suma de los conceptos marcados arriba explica esta diferencia.';
+  }
+  return 'Revisa que ese concepto esté bien registrado en tu calendario para este mes — puede que falte un día, o que esté marcado con un tipo distinto al que corresponde.';
 }
 
 function _construirCardReal(anioParam, mesParam, origenParam){
@@ -7322,9 +7512,50 @@ function _construirCardReal(anioParam, mesParam, origenParam){
   if(!datos){
     cuerpo += '<div style="padding:6px 20px 16px;text-align:center;color:var(--tx3);font-size:11.5px">Todavía no has subido la nómina real de este mes.</div>';
   } else {
+    // NUEVO — Confirmado por el usuario: si muchas líneas de la tabla
+    // no se pudieron leer bien (típico de fotos con mala calidad de
+    // OCR — comas perdidas, códigos confundidos con letras), avisar
+    // claramente en vez de enseñar un desglose incompleto como si
+    // estuviera completo. Umbral de 3: por debajo, se asume que son
+    // solo un par de líneas sueltas raras (normal, no pasa nada).
+    if(datos.lineasPerdidas>=3){
+      cuerpo += '<div style="margin:0 16px 12px;padding:12px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:12px">'
+        + '<div style="font-size:12px;font-weight:800;color:#fca5a5;margin-bottom:4px">⚠️ Lectura incompleta ('+datos.lineasPerdidas+' líneas no se pudieron leer bien)</div>'
+        + '<div style="font-size:11px;color:#fca5a5;line-height:1.5">La foto tiene demasiados errores de lectura (números y códigos poco claros) — el desglose de abajo puede faltarle conceptos o tener importes equivocados. '
+        + 'Si puedes, sube el <b>PDF original</b> en vez de la foto (más abajo tienes el botón 📄 PDF) — ahí no hay que "adivinar" el texto, se lee exacto.</div>'
+        + '</div>';
+    }
+    // NUEVO — Confirmado por el usuario: aviso claro cuando el PDF trae
+    // líneas de Regularización (marcadas con "R" delante en el propio
+    // documento) — importes que NO corresponden a este mes, sino a un
+    // ajuste de un mes anterior. Sin este aviso, comparar esta nómina
+    // con el calendario o el Excel del mes JAMÁS cuadra, y no queda
+    // claro por qué.
+    if(datos.tieneRegularizacion){
+      cuerpo += '<div style="margin:0 16px 12px;padding:12px 14px;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:12px">'
+        + '<div style="font-size:12px;font-weight:800;color:var(--nar2);margin-bottom:4px">📌 Esta nómina incluye una regularización</div>'
+        + '<div style="font-size:11px;color:var(--nar3);line-height:1.5">Las filas marcadas con <b>"R"</b> (regularización) no son de este mes — son un ajuste de un mes anterior, por '
+        + (datos.totalRegularizacion>=0?'+':'')+datos.totalRegularizacion.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €. '
+        + 'Por eso el total de este mes no va a coincidir exacto con tu calendario ni con el Excel — esa diferencia es justo la regularización.</div>'
+        + '</div>';
+    }
     cuerpo += '<div class="nom-sec-hdr">Devengos (tal cual el PDF) · '+datos.periodoTexto+'</div>';
-    datos.devengos.forEach(function(d){ cuerpo += _nominaFila(d.concepto, null, d.importe); });
+    datos.devengos.forEach(function(d){
+      // Distingue HTDL normal de HTDL Forzoso (Art. 51 — último recurso
+      // del protocolo, se paga a 1,5× la tarifa) y marca las líneas de
+      // regularización, en vez de mezclarlas sin explicación.
+      var etiqueta = d.concepto;
+      if(d.esHTDLForzoso) etiqueta = '⚡ '+etiqueta+' <span style="font-weight:600;color:var(--nar3)">(se paga más — 1,5×)</span>';
+      var sub = d.esRegularizacion ? '📌 Regularización de un mes anterior' : null;
+      cuerpo += _nominaFila(etiqueta, sub, d.importe);
+    });
     if(datos.bruto!==null) cuerpo += '<div class="nom-total-bruto"><span class="nom-total-bruto-lbl">TOTAL BRUTO (T.DEVENGO)</span><span class="nom-total-bruto-val">'+datos.bruto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>';
+    // NUEVO — Confirmado por el usuario: enlace de diagnóstico SIEMPRE
+    // visible (no solo cuando falla el periodo) — por si el Total
+    // Bruto no coincide con el del documento real aunque la lectura
+    // "haya funcionado", para poder ver el texto exacto que se leyó y
+    // encontrar qué línea concreta se perdió o se leyó mal.
+    cuerpo += '<div style="text-align:center;margin:2px 0 4px"><span onclick="_nominaVerTextoCrudo()" style="font-size:10px;color:var(--tx3);text-decoration:underline;cursor:pointer">🔍 ¿No coincide con tu nómina real? Ver texto leído</span></div>';
     cuerpo += '<div class="nom-sec-hdr">Deducciones</div>';
     // NUEVO — Confirmado por Alex: se muestra la base y el % de cada
     // deducción cuando el PDF lo trae (ej. "4,85% sobre 2.842,26 €"),
@@ -7335,7 +7566,7 @@ function _construirCardReal(anioParam, mesParam, origenParam){
     // como pidió Alex ("es mejor así por si algo cambia").
     var cuotaSindicalDetectada = null;
     datos.deducciones.forEach(function(d){
-      var sub = (d.base!==undefined && d.porcentaje!==undefined) ? (d.porcentaje.toLocaleString('es-ES')+'% sobre '+d.base.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €') : null;
+      var sub = (d.base!==undefined && d.porcentaje!==undefined) ? (d.porcentaje.toLocaleString('es-ES')+'% sobre '+d.base.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €') : (d.esRegularizacion?'📌 Regularización de un mes anterior':null);
       cuerpo += _nominaFila(d.concepto, sub, -d.importe);
       if(d.concepto.toUpperCase().indexOf('CUOTA SINDICAL')>=0) cuotaSindicalDetectada = d.importe;
     });
@@ -7346,6 +7577,24 @@ function _construirCardReal(anioParam, mesParam, origenParam){
         + '<div style="font-size:11.5px;font-weight:800;color:#c4b5fd;margin-bottom:6px">🧠 Cuota Sindical detectada: '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
         + '<div style="font-size:10.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px">Es un importe fijo — puedes aplicarlo directo a '+_destinoTxt+', sin escribirlo a mano. (El IRPF y la Seg. Social se quedan siempre manuales, ya que pueden cambiar cada mes.)</div>'
         + '<button onclick="_nominaAplicarCuotaSindical('+cuotaSindicalDetectada+',\''+origen+'\')" style="width:100%;padding:11px;background:#7c3aed;border:none;border-radius:10px;color:#fff;font-weight:800;font-size:12px;cursor:pointer">✅ Usar '+cuotaSindicalDetectada.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' € en '+_destinoTxt+'</button></div>';
+    }
+    // NUEVO — Confirmado por el usuario: diagnóstico automático de
+    // diferencias. Compara concepto a concepto contra lo que ya
+    // calcula la propia app para este mismo mes, y explica el motivo
+    // más probable de cada diferencia (ver _nominaCompararConReal /
+    // _nominaMotivoDiferencia arriba).
+    var diag = _nominaCompararConReal(anio, mes, datos);
+    if(diag && diag.diffs.length){
+      cuerpo += '<div class="nom-sec-hdr">🔎 ¿Por qué no coincide?</div>';
+      diag.diffs.forEach(function(item){
+        var motivo = _nominaMotivoDiferencia(item, datos);
+        cuerpo += '<div style="background:var(--s1);border:1px solid rgba(249,115,22,.35);border-left:3px solid var(--nar2);border-radius:10px;padding:10px 12px;margin:0 16px 8px">'
+          + '<div style="font-size:12px;font-weight:800;color:var(--nar2);display:flex;justify-content:space-between;gap:8px"><span>'+item.concepto+'</span><span style="font-size:10.5px;color:var(--nar3);font-weight:700;white-space:nowrap">'+(item.dif>=0?'+':'')+item.dif.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+          + '<div style="font-size:11px;color:var(--tx2);line-height:1.5;margin-top:5px">'+motivo+'</div>'
+          + '</div>';
+      });
+    } else if(diag){
+      cuerpo += '<div style="margin:10px 16px 4px;padding:10px 12px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.35);border-radius:10px;text-align:center;font-size:11px;color:var(--green2);font-weight:700">✅ Todo coincide dentro de lo esperado</div>';
     }
   }
   return '<div class="n2-card real"><div class="n2-hdr">🧾 Nómina Real (PDF)<span class="n2-badge">REFERENCIA</span></div><div class="n2-body">'+cuerpo+'</div></div>';
@@ -7755,7 +8004,14 @@ function renderNominaPublica(){
   var earn = calculateEarnings(ks);
   var htdlPuro = _nominaHTDLPuro(ks, t.vh);
   var art5152Importe = _nominaArt5152Importe(ks);
-  var totalVariablesResto = earn.totalNoc + earn.totalAct + earn.totalJT + earn.totalIntl;
+  // FIX — Confirmado por el usuario: Rebase (Art. 64) y Plus Traslación
+  // (Art. 58) ya se calculaban desde hace tiempo (calculateEarnings ya
+  // los daba), pero se quedaban ocultos "solo Admin" en Stats porque
+  // no se habían verificado contra una nómina real todavía. Ya se
+  // comprobó con el PDF real de agosto — Plus Traslación coincidió
+  // exacto (20,93 € en los dos sitios) — así que ahora se muestran
+  // para todo el mundo en Nómina, y SÍ entran en el Total Bruto.
+  var totalVariablesResto = earn.totalNoc + earn.totalAct + earn.totalJT + earn.totalIntl + earn.totalRebase + earn.totalPlusTrasl;
 
   // QUITADO — Confirmado por el usuario: Hora Extraordinaria y el campo
   // manual de días COMPE ya no van aquí. La referencia ajustada por
@@ -7805,6 +8061,8 @@ function renderNominaPublica(){
     + '<div class="ns-row"><span class="ns-row-lbl">🔘 Plus Activación</span><span class="ns-row-val">'+earn.totalAct.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">👔 Plus JT</span><span class="ns-row-val">'+earn.totalJT.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">🌍 Plus Internacional</span><span class="ns-row-val">'+earn.totalIntl.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">⏫ Hora Rebase <small>(pasada la 9ª hora del día)</small></span><span class="ns-row-val">'+earn.totalRebase.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">🧳 Plus Traslación <small>(descanso fuera de base)</small></span><span class="ns-row-val">'+earn.totalPlusTrasl.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '</div></div></div>';
 
   // Paso 3 — Deducciones (editables)
