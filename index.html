@@ -7443,10 +7443,17 @@ function _nominaCompararConReal(anio, mes, datos){
 
   // Agrupa los devengos REALES (sin las líneas de regularización, que
   // se explican aparte) por concepto de la App que les corresponde.
-  var realPorApp = {}, realSinEmparejar = {}, realHTDLForzoso = 0;
+  // FIX — Confirmado por el usuario: "HTDL FORZOSO" de la nómina real
+  // NO es un concepto que la app no calcule — es el MISMO Art. 51-52
+  // (retirada/modificación de descanso, protocolo de llamamiento) que
+  // ya calcula _nominaArt5152Importe(). Antes se trataba como "no
+  // calculado" por error; ahora se empareja con 'Art. 51-52' como
+  // cualquier otro concepto, para comparar de verdad manzanas con
+  // manzanas.
+  var realPorApp = {}, realSinEmparejar = {};
   datos.devengos.forEach(function(d){
     if(d.esRegularizacion) return;
-    if(d.esHTDLForzoso){ realHTDLForzoso += d.importe; return; }
+    if(d.esHTDLForzoso){ realPorApp['Art. 51-52'] = (realPorApp['Art. 51-52']||0)+d.importe; return; }
     if(d.esHTDL){ realPorApp['HTDL'] = (realPorApp['HTDL']||0)+d.importe; return; }
     var encontrado = null;
     for(var i=0;i<REAL_CONCEPTO_A_APP.length;i++){
@@ -7461,9 +7468,15 @@ function _nominaCompararConReal(anio, mes, datos){
     var appVal = Math.round((conceptosApp[key]||0)*100)/100;
     var realVal = Math.round((realPorApp[key]||0)*100)/100;
     var dif = Math.round((realVal-appVal)*100)/100;
-    if(Math.abs(dif)>=1) diffs.push({concepto:key, appVal:appVal, realVal:realVal, dif:dif, tipo:'concepto'});
+    if(Math.abs(dif)>=1){
+      var item = {concepto:key, appVal:appVal, realVal:realVal, dif:dif, tipo:'concepto'};
+      // El Art. 51-52 es justo el que suele confundirse con HTDL normal
+      // mal marcado — se adjunta la lista de días HTDL de este mes,
+      // para señalar dónde mirar primero.
+      if(key==='Art. 51-52') item.diasHTDL = htdlPuro.diasDetalle;
+      diffs.push(item);
+    }
   });
-  if(realHTDLForzoso>=1) diffs.push({concepto:'HTDL Forzoso', appVal:0, realVal:Math.round(realHTDLForzoso*100)/100, dif:Math.round(realHTDLForzoso*100)/100, tipo:'no_calculado'});
   Object.keys(realSinEmparejar).forEach(function(concepto){
     var val = Math.round(realSinEmparejar[concepto]*100)/100;
     if(Math.abs(val)>=1) diffs.push({concepto:concepto, appVal:0, realVal:val, dif:val, tipo:'no_calculado'});
@@ -7476,9 +7489,39 @@ function _nominaCompararConReal(anio, mes, datos){
 }
 
 // El "por qué" de cada diferencia — reglas fijas, no una IA en vivo.
+// NUEVO — Confirmado por el usuario: cada fecha señalada en el
+// diagnóstico se puede pulsar para ir directo a ese mes del
+// calendario (reutiliza curM/renderCal ya existentes) — así no hace
+// falta buscar el día a mano, solo tocarlo una vez ya en el mes
+// correcto para revisarlo o editarlo.
+function _nominaIrAFecha(fecha){
+  var p = fecha.split('-');
+  curM = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, 1);
+  goP('cal');
+  if(typeof renderCal==='function') renderCal();
+}
+
 function _nominaMotivoDiferencia(item, datos){
-  if(item.concepto==='HTDL Forzoso'){
-    return 'La app todavía no distingue el HTDL Forzoso del HTDL normal en tu calendario — por eso aquí sale 0,00 €. Es un tipo de día que se paga más (1,5×) y que tu nómina real sí identifica.';
+  // FIX — Confirmado por el usuario: "HTDL FORZOSO" de la nómina real
+  // es el MISMO concepto que Art. 51-52 (retirada/modificación de
+  // descanso, Art. 51) — la app SÍ lo calcula, solo que ese mes no
+  // encuentra ningún día marcado como tal en el calendario. No basta
+  // con decirlo en general — hay que señalar EXACTAMENTE qué días del
+  // calendario está contando la app como HTDL normal, para que la
+  // persona revise cuál de ellos debería estar marcado como Art.51-52
+  // en su lugar.
+  if(item.concepto==='Art. 51-52'){
+    var dias = item.diasHTDL || [];
+    var base = 'El "HTDL FORZOSO" de tu nómina real es el mismo concepto que <b>Art. 51-52</b> (retirada/modificación de descanso, protocolo de llamamiento) — la app sí lo calcula, pero no encuentra ningún día marcado así en tu calendario de este mes trabajado. ';
+    if(!dias.length){
+      return base+'Tampoco encuentra días de HTDL normal donde pudiera estar el error — revisa que ese día esté cargado en el calendario.';
+    }
+    var listaDias = dias.map(function(d){
+      var p = d.fecha.split('-'); // YYYY-MM-DD
+      var etiqueta = (parseInt(p[2],10))+' '+MESES_C[parseInt(p[1],10)-1]+' ('+d.horas+'h)';
+      return '<span onclick="_nominaIrAFecha(\''+d.fecha+'\')" style="text-decoration:underline;cursor:pointer;color:#fff">'+etiqueta+'</span>';
+    }).join(', ');
+    return base+'Revisa estos días, marcados hoy como HTDL normal — uno de ellos es probablemente el que en realidad fue Art. 51-52: <b>'+listaDias+'</b>.';
   }
   if(item.tipo==='no_calculado'){
     return 'Este concepto ("'+item.concepto+'") todavía no lo calcula la app por su cuenta — no está en el calendario ni en las fórmulas de Nómina.';
@@ -7838,13 +7881,24 @@ function _nominaActualizarManual(){
 // y limpio, pensado solo para esta pantalla.
 function _nominaHTDLPuro(ks, tarifaHTDL){
   var minTotal = 0;
+  // NUEVO — Confirmado por el usuario: además del total, se guarda el
+  // detalle día a día (fecha + horas) — así el diagnóstico de
+  // diferencias puede señalar EXACTAMENTE qué días de tu calendario
+  // son los que la app está contando como HTDL, para que puedas ir a
+  // revisar cuál de ellos debería estar marcado como Forzoso.
+  var diasDetalle = [];
   ks.forEach(function(k){
     var turnosDelDia = [TV[k]].concat(TV2[k]||[]);
     var jornada = calcularJornadaDiaria(turnosDelDia, k);
-    minTotal += jornada.efectivasHTDLMin||0;
+    var minDia = jornada.efectivasHTDLMin||0;
+    minTotal += minDia;
+    if(minDia>0){
+      diasDetalle.push({fecha:k, horas: Math.round((minDia/60)*100)/100});
+    }
   });
+  diasDetalle.sort(function(a,b){ return a.fecha<b.fecha?-1:1; });
   var horas = Math.round((minTotal/60)*100)/100;
-  return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100 };
+  return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100, diasDetalle: diasDetalle };
 }
 
 function _construirCardCalendario(){
