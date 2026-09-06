@@ -8688,6 +8688,39 @@ function checkRestTime(turnoA,turnoB,keyA,keyB){
    No toca TV ni ningún dato guardado — es una función de solo
    lectura que interpreta lo que ya hay.
 ═══════════════════════════════════════════════════════════ */
+// FIX — Confirmado por el usuario: el enlace entre dos días solo
+// miraba el turno PRINCIPAL de cada día (TV[k]), ignorando por
+// completo los turnos extra guardados en TV2[k]. En un día con más de
+// un turno, el que de verdad marca cuándo se terminó de trabajar (o
+// cuándo se empezó) puede ser uno de los de TV2, no el principal — así
+// que el descanso se calculaba mal, y con él, las horas/el dinero del
+// enlace. Estas dos funciones buscan, entre TV[k] y TODOS los de
+// TV2[k], cuál es el que de verdad termina más tarde (para el lado que
+// sale) o empieza más temprano (para el lado que entra) — sin tocar
+// TV/TV2 ni checkRestTime(), solo eligiendo bien qué turno pasarle.
+function _turnoFinDelDia(k){
+  var candidatos = [TV[k]].concat(TV2[k]||[]).filter(Boolean);
+  if(!candidatos.length) return null;
+  var mejor = null, mejorMin = null;
+  candidatos.forEach(function(t){
+    var h = t.hL2||t.hL; if(!h) return;
+    var p = h.split(':').map(Number), m = p[0]*60+p[1];
+    if(mejorMin===null || m>mejorMin){ mejor=t; mejorMin=m; }
+  });
+  return mejor || candidatos[0];
+}
+function _turnoInicioDelDia(k){
+  var candidatos = [TV[k]].concat(TV2[k]||[]).filter(Boolean);
+  if(!candidatos.length) return null;
+  var mejor = null, mejorMin = null;
+  candidatos.forEach(function(t){
+    var h = t.hF; if(!h) return;
+    var p = h.split(':').map(Number), m = p[0]*60+p[1];
+    if(mejorMin===null || m<mejorMin){ mejor=t; mejorMin=m; }
+  });
+  return mejor || candidatos[0];
+}
+
 function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
   var resultado = checkRestTime(turnoA, turnoB, keyA, keyB);
   if(!turnoA || !turnoB) return resultado;
@@ -8765,9 +8798,11 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
      .esEnBase             → true=12h exigidas, false=8h exigidas
    NOTA: el campo se sigue llamando "computaPresencia" por
    compatibilidad interna con calculateEarnings() (que ya lo lee con
-   ese nombre), pero desde este cambio esas horas se contabilizan
-   como Horas Efectivas, no como Presencia — ver el punto de
-   integración en calculateEarnings().
+   ese nombre) — y desde el arreglo del usuario, esas horas SÍ se
+   contabilizan como Horas de Presencia (tal como dice el nombre del
+   campo), no como Efectivas. Un cambio anterior lo había puesto mal
+   en Efectivas por error; ya está corregido en el punto de
+   integración de calculateEarnings().
 ═══════════════════════════════════════════════════════════ */
 function procesarIncumplimientoDescanso(turnoAnterior, turnoNuevo, keyAnterior, keyNuevo){
   return calcularEnlaceJornada(turnoAnterior, turnoNuevo, keyAnterior, keyNuevo);
@@ -8791,10 +8826,15 @@ function verificarDescansosMes(){
   var ksAnt=Object.keys(TV).filter(function(k){return k.startsWith(pA);}).sort();
   var ks=(ksAnt.length?[ksAnt[ksAnt.length-1]]:[]).concat(ksA),alertas={};
 
-  // Firma ligera: mes visible + horarios/tipos relevantes de los turnos implicados
+  // Firma ligera: mes visible + horarios/tipos relevantes de los turnos
+  // implicados. FIX — Confirmado por el usuario: ahora también incluye
+  // TV2[k] (turnos extra) en la firma — si solo mirara TV[k], un
+  // cambio en un turno adicional no invalidaría la caché y seguiría
+  // mostrando el aviso viejo.
   var firma = pref+'|'+ks.map(function(k){
     var t=TV[k];
-    return t?(t.tipo+t.hF+t.hL+t.hL2+t.retrasoMin):'x';
+    var extra=(TV2[k]||[]).map(function(e){return e.tipo+e.hF+e.hL+e.hL2+e.retrasoMin;}).join('+');
+    return (t?(t.tipo+t.hF+t.hL+t.hL2+t.retrasoMin):'x')+'#'+extra;
   }).join(',');
   if(firma === _descansosCacheKey){
     return _descansosCacheVal; // nada relevante cambió — reutilizar resultado
@@ -8805,7 +8845,12 @@ function verificarDescansosMes(){
     if(!tA||!tB)continue;
     if(['descanso','baja','comp','reserva'].indexOf(tA.tipo)>=0)continue;
     if(['descanso','baja','comp','reserva'].indexOf(tB.tipo)>=0)continue;
-    var r=calcularEnlaceJornada(tA,tB,kA2,kB);
+    // FIX — usa el turno que de verdad termina más tarde en el día A
+    // (puede ser uno de los turnos extra de TV2, no siempre el
+    // principal) y el que de verdad empieza más temprano en el día B.
+    var tAReal = _turnoFinDelDia(kA2) || tA;
+    var tBReal = _turnoInicioDelDia(kB) || tB;
+    var r=calcularEnlaceJornada(tAReal,tBReal,kA2,kB);
     if(r.incumple)alertas[kB]=Object.assign({},r,{kAnterior:kA2});
   }
 
@@ -9839,18 +9884,23 @@ function calcularImpactoEnlacesEconomico(ks){
     if(!tA || !tB) continue;
     if(['descanso','baja','comp','reserva'].indexOf(tA.tipo)>=0) continue;
     if(['descanso','baja','comp','reserva'].indexOf(tB.tipo)>=0) continue;
-    var enlace = procesarIncumplimientoDescanso(tA, tB, kA, kB);
+    // FIX — mismo arreglo que en el resto de sitios: usa el turno que
+    // de verdad termina más tarde el día A y el que de verdad empieza
+    // más temprano el día B (puede ser uno de TV2, no el principal).
+    var tAReal = _turnoFinDelDia(kA) || tA;
+    var tBReal = _turnoInicioDelDia(kB) || tB;
+    var enlace = procesarIncumplimientoDescanso(tAReal, tBReal, kA, kB);
     if(!enlace.incumple || !enlace.computaFinanciero) continue;
     var h = Math.round((enlace.descMin/60)*100)/100;
     // FIX — mismo criterio que en calculateEarnings(): ahora que solo
     // computaFinanciero=true cuando LOS DOS lados son HTDL/Art.51-52
     // (tipoEnlace==='HTDL_HTDL'), la tarifa se elige por si alguno de
     // los dos es Art.51/52 (tiene su propia tarifa distinta a HTDL).
-    var turnoTarifaObs = (tB.tipo==='art5152') ? tB : (tA.tipo==='art5152' ? tA : tA);
+    var turnoTarifaObs = (tBReal.tipo==='art5152') ? tBReal : (tAReal.tipo==='art5152' ? tAReal : tAReal);
     var tarifaAplic = (turnoTarifaObs.tipo==='art5152') ? tarifaArt5152 : tarifaHTDL;
     var imp = Math.round(h*tarifaAplic*100)/100;
     horas += h; importe += imp;
-    detalle.push({fecha:_keyAFechaLbl(kB), tren:tB.numTren||tB.numTrenVuelta||'', horas:h, importe:imp});
+    detalle.push({fecha:_keyAFechaLbl(kB), tren:tBReal.numTren||tBReal.numTrenVuelta||'', horas:h, importe:imp});
   }
   // Descanso INTERNO de pernocta (HTDL o Art.51/52), para que esta
   // línea del TAS coincida con lo que realmente se suma en
@@ -18351,13 +18401,15 @@ function calculateEarnings(ks){
   // Puramente aditivo: construido sobre calcularEnlaceJornada(), que a
   // su vez reutiliza checkRestTime() sin duplicar su matemática. No
   // toca ningún dato de TV, solo decide en qué contador entra el
-  // tiempo de descanso incumplido, según la matriz de decisión:
-  //   Ordinaria + Ordinaria           → Horas Efectivas (minEfectivasCal).
-  //   (HTDL/Art.51-52) + Ordinaria    → Impacto Económico (hHTDL / tH),
-  //                                     con la tarifa del lado HTDL/52.
-  //   HTDL + HTDL (con acuerdo)       → no computa ni en horas ni en
-  //                                     dinero; solo aviso (avisoNoComputa).
-  //   Ordinaria + (HTDL o Art.51/52)  → no se suma a ningún contador; el
+  // tiempo de descanso incumplido — SIEMPRE el hueco COMPLETO entre el
+  // final de un turno y el inicio del siguiente, no solo lo que falta
+  // para llegar al mínimo exigido — según la matriz de decisión:
+  //   Ordinaria + Ordinaria           → Horas de Presencia (minPresenciaCal).
+  //   HTDL/Art.51-52 + HTDL/Art.51-52 → Impacto Económico (hHTDL / tH),
+  //                                     con la tarifa del lado que corresponda.
+  //   Cualquier combinación MIXTA
+  //   (un lado Ordinaria, el otro
+  //   HTDL/Art.51-52)                 → no se suma a ningún contador; el
   //                                     aviso ya se muestra en el banner
   //                                     del día (ALERTAS_DESCANSO / avisoNoComputa).
   var ksOrdenados = ks.slice().sort();
@@ -18367,17 +18419,29 @@ function calculateEarnings(ks){
     if(!tAEnl || !tBEnl) continue;
     if(['descanso','baja','comp','reserva'].indexOf(tAEnl.tipo)>=0) continue;
     if(['descanso','baja','comp','reserva'].indexOf(tBEnl.tipo)>=0) continue;
-    var enlace = calcularEnlaceJornada(tAEnl, tBEnl, kAEnl, kBEnl);
+    // FIX — Confirmado por el usuario: en un día con más de un turno
+    // guardado (TV2), el que de verdad termina más tarde (o empieza
+    // más temprano) puede no ser el turno principal — usar siempre
+    // TV[k] hacía que el descanso, y con él las horas/el dinero del
+    // enlace, se calculara mal en esos días.
+    var tAEnlReal = _turnoFinDelDia(kAEnl) || tAEnl;
+    var tBEnlReal = _turnoInicioDelDia(kBEnl) || tBEnl;
+    var enlace = calcularEnlaceJornada(tAEnlReal, tBEnlReal, kAEnl, kBEnl);
     if(!enlace.incumple) continue;
     if(enlace.computaPresencia){
-      // FIX — Ordinaria+Ordinaria: el tiempo de descanso incumplido
-      // se suma a Horas Efectivas (antes iba a Presencia). Mismo
-      // valor ya calculado por checkRestTime() (enlace.descMin),
-      // solo cambia a qué contador se suma. NUNCA se paga en dinero.
-      minEfectivasCal += enlace.descMin;
+      // FIX — Confirmado por el usuario (corrige un error suyo
+      // anterior, que hizo que esto se sumara mal a Efectivas): en
+      // Ordinaria+Ordinaria, TODO el tiempo entre el final de un
+      // turno y el inicio del siguiente (no solo lo que falta para
+      // llegar al mínimo exigido) cuenta como Horas de PRESENCIA —
+      // desde que se deja el turno anterior hasta la firma del
+      // siguiente. NUNCA se paga en dinero. Mismo valor ya calculado
+      // por checkRestTime() (enlace.descMin, el hueco completo), solo
+      // cambia a qué contador se suma.
+      minPresenciaCal += enlace.descMin;
     } else if(enlace.computaFinanciero){
       // FIX — HTDL y Art.51/52 tienen tarifas DISTINTAS. Se usa la
-      // del turno que recibe el enlace (tBEnl): si es Art.51/52, su
+      // del turno que recibe el enlace (tBEnlReal): si es Art.51/52, su
       // propia tarifa configurada (AJ.art5152Monto); si es HTDL
       // ('trabajado'), la tarifa HTDL (AJ.vh, variable HTDL ya
       // existente). Solo las horas de HTDL puro se suman a hHTDL
@@ -18390,7 +18454,7 @@ function calculateEarnings(ks){
       // combinación) — el caso mixto con una Ordinaria ya no llega
       // aquí (avisoNoComputa). La tarifa se elige por si alguno de
       // los dos lados es Art.51/52.
-      var turnoTarifaEnl = (tBEnl.tipo==='art5152') ? tBEnl : (tAEnl.tipo==='art5152' ? tAEnl : tAEnl);
+      var turnoTarifaEnl = (tBEnlReal.tipo==='art5152') ? tBEnlReal : (tAEnlReal.tipo==='art5152' ? tAEnlReal : tAEnlReal);
       if(turnoTarifaEnl.tipo==='art5152'){
         var tarifaArtEnl = parseFloat(AJ.art5152Monto)||0;
         tH += horasEnlaceHTDL*tarifaArtEnl;
