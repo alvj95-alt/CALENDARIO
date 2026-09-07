@@ -7901,6 +7901,30 @@ function _nominaHTDLPuro(ks, tarifaHTDL){
   return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100, diasDetalle: diasDetalle };
 }
 
+// NUEVO — Guarda el neto estimado (cara "Calendario") en Supabase,
+// tabla nomina_estimada, una fila por matrícula+año+mes (upsert).
+// Pensado para que Control de Deudas (app aparte) lo lea en modo
+// solo lectura. Completamente aislado: si algo falla, no afecta a
+// nada de la Nómina Estimada ni del resto de la app.
+function _sincronizarNominaEstimadaSupabase(anio, mesIndiceCero, netoEstimado){
+  try{
+    if(!sbAdmin) return; // sin conexión Supabase disponible, se ignora
+    var matricula = (AJ.matricula||'').trim();
+    if(!matricula) return; // sin matrícula configurada, no hay a quién asociarlo
+    sbAdmin.from('nomina_estimada').upsert({
+      matricula: matricula,
+      anio: anio,
+      mes: mesIndiceCero+1, // 1-12, más natural para leer fuera de JS
+      neto_estimado: netoEstimado,
+      actualizado_en: new Date().toISOString()
+    }, {onConflict:'matricula,anio,mes'}).then(function(res){
+      if(res && res.error) console.error('No se pudo sincronizar nómina estimada:', res.error);
+    });
+  }catch(errSyncNomina){
+    console.error('Error sincronizando nómina estimada (ignorado):', errSyncNomina);
+  }
+}
+
 function _construirCardCalendario(){
   var anio=statsM.getFullYear(), mes=statsM.getMonth();
   var rol = AJ.rol||'tripulante';
@@ -7934,6 +7958,13 @@ function _construirCardCalendario(){
   var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
+
+  // NUEVO — Sincroniza el neto estimado (cara "Calendario") a Supabase
+  // para que Control de Deudas pueda leerlo. 100% aditivo: no cambia
+  // nada del cálculo de arriba, solo lo guarda. Si falla (sin conexión,
+  // sbAdmin no inicializado, matrícula sin configurar) se ignora en
+  // silencio — la Nómina Estimada sigue funcionando igual aquí.
+  _sincronizarNominaEstimadaSupabase(anio, mes, neto);
 
   var html = '<div class="nom-disclaimer">🧪 Este HTDL NO incluye enlaces de jornada con Art.51/52 (confirmado por Alex) — puede diferir un poco del Total a Pagar de Stats por eso mismo. Los pluses se pagan a mes vencido: los de abajo corresponden a lo trabajado en <b>'+MESES[mesTrabajado.mes-1]+'</b>, que es lo que se cobra en esta nómina de '+MESES[mes]+'.</div>';
   html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
