@@ -7906,11 +7906,58 @@ function _nominaHTDLPuro(ks, tarifaHTDL){
 // Pensado para que Control de Deudas (app aparte) lo lea en modo
 // solo lectura. Completamente aislado: si algo falla, no afecta a
 // nada de la Nómina Estimada ni del resto de la app.
+// NUEVO — Versión "manual con feedback fijo" del sincronizador, pensada
+// para comprobar desde la propia pantalla si el guardado funciona o no,
+// sin depender del toast (que desaparece a los 2,5s). anioMes ya viene
+// en formato 1-12 (mes, no mesIndiceCero) porque se llama desde el HTML
+// de renderNominaPublica con los mismos valores que ya se ven en pantalla.
+async function _sincronizarManualPublica(anio, mesUno, neto){
+  var statusEl = document.getElementById('nompub-sync-status');
+  function msg(t, color){ if(statusEl){ statusEl.textContent = t; statusEl.style.color = color; } }
+
+  if(typeof supabase === 'undefined'){
+    msg('⚠️ No se pudo cargar la librería de Supabase (revisa tu conexión).', '#f87171');
+    return;
+  }
+  if(!sbAdmin){
+    msg('⚠️ Supabase no está inicializado en esta app.', '#f87171');
+    return;
+  }
+  var matricula = (AJ.matricula||'').trim();
+  if(!matricula){
+    msg('⚠️ Falta tu matrícula en Ajustes.', '#f87171');
+    return;
+  }
+  msg('Sincronizando…', '#9ca3af');
+  try{
+    var res = await sbAdmin.from('nomina_estimada').upsert({
+      matricula: matricula,
+      anio: anio,
+      mes: mesUno,
+      neto_estimado: neto,
+      actualizado_en: new Date().toISOString()
+    }, {onConflict:'matricula,anio,mes'});
+    if(res.error){
+      msg('⚠️ Error al guardar: ' + res.error.message + (res.error.hint ? ' — ' + res.error.hint : ''), '#f87171');
+    } else {
+      msg('✅ Guardado: matrícula ' + matricula + ', ' + mesUno + '/' + anio + ', ' + neto.toLocaleString('es-ES',{minimumFractionDigits:2})+' €. Revisa la tabla en Supabase para confirmarlo.', '#4ade80');
+    }
+  }catch(err){
+    msg('⚠️ Error inesperado: ' + (err.message||err), '#f87171');
+  }
+}
+
 function _sincronizarNominaEstimadaSupabase(anio, mesIndiceCero, netoEstimado){
   try{
-    if(!sbAdmin) return; // sin conexión Supabase disponible, se ignora
+    // GUARDA — solo se ejecuta para Alex (admin). Para cualquier otro
+    // usuario esto no hace absolutamente nada: ni conecta, ni guarda, ni
+    // muestra ningún aviso. Así nadie más ve rastro de Control de Deudas.
+    var esAdminSync = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+    if(!esAdminSync) return;
+
+    if(!sbAdmin){ console.log('[Nómina→Deudas] sin conexión Supabase'); return; }
     var matricula = (AJ.matricula||'').trim();
-    if(!matricula) return; // sin matrícula configurada, no hay a quién asociarlo
+    if(!matricula){ console.log('[Nómina→Deudas] falta matrícula en Ajustes'); return; }
     sbAdmin.from('nomina_estimada').upsert({
       matricula: matricula,
       anio: anio,
@@ -7918,10 +7965,14 @@ function _sincronizarNominaEstimadaSupabase(anio, mesIndiceCero, netoEstimado){
       neto_estimado: netoEstimado,
       actualizado_en: new Date().toISOString()
     }, {onConflict:'matricula,anio,mes'}).then(function(res){
-      if(res && res.error) console.error('No se pudo sincronizar nómina estimada:', res.error);
+      if(res && res.error){
+        console.error('[Nómina→Deudas] No se pudo sincronizar:', res.error);
+      } else {
+        console.log('[Nómina→Deudas] Sincronizado con Control de Deudas ✓');
+      }
     });
   }catch(errSyncNomina){
-    console.error('Error sincronizando nómina estimada (ignorado):', errSyncNomina);
+    console.error('[Nómina→Deudas] Error inesperado (ignorado):', errSyncNomina);
   }
 }
 
@@ -8110,6 +8161,12 @@ function renderNominaPublica(){
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto - ssImporte - mv.cuotaSindical - irpfImporte)*100)/100;
 
+  // NUEVO — Sincroniza el neto estimado a Supabase para que Control de
+  // Deudas pueda leerlo. Esta es la pantalla que de verdad usas (la
+  // pública), así que el guardado tiene que estar aquí, no solo en la
+  // versión de Admin. 100% aditivo, no cambia el cálculo de arriba.
+  _sincronizarNominaEstimadaSupabase(anio, mes-1, neto);
+
   var html = '<div class="nom-disclaimer">🧪 Estimación orientativa a partir de tu calendario — no sustituye tu nómina real.</div>';
 
   // NUEVO — Confirmado por el usuario: formato "paso a paso", pensado
@@ -8169,6 +8226,21 @@ function renderNominaPublica(){
     + '<div class="ns-final-lbl">Vas a cobrar aproximadamente</div>'
     + '<div class="ns-final-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
     + '</div></div></div>';
+
+  // NUEVO — Botón de sincronización manual con Control de Deudas.
+  // SOLO VISIBLE PARA ADMIN: nadie más debe ver ni saber que existe esta
+  // conexión con otra app — mismo criterio que ya usa el resto de la app
+  // (perfilAdminActual.rol==='admin') para ocultar cosas de Alex.
+  // El guardado automático de _sincronizarNominaEstimadaSupabase (más
+  // abajo) sigue funcionando igual para todo el mundo, en silencio —
+  // esto es solo el botón de comprobación manual con mensaje en pantalla.
+  var _esAdminNominaPub = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
+  if(_esAdminNominaPub){
+    html += '<div style="margin-top:14px;">'
+      + '<button class="upload-btn" style="width:100%;justify-content:center" onclick="_sincronizarManualPublica('+anio+','+mes+','+neto+')">🔄 Sincronizar con Control de Deudas</button>'
+      + '<div id="nompub-sync-status" style="font-size:11.5px;color:var(--tx3);margin-top:8px;line-height:1.5;"></div>'
+      + '</div>';
+  }
 
   // NUEVO — Confirmado por Alex: nota aparte (no el disclaimer legal
   // de arriba, que habla de responsabilidad) explicando POR QUÉ el
