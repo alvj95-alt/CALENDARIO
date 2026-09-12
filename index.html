@@ -4443,6 +4443,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             </div>
             <div class="c4-arr">›</div>
           </div>
+          <div class="c4-card" onclick="mostrarDetalleCompaneros('hora')">
+            <div class="c4-ico" style="background:rgba(124,58,247,.18);color:#c4b5fd">🕐</div>
+            <div>
+              <div class="c4-info-tit">Por hora de salida</div>
+              <div class="c4-info-sub">Mira todos los trenes de un día, ordenados por hora</div>
+            </div>
+            <div class="c4-arr">›</div>
+          </div>
         </div>
       </div>
 
@@ -4484,6 +4492,34 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="cal-tren-panel" id="calTrenPanel"></div>
           <button class="tr-go" id="trGoBtn" style="width:100%;margin-bottom:10px">Buscar</button>
           <div id="trainView"></div>
+        </div>
+      </div>
+
+      <!-- Detalle: Por hora de salida (estilo Hero, igual que los otros dos) -->
+      <div id="comp-detalle-hora" style="display:none">
+        <div class="vc2-back-top" onclick="mostrarSelectorCompaneros()">‹ Compañeros</div>
+        <div class="vc2-hero">
+          <div class="vc2-hero-ico" style="background:rgba(124,58,247,.2)">🕐</div>
+          <div>
+            <div class="vc2-hero-tit">Por hora de salida</div>
+            <div class="vc2-hero-sub" id="hdrSedeHora">—</div>
+          </div>
+        </div>
+        <div style="padding:0 14px">
+          <!-- NUEVO — Confirmado por el usuario: en cuanto se elige un
+               día, el calendario se repliega (deja solo un resumen con
+               opción de cambiarlo) para que la lista de trenes tenga
+               más sitio y no haya que bajar tanto para verla. -->
+          <div id="calTrenPanelHoraWrap">
+            <div class="cal-tren-panel" id="calTrenPanelHora"></div>
+          </div>
+          <div id="diaElegidoHoraResumen" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--s1);border:1px solid var(--div);border-radius:12px;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:700" id="diaElegidoHoraTexto">—</span>
+            <span onclick="_cambiarDiaHora()" style="font-size:12px;font-weight:800;color:var(--acc3);cursor:pointer">Cambiar ✎</span>
+          </div>
+          <div id="trDebugHora" style="font-size:10px;color:var(--tx3);padding:0 2px 4px"></div>
+          <div id="trainViewHora"></div>
+          <div id="trListaHoraPanel"></div>
         </div>
       </div>
 
@@ -7901,81 +7937,6 @@ function _nominaHTDLPuro(ks, tarifaHTDL){
   return { horas: horas, importe: Math.round(horas*tarifaHTDL*100)/100, diasDetalle: diasDetalle };
 }
 
-// NUEVO — Guarda el neto estimado (cara "Calendario") en Supabase,
-// tabla nomina_estimada, una fila por matrícula+año+mes (upsert).
-// Pensado para que Control de Deudas (app aparte) lo lea en modo
-// solo lectura. Completamente aislado: si algo falla, no afecta a
-// nada de la Nómina Estimada ni del resto de la app.
-// NUEVO — Versión "manual con feedback fijo" del sincronizador, pensada
-// para comprobar desde la propia pantalla si el guardado funciona o no,
-// sin depender del toast (que desaparece a los 2,5s). anioMes ya viene
-// en formato 1-12 (mes, no mesIndiceCero) porque se llama desde el HTML
-// de renderNominaPublica con los mismos valores que ya se ven en pantalla.
-async function _sincronizarManualPublica(anio, mesUno, neto){
-  var statusEl = document.getElementById('nompub-sync-status');
-  function msg(t, color){ if(statusEl){ statusEl.textContent = t; statusEl.style.color = color; } }
-
-  if(typeof supabase === 'undefined'){
-    msg('⚠️ No se pudo cargar la librería de Supabase (revisa tu conexión).', '#f87171');
-    return;
-  }
-  if(!sbAdmin){
-    msg('⚠️ Supabase no está inicializado en esta app.', '#f87171');
-    return;
-  }
-  var matricula = (AJ.matricula||'').trim();
-  if(!matricula){
-    msg('⚠️ Falta tu matrícula en Ajustes.', '#f87171');
-    return;
-  }
-  msg('Sincronizando…', '#9ca3af');
-  try{
-    var res = await sbAdmin.from('nomina_estimada').upsert({
-      matricula: matricula,
-      anio: anio,
-      mes: mesUno,
-      neto_estimado: neto,
-      actualizado_en: new Date().toISOString()
-    }, {onConflict:'matricula,anio,mes'});
-    if(res.error){
-      msg('⚠️ Error al guardar: ' + res.error.message + (res.error.hint ? ' — ' + res.error.hint : ''), '#f87171');
-    } else {
-      msg('✅ Guardado: matrícula ' + matricula + ', ' + mesUno + '/' + anio + ', ' + neto.toLocaleString('es-ES',{minimumFractionDigits:2})+' €. Revisa la tabla en Supabase para confirmarlo.', '#4ade80');
-    }
-  }catch(err){
-    msg('⚠️ Error inesperado: ' + (err.message||err), '#f87171');
-  }
-}
-
-function _sincronizarNominaEstimadaSupabase(anio, mesIndiceCero, netoEstimado){
-  try{
-    // GUARDA — solo se ejecuta para Alex (admin). Para cualquier otro
-    // usuario esto no hace absolutamente nada: ni conecta, ni guarda, ni
-    // muestra ningún aviso. Así nadie más ve rastro de Control de Deudas.
-    var esAdminSync = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
-    if(!esAdminSync) return;
-
-    if(!sbAdmin){ console.log('[Nómina→Deudas] sin conexión Supabase'); return; }
-    var matricula = (AJ.matricula||'').trim();
-    if(!matricula){ console.log('[Nómina→Deudas] falta matrícula en Ajustes'); return; }
-    sbAdmin.from('nomina_estimada').upsert({
-      matricula: matricula,
-      anio: anio,
-      mes: mesIndiceCero+1, // 1-12, más natural para leer fuera de JS
-      neto_estimado: netoEstimado,
-      actualizado_en: new Date().toISOString()
-    }, {onConflict:'matricula,anio,mes'}).then(function(res){
-      if(res && res.error){
-        console.error('[Nómina→Deudas] No se pudo sincronizar:', res.error);
-      } else {
-        console.log('[Nómina→Deudas] Sincronizado con Control de Deudas ✓');
-      }
-    });
-  }catch(errSyncNomina){
-    console.error('[Nómina→Deudas] Error inesperado (ignorado):', errSyncNomina);
-  }
-}
-
 function _construirCardCalendario(){
   var anio=statsM.getFullYear(), mes=statsM.getMonth();
   var rol = AJ.rol||'tripulante';
@@ -8009,13 +7970,6 @@ function _construirCardCalendario(){
   var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto-ssImporte-mv.cuotaSindical-irpfImporte)*100)/100;
-
-  // NUEVO — Sincroniza el neto estimado (cara "Calendario") a Supabase
-  // para que Control de Deudas pueda leerlo. 100% aditivo: no cambia
-  // nada del cálculo de arriba, solo lo guarda. Si falla (sin conexión,
-  // sbAdmin no inicializado, matrícula sin configurar) se ignora en
-  // silencio — la Nómina Estimada sigue funcionando igual aquí.
-  _sincronizarNominaEstimadaSupabase(anio, mes, neto);
 
   var html = '<div class="nom-disclaimer">🧪 Este HTDL NO incluye enlaces de jornada con Art.51/52 (confirmado por Alex) — puede diferir un poco del Total a Pagar de Stats por eso mismo. Los pluses se pagan a mes vencido: los de abajo corresponden a lo trabajado en <b>'+MESES[mesTrabajado.mes-1]+'</b>, que es lo que se cobra en esta nómina de '+MESES[mes]+'.</div>';
   html += '<div class="nom-sec-hdr">Conceptos fijos</div>';
@@ -8161,12 +8115,6 @@ function renderNominaPublica(){
   var irpfImporte = Math.round(bruto*mv.irpfPct/100*100)/100;
   var neto = Math.round((bruto - ssImporte - mv.cuotaSindical - irpfImporte)*100)/100;
 
-  // NUEVO — Sincroniza el neto estimado a Supabase para que Control de
-  // Deudas pueda leerlo. Esta es la pantalla que de verdad usas (la
-  // pública), así que el guardado tiene que estar aquí, no solo en la
-  // versión de Admin. 100% aditivo, no cambia el cálculo de arriba.
-  _sincronizarNominaEstimadaSupabase(anio, mes-1, neto);
-
   var html = '<div class="nom-disclaimer">🧪 Estimación orientativa a partir de tu calendario — no sustituye tu nómina real.</div>';
 
   // NUEVO — Confirmado por el usuario: formato "paso a paso", pensado
@@ -8226,21 +8174,6 @@ function renderNominaPublica(){
     + '<div class="ns-final-lbl">Vas a cobrar aproximadamente</div>'
     + '<div class="ns-final-val" id="nompub-neto-val">'+neto.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</div>'
     + '</div></div></div>';
-
-  // NUEVO — Botón de sincronización manual con Control de Deudas.
-  // SOLO VISIBLE PARA ADMIN: nadie más debe ver ni saber que existe esta
-  // conexión con otra app — mismo criterio que ya usa el resto de la app
-  // (perfilAdminActual.rol==='admin') para ocultar cosas de Alex.
-  // El guardado automático de _sincronizarNominaEstimadaSupabase (más
-  // abajo) sigue funcionando igual para todo el mundo, en silencio —
-  // esto es solo el botón de comprobación manual con mensaje en pantalla.
-  var _esAdminNominaPub = (typeof perfilAdminActual!=='undefined' && perfilAdminActual && perfilAdminActual.rol==='admin');
-  if(_esAdminNominaPub){
-    html += '<div style="margin-top:14px;">'
-      + '<button class="upload-btn" style="width:100%;justify-content:center" onclick="_sincronizarManualPublica('+anio+','+mes+','+neto+')">🔄 Sincronizar con Control de Deudas</button>'
-      + '<div id="nompub-sync-status" style="font-size:11.5px;color:var(--tx3);margin-top:8px;line-height:1.5;"></div>'
-      + '</div>';
-  }
 
   // NUEVO — Confirmado por Alex: nota aparte (no el disclaimer legal
   // de arriba, que habla de responsabilidad) explicando POR QUÉ el
@@ -28448,10 +28381,12 @@ function mostrarDetalleCompaneros(tipo){
   document.getElementById('comp-selector').style.display = 'none';
   document.getElementById('comp-detalle-nombre').style.display = tipo==='nombre' ? '' : 'none';
   document.getElementById('comp-detalle-tren').style.display = tipo==='tren' ? '' : 'none';
+  document.getElementById('comp-detalle-hora').style.display = tipo==='hora' ? '' : 'none';
   // Rellena la sede en la cabecera Hero, si ya se conoce (misma
   // variable 'activeBase' que ya usa el resto del buscador).
   var sedeTxt = (typeof activeBase!=='undefined' && activeBase && activeBase.label) ? activeBase.label : '—';
-  var elS = document.getElementById(tipo==='nombre' ? 'hdrSedeNombre' : 'hdrSedeTren');
+  var idsSede = {nombre:'hdrSedeNombre', tren:'hdrSedeTren', hora:'hdrSedeHora'};
+  var elS = document.getElementById(idsSede[tipo]);
   if(elS) elS.textContent = sedeTxt;
   if(tipo==='nombre'){ var inp=document.getElementById('q'); if(inp) setTimeout(function(){inp.focus();}, 150); }
 }
@@ -28771,11 +28706,27 @@ function mostrarConAnimacionTren(contenedor, renderFn){
       +'<div class="atl-car"></div><div class="atl-car"></div><div class="atl-car"></div>'
       +'</div></div>';
     setTimeout(function(){
+      // FIX — Confirmado por el usuario: antes, si renderFn() fallaba,
+      // se reintentaba una vez EN SILENCIO — si volvía a fallar (lo
+      // normal, ya que el mismo error se repite), quedaba como una
+      // excepción sin capturar, invisible salvo abriendo la consola
+      // del navegador. Ahora, si el segundo intento también falla, se
+      // escribe el error directamente en el propio contenedor.
       try{ renderFn(); }
-      catch(e){ renderFn(); }
+      catch(e){
+        try{ renderFn(); }
+        catch(e2){
+          console.error('mostrarConAnimacionTren:', e2);
+          contenedor.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error al construir el resultado: '+(e2 && e2.message ? e2.message : e2)+'</div>';
+        }
+      }
     }, 380);
   }catch(e){
-    renderFn();
+    try{ renderFn(); }
+    catch(e2){
+      console.error('mostrarConAnimacionTren (fuera):', e2);
+      contenedor.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error: '+(e2 && e2.message ? e2.message : e2)+'</div>';
+    }
   }
 }
 
@@ -28812,14 +28763,230 @@ function trenIdaVueltaBadgeHTML(cell, trainBuscadoRaw){
   html += `</div>`;
   return html;
 }
-function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatches){
+// NUEVO — Confirmado por el usuario: lista de trenes de un día,
+// ordenados por hora, usando la hora de toma (CI) del PRIMER tren de
+// quien lo tenga como su primer tren ese día — es lo único fiable que
+// trae el Horario General (que solo da UNA hora de inicio/fin por
+// persona y día, no una por cada tren si hizo varios). Al tocar un
+// tren de la lista, se reutiliza EXACTAMENTE la misma búsqueda de
+// siempre (mismo botón "Buscar", mismos avisos de Interventor) — ahí
+// cada compañero ya muestra su CI/CO y el resto de trenes de su día
+// (badge "🔁 Vuelta"), sin tocar nada de eso.
+function _horaToMinTren(h){
+  if(!h) return null;
+  var p = h.split(':').map(Number);
+  if(p.length<2 || isNaN(p[0]) || isNaN(p[1])) return null;
+  return p[0]*60+p[1];
+}
+async function renderListaTrenesPorHora(day){
+  var panel = document.getElementById('trListaHoraPanel');
+  if(!panel) return;
+  if(!activeBase){ panel.innerHTML=''; return; }
+  panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Buscando trenes...</div>';
+  if(_cargaMesTrenPromise) await _cargaMesTrenPromise;
+  var trenHora = {}; // dígitos normalizados -> {min, hora, texto}
+  activeBase.data.forEach(function(entry){
+    var cell = entry[2] && entry[2][String(day)];
+    if(!cell) return;
+    var cls = classifyCell(cell);
+    if(cls.off) return; // día libre/descanso/etc. — sin tren
+    var detalle = (typeof trainTokensDetalle==='function') ? trainTokensDetalle(cell) : null;
+    if(!detalle || !detalle.size) return;
+    var primero = detalle.entries().next().value; // [digits, texto] del PRIMER tren de esa persona ese día
+    if(!primero) return;
+    var digits = primero[0], texto = primero[1];
+    var horasCI = entry[9] || {};
+    var hora = horasCI[String(day)];
+    var min = _horaToMinTren(hora);
+    if(min===null) return;
+    if(!trenHora[digits] || min < trenHora[digits].min){
+      trenHora[digits] = {min:min, hora:hora, digits:digits};
+    }
+  });
+  var lista = Object.keys(trenHora).map(function(d){ return trenHora[d]; });
+  lista.sort(function(a,b){ return a.min-b.min; });
+  if(!lista.length){
+    panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No se encontró ninguna hora de toma para ese día — puede que el PDF no traiga CI/CO ahí.</div>';
+    return;
+  }
+  var html = '<div class="cs-box"><div class="cs-t">Trenes del día '+day+', por hora aproximada de toma</div>';
+  lista.forEach(function(item){
+    // FIX — Confirmado por el usuario: "texto" guarda a propósito
+    // marcas como "DH"/"UM" pegadas al número (útiles en la tarjeta
+    // de un compañero, para saber que ESA vez concreta llevaba esa
+    // marca) — pero en esta lista general de trenes del día, ese
+    // sufijo solo confundía ("Tren 3152DH" en vez de "Tren 3152").
+    // Aquí se usa siempre el número limpio (item.digits).
+    html += '<div class="pcard" style="cursor:pointer" onclick="_trGoDesdeListaHora(\''+item.digits+'\')">'
+      + '<div class="pcard-av" style="background:rgba(124,58,237,.18);color:#c4b5fd">🕐</div>'
+      + '<div class="pcard-info"><div class="pcard-name">Tren '+item.digits+'</div><div class="pcard-id">Toma sobre las '+item.hora+'</div></div>'
+      + '<div class="pcard-arr">›</div></div>';
+  });
+  html += '</div>';
+  panel.innerHTML = html;
+}
+function _trGoDesdeListaHora(trenTexto){
+  var digits = String(trenTexto).replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+  // NUEVO — Confirmado por el usuario: contador SIEMPRE visible que
+  // sube en cada toque — si al tocar un segundo tren este número NO
+  // sube, significa que el clic ni siquiera está llegando a esta
+  // función (fallo antes de aquí, en el propio botón/HTML). Si SÍ
+  // sube pero el resultado no cambia, el fallo está más adelante, ya
+  // dentro de esta función.
+  window._trClickCount = (window._trClickCount||0) + 1;
+  var debugEl = document.getElementById('trDebugHora');
+  if(debugEl) debugEl.textContent = '🔍 Toque #'+window._trClickCount+' — pediste: "'+trenTexto+'" → buscando tren: '+digits;
+  // FIX — Confirmado por el usuario: antes esto cambiaba a la pantalla
+  // de "Por número de tren" — funcionaba, pero no era lo que pidió: la
+  // tripulación debe verse AQUÍ MISMO, sin cambiar de pantalla. Ahora
+  // se hace la misma búsqueda de siempre (mismos avisos de
+  // Interventor) pero se pinta en 'trainViewHora', el contenedor
+  // propio de esta pantalla — reutiliza renderTrain() tal cual, solo
+  // le indica dónde pintar.
+  var targetEl = document.getElementById('trainViewHora');
+  // NUEVO — Confirmado por el usuario: se vacía primero a propósito,
+  // ANTES de volver a buscar — por si algún mecanismo de comparación
+  // interno del navegador se confundiera al ver "el mismo HTML de
+  // antes" y no repintara. Vaciar y luego rellenar de cero garantiza
+  // un cambio real en el DOM sí o sí.
+  if(targetEl) targetEl.innerHTML = '';
+  // NUEVO — Confirmado por el usuario: envuelto en try/catch que
+  // escribe el error DIRECTAMENTE en pantalla — sin esto, un fallo
+  // aquí se queda callado en la consola del navegador, invisible
+  // para quien no sepa abrirla, y parece "no pasa nada" sin más pista.
+  try{
+    if(!activeBase){
+      if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ activeBase no está cargado todavía.</div>';
+      return;
+    }
+    if(!selectedTrainDay){
+      if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ No hay ningún día seleccionado (selectedTrainDay vacío).</div>';
+      return;
+    }
+    if(!targetEl) return; // no hay dónde pintar — nada que hacer
+    var matches = [];
+    for(var i=0;i<activeBase.data.length;i++){
+      var entryTren = activeBase.data[i];
+      var id = entryTren[0], name = entryTren[1], days = entryTren[2];
+      var cell = days[String(selectedTrainDay)];
+      if(cell && cellContainsTrain(cell, digits)) matches.push({id:id, name:name, cell:cell, entry:entryTren});
+    }
+    var interventorMatches = (typeof buscarInterventor==='function') ? buscarInterventor(digits, fecha_seleccionada_busqueda) : [];
+    var concrecionMatches = (typeof buscarInterventorConcrecion==='function') ? buscarInterventorConcrecion(digits, fecha_seleccionada_busqueda) : [];
+    renderTrain(digits, selectedTrainDay, matches, interventorMatches, concrecionMatches, targetEl);
+    // FIX — Confirmado por el usuario: renderTrain() usa una pequeña
+    // animación (mostrarConAnimacionTren, ~380ms) antes de pintar el
+    // resultado de verdad — el scroll saltaba ANTES de que ese
+    // contenido existiera, así que la persona veía la pantalla saltar
+    // a un hueco todavía vacío y creía que "no salía nada", aunque el
+    // resultado sí se pintaba un instante después, fuera de la vista.
+    // Se espera un poco más que esa animación (420ms) antes de mover
+    // la pantalla, para llegar justo cuando ya hay algo que ver.
+    setTimeout(function(){
+      targetEl.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 420);
+  }catch(err){
+    console.error('_trGoDesdeListaHora:', err);
+    if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error: '+(err && err.message ? err.message : err)+'</div>';
+  }
+}
+// FIX — Confirmado por el usuario (causa real encontrada): esta
+// función vive dentro del mismo bloque (function(){...})() que ya
+// envuelve todo el buscador de Compañeros — y, como el resto de
+// funciones de ese bloque que se llaman desde un onclick del HTML
+// (mostrarSelectorCompaneros, mostrarDetalleCompaneros...), necesita
+// exponerse a "window" explícitamente para poder llamarse desde
+// fuera. Sin esta línea, el onclick="_trGoDesdeListaHora(...)" de
+// cada tren de la lista fallaba en silencio (función no encontrada
+// en el ámbito global) — por eso nunca aparecía la tripulación al
+// tocar un tren, aunque toda la lógica interna estuviera bien.
+window._trGoDesdeListaHora = _trGoDesdeListaHora;
+// NUEVO — Confirmado por el usuario: en cuanto se elige un día, el
+// calendario se repliega del todo (deja solo un resumen "Día X ·
+// Cambiar ✎") para que la lista de trenes tenga sitio de sobra y no
+// haya que bajar tanto para verla. _cambiarDiaHora() vuelve a mostrar
+// el calendario si hace falta elegir otro día.
+function _mostrarListaHoraTrasDia(fecha){
+  var wrap = document.getElementById('calTrenPanelHoraWrap');
+  var resumen = document.getElementById('diaElegidoHoraResumen');
+  var texto = document.getElementById('diaElegidoHoraTexto');
+  if(wrap) wrap.style.display = 'none';
+  if(resumen) resumen.style.display = 'flex';
+  if(texto) texto.textContent = weekdayForDay(fecha.getDate())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
+  var targetEl = document.getElementById('trainViewHora');
+  if(targetEl) targetEl.innerHTML = ''; // limpia el resultado de un tren anterior al cambiar de día
+  renderListaTrenesPorHora(fecha.getDate());
+}
+function _cambiarDiaHora(){
+  var wrap = document.getElementById('calTrenPanelHoraWrap');
+  var resumen = document.getElementById('diaElegidoHoraResumen');
+  if(wrap) wrap.style.display = '';
+  if(resumen) resumen.style.display = 'none';
+  var panel = document.getElementById('trListaHoraPanel');
+  if(panel) panel.innerHTML = '';
+  var targetEl = document.getElementById('trainViewHora');
+  if(targetEl) targetEl.innerHTML = '';
+}
+window._cambiarDiaHora = _cambiarDiaHora;
+// NUEVO — Calendario propio de "Por hora de salida": al elegir un día,
+// se repliega el calendario y se muestra la lista directamente (sin
+// botón intermedio) — un paso menos que la pantalla de "Por número de
+// tren".
+// FIX — Confirmado por el usuario: le faltaba la misma comprobación
+// de mes que ya tiene el calendario de "Por número de tren" — sin
+// ella, si el mes cargado en memoria no coincidía exactamente con el
+// mes del día elegido, la lista salía vacía (o con datos de otro mes)
+// sin ningún aviso claro. Ahora, igual que el otro calendario, si el
+// mes elegido no es el que ya está cargado, se recarga el Horario
+// General de ESE mes antes de construir la lista.
+generarCalendarioUI('calTrenPanelHora', function(fecha){
+  selectedTrainDay = fecha.getDate();
+  fecha_seleccionada_busqueda = fecha;
+  var mesFechaHora = { anio: fecha.getFullYear(), mes: fecha.getMonth()+1 };
+  var yaCargadoHora = BASES.global && BASES.global.mesAnio
+    && BASES.global.mesAnio.anio===mesFechaHora.anio && BASES.global.mesAnio.mes===mesFechaHora.mes;
+  if(yaCargadoHora){
+    _mostrarListaHoraTrasDia(fecha);
+    return;
+  }
+  var panelCarga = document.getElementById('trListaHoraPanel');
+  if(panelCarga) panelCarga.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando el mes...</div>';
+  _cargaMesTrenPromise = cargarHorarioGlobalDesdeAdmin(mesFechaHora).then(function(ok){
+    _cargaMesTrenPromise = null;
+    // FIX — Confirmado por el usuario: si no hay Horario General
+    // publicado para ese mes (ok=false), antes se seguía adelante e
+    // intentaba construir la lista igualmente, con datos de OTRO mes
+    // que seguían en memoria — resultado: pantalla en blanco, sin
+    // ningún aviso, muy confuso. Ahora, si falla, se dice claramente
+    // por qué, en vez de intentarlo con datos que no son de ese mes.
+    if(!ok){
+      if(panelCarga) panelCarga.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">⚠️ No hay Horario General publicado para '+MESES_CAL_TREN[mesFechaHora.mes-1]+' '+mesFechaHora.anio+' todavía.'+(_diagHorarioGeneral?'<br><span style="font-size:10px">['+_diagHorarioGeneral+']</span>':'')+'</div>';
+      return;
+    }
+    document.getElementById('hdrTitulo').textContent = BASES.global.label;
+    document.getElementById('hdrPill').textContent = '📍 ' + (BASES.global.month || 'BASE ACTIVA');
+    var elS = document.getElementById('hdrSedeHora');
+    if(elS && activeBase) elS.textContent = activeBase.label;
+    _mostrarListaHoraTrasDia(fecha);
+  }).catch(function(){
+    _cargaMesTrenPromise = null;
+    if(panelCarga) panelCarga.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No se pudo cargar ese mes.</div>';
+  });
+});
+
+function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatches, targetEl){
   interventorMatches = interventorMatches || [];
   concrecionMatches = concrecionMatches || [];
+  // NUEVO — Confirmado por el usuario: se puede pintar en OTRO
+  // contenedor (por ejemplo, el de "Por hora de salida"), sin tocar
+  // nada del comportamiento de siempre — si no se indica ninguno,
+  // sigue pintando en 'trainView' igual que hasta ahora.
+  targetEl = targetEl || trainView;
   const _render = ()=>{
   const wd = weekdayForDay(day);
   const total = matches.length + interventorMatches.length + concrecionMatches.length;
   if(total===0){
-    trainView.innerHTML = `<div class="train-scene">
+    targetEl.innerHTML = `<div class="train-scene">
       <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
       <div class="train-empty">Nadie de <b>${activeBase.label}</b> ni ningún interventor cargado hace el tren <b>${trainNum}</b> ese día.</div>
     </div>`;
@@ -28875,11 +29042,11 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
   if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
   if(concrecionMatches.length) partes.push(`${concrecionMatches.length} aviso(s)`);
   if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
-  trainView.innerHTML = `<div class="train-scene">
+  targetEl.innerHTML = `<div class="train-scene">
     <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
     <div class="comp-list">${filas}</div>
   </div>`;
-  trainView.querySelectorAll('.btn-import-comp-tren').forEach(function(btn){
+  targetEl.querySelectorAll('.btn-import-comp-tren').forEach(function(btn){
     btn.addEventListener('click', function(){
       var mIdx = parseInt(btn.dataset.midx, 10);
       var m = matches[mIdx];
@@ -28890,7 +29057,7 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
     });
   });
   };
-  mostrarConAnimacionTren(trainView, _render);
+  mostrarConAnimacionTren(targetEl, _render);
 }
 
 function initials(name){
