@@ -4517,8 +4517,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
             <span style="font-size:13px;font-weight:700" id="diaElegidoHoraTexto">—</span>
             <span onclick="_cambiarDiaHora()" style="font-size:12px;font-weight:800;color:var(--acc3);cursor:pointer">Cambiar ✎</span>
           </div>
-          <div id="trDebugHora" style="font-size:10px;color:var(--tx3);padding:0 2px 4px"></div>
-          <div id="trainViewHora"></div>
           <div id="trListaHoraPanel"></div>
         </div>
       </div>
@@ -28817,53 +28815,54 @@ async function renderListaTrenesPorHora(day){
     // marca) — pero en esta lista general de trenes del día, ese
     // sufijo solo confundía ("Tren 3152DH" en vez de "Tren 3152").
     // Aquí se usa siempre el número limpio (item.digits).
-    html += '<div class="pcard" style="cursor:pointer" onclick="_trGoDesdeListaHora(\''+item.digits+'\')">'
+    // NUEVO — Confirmado por el usuario: la tripulación ya no se pinta
+    // en un hueco compartido arriba de la lista — cada tren tiene AHORA
+    // su propio hueco de resultado, justo debajo de su tarjeta
+    // (id="trRes_<número>"), que se abre/cierra al tocar. Al ser un
+    // sitio propio por tren (no uno solo compartido por todos), de
+    // paso queda resuelto el fallo de que el segundo tren tocado no
+    // refrescaba: cada uno tiene su propio hueco, nunca se pisan.
+    html += '<div>'
+      + '<div class="pcard" id="trCard_'+item.digits+'" style="cursor:pointer" onclick="_trGoDesdeListaHora(\''+item.digits+'\')">'
       + '<div class="pcard-av" style="background:rgba(124,58,237,.18);color:#c4b5fd">🕐</div>'
       + '<div class="pcard-info"><div class="pcard-name">Tren '+item.digits+'</div><div class="pcard-id">Toma sobre las '+item.hora+'</div></div>'
-      + '<div class="pcard-arr">›</div></div>';
+      + '<div class="pcard-arr" id="trArr_'+item.digits+'">›</div></div>'
+      + '<div id="trRes_'+item.digits+'" style="display:none;margin:-6px 0 12px"></div>'
+      + '</div>';
   });
   html += '</div>';
   panel.innerHTML = html;
 }
 function _trGoDesdeListaHora(trenTexto){
   var digits = String(trenTexto).replace(/\D/g,'').replace(/^0+(?=\d)/,'');
-  // NUEVO — Confirmado por el usuario: contador SIEMPRE visible que
-  // sube en cada toque — si al tocar un segundo tren este número NO
-  // sube, significa que el clic ni siquiera está llegando a esta
-  // función (fallo antes de aquí, en el propio botón/HTML). Si SÍ
-  // sube pero el resultado no cambia, el fallo está más adelante, ya
-  // dentro de esta función.
-  window._trClickCount = (window._trClickCount||0) + 1;
-  var debugEl = document.getElementById('trDebugHora');
-  if(debugEl) debugEl.textContent = '🔍 Toque #'+window._trClickCount+' — pediste: "'+trenTexto+'" → buscando tren: '+digits;
-  // FIX — Confirmado por el usuario: antes esto cambiaba a la pantalla
-  // de "Por número de tren" — funcionaba, pero no era lo que pidió: la
-  // tripulación debe verse AQUÍ MISMO, sin cambiar de pantalla. Ahora
-  // se hace la misma búsqueda de siempre (mismos avisos de
-  // Interventor) pero se pinta en 'trainViewHora', el contenedor
-  // propio de esta pantalla — reutiliza renderTrain() tal cual, solo
-  // le indica dónde pintar.
-  var targetEl = document.getElementById('trainViewHora');
-  // NUEVO — Confirmado por el usuario: se vacía primero a propósito,
-  // ANTES de volver a buscar — por si algún mecanismo de comparación
-  // interno del navegador se confundiera al ver "el mismo HTML de
-  // antes" y no repintara. Vaciar y luego rellenar de cero garantiza
-  // un cambio real en el DOM sí o sí.
-  if(targetEl) targetEl.innerHTML = '';
-  // NUEVO — Confirmado por el usuario: envuelto en try/catch que
-  // escribe el error DIRECTAMENTE en pantalla — sin esto, un fallo
-  // aquí se queda callado en la consola del navegador, invisible
-  // para quien no sepa abrirla, y parece "no pasa nada" sin más pista.
+  // NUEVO — Confirmado por el usuario: cada tren tiene ahora su PROPIO
+  // hueco de resultado, justo debajo de su propia tarjeta
+  // (id="trRes_<número>") — no uno solo compartido arriba de la
+  // lista. Al tocar: si ya estaba abierto, se cierra (acordeón); si
+  // estaba cerrado y ya se había buscado antes, se vuelve a abrir sin
+  // rebuscar; si es la primera vez, se busca y se pinta.
+  var targetEl = document.getElementById('trRes_'+digits);
+  var flecha = document.getElementById('trArr_'+digits);
+  if(!targetEl) return;
+  var abierto = targetEl.style.display !== 'none';
+  if(abierto){
+    targetEl.style.display = 'none';
+    if(flecha) flecha.textContent = '›';
+    return;
+  }
+  targetEl.style.display = 'block';
+  if(flecha) flecha.textContent = '⌄';
+  if(targetEl.dataset.cargado === '1') return; // ya se buscó antes — solo se reabre
+  targetEl.dataset.cargado = '1';
   try{
     if(!activeBase){
-      if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ activeBase no está cargado todavía.</div>';
+      targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ activeBase no está cargado todavía.</div>';
       return;
     }
     if(!selectedTrainDay){
-      if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ No hay ningún día seleccionado (selectedTrainDay vacío).</div>';
+      targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ No hay ningún día seleccionado (selectedTrainDay vacío).</div>';
       return;
     }
-    if(!targetEl) return; // no hay dónde pintar — nada que hacer
     var matches = [];
     for(var i=0;i<activeBase.data.length;i++){
       var entryTren = activeBase.data[i];
@@ -28874,20 +28873,9 @@ function _trGoDesdeListaHora(trenTexto){
     var interventorMatches = (typeof buscarInterventor==='function') ? buscarInterventor(digits, fecha_seleccionada_busqueda) : [];
     var concrecionMatches = (typeof buscarInterventorConcrecion==='function') ? buscarInterventorConcrecion(digits, fecha_seleccionada_busqueda) : [];
     renderTrain(digits, selectedTrainDay, matches, interventorMatches, concrecionMatches, targetEl);
-    // FIX — Confirmado por el usuario: renderTrain() usa una pequeña
-    // animación (mostrarConAnimacionTren, ~380ms) antes de pintar el
-    // resultado de verdad — el scroll saltaba ANTES de que ese
-    // contenido existiera, así que la persona veía la pantalla saltar
-    // a un hueco todavía vacío y creía que "no salía nada", aunque el
-    // resultado sí se pintaba un instante después, fuera de la vista.
-    // Se espera un poco más que esa animación (420ms) antes de mover
-    // la pantalla, para llegar justo cuando ya hay algo que ver.
-    setTimeout(function(){
-      targetEl.scrollIntoView({behavior:'smooth', block:'start'});
-    }, 420);
   }catch(err){
     console.error('_trGoDesdeListaHora:', err);
-    if(targetEl) targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error: '+(err && err.message ? err.message : err)+'</div>';
+    targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error: '+(err && err.message ? err.message : err)+'</div>';
   }
 }
 // FIX — Confirmado por el usuario (causa real encontrada): esta
@@ -28913,8 +28901,6 @@ function _mostrarListaHoraTrasDia(fecha){
   if(wrap) wrap.style.display = 'none';
   if(resumen) resumen.style.display = 'flex';
   if(texto) texto.textContent = weekdayForDay(fecha.getDate())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
-  var targetEl = document.getElementById('trainViewHora');
-  if(targetEl) targetEl.innerHTML = ''; // limpia el resultado de un tren anterior al cambiar de día
   renderListaTrenesPorHora(fecha.getDate());
 }
 function _cambiarDiaHora(){
@@ -28923,9 +28909,7 @@ function _cambiarDiaHora(){
   if(wrap) wrap.style.display = '';
   if(resumen) resumen.style.display = 'none';
   var panel = document.getElementById('trListaHoraPanel');
-  if(panel) panel.innerHTML = '';
-  var targetEl = document.getElementById('trainViewHora');
-  if(targetEl) targetEl.innerHTML = '';
+  if(panel) panel.innerHTML = ''; // al cambiar de día se limpia la lista entera (con ella, todos los acordeones de tripulación abiertos de ese día)
 }
 window._cambiarDiaHora = _cambiarDiaHora;
 // NUEVO — Calendario propio de "Por hora de salida": al elegir un día,
