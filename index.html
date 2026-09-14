@@ -1984,9 +1984,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 ═══════════════════════════════════════════════════════════ */
 .board-acc{
   border-bottom:3px solid var(--amber);
-  position:sticky;
-  top:0;
-  z-index:5;
 }
 .board-acc .board{
   border-bottom:none;
@@ -2002,6 +1999,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   background:var(--panel);
   cursor:pointer;
   user-select:none;
+  position:sticky;
+  top:0;
+  z-index:5;
 }
 .board-acc-toggle-title{
   font-family:'Space Mono',monospace;
@@ -2023,8 +2023,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   overflow:hidden;
   transition:max-height .32s cubic-bezier(.4,0,.2,1);
 }
+/* FIX — Confirmado por el usuario: este límite de 420px era del
+   diseño viejo, cuando el acordeón escondía solo un poco de
+   contenido. Ahora, con "Hoy", el selector de mes, los pasos y
+   "Otras acciones" todos dentro, 420px se quedaba MUY corto — todo
+   lo que sobraba quedaba cortado con overflow:hidden, sin forma de
+   verlo ni de hacer scroll hasta ahí ("no deja bajar"). En vez de un
+   límite fijo, "none" dentro de una transición de max-height no
+   anima suave — se usa un límite muy alto (200vh, más que de sobra
+   para cualquier pantalla) en su lugar, que sigue permitiendo la
+   animación de apertura pero sin cortar nada real.
+   También se movió "position:sticky" del acordeón ENTERO (que ahora
+   es todo el contenido de la pantalla) a SOLO la pestaña "Detalles
+   del Turno" de arriba — así solo esa cabecera pequeña se queda fija
+   al hacer scroll, no la pantalla entera bloqueando el paso. */
 .board-acc.open .board-acc-body{
-  max-height:420px;
+  max-height:200vh;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2061,6 +2075,72 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   padding:4px 9px;
   cursor:pointer;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Confirmado por el usuario: rediseño de la pantalla de
+   Horario Individual (maqueta A.1 aprobada) — "Hoy" arriba,
+   selector de mes con su propio estilo, pasos 1→2 conectados
+   (Subir → Cargar en calendario), otras acciones en cuadrícula, y
+   "Gestionar meses guardados" como su propio acordeón colapsado.
+   Reutiliza los mismos colores ya existentes de este módulo
+   (--amber/--panel/--panel2/--line/--text/--text-dim), sin tocar
+   el resto de la app. Estas reglas SUSTITUYEN el estilo viejo de
+   .month-row/#monthSelect (definido más arriba) — CSS aplica la
+   última regla que coincide, así que estas ganan sin tener que
+   borrar las anteriores.
+═══════════════════════════════════════════════════════════ */
+.month-row{
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:11px 14px;
+  margin:0 0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.month-row-label{
+  font-size:13px;
+  font-weight:600;
+  color:var(--text);
+}
+#monthSelect{
+  background:var(--panel);
+  color:var(--amber);
+  font-weight:700;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:12.5px;
+  font-family:'Space Mono',monospace;
+}
+
+.paso-h{display:flex;gap:12px;margin-bottom:2px}
+.paso-h-line{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0}
+.paso-h-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;font-weight:800;color:#1a1306;background:var(--amber);flex-shrink:0}
+.paso-h-conn{width:2px;flex:1;background:var(--line);margin:2px 0;min-height:14px}
+.paso-h-body{flex:1;padding-bottom:16px;min-width:0}
+.paso-h-tit{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:2px;padding-top:3px}
+.paso-h-sub{font-size:10.5px;color:var(--text-dim);margin-bottom:9px;line-height:1.4}
+.paso-h-listo{background:rgba(47,212,195,.12);border:1px solid rgba(47,212,195,.4);color:var(--teal);
+  border-radius:10px;padding:10px 12px;font-size:12px;font-weight:700}
+.paso-h-otro-mes{font-size:11px;font-weight:700;color:var(--amber);margin-top:7px;cursor:pointer}
+
+.otras-lbl{font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+.otras-grid-h{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.otras-card-h{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;
+  text-align:center;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;font-family:inherit}
+
+.gestionar-acc{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.gestionar-toggle{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;
+  cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text)}
+.gestionar-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 15px}
+.gestionar-acc.open .gestionar-body{max-height:400px;padding-bottom:12px}
+.gestionar-acc.open .gestionar-arrow{transform:rotate(180deg)}
+.gestionar-arrow{transition:transform .25s ease;color:var(--text-dim);display:inline-block}
 /* ── MÓDULO AYUDA Y CONCEPTOS ── */
 .ayuda-item{
   background:var(--s2);
@@ -4166,8 +4246,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- HORARIO (PDF individual) -->
 <div class="panel" id="p-horario">
   <div id="horario-wrap">
-<!-- NUEVO: acordeón que envuelve la cabecera (.board) sin tocar su contenido interno -->
-<div class="board-acc" id="boardAccHorario">
+<!-- NUEVO: acordeón que envuelve la cabecera (.board) sin tocar su contenido interno.
+     FIX — Confirmado por el usuario: empieza ABIERTO ("open" puesto
+     directo en el HTML) — antes arrancaba siempre cerrado y escondía
+     todo (título, Hoy, estadísticas...) hasta tocar "Detalles del
+     Turno" a mano. Sigue pudiéndose colapsar si se quiere, solo
+     cambia el estado inicial. -->
+<div class="board-acc open" id="boardAccHorario">
   <div class="board-acc-toggle" onclick="toggleBoardHorario()">
     <span class="board-acc-toggle-title">▸ Detalles del Turno</span>
     <span class="board-acc-arrow" id="boardArrowHorario">›</span>
@@ -4176,6 +4261,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <div class="board">
   <div class="board-title">Horario individual</div>
   <div class="board-sub">Sin horario cargado</div>
+
+  <!-- NUEVO — Confirmado por el usuario: "Hoy" movido aquí arriba,
+       justo tras el título — antes vivía mucho más abajo, después de
+       la leyenda, lejos de lo primero que alguien quiere ver al
+       entrar. Mismos IDs (todayWrap/todayContent), solo cambia dónde
+       vive en la página — su lógica de relleno no se toca. -->
+  <div class="today-wrap" id="todayWrap" style="display:none;margin:0 0 14px;padding:0;max-width:none">
+    <div class="today-eyebrow">Hoy</div>
+    <div id="todayContent"></div>
+  </div>
+
+  <!-- NUEVO — Confirmado por el usuario: etiqueta que faltaba (igual
+       que en la maqueta aprobada), para separar visualmente "Hoy" de
+       la parte de estadísticas del mes que viene justo después. -->
+  <div class="otras-lbl" style="margin-top:4px">Este mes, de un vistazo</div>
+  <!-- NUEVO — Confirmado por el usuario: mismo <select> de siempre
+       (ya cargaba las estadísticas del mes elegido al cambiarlo, eso
+       no se toca), solo con la etiqueta y el estilo de "Viendo: ..."
+       en vez de "Meses guardados:" perdido más abajo. -->
+  <div class="month-row" id="monthRow" style="display:none;">
+    <span class="month-row-label">📅 Viendo:</span>
+    <select id="monthSelect"></select>
+  </div>
+
   <div class="stats">
     <div class="stat"><div class="stat-label">Horas efectivas</div><div class="stat-value" data-stat="HE">–</div></div>
     <div class="stat"><div class="stat-label">Horas presencia</div><div class="stat-value" data-stat="HP">–</div></div>
@@ -4187,39 +4296,72 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="stat"><div class="stat-label">Días libres</div><div class="stat-value" id="cLibre">–</div></div>
     <div class="stat"><div class="stat-label">Reservas</div><div class="stat-value" id="cReserva">–</div></div>
   </div>
-  <div class="upload-row">
-    <label for="fileInput" class="upload-btn">📄🖼️ Subir horario de este mes (PDF o imagen)</label>
-    <input type="file" id="fileInput" hidden>
-    <span id="uploadStatus" class="upload-status"></span>
-  </div>
-  <div class="month-row" id="monthRow" style="display:none;">
-    <span class="month-row-label">Meses guardados:</span>
-    <select id="monthSelect"></select>
-  </div>
-  <!-- NUEVO: lista individual con botón de eliminar por mes, independiente del calendario -->
-  <div id="monthListIndividual" style="display:none;margin-top:10px"></div>
-</div>
-  </div>
-</div>
 
-<!-- FIX UX: botones movidos fuera del acordeón colapsable — antes quedaban
-     ocultos/no-clicables hasta expandir "Detalles del Turno" manualmente.
-     Ahora son siempre visibles y accesibles, sin tocar su lógica interna. -->
-<div style="padding:0 10px">
-  <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
-  <button id="btnSolicitarHTDL" class="upload-btn" style="margin-top:8px;background:rgba(8,145,178,.15);border:1px solid rgba(8,145,178,.4);color:#67e8f9" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
-  <!-- NUEVO — Carga automática del horario individual (PDF) al calendario.
-       Módulo aditivo: solo LEE horarioActualDias/horarioActualMeta (ya
-       existentes) y ESCRIBE en TV/TV2 con la misma estructura que ya usa
-       guardarTurno()/guardarTurnoEnTV2(). No toca el parser ni el cálculo
-       de horas/dinero. Ver cargarPdfEnCalendarioAuto(). -->
-  <button id="btnCargarPdfCalendario" class="upload-btn" style="margin-top:8px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7" onclick="cargarPdfEnCalendarioAuto()">📅 Cargar en calendario</button>
-  <!-- NUEVO — reinicia la elección Tripulante/Interventor del Portal
-       de Perfil, por si alguien se equivocó al elegir o presta el
-       móvil a otra persona. -->
-  <button id="btnCambiarPerfilAjustes" class="upload-btn" style="margin-top:8px;background:rgba(124,58,237,.10);border:1px solid rgba(124,58,237,.35);color:#C4B5FD;font-size:12px">🔄 Cambiar: Tripulante / Interventor</button>
-</div>
+  <!-- NUEVO — Confirmado por el usuario: "Subir horario" y "Cargar en
+       calendario" ahora van como pasos 1→2 conectados (uno depende
+       del otro) — mismos botones/IDs/onclick de siempre
+       (fileInput/uploadStatus/btnCargarPdfCalendario), solo
+       reorganizados visualmente. -->
+  <div class="otras-lbl" style="margin-top:4px">Pasos para tener tu horario listo</div>
+  <div class="paso-h">
+    <div class="paso-h-line"><div class="paso-h-num">1</div><div class="paso-h-conn"></div></div>
+    <div class="paso-h-body">
+      <div class="paso-h-tit">Subir horario individual</div>
+      <div class="paso-h-sub">El PDF o la foto que te manda la empresa — puedes subir el de este mes o el de meses anteriores</div>
+      <div class="upload-row" style="margin-top:0">
+        <label for="fileInput" class="upload-btn">📄🖼️ Subir horario (PDF o imagen)</label>
+        <input type="file" id="fileInput" hidden>
+        <span id="uploadStatus" class="upload-status"></span>
+      </div>
+    </div>
+  </div>
+  <div class="paso-h">
+    <div class="paso-h-line"><div class="paso-h-num">2</div></div>
+    <div class="paso-h-body" style="padding-bottom:6px">
+      <div class="paso-h-tit">Cargar en el calendario</div>
+      <div class="paso-h-sub">Para que tus turnos aparezcan día a día en Calendario</div>
+      <!-- NUEVO — Carga automática del horario individual (PDF) al calendario.
+           Módulo aditivo: solo LEE horarioActualDias/horarioActualMeta (ya
+           existentes) y ESCRIBE en TV/TV2 con la misma estructura que ya usa
+           guardarTurno()/guardarTurnoEnTV2(). No toca el parser ni el cálculo
+           de horas/dinero. Ver cargarPdfEnCalendarioAuto(). -->
+      <button id="btnCargarPdfCalendario" class="upload-btn" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#6ee7b7;width:100%;justify-content:center" onclick="cargarPdfEnCalendarioAuto()">📅 Cargar en calendario</button>
+    </div>
+  </div>
 
+  <!-- NUEVO — Confirmado por el usuario: HTDL y Cambiar rol no forman
+       parte de la secuencia de arriba (no dependen de subir/cargar
+       nada primero) — se quedan aparte, como acciones sueltas. Mismos
+       botones/IDs/onclick de siempre. -->
+  <div class="otras-lbl">Otras acciones</div>
+  <div class="otras-grid-h">
+    <!-- NUEVO: Solicitar HTDL — módulo aditivo, no toca el calendario ni el render de horario -->
+    <button id="btnSolicitarHTDL" class="otras-card-h" onclick="abrirSolicitudHTDL()">📤 Solicitar HTDL</button>
+    <!-- NUEVO — reinicia la elección Tripulante/Interventor del Portal
+         de Perfil, por si alguien se equivocó al elegir o presta el
+         móvil a otra persona. -->
+    <button id="btnCambiarPerfilAjustes" class="otras-card-h">🔄 Cambiar rol</button>
+  </div>
+
+  <!-- NUEVO — Confirmado por el usuario: "Gestionar meses guardados"
+       como su propio acordeón, colapsado por defecto — antes esta
+       lista (monthListIndividual, ya existente, sin tocar su lógica)
+       vivía suelta, siempre "a medio mostrar" según hubiera o no
+       meses. Ahora queda claramente separado de "ver" (el selector de
+       arriba) de "gestionar/eliminar" (esto de aquí). -->
+  <div class="gestionar-acc" id="gestionarMesesAcc">
+    <div class="gestionar-toggle" onclick="toggleGestionarMeses()">
+      <span>🗂 Gestionar meses guardados</span>
+      <span class="gestionar-arrow" id="gestionarMesesArrow">⌄</span>
+    </div>
+    <div class="gestionar-body" id="gestionarMesesBody">
+      <!-- NUEVO: lista individual con botón de eliminar por mes, independiente del calendario -->
+      <div id="monthListIndividual" style="display:none;margin-top:10px"></div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
 
 <div class="legend">
   <span><span class="dot" style="background:var(--teal)"></span> En servicio</span>
@@ -4227,14 +4369,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   <span><span class="dot" style="background:var(--reserve)"></span> Disponible / Reserva</span>
 </div>
 
-<div class="today-wrap" id="todayWrap" style="display:none;">
-  <div class="today-eyebrow">Hoy</div>
-  <div id="todayContent"></div>
-</div>
-
 <div class="days-horario" id="days-horario"></div>
 
-<div class="danger-zone">
+<!-- NUEVO — Confirmado por el usuario: se deja oculta (no se borra,
+     por si algo externo aún la referenciara) — "Gestionar meses
+     guardados" de arriba ya cubre exactamente lo mismo (incluido
+     borrar el mes actual), así que mantener las dos visibles a la vez
+     era duplicar la misma acción en dos sitios distintos. -->
+<div class="danger-zone" style="display:none">
   <p>¿Ya no necesitas el horario de <b id="deleteMonthLabel">este mes</b>? Puedes borrarlo sin afectar los demás meses guardados.</p>
   <button class="delete-btn" id="deleteBtn">🗑 Eliminar horario de este mes</button>
 </div>
@@ -22599,6 +22741,15 @@ document.getElementById('fileInput').addEventListener('change', async (e)=>{
 ═══════════════════════════════════════════════════════════ */
 function toggleBoardHorario(){
   var acc = document.getElementById('boardAccHorario');
+  if(!acc) return;
+  acc.classList.toggle('open');
+}
+// NUEVO — Confirmado por el usuario: abre/cierra el acordeón
+// "Gestionar meses guardados" (solo visual, la lista de dentro
+// —monthListIndividual— ya se rellena sola con renderMonthListIndividual(),
+// eso no se toca aquí).
+function toggleGestionarMeses(){
+  var acc = document.getElementById('gestionarMesesAcc');
   if(!acc) return;
   acc.classList.toggle('open');
 }
