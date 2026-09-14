@@ -1563,13 +1563,21 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     font-family:'Inter',sans-serif;
     padding:0 0 60px;
   }
+  /* FIX — Confirmado por el usuario: "position:sticky" aquí era de
+     cuando .board era solo una cabecera pequeña (título + unas pocas
+     estadísticas) que tenía sentido dejar fija arriba mientras se
+     desplazaba la lista de días de abajo. Ahora .board contiene TODA
+     la pantalla (Hoy, selector de mes, pasos, otras acciones...) — al
+     quitar el acordeón que antes anulaba este sticky para este caso
+     (ver comentario más abajo, en la regla vieja ".board-acc .board"),
+     volvió a activarse por su cuenta y, al ser tan alto, se quedaba
+     "pegado" arriba bloqueando que se pudiera bajar por el resto de
+     la pantalla. Un bloque tan grande no tiene sentido que sea
+     sticky, así que se quita del todo. */
   .board{
     background:var(--panel);
     border-bottom:3px solid var(--amber);
     padding:22px 20px 18px;
-    position:sticky;
-    top:0;
-    z-index:5;
   }
   .board-title{
     font-family:'Space Mono',monospace;
@@ -3346,36 +3354,77 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
        Se rellena desde nadmRenderBannersInterventor(). -->
   <div id="notifBannerZonaInterventor" style="margin-bottom:4px"></div>
   <div style="flex:1;display:flex;flex-direction:column;padding-top:10px;overflow-y:auto">
-    <!-- NUEVO — Confirmado por Alex: se oculta la búsqueda por nombre
-         para Interventor, dejando solo la búsqueda por tren. Se
-         OCULTA con CSS (no se borra del HTML) porque el bloque de
-         abajo (q2/clearBtn2/view2) tiene su propio módulo de
-         JavaScript que asume que estos elementos existen en la
-         página — quitarlos del todo rompería ese script al cargar.
-         Ocultos así, el módulo sigue inicializando sin error, solo
-         que nunca llega a verse ni a usarse. -->
-    <div style="display:none">
-      <div style="font-size:12px;color:#94A3B8;margin-bottom:14px">
-        Busca un compañero por nombre en el Horario General publicado.
+
+    <!-- NUEVO — Confirmado por el usuario: menú con las dos formas de
+         buscar (mismo estilo de tarjeta que ya usa Tripulante, solo
+         recoloreado a la paleta morada propia de esta pantalla) —
+         antes iba directo al buscador por número, sin dar a elegir. -->
+    <div id="interventorMenu" style="display:flex;flex-direction:column;gap:12px">
+      <div onclick="mostrarInterventorDetalle('tren')" style="display:flex;align-items:center;gap:14px;padding:16px;background:#1A1230;border:1px solid #332658;border-radius:16px;cursor:pointer">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(167,139,250,.15);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🚆</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:800;color:#F8FAFC">Por número de tren</div><div style="font-size:11px;color:#8B7FA8;margin-top:2px">Ve quién hace ese tren, en cualquier base</div></div>
+        <div style="color:#8B7FA8;font-size:16px">›</div>
       </div>
-      <div class="srch" style="margin-bottom:10px">
-        <span class="srch-ico">👤</span>
-        <input type="text" id="q2" placeholder="Escribe un nombre..." autocomplete="off">
-        <button class="srch-clear" id="clearBtn2">✕</button>
+      <div onclick="mostrarInterventorDetalle('hora')" style="display:flex;align-items:center;gap:14px;padding:16px;background:#1A1230;border:1px solid #332658;border-radius:16px;cursor:pointer">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(167,139,250,.15);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">🕐</div>
+        <div style="flex:1"><div style="font-size:14px;font-weight:800;color:#F8FAFC">Por hora de salida</div><div style="font-size:11px;color:#8B7FA8;margin-top:2px">Todos los trenes de un día, ordenados por hora</div></div>
+        <div style="color:#8B7FA8;font-size:16px">›</div>
       </div>
-      <div id="view2"></div>
     </div>
 
-    <div style="font-size:12px;color:#94A3B8;margin-bottom:10px">
-      Busca por número de tren para ver quién de tripulación hace ese tren ese día:
+    <!-- Detalle: Por número de tren (el buscador que ya existía) -->
+    <div id="interventorDetalleTren" style="display:none">
+      <div onclick="mostrarInterventorMenu()" style="font-size:13px;font-weight:700;color:#C4B5FD;margin-bottom:16px;cursor:pointer">‹ Portal de Interventor</div>
+      <!-- NUEVO — Confirmado por Alex: se oculta la búsqueda por nombre
+           para Interventor, dejando solo la búsqueda por tren. Se
+           OCULTA con CSS (no se borra del HTML) porque el bloque de
+           abajo (q2/clearBtn2/view2) tiene su propio módulo de
+           JavaScript que asume que estos elementos existen en la
+           página — quitarlos del todo rompería ese script al cargar.
+           Ocultos así, el módulo sigue inicializando sin error, solo
+           que nunca llega a verse ni a usarse. -->
+      <div style="display:none">
+        <div style="font-size:12px;color:#94A3B8;margin-bottom:14px">
+          Busca un compañero por nombre en el Horario General publicado.
+        </div>
+        <div class="srch" style="margin-bottom:10px">
+          <span class="srch-ico">👤</span>
+          <input type="text" id="q2" placeholder="Escribe un nombre..." autocomplete="off">
+          <button class="srch-clear" id="clearBtn2">✕</button>
+        </div>
+        <div id="view2"></div>
+      </div>
+
+      <div style="font-size:12px;color:#94A3B8;margin-bottom:10px">
+        Busca por número de tren para ver quién de tripulación hace ese tren ese día:
+      </div>
+      <div class="srch" style="margin-bottom:10px">
+        <span class="srch-ico">🚆</span>
+        <input type="text" id="trTrainInput2" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+      </div>
+      <div class="cal-tren-panel" id="calTrenPanel2"></div>
+      <button class="tr-go" id="trGoBtn2" style="width:100%;margin-bottom:10px">Buscar</button>
+      <div id="trainView2"></div>
     </div>
-    <div class="srch" style="margin-bottom:10px">
-      <span class="srch-ico">🚆</span>
-      <input type="text" id="trTrainInput2" placeholder="Pon tu tren" inputmode="numeric" style="font-weight:800;letter-spacing:.5px">
+
+    <!-- NUEVO — Detalle: Por hora de salida, mismo patrón que
+         Tripulante (calendario → resumen del día elegido → lista
+         ordenada con acordeón por tren) -->
+    <div id="interventorDetalleHora" style="display:none">
+      <div onclick="mostrarInterventorMenu()" style="font-size:13px;font-weight:700;color:#C4B5FD;margin-bottom:16px;cursor:pointer">‹ Portal de Interventor</div>
+      <div style="font-size:12px;color:#94A3B8;margin-bottom:10px">
+        Elige un día y verás todos los trenes de <b>todas las bases</b>, ordenados por hora.
+      </div>
+      <div id="calTrenPanelHora2Wrap">
+        <div class="cal-tren-panel" id="calTrenPanelHora2"></div>
+      </div>
+      <div id="diaElegidoHora2Resumen" style="display:none;margin-bottom:12px;padding:10px 14px;background:#1A1230;border:1px solid #332658;border-radius:12px;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:700;color:#F8FAFC" id="diaElegidoHora2Texto">—</span>
+        <span onclick="_cambiarDiaHora2()" style="font-size:12px;font-weight:800;color:#C4B5FD;cursor:pointer">Cambiar ✎</span>
+      </div>
+      <div id="trListaHoraPanel2"></div>
     </div>
-    <div class="cal-tren-panel" id="calTrenPanel2"></div>
-    <button class="tr-go" id="trGoBtn2" style="width:100%;margin-bottom:10px">Buscar</button>
-    <div id="trainView2"></div>
+
   </div>
 </div>
 
@@ -4246,18 +4295,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- HORARIO (PDF individual) -->
 <div class="panel" id="p-horario">
   <div id="horario-wrap">
-<!-- NUEVO: acordeón que envuelve la cabecera (.board) sin tocar su contenido interno.
-     FIX — Confirmado por el usuario: empieza ABIERTO ("open" puesto
-     directo en el HTML) — antes arrancaba siempre cerrado y escondía
-     todo (título, Hoy, estadísticas...) hasta tocar "Detalles del
-     Turno" a mano. Sigue pudiéndose colapsar si se quiere, solo
-     cambia el estado inicial. -->
-<div class="board-acc open" id="boardAccHorario">
-  <div class="board-acc-toggle" onclick="toggleBoardHorario()">
-    <span class="board-acc-toggle-title">▸ Detalles del Turno</span>
-    <span class="board-acc-arrow" id="boardArrowHorario">›</span>
-  </div>
-  <div class="board-acc-body" id="boardBodyHorario">
+<!-- NUEVO — Confirmado por el usuario: se quitó el modo acordeón —
+     antes todo esto (título, Hoy, estadísticas...) vivía escondido
+     detrás de un toggle "▸ Detalles del Turno" que había que tocar a
+     mano. Ahora .board se muestra directo, sin ningún paso extra. -->
 <div class="board">
   <div class="board-title">Horario individual</div>
   <div class="board-sub">Sin horario cargado</div>
@@ -4358,8 +4399,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO: lista individual con botón de eliminar por mes, independiente del calendario -->
       <div id="monthListIndividual" style="display:none;margin-top:10px"></div>
     </div>
-  </div>
-</div>
   </div>
 </div>
 
@@ -29697,14 +29736,19 @@ clearBtn.addEventListener('click', ()=>{
 
   const trainView2 = document.getElementById('trainView2');
 
-  function renderTrain2(trainNum, day, matches, interventorMatches, concrecionMatches){
+  // NUEVO — Confirmado por el usuario: se puede pintar en OTRO
+  // contenedor (para "Por hora de salida"), igual que ya hace
+  // renderTrain() en la pantalla de Tripulante — si no se indica
+  // ninguno, sigue pintando en 'trainView2' igual que hasta ahora.
+  function renderTrain2(trainNum, day, matches, interventorMatches, concrecionMatches, targetEl2){
     interventorMatches = interventorMatches || [];
     concrecionMatches = concrecionMatches || [];
+    targetEl2 = targetEl2 || trainView2;
     const _render = ()=>{
       const wd = weekdayForDay(day);
       const total = matches.length + interventorMatches.length + concrecionMatches.length;
       if(total===0){
-        trainView2.innerHTML = `<div class="train-scene">
+        targetEl2.innerHTML = `<div class="train-scene">
           <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · base <b>${activeBase.label}</b></div>
           <div class="train-empty">Nadie de <b>${activeBase.label}</b> ni ningún interventor cargado hace el tren <b>${trainNum}</b> ese día.</div>
         </div>`;
@@ -29758,13 +29802,172 @@ clearBtn.addEventListener('click', ()=>{
       if(interventorMatches.length) partes.push(`${interventorMatches.length} interventor(es)`);
       if(concrecionMatches.length) partes.push(`${concrecionMatches.length} aviso(s)`);
       if(matches.length) partes.push(`${matches.length} de <b>${activeBase.label}</b>`);
-      trainView2.innerHTML = `<div class="train-scene">
+      targetEl2.innerHTML = `<div class="train-scene">
         <div class="train-meta">Tren <b>${trainNum}</b> · ${wd} ${day} · ${partes.join(' + ')}</div>
         <div class="comp-list">${filas}</div>
       </div>`;
     };
-    mostrarConAnimacionTren(trainView2, _render);
+    mostrarConAnimacionTren(targetEl2, _render);
   }
+
+  // NUEVO — Confirmado por el usuario: "Por hora de salida" también
+  // para Interventor — misma forma visual y mismo comportamiento que
+  // la versión de Tripulante (calendario → lista ordenada → acordeón
+  // por tren), reutilizando renderTrain2 ya parametrizado arriba.
+  // Como activeBase para Interventor ya trae TODAS las bases
+  // fusionadas (nada que cambiar ahí), la única diferencia real es
+  // que cada tarjeta de tren muestra un aviso "TODAS LAS BASES" y
+  // cada compañero encontrado ya indica su sede (eso ya lo hacía
+  // renderTrain2 de antes, sin tocarlo).
+  async function renderListaTrenesPorHora2(day){
+    var panel = document.getElementById('trListaHoraPanel2');
+    if(!panel) return;
+    if(!activeBase){ panel.innerHTML=''; return; }
+    panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Buscando trenes...</div>';
+    var trenHora = {};
+    activeBase.data.forEach(function(entry){
+      var cell = entry[2] && entry[2][String(day)];
+      if(!cell) return;
+      var cls = classifyCell(cell);
+      if(cls.off) return;
+      var detalle = (typeof trainTokensDetalle==='function') ? trainTokensDetalle(cell) : null;
+      if(!detalle || !detalle.size) return;
+      var primero = detalle.entries().next().value;
+      if(!primero) return;
+      var digits = primero[0];
+      var horasCI = entry[9] || {};
+      var hora = horasCI[String(day)];
+      var min = _horaToMinTren(hora);
+      if(min===null) return;
+      if(!trenHora[digits] || min < trenHora[digits].min){
+        trenHora[digits] = {min:min, hora:hora, digits:digits};
+      }
+    });
+    var lista = Object.keys(trenHora).map(function(d){ return trenHora[d]; });
+    lista.sort(function(a,b){ return a.min-b.min; });
+    if(!lista.length){
+      panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No se encontró ninguna hora de toma para ese día — puede que el PDF no traiga CI/CO ahí.</div>';
+      return;
+    }
+    var html = '<div class="cs-box"><div class="cs-t">Trenes del día '+day+', por hora aproximada de toma <span style="display:inline-block;font-size:8.5px;font-weight:800;background:rgba(167,139,250,.18);color:#C4B5FD;padding:2px 6px;border-radius:5px;margin-left:5px;vertical-align:middle">TODAS LAS BASES</span></div>';
+    lista.forEach(function(item){
+      // NUEVO — mismo patrón que en Tripulante: cada tren tiene su
+      // propio hueco de resultado (id con sufijo "I" para no chocar
+      // con los ids de la lista de Tripulante, que usan los mismos
+      // números de tren).
+      html += '<div>'
+        + '<div class="pcard" id="trCardI_'+item.digits+'" style="cursor:pointer" onclick="_trGoDesdeListaHora2(\''+item.digits+'\')">'
+        + '<div class="pcard-av" style="background:rgba(167,139,250,.18);color:#C4B5FD">🕐</div>'
+        + '<div class="pcard-info"><div class="pcard-name">Tren '+item.digits+'</div><div class="pcard-id">Toma sobre las '+item.hora+'</div></div>'
+        + '<div class="pcard-arr" id="trArrI_'+item.digits+'">›</div></div>'
+        + '<div id="trResI_'+item.digits+'" style="display:none;margin:-6px 0 12px"></div>'
+        + '</div>';
+    });
+    html += '</div>';
+    panel.innerHTML = html;
+  }
+  function _trGoDesdeListaHora2(trenTexto){
+    var digits = String(trenTexto).replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+    var targetEl = document.getElementById('trResI_'+digits);
+    var flecha = document.getElementById('trArrI_'+digits);
+    if(!targetEl) return;
+    var abierto = targetEl.style.display !== 'none';
+    if(abierto){
+      targetEl.style.display = 'none';
+      if(flecha) flecha.textContent = '›';
+      return;
+    }
+    targetEl.style.display = 'block';
+    if(flecha) flecha.textContent = '⌄';
+    if(targetEl.dataset.cargado === '1') return;
+    targetEl.dataset.cargado = '1';
+    try{
+      if(!activeBase){
+        targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ activeBase no está cargado todavía.</div>';
+        return;
+      }
+      if(!selectedTrainDay2){
+        targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ No hay ningún día seleccionado.</div>';
+        return;
+      }
+      var matches = [];
+      for(var i=0;i<activeBase.data.length;i++){
+        var entryTren = activeBase.data[i];
+        var id = entryTren[0], name = entryTren[1], days = entryTren[2];
+        var cell = days[String(selectedTrainDay2)];
+        if(cell && cellContainsTrain(cell, digits)) matches.push({id:id, name:name, cell:cell, entry:entryTren});
+      }
+      var interventorMatches = (typeof buscarInterventor==='function') ? buscarInterventor(digits, fecha_seleccionada_busqueda2) : [];
+      var concrecionMatches = (typeof buscarInterventorConcrecion==='function') ? buscarInterventorConcrecion(digits, fecha_seleccionada_busqueda2) : [];
+      renderTrain2(digits, selectedTrainDay2, matches, interventorMatches, concrecionMatches, targetEl);
+    }catch(err){
+      console.error('_trGoDesdeListaHora2:', err);
+      targetEl.innerHTML = '<div style="padding:14px;color:var(--nar3);font-size:12px">⚠️ Error: '+(err && err.message ? err.message : err)+'</div>';
+    }
+  }
+  window._trGoDesdeListaHora2 = _trGoDesdeListaHora2;
+  function _mostrarListaHoraTrasDia2(fecha){
+    var wrap = document.getElementById('calTrenPanelHora2Wrap');
+    var resumen = document.getElementById('diaElegidoHora2Resumen');
+    var texto = document.getElementById('diaElegidoHora2Texto');
+    if(wrap) wrap.style.display = 'none';
+    if(resumen) resumen.style.display = 'flex';
+    if(texto) texto.textContent = weekdayForDay(fecha.getDate())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
+    renderListaTrenesPorHora2(fecha.getDate());
+  }
+  function _cambiarDiaHora2(){
+    var wrap = document.getElementById('calTrenPanelHora2Wrap');
+    var resumen = document.getElementById('diaElegidoHora2Resumen');
+    if(wrap) wrap.style.display = '';
+    if(resumen) resumen.style.display = 'none';
+    var panel = document.getElementById('trListaHoraPanel2');
+    if(panel) panel.innerHTML = '';
+  }
+  window._cambiarDiaHora2 = _cambiarDiaHora2;
+  generarCalendarioUI('calTrenPanelHora2', function(fecha){
+    selectedTrainDay2 = fecha.getDate();
+    fecha_seleccionada_busqueda2 = fecha;
+    var mesFechaHora2 = { anio: fecha.getFullYear(), mes: fecha.getMonth()+1 };
+    var yaCargadoHora2 = BASES.global && BASES.global.mesAnio
+      && BASES.global.mesAnio.anio===mesFechaHora2.anio && BASES.global.mesAnio.mes===mesFechaHora2.mes;
+    if(yaCargadoHora2){
+      _mostrarListaHoraTrasDia2(fecha);
+      return;
+    }
+    var panelCarga2 = document.getElementById('trListaHoraPanel2');
+    if(panelCarga2) panelCarga2.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando el mes...</div>';
+    cargarHorarioGlobalDesdeAdmin(mesFechaHora2).then(function(ok){
+      if(!ok){
+        if(panelCarga2) panelCarga2.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">⚠️ No hay Horario General publicado para '+MESES_CAL_TREN[mesFechaHora2.mes-1]+' '+mesFechaHora2.anio+' todavía.</div>';
+        return;
+      }
+      _mostrarListaHoraTrasDia2(fecha);
+    }).catch(function(){
+      if(panelCarga2) panelCarga2.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No se pudo cargar ese mes.</div>';
+    });
+  });
+  // NUEVO — Confirmado por el usuario: menú con las dos formas de
+  // buscar (mismo estilo de tarjeta que ya usa Tripulante, en los
+  // colores morados propios de esta pantalla) — antes iba directo al
+  // buscador por número, sin dar a elegir.
+  function mostrarInterventorMenu(){
+    var m = document.getElementById('interventorMenu');
+    var tren = document.getElementById('interventorDetalleTren');
+    var hora = document.getElementById('interventorDetalleHora');
+    if(m) m.style.display = '';
+    if(tren) tren.style.display = 'none';
+    if(hora) hora.style.display = 'none';
+  }
+  function mostrarInterventorDetalle(tipo){
+    var m = document.getElementById('interventorMenu');
+    var tren = document.getElementById('interventorDetalleTren');
+    var hora = document.getElementById('interventorDetalleHora');
+    if(m) m.style.display = 'none';
+    if(tren) tren.style.display = tipo==='tren' ? '' : 'none';
+    if(hora) hora.style.display = tipo==='hora' ? '' : 'none';
+  }
+  window.mostrarInterventorMenu = mostrarInterventorMenu;
+  window.mostrarInterventorDetalle = mostrarInterventorDetalle;
 
   document.getElementById('trGoBtn2').addEventListener('click', async ()=>{
     if(!activeBase){ return; }
