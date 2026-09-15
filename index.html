@@ -1363,11 +1363,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
    que la maqueta aprobada (maqueta_cambio_turno.html), solo que
    ahora con var(--...) reales de la app en vez de hex sueltos. */
 .ct-menu-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--s1);
-  border:1px dashed rgba(37,99,235,.5);border-radius:16px;cursor:pointer;margin-bottom:12px}
+  border:1px solid var(--div);border-radius:16px;cursor:pointer;margin-bottom:12px}
 .ct-menu-ico{width:44px;height:44px;border-radius:12px;background:rgba(37,99,235,.15);
   display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
 .ct-menu-tit{font-size:14px;font-weight:800;color:var(--tx)}
 .ct-menu-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+.ct-menu-arr{color:var(--tx3);font-size:16px;margin-left:auto}
 
 .ct-field-lbl{font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;
   letter-spacing:.4px;margin:14px 0 7px}
@@ -3752,8 +3753,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
       <div style="padding:10px 4px">
         <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
-          <div class="ct-menu-ico">➕</div>
+          <div class="ct-menu-ico">🔄</div>
           <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
+          <div class="ct-menu-arr">›</div>
         </div>
         <div id="cambiosTurnoRecibidasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:4px 2px 8px">Te han solicitado</div>
         <div id="cambiosTurnoRecibidas"></div>
