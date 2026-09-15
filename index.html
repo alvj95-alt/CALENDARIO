@@ -1433,6 +1433,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ct-confirm-box-sub{font-size:10.5px;color:var(--tx3);margin-bottom:10px}
 .ct-confirm-btn{width:100%;padding:11px;background:var(--green);border-radius:10px;
   color:#fff;font-weight:800;font-size:12px;cursor:pointer}
+.ct-send-btn{width:100%;padding:13px;background:var(--acc);border:none;border-radius:12px;
+  color:#fff;font-weight:800;font-size:13px;text-align:center;cursor:pointer;box-sizing:border-box}
 
 .aj-acc-hdr{
   display:flex;
@@ -6657,7 +6659,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
 
       <div id="nscEstado" style="margin-top:10px;font-size:12px"></div>
-      <button class="upload-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="enviarSolicitudCambioTurno()">Enviar solicitud</button>
+      <button class="ct-send-btn" onclick="enviarSolicitudCambioTurno()">Enviar solicitud</button>
     </div>
   </div>
 </div>
