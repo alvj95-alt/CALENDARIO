@@ -30029,17 +30029,19 @@ var _nscMiDetalle = null;
 var _nscSuDetalle = null;
 
 function abrirNuevaSolicitudCambio(){
-  // FIX — Confirmado por el usuario: la búsqueda salía vacía porque
-  // activeBase solo se cargaba al entrar en la pestaña Compañeros —
-  // esta función vive en Calendario, así que nunca se disparaba esa
-  // carga. Si todavía no hay nada cargado, se lleva a la persona a
-  // Compañeros (que ya dispara ese mismo proceso probado: matrícula
-  // + descargo la primera vez, silencioso las siguientes) — al
-  // volver a Calendario y tocar otra vez esta tarjeta, ya estará
-  // cargado y el formulario se abrirá con normalidad.
+  // FIX — Confirmado por el usuario: antes esto mandaba a la persona
+  // a la pestaña Compañeros (podía confundir, "¿por qué me cambió de
+  // pantalla?"). Ahora se queda en Calendario en todo momento: la
+  // carga de datos (abrirAccesoBuscadorCompaneros) no necesita estar
+  // en esa pestaña para funcionar — solo trae datos por detrás, o
+  // como mucho abre su propio aviso de matrícula ENCIMA (los avisos
+  // .ov ya funcionan así, cubren toda la pantalla sea cual sea la
+  // pestaña activa debajo). En cuanto activeBase esté listo, este
+  // formulario se abre solo, automáticamente.
   if(!activeBase){
-    if(typeof toast==='function') toast('Primero confirma tu matrícula en Compañeros...');
-    if(typeof goP==='function') goP('companeros');
+    if(typeof toast==='function') toast('Cargando compañeros...');
+    if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
+    _nscEsperarActiveBaseYAbrir();
     return;
   }
   _nscCompElegido = null; _nscMiDia = null; _nscSuDia = null; _nscMiDetalle = null; _nscSuDetalle = null;
@@ -30058,6 +30060,34 @@ function abrirNuevaSolicitudCambio(){
   openOv('ov-nueva-solicitud-cambio');
 }
 window.abrirNuevaSolicitudCambio = abrirNuevaSolicitudCambio;
+
+// NUEVO — Confirmado por el usuario: espera en segundo plano (sin
+// mover a la persona de pantalla) a que activeBase quede cargado —
+// venga porque ya estaba validado de antes (carga silenciosa) o
+// porque acaba de rellenar el aviso de matrícula que apareció
+// encima — y entonces abre el formulario solo, automáticamente.
+var _nscEsperandoActiveBase = false;
+function _nscEsperarActiveBaseYAbrir(){
+  if(_nscEsperandoActiveBase) return;
+  _nscEsperandoActiveBase = true;
+  var intentos = 0;
+  var intervalo = setInterval(function(){
+    intentos++;
+    if(activeBase){
+      clearInterval(intervalo);
+      _nscEsperandoActiveBase = false;
+      abrirNuevaSolicitudCambio();
+      return;
+    }
+    // ~2 minutos de margen (da tiempo de sobra a escribir la
+    // matrícula la primera vez) — pasado eso, se deja de intentar
+    // en silencio, sin ningún aviso molesto de "tiempo agotado".
+    if(intentos > 240){
+      clearInterval(intervalo);
+      _nscEsperandoActiveBase = false;
+    }
+  }, 500);
+}
 
 document.getElementById('nscBuscarInput').addEventListener('input', function(){
   var q = this.value.trim().toUpperCase();
@@ -30442,17 +30472,19 @@ async function confirmarCambioEnMiCalendario(id, soySolicitante){
   var s = r.data;
   var diaQueDoy = soySolicitante ? s.dia_ofrece : s.dia_pide;
   var diaQueRecibo = soySolicitante ? s.dia_pide : s.dia_ofrece;
+  var detalleQueDoy = soySolicitante ? s.detalle_ofrece : s.detalle_pide;
   var detalleQueRecibo = soySolicitante ? s.detalle_pide : s.detalle_ofrece;
   var nombreOtro = soySolicitante ? s.nombre_destino : s.nombre_solicitante;
 
   var visual = _leerCambiosVisual();
-  var claveMes = s.anio + '-' + (visual._mes || (new Date().getMonth()+1));
-  // Se guarda contra el mes indicado en la solicitud (mismo mes que
-  // ya confirmamos con el usuario que basta, sin cruzar dos meses).
   var mesReal = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
-  claveMes = s.anio + '-' + mesReal;
+  var claveMes = s.anio + '-' + mesReal;
   if(!visual[claveMes]) visual[claveMes] = {};
-  visual[claveMes][diaQueDoy] = { tipo:'dado', con:nombreOtro, id:id };
+  // FIX — Confirmado por el usuario: antes solo se guardaba lo mínimo
+  // (con quién, id) — no era suficiente para mostrar el detalle
+  // completo al abrir ese día. Ahora se guarda TODO lo necesario
+  // (incluida la pernocta si la había) para los dos días implicados.
+  visual[claveMes][diaQueDoy] = { tipo:'dado', con:nombreOtro, id:id, miDetalleOriginal: detalleQueDoy };
   visual[claveMes][diaQueRecibo] = { tipo:'recibido', con:nombreOtro, id:id, turnos: detalleQueRecibo };
   _guardarCambiosVisual(visual);
 
@@ -30463,6 +30495,10 @@ async function confirmarCambioEnMiCalendario(id, soySolicitante){
   var ovTemp = document.getElementById('ov-post-aceptacion-temp');
   if(ovTemp) ovTemp.remove();
   if(typeof renderCal === 'function') renderCal();
+  // NUEVO — refresca también el detalle del día abierto (si hay uno),
+  // para que el aviso completo salga al instante sin tener que salir
+  // y volver a entrar.
+  if(typeof renderDiaArea === 'function') renderDiaArea();
   cargarCambiosTurno();
 }
 window.confirmarCambioEnMiCalendario = confirmarCambioEnMiCalendario;
@@ -30495,6 +30531,68 @@ function toggleCambiosTurnoAcordeon(){
   if(!abierto) cargarCambiosTurno();
 }
 window.toggleCambiosTurnoAcordeon = toggleCambiosTurnoAcordeon;
+
+// ── 9) Confirmado por el usuario: al abrir el detalle de un día en
+//    el calendario, si ese día tiene un cambio de turno confirmado,
+//    mostrar toda la info completa (no solo el avisito de la
+//    cuadrícula) — tren(es), horas, y si era pernocta, los dos días.
+//    NUNCA toca lo que renderDiaArea() ya pintó — solo AÑADE un
+//    bloque más al final, así que no hay riesgo de romper nada de
+//    lo que ya funcionaba ahí. ──
+function _inyectarInfoCambioTurnoEnDia(){
+  if(typeof selDay === 'undefined' || !selDay || !selDay.k || selDay.d==null) return;
+  var visual = _leerCambiosVisual();
+  var partesK = selDay.k.split('-');
+  var claveMes = parseInt(partesK[0],10) + '-' + parseInt(partesK[1],10);
+  var mesData = visual[claveMes];
+  if(!mesData || !mesData[selDay.d]) return;
+  var info = mesData[selDay.d];
+  var ovCard = document.getElementById('ov-dia-card');
+  var useModal = ovCard && ovCard.classList.contains('on');
+  var area = useModal ? document.getElementById('dia-card-body') : document.getElementById('dia-area');
+  if(!area) return;
+  var html = '';
+  if(info.tipo === 'recibido'){
+    html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px">'
+      + '<div style="font-size:11px;font-weight:800;color:#c084fc;margin-bottom:6px">🔄 CAMBIO CON '+((info.con||'').toUpperCase())+'</div>';
+    var td = info.turnos;
+    if(td && td.esLibre){
+      html += '<div class="ct-day-pick-turno">'+td.tipoLibreLbl+'</div>';
+    } else if(td){
+      (td.turnos||[]).forEach(function(t){
+        html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+      });
+      if(td.esPernocta && td.diaVuelta){
+        html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta del día '+td.diaVuelta+'</div>';
+        (td.turnosVuelta||[]).forEach(function(t){
+          html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+        });
+      }
+    }
+    html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>';
+    html += '</div>';
+  } else if(info.tipo === 'dado'){
+    html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px">'
+      + '<div style="font-size:11px;font-weight:800;color:#c084fc;margin-bottom:6px">🔄 CAMBIADO CON '+((info.con||'').toUpperCase())+'</div>'
+      + '<div style="font-size:11.5px;color:var(--tx2)">Este día ahora lo hace '+(info.con||'')+'.</div>';
+    if(info.miDetalleOriginal){
+      html += '<div style="font-size:10px;color:var(--tx3);margin-top:6px">Antes tenías: '+_resumenTurno(info.miDetalleOriginal)+'</div>';
+    }
+    html += '</div>';
+  }
+  if(html) area.insertAdjacentHTML('beforeend', html);
+}
+// Envuelve renderDiaArea() desde fuera, sin tocar su código interno
+// (que es grande y con muchas ramas) — así, venga por el camino que
+// venga, siempre se añade el aviso al final si corresponde.
+if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrapped){
+  var _renderDiaArea_original_ct = window.renderDiaArea;
+  window.renderDiaArea = function(){
+    _renderDiaArea_original_ct();
+    _inyectarInfoCambioTurnoEnDia();
+  };
+  window._renderDiaArea_ctWrapped = true;
+}
 
 })();
 /* ═══════════════════════════════════════════════════════════
