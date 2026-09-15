@@ -29903,15 +29903,26 @@ clearBtn.addEventListener('click', ()=>{
 // ── 1) Construir el detalle completo de UN día propio, leyendo
 //    TV/TV2 tal cual ya existen (misma lógica de pernocta que ya
 //    comprobamos con datos de prueba: modo + diaSiguiente). ──
-function construirDetalleDiaPropio(dia){
-  var k = String(dia);
+// FIX — Confirmado por el usuario: bug real de raíz. TV NO se indexa
+// por el día suelto ("15") como yo asumía — se indexa con la clave
+// real de la app, key(anio,mes,dia) → "2026-09-15" (ver key() en el
+// propio código). Buscar solo por "15" nunca encontraba nada, en
+// NINGÚN día — por eso la sincronización siempre estaba vacía. Ahora
+// recibe año y mes explícitos y usa la misma key() que usa el resto
+// de la app. De paso, se añade el caso que faltaba: "ida y vuelta el
+// mismo día" (sin pernocta) guarda el segundo tramo en el MISMO día
+// con numTrenVuelta/hF2/hL2, en vez de en un día aparte.
+function construirDetalleDiaPropio(anio, mes, dia){
+  var k = (typeof key==='function') ? key(anio, mes, dia) : (anio+'-'+String(mes).padStart(2,'0')+'-'+String(dia).padStart(2,'0'));
   var t = (typeof TV !== 'undefined') ? TV[k] : null;
   if(!t) return null;
   var esPernocta = (t.modo === 'pernocta' || t.modo === 'pernocta3');
   var turnos = [];
   if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)) });
-  // Turnos adicionales del mismo día (TV2) — para el caso "más de un
-  // tren el mismo día" (ida y vuelta, o varios servicios sueltos).
+  // NUEVO — "ida y vuelta el mismo día" (sin pernocta): el segundo
+  // tramo vive en el MISMO día, como numTrenVuelta/hF2/hL2.
+  if(!esPernocta && t.numTrenVuelta) turnos.push({ numTren: t.numTrenVuelta, horaCI: t.hF2||null, horaCO: t.hL2||null });
+  // Turnos adicionales del mismo día (TV2) — varios servicios sueltos.
   if(typeof TV2 !== 'undefined' && TV2[k] && TV2[k].length){
     TV2[k].forEach(function(t2){
       if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
@@ -29919,14 +29930,20 @@ function construirDetalleDiaPropio(dia){
   }
   var diaVuelta = null, turnosVuelta = [];
   if(esPernocta && t.diaSiguiente){
-    diaVuelta = t.diaSiguiente;
-    var tv = TV[String(diaVuelta)];
-    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: null, horaCO: t.hL2 || tv.hL || null });
-    if(typeof TV2 !== 'undefined' && TV2[String(diaVuelta)] && TV2[String(diaVuelta)].length){
-      TV2[String(diaVuelta)].forEach(function(t2){
+    // t.diaSiguiente YA es una key completa ("2026-09-16"), no un
+    // número de día suelto — se usa tal cual para buscar en TV/TV2.
+    var tv = TV[t.diaSiguiente];
+    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: tv.hF||null, horaCO: tv.hL||null });
+    if(typeof TV2 !== 'undefined' && TV2[t.diaSiguiente] && TV2[t.diaSiguiente].length){
+      TV2[t.diaSiguiente].forEach(function(t2){
         if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
       });
     }
+    // Solo para MOSTRAR ("incluye la vuelta del día 27") se extrae el
+    // número de día suelto de la key completa — el resto de la app
+    // sigue usando SIEMPRE la key completa para buscar en TV.
+    var partesFecha = t.diaSiguiente.split('-');
+    diaVuelta = parseInt(partesFecha[2], 10);
   }
   if(!turnos.length && !turnosVuelta.length) return null;
   return { dia: dia, esPernocta: esPernocta, diaVuelta: diaVuelta, turnos: turnos, turnosVuelta: turnosVuelta };
@@ -29947,7 +29964,7 @@ async function sincronizarTurnosDetalle(){
     var mesActual = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
     var filas = [];
     for(var d=1; d<=31; d++){
-      var det = construirDetalleDiaPropio(d);
+      var det = construirDetalleDiaPropio(anioActual, mesActual, d);
       if(!det) continue;
       filas.push({
         matricula: AJ.matricula,
@@ -30153,7 +30170,7 @@ function _nscPintarCalendario(){
       return;
     }
     _nscMiDia = { dia:dia, mes:mes, anio:anio };
-    var det = construirDetalleDiaPropio(dia);
+    var det = construirDetalleDiaPropio(anio, mes, dia);
     _nscMiDetalle = det;
     _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, det, true);
   });
