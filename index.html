@@ -30323,17 +30323,25 @@ async function cargarCambiosTurno(){
   try{
     var recibidas = await sbAdmin.from('cambios_turno').select('*').eq('matricula_destino', AJ.matricula).eq('estado','pendiente').order('fecha_hora',{ascending:false});
     var enviadas = await sbAdmin.from('cambios_turno').select('*').eq('matricula_solicitante', AJ.matricula).order('fecha_hora',{ascending:false}).limit(20);
+    // NUEVO — Confirmado por el usuario: antes, cuando TÚ aceptabas
+    // el cambio de alguien, no había forma de volver a encontrar el
+    // paso de "correo + confirmar" si cerrabas esa pantalla sin
+    // terminarlo — esta consulta trae justo esos casos.
+    var aceptadasPorMi = await sbAdmin.from('cambios_turno').select('*').eq('matricula_destino', AJ.matricula).eq('estado','aceptada').eq('confirmado_destino', false).order('fecha_hora',{ascending:false});
     var recibidasData = (recibidas && recibidas.data) || [];
     var enviadasData = (enviadas && enviadas.data) || [];
+    var aceptadasPorMiData = (aceptadasPorMi && aceptadasPorMi.data) || [];
 
     var badge = document.getElementById('cambiosTurnoBadgeCount');
-    if(recibidasData.length){ badge.style.display=''; badge.textContent = recibidasData.length; }
+    var totalPendiente = recibidasData.length + aceptadasPorMiData.length;
+    if(totalPendiente){ badge.style.display=''; badge.textContent = totalPendiente; }
     else { badge.style.display = 'none'; }
 
     var lblR = document.getElementById('cambiosTurnoRecibidasLbl');
     var contR = document.getElementById('cambiosTurnoRecibidas');
-    lblR.style.display = recibidasData.length ? '' : 'none';
-    contR.innerHTML = recibidasData.map(function(s){ return _renderTarjetaCambioRecibido(s); }).join('');
+    lblR.style.display = (recibidasData.length || aceptadasPorMiData.length) ? '' : 'none';
+    contR.innerHTML = recibidasData.map(function(s){ return _renderTarjetaCambioRecibido(s); }).join('')
+      + aceptadasPorMiData.map(function(s){ return _renderTarjetaAceptadaPorMi(s); }).join('');
 
     var lblE = document.getElementById('cambiosTurnoEnviadasLbl');
     var contE = document.getElementById('cambiosTurnoEnviadas');
@@ -30343,14 +30351,27 @@ async function cargarCambiosTurno(){
     // NUEVO — Confirmado por el usuario: banner arriba del todo, mismo
     // estilo que las notificaciones del Admin, para que se note de
     // verdad al entrar en Calendario (no solo el numerito).
-    _renderBannerCambioTurno(recibidasData, enviadasData);
+    _renderBannerCambioTurno(recibidasData, enviadasData, aceptadasPorMiData);
   }catch(e){ console.warn('cargarCambiosTurno:', e); }
 }
 window.cargarCambiosTurno = cargarCambiosTurno;
 
-function _renderBannerCambioTurno(recibidasData, enviadasData){
+// NUEVO — tarjeta para "ya acepté esto, pero me falta mandar el
+// correo/confirmar en mi calendario" — mismo estilo que las demás.
+function _renderTarjetaAceptadaPorMi(s){
+  return '<div class="ct-req-card" style="padding:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<div><div class="ct-req-name" style="font-size:12px">'+s.nombre_solicitante+'</div><div class="ct-req-sub">Día '+s.dia_ofrece+' ⇄ Día '+s.dia_pide+'</div></div>'
+    + '<span class="ct-status-chip ct-status-ok">✅ Aceptado por ti</span>'
+    + '</div>'
+    + '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacion('+s.id+')">Ver siguiente paso (correo + confirmar)</div>'
+    + '</div>';
+}
+
+function _renderBannerCambioTurno(recibidasData, enviadasData, aceptadasPorMiData){
   var zona = document.getElementById('notifBannerZonaCambioTurno');
   if(!zona) return;
+  aceptadasPorMiData = aceptadasPorMiData || [];
   var aceptadasSinConfirmar = enviadasData.filter(function(s){ return s.estado==='aceptada' && !s.confirmado_solicitante; });
   var banners = '';
   if(recibidasData.length){
@@ -30367,6 +30388,18 @@ function _renderBannerCambioTurno(recibidasData, enviadasData){
       + '<div class="nadm-banner-ico">✅</div>'
       + '<div style="flex:1">'
         + '<div class="nadm-banner-tit">'+s.nombre_destino+' aceptó tu cambio</div>'
+        + '<div class="nadm-banner-msg">Toca para mandar el correo y confirmar en tu calendario.</div>'
+      + '</div>'
+    + '</div>';
+  });
+  // NUEVO — Confirmado por el usuario: el mismo aviso, pero para
+  // cuando fuiste TÚ quien aceptó el cambio de otro y te falta
+  // terminar el paso de correo + confirmar.
+  aceptadasPorMiData.forEach(function(s){
+    banners += '<div class="nadm-banner" style="--nadm-bc:#16A34A;--nadm-bg:rgba(22,163,74,.12);--nadm-tc:#4ADE80" onclick="mostrarPasosPostAceptacion('+s.id+')">'
+      + '<div class="nadm-banner-ico">✅</div>'
+      + '<div style="flex:1">'
+        + '<div class="nadm-banner-tit">Aceptaste el cambio de '+s.nombre_solicitante+'</div>'
         + '<div class="nadm-banner-msg">Toca para mandar el correo y confirmar en tu calendario.</div>'
       + '</div>'
     + '</div>';
@@ -30414,6 +30447,12 @@ function _renderTarjetaCambioEnviado(s){
     accionesExtra = '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacion('+s.id+')">Ver siguiente paso (correo + confirmar)</div>';
   } else if(s.estado==='pendiente'){
     accionesExtra = '<div class="ct-cancel-btn" onclick="cancelarSolicitudCambio('+s.id+')">Cancelar solicitud</div>';
+  } else {
+    // NUEVO — Confirmado por el usuario: eliminar del todo una
+    // solicitud ya resuelta (aceptada y confirmada, rechazada, o
+    // cancelada) — solo la borra de tu lista/historial, no toca
+    // ningún aviso visual que ya tengas puesto en el calendario.
+    accionesExtra = '<div class="ct-cancel-btn" onclick="eliminarSolicitudCambio('+s.id+')">🗑 Eliminar</div>';
   }
   return '<div class="ct-req-card" style="padding:12px">'
     + '<div style="display:flex;justify-content:space-between;align-items:center">'
@@ -30422,11 +30461,32 @@ function _renderTarjetaCambioEnviado(s){
 }
 window.responderCambioTurno = null; // se define abajo, tras declarar la función real
 
+// NUEVO — Confirmado por el usuario: borrar del todo una solicitud
+// ya resuelta desde "Tus solicitudes enviadas". Pide confirmación
+// antes (acción irreversible) y no toca ningún aviso visual que ya
+// tengas puesto en el calendario (eso vive aparte, en localStorage).
+function eliminarSolicitudCambio(id){
+  if(!sbAdmin) return;
+  if(!confirm('¿Eliminar esta solicitud de tu lista? No se puede deshacer.')) return;
+  sbAdmin.from('cambios_turno').delete().eq('id', id).then(function(){
+    cargarCambiosTurno();
+  }).catch(function(e){ console.warn('eliminarSolicitudCambio:', e); });
+}
+window.eliminarSolicitudCambio = eliminarSolicitudCambio;
+
 async function responderCambioTurno(id, nuevoEstado){
   if(!sbAdmin) return;
   try{
     await sbAdmin.from('cambios_turno').update({ estado: nuevoEstado }).eq('id', id);
     cargarCambiosTurno();
+    // FIX — Confirmado por el usuario: antes, al aceptar, a esa
+    // persona no le salía nada — se quedaba sin saber que tenía que
+    // mandar el correo y confirmar en su propio calendario. Ahora se
+    // le muestra la misma pantalla de "correo + confirmar" al
+    // instante, igual que ya le pasaba a quien pidió el cambio.
+    if(nuevoEstado === 'aceptada' && typeof mostrarPasosPostAceptacion==='function'){
+      mostrarPasosPostAceptacion(id);
+    }
   }catch(e){ console.warn('responderCambioTurno:', e); }
 }
 window.responderCambioTurno = responderCambioTurno;
@@ -30470,13 +30530,14 @@ async function mostrarPasosPostAceptacion(id){
   var r = await sbAdmin.from('cambios_turno').select('*').eq('id', id).maybeSingle();
   if(!r.data) return;
   var s = r.data;
-  // FIX — Confirmado por el usuario: antes el correo llevaba emojis
-  // y simbolos (rompian la apertura en algunos clientes de correo),
-  // y no seguia el mismo formato que el resto de correos de la app
-  // (nombre+matricula de ambos implicados, firma con matricula de
-  // quien lo envia). Ahora usa el mismo patron que ya usan tus otros
-  // correos (generarCuerpoCorreo) y pasa por sanitizarTexto() antes
-  // de mandarlo, igual que confirmarEnvioEmail().
+  // FIX — Confirmado por el usuario: esta pantalla la puede ver
+  // CUALQUIERA de los dos (quien pidió el cambio, o quien lo
+  // aceptó) — antes daba igual quién la abriera, siempre trataba a
+  // quien la veía como si fuera el solicitante. Ahora mira tu propia
+  // matrícula para saber cuál de los dos eres de verdad.
+  var soySolicitante = !!(AJ && AJ.matricula && s.matricula_solicitante === AJ.matricula);
+  var otroNombre = soySolicitante ? s.nombre_destino : s.nombre_solicitante;
+  var yaConfirmado = soySolicitante ? s.confirmado_solicitante : s.confirmado_destino;
   var miNombre = (AJ && AJ.nombre) || '';
   var miMatricula = (AJ && AJ.matricula) || '';
   var asunto = 'Solicitud de cambio de turno - '+s.nombre_solicitante+' / '+s.nombre_destino;
@@ -30494,7 +30555,7 @@ async function mostrarPasosPostAceptacion(id){
   var mailto = 'mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpoLimpio);
   var html = '<div class="ov on" id="ov-post-aceptacion-temp" onclick="if(event.target===this) document.getElementById(\'ov-post-aceptacion-temp\').remove()">'
     + '<div class="sh" onclick="event.stopPropagation()">'
-    + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+s.nombre_destino+'</div></div>'
+    + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+otroNombre+'</div></div>'
     + '<button class="sh-close" onclick="document.getElementById(\'ov-post-aceptacion-temp\').remove()">✕</button></div>'
     + '<div style="padding:16px">'
     + '<div class="ct-mail-prompt">'
@@ -30503,12 +30564,12 @@ async function mostrarPasosPostAceptacion(id){
     + '<div class="ct-mail-prompt-sub">Se abrirá tu app de correo, ya escrito. Solo dale a "Enviar".</div>'
     + '<a href="'+mailto+'" class="ct-mail-btn">Abrir correo</a>'
     + '</div>'
-    + (s.confirmado_solicitante
+    + (yaConfirmado
       ? '<div style="text-align:center;color:var(--green2);font-size:12px;font-weight:700">✅ Ya confirmaste este cambio en tu calendario.</div>'
       : '<div class="ct-confirm-box">'
         + '<div class="ct-confirm-box-tit">📅 Actualizar tu calendario</div>'
         + '<div class="ct-confirm-box-sub">Solo un aviso visual — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>'
-        + '<div class="ct-confirm-btn" onclick="confirmarCambioEnMiCalendario('+s.id+',true)">Ya envié el correo — actualizar mi calendario</div>'
+        + '<div class="ct-confirm-btn" onclick="confirmarCambioEnMiCalendario('+s.id+','+soySolicitante+')">Ya envié el correo — actualizar mi calendario</div>'
         + '</div>')
     + '</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
