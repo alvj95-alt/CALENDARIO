@@ -29943,8 +29943,8 @@ async function sincronizarTurnosDetalle(){
   if(!sbAdmin || !AJ || !AJ.matricula) return;
   _sincronizandoTurnos = true;
   try{
-    var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
-    var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+    var anioActual = (typeof curM!=='undefined' && curM) ? curM.getFullYear() : new Date().getFullYear();
+    var mesActual = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
     var filas = [];
     for(var d=1; d<=31; d++){
       var det = construirDetalleDiaPropio(d);
@@ -29958,8 +29958,14 @@ async function sincronizarTurnosDetalle(){
         actualizado_en: new Date().toISOString()
       });
     }
-    if(!filas.length) return;
-    await sbAdmin.from('turnos_sincronizados').upsert(filas, { onConflict: 'matricula,anio,mes,dia' });
+    // FIX — Confirmado por el usuario: antes, si no había NADA que
+    // subir, se salía en silencio sin dejar ningún rastro — ahora
+    // queda constancia en consola para poder diagnosticarlo (¿TV
+    // vacío ese mes? ¿mes equivocado?).
+    if(!filas.length){ console.warn('sincronizarTurnosDetalle: no hay ningún turno en TV para', mesActual+'/'+anioActual, '— nada que subir.'); return; }
+    var rSync = await sbAdmin.from('turnos_sincronizados').upsert(filas, { onConflict: 'matricula,anio,mes,dia' });
+    if(rSync && rSync.error){ console.error('sincronizarTurnosDetalle: Supabase rechazó la subida:', rSync.error.message); }
+    else { console.log('sincronizarTurnosDetalle: subidos', filas.length, 'días para', mesActual+'/'+anioActual); }
   }catch(e){ console.warn('sincronizarTurnosDetalle:', e); }
   finally{ _sincronizandoTurnos = false; }
 }
@@ -30082,9 +30088,18 @@ function _nscElegirSuDia(){
   var panel = document.getElementById('nscCalPanel');
   panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando su horario...</div>';
   openOv('ov-nsc-calendario');
-  var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
-  var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  var anioActual = (typeof curM!=='undefined' && curM) ? curM.getFullYear() : new Date().getFullYear();
+  var mesActual = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
   sbAdmin.from('turnos_sincronizados').select('dia,detalle').eq('matricula', _nscCompElegido.matricula).eq('anio', anioActual).eq('mes', mesActual).order('dia',{ascending:true}).then(function(r){
+    // FIX — Confirmado por el usuario: antes, un error real de
+    // Supabase (tabla mal creada, política RLS, sin conexión...) se
+    // trataba igual que "simplemente no ha sincronizado" — ahora se
+    // distingue y se muestra el motivo real.
+    if(r && r.error){
+      panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--nar3);font-size:12px">⚠️ Error consultando Supabase: '+r.error.message+'</div>';
+      console.error('_nscElegirSuDia:', r.error);
+      return;
+    }
     var filas = (r && r.data) || [];
     var hoy = new Date(); hoy.setHours(0,0,0,0);
     filas = filas.filter(function(f){
@@ -30092,7 +30107,7 @@ function _nscElegirSuDia(){
       return fechaFila >= hoy;
     });
     if(!filas.length){
-      panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--nar3);font-size:12px">⚠️ '+_nscCompElegido.nombre+' todavía no ha sincronizado ningún día futuro de este mes — pídele que abra su Calendario primero.</div>';
+      panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--nar3);font-size:12px">⚠️ '+_nscCompElegido.nombre+' todavía no ha sincronizado ningún día futuro de este mes ('+mesActual+'/'+anioActual+') — pídele que abra su Calendario primero.</div>';
       return;
     }
     panel.innerHTML = filas.map(function(f){
@@ -30111,8 +30126,8 @@ window._nscElegirSuDia = _nscElegirSuDia;
 
 function _nscElegirDiaDeCompanero(dia){
   closeOv('ov-nsc-calendario');
-  var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
-  var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  var anioActual = (typeof curM!=='undefined' && curM) ? curM.getFullYear() : new Date().getFullYear();
+  var mesActual = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
   var det = (window._nscDiasSuyosCache||{})[dia];
   if(!det) return;
   _nscSuDia = { dia:dia, mes:mesActual, anio:anioActual };
@@ -30388,7 +30403,7 @@ async function confirmarCambioEnMiCalendario(id, soySolicitante){
   var claveMes = s.anio + '-' + (visual._mes || (new Date().getMonth()+1));
   // Se guarda contra el mes indicado en la solicitud (mismo mes que
   // ya confirmamos con el usuario que basta, sin cruzar dos meses).
-  var mesReal = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  var mesReal = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
   claveMes = s.anio + '-' + mesReal;
   if(!visual[claveMes]) visual[claveMes] = {};
   visual[claveMes][diaQueDoy] = { tipo:'dado', con:nombreOtro, id:id };
@@ -30410,8 +30425,8 @@ window.confirmarCambioEnMiCalendario = confirmarCambioEnMiCalendario;
 //    renderCal() mediante esta función; NUNCA modifica TV/TV2. ──
 function _badgeCambioTurnoParaDia(dia){
   var visual = _leerCambiosVisual();
-  var mesReal = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
-  var anioReal = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
+  var mesReal = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
+  var anioReal = (typeof curM!=='undefined' && curM) ? curM.getFullYear() : new Date().getFullYear();
   var claveMes = anioReal + '-' + mesReal;
   var mesData = visual[claveMes];
   if(!mesData || !mesData[dia]) return '';
