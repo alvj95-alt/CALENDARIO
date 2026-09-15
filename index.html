@@ -29945,8 +29945,21 @@ function construirDetalleDiaPropio(anio, mes, dia){
     var partesFecha = t.diaSiguiente.split('-');
     diaVuelta = parseInt(partesFecha[2], 10);
   }
-  if(!turnos.length && !turnosVuelta.length) return null;
-  return { dia: dia, esPernocta: esPernocta, diaVuelta: diaVuelta, turnos: turnos, turnosVuelta: turnosVuelta };
+  // NUEVO — Confirmado por el usuario: los días SIN tren (descanso,
+  // vacaciones, comp, baja...) también tienen que poder elegirse para
+  // un cambio ("cambio un libre por un turno, o al revés") — antes
+  // esta función devolvía null y esos días quedaban invisibles del
+  // todo para "Solicitar cambio de turno".
+  var esLibre = false, tipoLibreLbl = null;
+  if(!turnos.length && !turnosVuelta.length){
+    if(t.tipo && typeof TIPO_INFO!=='undefined' && TIPO_INFO[t.tipo]){
+      esLibre = true;
+      tipoLibreLbl = TIPO_INFO[t.tipo].ico + ' ' + TIPO_INFO[t.tipo].lbl;
+    } else {
+      return null; // día realmente vacío, sin nada guardado
+    }
+  }
+  return { dia: dia, esPernocta: esPernocta, diaVuelta: diaVuelta, turnos: turnos, turnosVuelta: turnosVuelta, esLibre: esLibre, tipoLibreLbl: tipoLibreLbl };
 }
 
 // ── 2) Subir en silencio el detalle del mes actual a la nube, para
@@ -30181,8 +30194,18 @@ function _nscPintarDetalleDia(idSelector, idDetalle, fecha, det, esMio){
   var titulo = weekdayForDay(dia)+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase();
   document.getElementById(idSelector).innerHTML = '<div style="font-size:12px;font-weight:700">'+titulo+'</div>';
   var elDet = document.getElementById(idDetalle);
-  if(!det || (!det.turnos.length && !det.turnosVuelta.length)){
-    elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Sin turno registrado ese día (¿día libre?). Elige otro día con servicio.</div>';
+  if(!det){
+    elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Sin nada registrado ese día. Elige otro día.</div>';
+    return;
+  }
+  // NUEVO — Confirmado por el usuario: los días libres (descanso,
+  // vacaciones, comp...) también se pueden elegir para el cambio.
+  if(det.esLibre){
+    document.getElementById(idDetalle).innerHTML = '<div class="ct-day-pick"><div class="ct-day-pick-turno" style="color:var(--tx2)">'+det.tipoLibreLbl+'</div></div>';
+    return;
+  }
+  if(!det.turnos.length && !det.turnosVuelta.length){
+    elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Sin turno registrado ese día. Elige otro día.</div>';
     return;
   }
   var html = '<div class="ct-day-pick">';
@@ -30298,7 +30321,9 @@ function _abrirCambiosTurnoDesdeBanner(){
 window._abrirCambiosTurnoDesdeBanner = _abrirCambiosTurnoDesdeBanner;
 
 function _resumenTurno(det){
-  if(!det || !det.turnos || !det.turnos.length) return 'sin datos';
+  if(!det) return 'sin datos';
+  if(det.esLibre) return det.tipoLibreLbl || 'Día libre';
+  if(!det.turnos || !det.turnos.length) return 'sin datos';
   var txt = det.turnos.map(function(t){ return 'Tren '+t.numTren; }).join(' + ');
   if(det.esPernocta) txt += ' 🌙';
   return txt;
