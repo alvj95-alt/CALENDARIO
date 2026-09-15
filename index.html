@@ -3665,6 +3665,10 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <!-- NUEVO — Notificaciones del Admin (banners). Se rellena desde
          nadmRenderBanners(); vacío si no hay avisos activos para tu sede. -->
     <div id="notifBannerZona" style="padding:10px 12px 0"></div>
+    <!-- NUEVO — Confirmado por el usuario: banner de "Cambios de
+         turno" con el mismo estilo que las notificaciones del Admin,
+         para que se note de verdad al entrar en Calendario. -->
+    <div id="notifBannerZonaCambioTurno" style="padding:10px 12px 0"></div>
     <!-- Navegación de mes -->
     <div class="mes-nav">
       <button class="mn-btn" onclick="chM(-1)" title="Mes anterior">‹</button>
@@ -17799,6 +17803,10 @@ function goP(n){
   // en silencio el detalle de tus turnos a la nube (para "Solicitar
   // cambio de turno") — solo LEE de TV/TV2, nunca escribe en ellos.
   if(n==='cal' && typeof sincronizarTurnosDetalle==='function') sincronizarTurnosDetalle();
+  // NUEVO — Confirmado por el usuario: carga las solicitudes de
+  // cambio de turno (y pinta el banner si hay algo) nada más entrar
+  // en Calendario, sin esperar a que se despliegue la sección.
+  if(n==='cal' && typeof cargarCambiosTurno==='function') cargarCambiosTurno();
   // NUEVO: refrescar la lista individual de meses al entrar en Horario
   if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
   // NUEVO — al entrar en la pestaña Compañeros, dispara la misma
@@ -30030,13 +30038,32 @@ function _nscElegirCompanero(matricula, nombre){
   document.getElementById('nscBuscarInput').value = '';
   var el = document.getElementById('nscCompSeleccionado');
   el.style.display = '';
-  el.innerHTML = '<div class="ct-pcard-mini"><div class="ct-pcard-av">'+initials(nombre)+'</div><div class="ct-pcard-name">'+nombre+'</div></div>';
+  // FIX — Confirmado por el usuario: ahora se puede quitar el
+  // compañero elegido por error (✕), sin perder el resto del
+  // formulario ni tener que cerrarlo y empezar de cero.
+  el.innerHTML = '<div class="ct-pcard-mini" style="justify-content:space-between">'
+    + '<div style="display:flex;align-items:center;gap:10px"><div class="ct-pcard-av">'+initials(nombre)+'</div><div class="ct-pcard-name">'+nombre+'</div></div>'
+    + '<div onclick="_nscQuitarCompanero()" style="color:var(--tx3);font-size:16px;cursor:pointer;padding:0 4px">✕</div></div>';
   var suSel = document.getElementById('nscSuDiaSelector');
   suSel.style.opacity = '1';
-  suSel.innerHTML = '<span style="font-size:12px;color:var(--tx3)">Toca para elegir el día...</span>';
+  suSel.innerHTML = '<span style="font-size:12px;color:var(--tx3)">Toca para ver su horario...</span>';
   document.getElementById('nscSuDiaDetalle').innerHTML = '';
 }
 window._nscElegirCompanero = _nscElegirCompanero;
+
+// FIX — Confirmado por el usuario: deshacer la elección del
+// compañero (por si se equivocó), volviendo a mostrar el buscador.
+function _nscQuitarCompanero(){
+  _nscCompElegido = null; _nscSuDia = null; _nscSuDetalle = null;
+  document.getElementById('nscCompSeleccionado').style.display = 'none';
+  document.getElementById('nscCompSeleccionado').innerHTML = '';
+  var suSel = document.getElementById('nscSuDiaSelector');
+  suSel.style.opacity = '.5';
+  suSel.innerHTML = '<span style="font-size:12px;color:var(--tx3)">Primero elige con quién...</span>';
+  document.getElementById('nscSuDiaDetalle').innerHTML = '';
+  document.getElementById('nscBuscarInput').focus();
+}
+window._nscQuitarCompanero = _nscQuitarCompanero;
 
 function _nscElegirMiDia(){
   _nscModoSelector = 'mio';
@@ -30047,14 +30074,58 @@ function _nscElegirMiDia(){
 window._nscElegirMiDia = _nscElegirMiDia;
 function _nscElegirSuDia(){
   if(!_nscCompElegido){ return; }
-  _nscModoSelector = 'suyo';
-  document.getElementById('nscCalTit').textContent = 'Elige su día';
+  // FIX — Confirmado por el usuario: antes había que ir probando
+  // día a día a ciegas. Ahora se trae de golpe TODO lo que el
+  // compañero ya sincronizó ese mes, y se elige directamente de
+  // una lista con el resumen de cada día.
+  document.getElementById('nscCalTit').textContent = 'Horario de '+_nscCompElegido.nombre;
+  var panel = document.getElementById('nscCalPanel');
+  panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando su horario...</div>';
   openOv('ov-nsc-calendario');
-  _nscPintarCalendario();
+  var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
+  var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  sbAdmin.from('turnos_sincronizados').select('dia,detalle').eq('matricula', _nscCompElegido.matricula).eq('anio', anioActual).eq('mes', mesActual).order('dia',{ascending:true}).then(function(r){
+    var filas = (r && r.data) || [];
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    filas = filas.filter(function(f){
+      var fechaFila = new Date(anioActual, mesActual-1, f.dia);
+      return fechaFila >= hoy;
+    });
+    if(!filas.length){
+      panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--nar3);font-size:12px">⚠️ '+_nscCompElegido.nombre+' todavía no ha sincronizado ningún día futuro de este mes — pídele que abra su Calendario primero.</div>';
+      return;
+    }
+    panel.innerHTML = filas.map(function(f){
+      var det = f.detalle;
+      var resumen = _resumenTurno(det);
+      return '<div class="ct-pcard-mini" style="cursor:pointer;justify-content:space-between" onclick="_nscElegirDiaDeCompanero('+f.dia+')">'
+        + '<div><div class="ct-pcard-name">Día '+f.dia+'</div><div style="font-size:10.5px;color:var(--tx3);margin-top:2px">'+resumen+'</div></div>'
+        + '<div style="color:var(--tx3);font-size:15px">›</div></div>';
+    }).join('');
+    // Se guarda para poder recuperar el detalle exacto al elegir un día.
+    window._nscDiasSuyosCache = {};
+    filas.forEach(function(f){ window._nscDiasSuyosCache[f.dia] = f.detalle; });
+  });
 }
 window._nscElegirSuDia = _nscElegirSuDia;
 
+function _nscElegirDiaDeCompanero(dia){
+  closeOv('ov-nsc-calendario');
+  var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
+  var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  var det = (window._nscDiasSuyosCache||{})[dia];
+  if(!det) return;
+  _nscSuDia = { dia:dia, mes:mesActual, anio:anioActual };
+  _nscSuDetalle = det;
+  var fechaFalsa = new Date(anioActual, mesActual-1, dia);
+  _nscPintarDetalleDia('nscSuDiaSelector', 'nscSuDiaDetalle', fechaFalsa, det, false);
+}
+window._nscElegirDiaDeCompanero = _nscElegirDiaDeCompanero;
+
 function _nscPintarCalendario(){
+  // Simplificado — Confirmado por el usuario: ahora esta función solo
+  // se usa para "mi día" (propio); "su día" (el del compañero) usa la
+  // vista previa de lista en _nscElegirSuDia()/_nscElegirDiaDeCompanero().
   var panel = document.getElementById('nscCalPanel');
   panel.innerHTML = '';
   generarCalendarioUI('nscCalPanel', function(fecha){
@@ -30066,26 +30137,10 @@ function _nscPintarCalendario(){
       estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Ese día ya pasó — elige un día futuro.</span>';
       return;
     }
-    if(_nscModoSelector === 'mio'){
-      _nscMiDia = { dia:dia, mes:mes, anio:anio };
-      var det = construirDetalleDiaPropio(dia);
-      _nscMiDetalle = det;
-      _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, det, true);
-    } else {
-      _nscSuDia = { dia:dia, mes:mes, anio:anio };
-      var elDet = document.getElementById('nscSuDiaDetalle');
-      elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Buscando el detalle de '+_nscCompElegido.nombre+'...</div>';
-      document.getElementById('nscSuDiaSelector').innerHTML = '<div style="font-size:12px;font-weight:700">'+weekdayForDay(dia)+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase()+'</div>';
-      obtenerDetalleDiaCompanero(_nscCompElegido.matricula, anio, mes, dia).then(function(resp){
-        if(!resp.encontrado){
-          _nscSuDetalle = null;
-          elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--nar3)">⚠️ '+_nscCompElegido.nombre+' todavía no ha sincronizado el detalle de ese día — pídele que abra su Calendario primero, o elige otro día.</div>';
-          return;
-        }
-        _nscSuDetalle = resp.detalle;
-        _nscPintarDetalleDia('nscSuDiaSelector', 'nscSuDiaDetalle', fecha, resp.detalle, false);
-      });
-    }
+    _nscMiDia = { dia:dia, mes:mes, anio:anio };
+    var det = construirDetalleDiaPropio(dia);
+    _nscMiDetalle = det;
+    _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, det, true);
   });
 }
 
@@ -30168,9 +30223,47 @@ async function cargarCambiosTurno(){
     var contE = document.getElementById('cambiosTurnoEnviadas');
     lblE.style.display = enviadasData.length ? '' : 'none';
     contE.innerHTML = enviadasData.map(function(s){ return _renderTarjetaCambioEnviado(s); }).join('');
+
+    // NUEVO — Confirmado por el usuario: banner arriba del todo, mismo
+    // estilo que las notificaciones del Admin, para que se note de
+    // verdad al entrar en Calendario (no solo el numerito).
+    _renderBannerCambioTurno(recibidasData, enviadasData);
   }catch(e){ console.warn('cargarCambiosTurno:', e); }
 }
 window.cargarCambiosTurno = cargarCambiosTurno;
+
+function _renderBannerCambioTurno(recibidasData, enviadasData){
+  var zona = document.getElementById('notifBannerZonaCambioTurno');
+  if(!zona) return;
+  var aceptadasSinConfirmar = enviadasData.filter(function(s){ return s.estado==='aceptada' && !s.confirmado_solicitante; });
+  var banners = '';
+  if(recibidasData.length){
+    banners += '<div class="nadm-banner" style="--nadm-bc:#7C3AED;--nadm-bg:rgba(124,58,237,.12);--nadm-tc:#c084fc" onclick="_abrirCambiosTurnoDesdeBanner()">'
+      + '<div class="nadm-banner-ico">🔄</div>'
+      + '<div style="flex:1">'
+        + '<div class="nadm-banner-tit">'+recibidasData.length+' solicitud'+(recibidasData.length>1?'es':'')+' de cambio de turno</div>'
+        + '<div class="nadm-banner-msg">Toca para ver quién te lo pide.</div>'
+      + '</div>'
+    + '</div>';
+  }
+  aceptadasSinConfirmar.forEach(function(s){
+    banners += '<div class="nadm-banner" style="--nadm-bc:#16A34A;--nadm-bg:rgba(22,163,74,.12);--nadm-tc:#4ADE80" onclick="mostrarPasosPostAceptacion('+s.id+')">'
+      + '<div class="nadm-banner-ico">✅</div>'
+      + '<div style="flex:1">'
+        + '<div class="nadm-banner-tit">'+s.nombre_destino+' aceptó tu cambio</div>'
+        + '<div class="nadm-banner-msg">Toca para mandar el correo y confirmar en tu calendario.</div>'
+      + '</div>'
+    + '</div>';
+  });
+  zona.innerHTML = banners;
+}
+function _abrirCambiosTurnoDesdeBanner(){
+  var acc = document.getElementById('cambiosTurnoAcordeon');
+  if(acc && acc.style.display === 'none') toggleCambiosTurnoAcordeon();
+  var hdr = acc ? acc.previousElementSibling : null;
+  if(hdr && hdr.scrollIntoView) hdr.scrollIntoView({behavior:'smooth', block:'start'});
+}
+window._abrirCambiosTurnoDesdeBanner = _abrirCambiosTurnoDesdeBanner;
 
 function _resumenTurno(det){
   if(!det || !det.turnos || !det.turnos.length) return 'sin datos';
