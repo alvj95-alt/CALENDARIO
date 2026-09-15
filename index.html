@@ -30201,6 +30201,28 @@ function _nscElegirDiaDeCompanero(dia){
 }
 window._nscElegirDiaDeCompanero = _nscElegirDiaDeCompanero;
 
+// NUEVO — Confirmado por el usuario: si ese día ya tiene un cambio
+// de turno CONFIRMADO antes (aviso visual morado), "tu turno que
+// ofreces" debe reflejar lo que tienes AHORA por ese cambio, no el
+// turno original de TV — así se puede volver a cambiar ese mismo
+// día con otro compañero, sin confundir cuál es el tren real actual.
+function _nscDetalleConCambioVisualAplicado(anio, mes, dia, detOriginal){
+  var visual = _leerCambiosVisual();
+  var claveMes = anio + '-' + mes;
+  var mesData = visual[claveMes];
+  if(!mesData || !mesData[dia]) return { det: detOriginal, avisoCambioPrevio: null };
+  var info = mesData[dia];
+  if(info.tipo === 'recibido' && info.turnos){
+    // Lo que tienes ahora ese día es lo que recibiste en el cambio.
+    return { det: info.turnos, avisoCambioPrevio: 'Este día ya lo cambiaste con '+(info.con||'')+' — se usa lo que tienes ahora.' };
+  }
+  if(info.tipo === 'dado'){
+    // Ya no tienes nada ese día — se lo diste a alguien.
+    return { det: null, avisoCambioPrevio: 'Ya le diste este día a '+(info.con||'')+' en un cambio anterior — no tienes nada que ofrecer aquí.' };
+  }
+  return { det: detOriginal, avisoCambioPrevio: null };
+}
+
 function _nscPintarCalendario(){
   // Simplificado — Confirmado por el usuario: ahora esta función solo
   // se usa para "mi día" (propio); "su día" (el del compañero) usa la
@@ -30217,9 +30239,14 @@ function _nscPintarCalendario(){
       return;
     }
     _nscMiDia = { dia:dia, mes:mes, anio:anio };
-    var det = construirDetalleDiaPropio(anio, mes, dia);
-    _nscMiDetalle = det;
-    _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, det, true);
+    var detOriginal = construirDetalleDiaPropio(anio, mes, dia);
+    var resultado = _nscDetalleConCambioVisualAplicado(anio, mes, dia, detOriginal);
+    _nscMiDetalle = resultado.det;
+    _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, resultado.det, true);
+    if(resultado.avisoCambioPrevio){
+      var elDet = document.getElementById('nscMiDiaDetalle');
+      elDet.innerHTML += '<div style="font-size:10.5px;color:#c084fc;margin-top:6px;padding:8px 10px;background:rgba(124,58,237,.1);border-radius:8px">🔄 '+resultado.avisoCambioPrevio+'</div>';
+    }
   });
 }
 
@@ -30606,6 +30633,7 @@ function _inyectarInfoCambioTurnoEnDia(){
       }
     }
     html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>';
+    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno('+info.id+')">Deshacer este aviso</div>';
     html += '</div>';
   } else if(info.tipo === 'dado'){
     html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px">'
@@ -30614,10 +30642,37 @@ function _inyectarInfoCambioTurnoEnDia(){
     if(info.miDetalleOriginal){
       html += '<div style="font-size:10px;color:var(--tx3);margin-top:6px">Antes tenías: '+_resumenTurno(info.miDetalleOriginal)+'</div>';
     }
+    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno('+info.id+')">Deshacer este aviso</div>';
     html += '</div>';
   }
   if(html) area.insertAdjacentHTML('beforeend', html);
 }
+// NUEVO — Confirmado por el usuario: deshacer un aviso de cambio ya
+// confirmado — SOLO borra la marca visual de este móvil (los dos
+// días implicados que se guardaron con este mismo id, en cualquier
+// mes). No toca TV/TV2, no manda ningún correo, no cambia el estado
+// de la solicitud en Supabase (sigue constando como "aceptada" en
+// el historial) — es puramente un borrado local.
+function deshacerAvisoCambioTurno(id){
+  var visual = _leerCambiosVisual();
+  var cambiado = false;
+  Object.keys(visual).forEach(function(claveMes){
+    var mesData = visual[claveMes];
+    Object.keys(mesData).forEach(function(dia){
+      if(mesData[dia] && mesData[dia].id === id){
+        delete mesData[dia];
+        cambiado = true;
+      }
+    });
+  });
+  if(cambiado){
+    _guardarCambiosVisual(visual);
+    if(typeof renderCal === 'function') renderCal();
+    if(typeof renderDiaArea === 'function') renderDiaArea();
+    if(typeof toast === 'function') toast('Aviso deshecho');
+  }
+}
+window.deshacerAvisoCambioTurno = deshacerAvisoCambioTurno;
 // Envuelve renderDiaArea() desde fuera, sin tocar su código interno
 // (que es grande y con muchas ramas) — así, venga por el camino que
 // venga, siempre se añade el aviso al final si corresponde.
