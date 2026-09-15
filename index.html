@@ -30415,20 +30415,56 @@ window.cancelarSolicitudCambio = cancelarSolicitudCambio;
 
 // ── 6) Tras aceptar: correo a Programación + confirmar en MI
 //    calendario (aviso visual aparte, nunca escribe en TV/TV2). ──
+// NUEVO — Confirmado por el usuario: versión en texto plano (sin
+// emojis) del resumen de un turno, solo para meter dentro del
+// correo — _resumenTurno() (con emojis) se sigue usando tal cual
+// para pintar en la propia app, esta es aparte y no la sustituye.
+function _resumenTurnoTextoPlano(det){
+  if(!det) return 'sin datos';
+  if(det.esLibre) return (det.tipoLibreLbl||'Dia libre').replace(/[^\x00-\x7F]/g, '').trim() || 'Dia libre';
+  if(!det.turnos || !det.turnos.length) return 'sin datos';
+  // FIX — Confirmado por el usuario: no hacen falta las horas en el
+  // correo, solo el día y el número de tren.
+  var txt = det.turnos.map(function(t){
+    return 'Tren '+t.numTren;
+  }).join(' y ');
+  if(det.esPernocta && det.diaVuelta){
+    txt += ' (pernocta, incluye la vuelta el dia '+det.diaVuelta;
+    if(det.turnosVuelta && det.turnosVuelta.length){
+      txt += ' con el tren '+det.turnosVuelta.map(function(t){ return t.numTren; }).join(' y ');
+    }
+    txt += ')';
+  }
+  return txt;
+}
+
 async function mostrarPasosPostAceptacion(id){
   if(!sbAdmin) return;
   var r = await sbAdmin.from('cambios_turno').select('*').eq('id', id).maybeSingle();
   if(!r.data) return;
   var s = r.data;
-  var asunto = encodeURIComponent('Solicitud de cambio de turno — '+s.nombre_solicitante+' / '+s.nombre_destino);
-  var cuerpo = encodeURIComponent(
-    'Solicitud de cambio de turno aceptada por ambas partes:\n\n'
-    + s.nombre_solicitante+' (día '+s.dia_ofrece+') cambia con '+s.nombre_destino+' (día '+s.dia_pide+').\n\n'
-    + 'Detalle de '+s.nombre_solicitante+' el día '+s.dia_ofrece+': '+_resumenTurno(s.detalle_ofrece)+'\n'
-    + 'Detalle de '+s.nombre_destino+' el día '+s.dia_pide+': '+_resumenTurno(s.detalle_pide)+'\n\n'
-    + 'Por favor, actualizar la programación con este cambio.\n\nGracias.'
-  );
-  var mailto = 'mailto:?subject='+asunto+'&body='+cuerpo;
+  // FIX — Confirmado por el usuario: antes el correo llevaba emojis
+  // y simbolos (rompian la apertura en algunos clientes de correo),
+  // y no seguia el mismo formato que el resto de correos de la app
+  // (nombre+matricula de ambos implicados, firma con matricula de
+  // quien lo envia). Ahora usa el mismo patron que ya usan tus otros
+  // correos (generarCuerpoCorreo) y pasa por sanitizarTexto() antes
+  // de mandarlo, igual que confirmarEnvioEmail().
+  var miNombre = (AJ && AJ.nombre) || '';
+  var miMatricula = (AJ && AJ.matricula) || '';
+  var asunto = 'Solicitud de cambio de turno - '+s.nombre_solicitante+' / '+s.nombre_destino;
+  var cuerpoBruto =
+    'Buenos dias.\n\n'
+    + 'Solicitud de cambio de turno aceptada por ambas partes:\n\n'
+    + 'Solicitante: '+s.nombre_solicitante+' (matricula '+s.matricula_solicitante+')\n'
+    + 'Companero: '+s.nombre_destino+' (matricula '+s.matricula_destino+')\n\n'
+    + s.nombre_solicitante+' cambia su turno del dia '+s.dia_ofrece+' ('+_resumenTurnoTextoPlano(s.detalle_ofrece)+')\n'
+    + 'por el turno de '+s.nombre_destino+' del dia '+s.dia_pide+' ('+_resumenTurnoTextoPlano(s.detalle_pide)+')\n\n'
+    + 'Espero su pronta respuesta.\nSaludos cordiales.\n\n'
+    + 'Atentamente,\n'+miNombre+'\nMatricula: '+miMatricula
+    + '\n\nSolicitud generada automaticamente por TrenTurno V5';
+  var cuerpoLimpio = (typeof sanitizarTexto==='function') ? sanitizarTexto(cuerpoBruto) : cuerpoBruto;
+  var mailto = 'mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpoLimpio);
   var html = '<div class="ov on" id="ov-post-aceptacion-temp" onclick="if(event.target===this) document.getElementById(\'ov-post-aceptacion-temp\').remove()">'
     + '<div class="sh" onclick="event.stopPropagation()">'
     + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+s.nombre_destino+'</div></div>'
