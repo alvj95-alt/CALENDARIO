@@ -1358,6 +1358,81 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .turnos-mes-arr{font-size:14px;color:var(--tx3);
   transition:transform .25s cubic-bezier(.4,0,.2,1)}
 .turnos-mes-arr.abierto{transform:rotate(90deg)}
+
+/* NUEVO — Confirmado por el usuario: mismas clases y forma visual
+   que la maqueta aprobada (maqueta_cambio_turno.html), solo que
+   ahora con var(--...) reales de la app en vez de hex sueltos. */
+.ct-menu-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--s1);
+  border:1px dashed rgba(37,99,235,.5);border-radius:16px;cursor:pointer;margin-bottom:12px}
+.ct-menu-ico{width:44px;height:44px;border-radius:12px;background:rgba(37,99,235,.15);
+  display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.ct-menu-tit{font-size:14px;font-weight:800;color:var(--tx)}
+.ct-menu-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+
+.ct-field-lbl{font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;
+  letter-spacing:.4px;margin:14px 0 7px}
+.ct-pcard-mini{display:flex;align-items:center;gap:10px;background:var(--s1);
+  border:1px solid var(--acc);border-radius:12px;padding:10px 12px;margin-top:8px}
+.ct-pcard-av{width:30px;height:30px;border-radius:9px;background:rgba(37,99,235,.2);
+  color:#93c5fd;display:flex;align-items:center;justify-content:center;font-size:12px;
+  font-weight:800;flex-shrink:0}
+.ct-pcard-name{font-size:12.5px;font-weight:700;color:var(--tx)}
+.ct-day-pick{background:var(--s1);border:1px solid var(--div);border-radius:12px;
+  padding:12px 14px;margin-top:6px}
+.ct-day-pick-tit{font-size:12.5px;font-weight:700;color:var(--tx)}
+.ct-day-pick-turno{font-size:11.5px;color:#93c5fd;margin-top:4px}
+.ct-pernocta-tag{display:inline-block;background:rgba(168,85,247,.18);color:#c084fc;
+  font-size:9px;font-weight:800;padding:2px 7px;border-radius:6px;margin-top:6px}
+.ct-msg-box{background:var(--s1);border:1px solid var(--div);border-radius:12px;
+  padding:11px 13px;margin-top:6px}
+.ct-msg-box textarea{background:none;border:none;outline:none;color:var(--tx);
+  font-size:12px;width:100%;resize:none;font-family:inherit}
+
+.ct-req-card{background:var(--s1);border:1px solid var(--div);border-radius:14px;
+  padding:14px;margin-bottom:12px}
+.ct-req-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ct-req-name{font-size:13px;font-weight:800;color:var(--tx)}
+.ct-req-sub{font-size:10px;color:var(--tx3)}
+.ct-req-swap{display:flex;align-items:center;gap:8px;background:var(--s2);
+  border-radius:10px;padding:10px;margin-bottom:10px}
+.ct-req-swap-col{flex:1;text-align:center}
+.ct-req-swap-lbl{font-size:9px;color:var(--tx3);text-transform:uppercase;font-weight:800}
+.ct-req-swap-day{font-size:13px;font-weight:800;margin-top:3px;color:var(--tx)}
+.ct-req-swap-turno{font-size:10px;color:var(--tx2);margin-top:2px}
+.ct-req-swap-arr{color:#93c5fd;font-size:16px}
+.ct-req-msg{font-size:11px;color:var(--tx2);font-style:italic;margin-bottom:10px;
+  padding:8px 10px;background:var(--s2);border-radius:8px}
+.ct-req-actions{display:flex;gap:8px}
+.ct-btn-reject{flex:1;padding:10px;background:rgba(220,38,38,.12);border:1px solid var(--red);
+  border-radius:10px;color:var(--red2);font-weight:700;font-size:12px;text-align:center;cursor:pointer}
+.ct-btn-accept{flex:1;padding:10px;background:var(--green);border:none;border-radius:10px;
+  color:#fff;font-weight:800;font-size:12px;text-align:center;cursor:pointer}
+
+.ct-status-chip{display:inline-block;font-size:9.5px;font-weight:800;padding:3px 9px;border-radius:20px}
+.ct-status-pend{background:rgba(249,115,22,.15);color:var(--nar2)}
+.ct-status-ok{background:rgba(22,163,74,.15);color:var(--green2)}
+.ct-status-no{background:rgba(220,38,38,.15);color:var(--red2)}
+.ct-cancel-btn{margin-top:8px;padding:8px;background:var(--s2);border-radius:10px;
+  color:var(--tx3);font-weight:700;font-size:11px;text-align:center;cursor:pointer}
+.ct-next-step-btn{margin-top:8px;padding:9px;background:rgba(37,99,235,.12);
+  border:1px solid var(--acc);border-radius:10px;color:#93c5fd;font-weight:700;
+  font-size:11.5px;text-align:center;cursor:pointer}
+
+.ct-mail-prompt{background:rgba(37,99,235,.1);border:1.5px solid var(--acc);border-radius:14px;
+  padding:16px;text-align:center;margin-bottom:14px}
+.ct-mail-prompt-ico{font-size:28px;margin-bottom:8px}
+.ct-mail-prompt-tit{font-size:13px;font-weight:800;margin-bottom:4px;color:var(--tx)}
+.ct-mail-prompt-sub{font-size:10.5px;color:var(--tx3);margin-bottom:12px}
+.ct-mail-btn{display:block;width:100%;padding:12px;background:var(--acc);border-radius:10px;
+  color:#fff;font-weight:800;font-size:12.5px;text-decoration:none;box-sizing:border-box;text-align:center}
+
+.ct-confirm-box{background:rgba(22,163,74,.08);border:1.5px solid var(--green);border-radius:14px;
+  padding:14px;text-align:center}
+.ct-confirm-box-tit{font-size:12.5px;font-weight:800;color:var(--green2);margin-bottom:4px}
+.ct-confirm-box-sub{font-size:10.5px;color:var(--tx3);margin-bottom:10px}
+.ct-confirm-btn{width:100%;padding:11px;background:var(--green);border-radius:10px;
+  color:#fff;font-weight:800;font-size:12px;cursor:pointer}
+
 .aj-acc-hdr{
   display:flex;
   align-items:center;
@@ -3660,6 +3735,28 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <span class="turnos-mes-arr" id="turnos-mes-arr">›</span>
     </div>
     <div class="acordeon" id="acordeon" style="display:none"></div>
+
+    <!-- NUEVO — Confirmado por el usuario: "Solicitar cambio de turno"
+         debajo del calendario. El turno REAL (TV/TV2) nunca se toca
+         aquí — esto es solo gestión de solicitudes + un aviso visual
+         aparte, sin afectar a Nómina/HP/HE/HTDL. -->
+    <div class="turnos-mes-hdr" onclick="toggleCambiosTurnoAcordeon()">
+      <span class="turnos-mes-tit">🔄 Cambios de turno</span>
+      <span id="cambiosTurnoBadgeCount" style="display:none;background:var(--nar);color:#1a1306;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px"></span>
+      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:auto">›</span>
+    </div>
+    <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
+      <div style="padding:10px 4px">
+        <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
+          <div class="ct-menu-ico">➕</div>
+          <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
+        </div>
+        <div id="cambiosTurnoRecibidasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:4px 2px 8px">Te han solicitado</div>
+        <div id="cambiosTurnoRecibidas"></div>
+        <div id="cambiosTurnoEnviadasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:14px 2px 8px">Tus solicitudes enviadas</div>
+        <div id="cambiosTurnoEnviadas"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ESTADÍSTICAS -->
@@ -6334,6 +6431,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="nadm-seg">
         <div class="nadm-seg-btn on" id="nadmSegTodas" onclick="nadmSegSede('todas')">Todas las sedes</div>
         <div class="nadm-seg-btn" id="nadmSegUna" onclick="nadmSegSede('una')">Una sede</div>
+        <!-- NUEVO — Confirmado por el usuario: mandar un aviso SOLO a
+             Interventores (antes solo existía "todas las sedes" o "una
+             sede", pensado para Tripulación — Interventor no tiene
+             sede, así que no encajaba en ninguna de las dos). -->
+        <div class="nadm-seg-btn" id="nadmSegInterv" onclick="nadmSegSede('interventores')">Interventores</div>
       </div>
       <div class="nadm-sede-chips" id="nadmSedeChips" style="display:none"></div>
 
@@ -6503,6 +6605,70 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-eliminar-intervencion')">✕</button>
     </div>
     <div style="padding:16px" id="lista-intervenciones-eliminar"></div>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: "Solicitar cambio de turno".
+     El turno REAL (TV/TV2, lo que cuenta para Nómina/HP/HE/HTDL)
+     nunca se toca desde aquí — esto solo gestiona la solicitud y,
+     si se confirma, añade un aviso visual aparte (ver
+     pintarAvisosCambioTurno()), sin recalcular nada. -->
+<div class="ov" id="ov-nueva-solicitud-cambio" onclick="if(event.target===this)closeOv('ov-nueva-solicitud-cambio')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">🔄</div>
+      <div>
+        <div class="sh-tit">Solicitar cambio de turno</div>
+        <div class="sh-sub" id="nscHdrSede">—</div>
+      </div>
+      <button class="sh-close" onclick="closeOv('ov-nueva-solicitud-cambio')">✕</button>
+    </div>
+    <div style="padding:16px">
+
+      <div style="font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">Con quién</div>
+      <div class="srch" style="margin-bottom:8px">
+        <span class="srch-ico">🔍</span>
+        <input type="text" id="nscBuscarInput" placeholder="Busca un compañero..." autocomplete="off">
+      </div>
+      <div id="nscResultadosBusqueda"></div>
+      <div id="nscCompSeleccionado" style="display:none"></div>
+
+      <div style="font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 7px">Tu turno que ofreces</div>
+      <div id="nscMiDiaSelector" style="background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:11px 13px;cursor:pointer" onclick="_nscElegirMiDia()">
+        <span style="font-size:12px;color:var(--tx3)">Toca para elegir el día...</span>
+      </div>
+      <div id="nscMiDiaDetalle"></div>
+
+      <div style="font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 7px">Su turno que quieres</div>
+      <div id="nscSuDiaSelector" style="background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:11px 13px;cursor:pointer;opacity:.5" onclick="_nscElegirSuDia()">
+        <span style="font-size:12px;color:var(--tx3)">Primero elige con quién...</span>
+      </div>
+      <div id="nscSuDiaDetalle"></div>
+
+      <div style="font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 7px">Mensaje (opcional)</div>
+      <div style="background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:11px 13px">
+        <textarea id="nscMensajeInput" rows="2" placeholder="Ej: Tengo una cita ese día, ¿me lo cambias?" style="background:none;border:none;outline:none;color:var(--tx);font-size:12px;width:100%;resize:none;font-family:inherit"></textarea>
+      </div>
+
+      <div id="nscEstado" style="margin-top:10px;font-size:12px"></div>
+      <button class="upload-btn" style="width:100%;justify-content:center;margin-top:14px" onclick="enviarSolicitudCambioTurno()">Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — mini-calendario reutilizable para elegir "mi día" o "su
+     día" dentro del formulario de arriba — un solo OV, cambia de
+     modo según _nscModoSelector ('mio' | 'suyo'). -->
+<div class="ov" id="ov-nsc-calendario" onclick="if(event.target===this)closeOv('ov-nsc-calendario')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">📅</div>
+      <div><div class="sh-tit" id="nscCalTit">Elige el día</div></div>
+      <button class="sh-close" onclick="closeOv('ov-nsc-calendario')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div class="cal-tren-panel" id="nscCalPanel"></div>
+    </div>
   </div>
 </div>
 
@@ -11642,7 +11808,11 @@ function renderSlide(gridId, fecha){
         }
       }
     }
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
+    // NUEVO — Confirmado por el usuario: aviso visual de "cambio de
+    // turno" (morado, arriba de la celda) — puramente informativo,
+    // no toca t ni ningún cálculo de esta función.
+    var cambioTurnoBadge = (typeof _badgeCambioTurnoParaDia==='function') ? _badgeCambioTurnoParaDia(d) : '';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
     // NUEVO — modo selección para borrado múltiple (maqueta A): tap
     // normal sigue abriendo el día como siempre; mantener pulsado
@@ -17625,6 +17795,10 @@ function goP(n){
   // desde la última vez. Mismo patrón defensivo que el check-in de
   // justo arriba: no rompe nada si la función aún no existe.
   if(n==='cal' && typeof refrescarNotificacionesActivas==='function') refrescarNotificacionesActivas();
+  // NUEVO — Confirmado por el usuario: al entrar en Calendario, sube
+  // en silencio el detalle de tus turnos a la nube (para "Solicitar
+  // cambio de turno") — solo LEE de TV/TV2, nunca escribe en ellos.
+  if(n==='cal' && typeof sincronizarTurnosDetalle==='function') sincronizarTurnosDetalle();
   // NUEVO: refrescar la lista individual de meses al entrar en Horario
   if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
   // NUEVO — al entrar en la pestaña Compañeros, dispara la misma
@@ -25534,6 +25708,22 @@ async function _matriculaTieneSolicitudAceptada(matricula){
     return !!(r && r.data);
   }catch(e){ return false; }
 }
+// NUEVO — Confirmado por el usuario: cuando el acceso de un Interventor
+// viene de una solicitud aceptada (su matrícula todavía no está en el
+// Informe de Intervención oficial), antes el nombre se dejaba
+// SIEMPRE vacío a propósito — por eso no salía el saludo "Hola, ...".
+// Esta función trae el nombre que la propia persona escribió al
+// mandar la solicitud (guardado en solicitudes_acceso.nombre), sin
+// tocar _matriculaTieneSolicitudAceptada() de arriba (la usan otros 5
+// sitios distintos del código, y cambiar lo que devuelve podría
+// romper algo ahí).
+async function _obtenerNombreSolicitudAceptada(matricula){
+  if(!sbAdmin) return null;
+  try{
+    var r = await sbAdmin.from('solicitudes_acceso').select('nombre').eq('matricula', matricula).eq('estado','aceptada').maybeSingle();
+    return (r && r.data && r.data.nombre) ? r.data.nombre : null;
+  }catch(e){ return null; }
+}
 
 function mostrarBloqueSolicitudAcceso(){
   var bloque = document.getElementById('bloqueSolicitudAcceso');
@@ -29693,6 +29883,452 @@ clearBtn.addEventListener('click', ()=>{
   qInput.focus();
 });
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Confirmado por el usuario: "Solicitar cambio de turno".
+   REGLA DE ORO de esta función: NUNCA escribe en TV/TV2 (lo que
+   cuenta de verdad para Nómina/HP/HE/HTDL) — solo lee de ahí para
+   mostrar el detalle, y guarda avisos visuales APARTE
+   (localStorage 'cambiosTurnoVisual'), sin tocar ni recalcular
+   nada de lo que ya existe.
+═══════════════════════════════════════════════════════════ */
+
+// ── 1) Construir el detalle completo de UN día propio, leyendo
+//    TV/TV2 tal cual ya existen (misma lógica de pernocta que ya
+//    comprobamos con datos de prueba: modo + diaSiguiente). ──
+function construirDetalleDiaPropio(dia){
+  var k = String(dia);
+  var t = (typeof TV !== 'undefined') ? TV[k] : null;
+  if(!t) return null;
+  var esPernocta = (t.modo === 'pernocta' || t.modo === 'pernocta3');
+  var turnos = [];
+  if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)) });
+  // Turnos adicionales del mismo día (TV2) — para el caso "más de un
+  // tren el mismo día" (ida y vuelta, o varios servicios sueltos).
+  if(typeof TV2 !== 'undefined' && TV2[k] && TV2[k].length){
+    TV2[k].forEach(function(t2){
+      if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+    });
+  }
+  var diaVuelta = null, turnosVuelta = [];
+  if(esPernocta && t.diaSiguiente){
+    diaVuelta = t.diaSiguiente;
+    var tv = TV[String(diaVuelta)];
+    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: null, horaCO: t.hL2 || tv.hL || null });
+    if(typeof TV2 !== 'undefined' && TV2[String(diaVuelta)] && TV2[String(diaVuelta)].length){
+      TV2[String(diaVuelta)].forEach(function(t2){
+        if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+      });
+    }
+  }
+  if(!turnos.length && !turnosVuelta.length) return null;
+  return { dia: dia, esPernocta: esPernocta, diaVuelta: diaVuelta, turnos: turnos, turnosVuelta: turnosVuelta };
+}
+
+// ── 2) Subir en silencio el detalle del mes actual a la nube, para
+//    que los compañeros puedan verlo con detalle al pedir un cambio.
+//    Se llama al entrar a Calendario — nunca bloquea la pantalla, y
+//    si falla (sin conexión, tabla no creada aún...) no avisa con
+//    ningún error visible, solo queda registrado en consola. ──
+var _sincronizandoTurnos = false;
+async function sincronizarTurnosDetalle(){
+  if(_sincronizandoTurnos) return;
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  _sincronizandoTurnos = true;
+  try{
+    var anioActual = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
+    var mesActual = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+    var filas = [];
+    for(var d=1; d<=31; d++){
+      var det = construirDetalleDiaPropio(d);
+      if(!det) continue;
+      filas.push({
+        matricula: AJ.matricula,
+        anio: anioActual,
+        mes: mesActual,
+        dia: d,
+        detalle: det,
+        actualizado_en: new Date().toISOString()
+      });
+    }
+    if(!filas.length) return;
+    await sbAdmin.from('turnos_sincronizados').upsert(filas, { onConflict: 'matricula,anio,mes,dia' });
+  }catch(e){ console.warn('sincronizarTurnosDetalle:', e); }
+  finally{ _sincronizandoTurnos = false; }
+}
+window.sincronizarTurnosDetalle = sincronizarTurnosDetalle;
+
+// ── 3) Traer el detalle de un día del COMPAÑERO desde la nube.
+//    Si todavía no lo ha sincronizado, se avisa claramente en vez
+//    de fingir que hay más información de la que hay. ──
+async function obtenerDetalleDiaCompanero(matricula, anio, mes, dia){
+  if(!sbAdmin) return { encontrado:false, motivo:'sin_conexion' };
+  try{
+    var r = await sbAdmin.from('turnos_sincronizados').select('detalle').eq('matricula', matricula).eq('anio', anio).eq('mes', mes).eq('dia', dia).maybeSingle();
+    if(r.error || !r.data) return { encontrado:false, motivo:'no_sincronizado' };
+    return { encontrado:true, detalle: r.data.detalle };
+  }catch(e){ return { encontrado:false, motivo:'error' }; }
+}
+
+// ── 4) Formulario "Nueva solicitud" — estado propio, aparte del
+//    resto del buscador de Compañeros (mismo espíritu que
+//    calTrenPanelHora2 con Interventor: no reutiliza directamente
+//    las variables de otras pantallas para no interferir con ellas). ──
+var _nscCompElegido = null; // {matricula, nombre}
+var _nscModoSelector = null; // 'mio' | 'suyo'
+var _nscMiDia = null;
+var _nscSuDia = null;
+var _nscMiDetalle = null;
+var _nscSuDetalle = null;
+
+function abrirNuevaSolicitudCambio(){
+  _nscCompElegido = null; _nscMiDia = null; _nscSuDia = null; _nscMiDetalle = null; _nscSuDetalle = null;
+  document.getElementById('nscBuscarInput').value = '';
+  document.getElementById('nscResultadosBusqueda').innerHTML = '';
+  document.getElementById('nscCompSeleccionado').style.display = 'none';
+  document.getElementById('nscMiDiaSelector').innerHTML = '<span style="font-size:12px;color:var(--tx3)">Toca para elegir el día...</span>';
+  document.getElementById('nscMiDiaDetalle').innerHTML = '';
+  document.getElementById('nscSuDiaSelector').innerHTML = '<span style="font-size:12px;color:var(--tx3)">Primero elige con quién...</span>';
+  document.getElementById('nscSuDiaSelector').style.opacity = '.5';
+  document.getElementById('nscSuDiaDetalle').innerHTML = '';
+  document.getElementById('nscMensajeInput').value = '';
+  document.getElementById('nscEstado').innerHTML = '';
+  var sedeTxt = (activeBase && activeBase.label) ? activeBase.label : '—';
+  document.getElementById('nscHdrSede').textContent = sedeTxt;
+  openOv('ov-nueva-solicitud-cambio');
+}
+window.abrirNuevaSolicitudCambio = abrirNuevaSolicitudCambio;
+
+document.getElementById('nscBuscarInput').addEventListener('input', function(){
+  var q = this.value.trim().toUpperCase();
+  var cont = document.getElementById('nscResultadosBusqueda');
+  if(q.length<2 || !activeBase){ cont.innerHTML=''; return; }
+  var matches = activeBase.data.filter(function(e){ return e[1].toUpperCase().includes(q); }).slice(0,8);
+  cont.innerHTML = matches.map(function(m){
+    return '<div class="ct-pcard-mini" style="cursor:pointer" onclick="_nscElegirCompanero(\''+m[0]+'\',\''+m[1].replace(/'/g,"\\'")+'\')">'
+      + '<div class="ct-pcard-av">'+initials(m[1])+'</div>'
+      + '<div class="ct-pcard-name">'+m[1]+'</div></div>';
+  }).join('');
+});
+
+function _nscElegirCompanero(matricula, nombre){
+  _nscCompElegido = { matricula: matricula, nombre: nombre };
+  _nscSuDia = null; _nscSuDetalle = null;
+  document.getElementById('nscResultadosBusqueda').innerHTML = '';
+  document.getElementById('nscBuscarInput').value = '';
+  var el = document.getElementById('nscCompSeleccionado');
+  el.style.display = '';
+  el.innerHTML = '<div class="ct-pcard-mini"><div class="ct-pcard-av">'+initials(nombre)+'</div><div class="ct-pcard-name">'+nombre+'</div></div>';
+  var suSel = document.getElementById('nscSuDiaSelector');
+  suSel.style.opacity = '1';
+  suSel.innerHTML = '<span style="font-size:12px;color:var(--tx3)">Toca para elegir el día...</span>';
+  document.getElementById('nscSuDiaDetalle').innerHTML = '';
+}
+window._nscElegirCompanero = _nscElegirCompanero;
+
+function _nscElegirMiDia(){
+  _nscModoSelector = 'mio';
+  document.getElementById('nscCalTit').textContent = 'Elige tu día';
+  openOv('ov-nsc-calendario');
+  _nscPintarCalendario();
+}
+window._nscElegirMiDia = _nscElegirMiDia;
+function _nscElegirSuDia(){
+  if(!_nscCompElegido){ return; }
+  _nscModoSelector = 'suyo';
+  document.getElementById('nscCalTit').textContent = 'Elige su día';
+  openOv('ov-nsc-calendario');
+  _nscPintarCalendario();
+}
+window._nscElegirSuDia = _nscElegirSuDia;
+
+function _nscPintarCalendario(){
+  var panel = document.getElementById('nscCalPanel');
+  panel.innerHTML = '';
+  generarCalendarioUI('nscCalPanel', function(fecha){
+    closeOv('ov-nsc-calendario');
+    var dia = fecha.getDate(), mes = fecha.getMonth()+1, anio = fecha.getFullYear();
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    if(fecha < hoy){
+      var estadoEl = document.getElementById('nscEstado');
+      estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Ese día ya pasó — elige un día futuro.</span>';
+      return;
+    }
+    if(_nscModoSelector === 'mio'){
+      _nscMiDia = { dia:dia, mes:mes, anio:anio };
+      var det = construirDetalleDiaPropio(dia);
+      _nscMiDetalle = det;
+      _nscPintarDetalleDia('nscMiDiaSelector', 'nscMiDiaDetalle', fecha, det, true);
+    } else {
+      _nscSuDia = { dia:dia, mes:mes, anio:anio };
+      var elDet = document.getElementById('nscSuDiaDetalle');
+      elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Buscando el detalle de '+_nscCompElegido.nombre+'...</div>';
+      document.getElementById('nscSuDiaSelector').innerHTML = '<div style="font-size:12px;font-weight:700">'+weekdayForDay(dia)+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase()+'</div>';
+      obtenerDetalleDiaCompanero(_nscCompElegido.matricula, anio, mes, dia).then(function(resp){
+        if(!resp.encontrado){
+          _nscSuDetalle = null;
+          elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--nar3)">⚠️ '+_nscCompElegido.nombre+' todavía no ha sincronizado el detalle de ese día — pídele que abra su Calendario primero, o elige otro día.</div>';
+          return;
+        }
+        _nscSuDetalle = resp.detalle;
+        _nscPintarDetalleDia('nscSuDiaSelector', 'nscSuDiaDetalle', fecha, resp.detalle, false);
+      });
+    }
+  });
+}
+
+function _nscPintarDetalleDia(idSelector, idDetalle, fecha, det, esMio){
+  var dia = fecha.getDate(), mes = fecha.getMonth()+1;
+  var titulo = weekdayForDay(dia)+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase();
+  document.getElementById(idSelector).innerHTML = '<div style="font-size:12px;font-weight:700">'+titulo+'</div>';
+  var elDet = document.getElementById(idDetalle);
+  if(!det || (!det.turnos.length && !det.turnosVuelta.length)){
+    elDet.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--tx3)">Sin turno registrado ese día (¿día libre?). Elige otro día con servicio.</div>';
+    return;
+  }
+  var html = '<div class="ct-day-pick">';
+  det.turnos.forEach(function(t){
+    html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+  });
+  if(det.esPernocta && det.diaVuelta){
+    html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta del día '+det.diaVuelta+'</div>';
+    det.turnosVuelta.forEach(function(t){
+      html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+    });
+  }
+  html += '</div>';
+  elDet.innerHTML = html;
+}
+
+async function enviarSolicitudCambioTurno(){
+  var estadoEl = document.getElementById('nscEstado');
+  if(!_nscCompElegido){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Elige un compañero primero.</span>'; return; }
+  if(!_nscMiDia || !_nscMiDetalle){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Elige tu día.</span>'; return; }
+  if(!_nscSuDia || !_nscSuDetalle){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Elige el día del compañero.</span>'; return; }
+  if(!AJ || !AJ.matricula || !AJ.nombre){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Configura tu nombre y matrícula en Ajustes primero.</span>'; return; }
+  estadoEl.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try{
+    var payload = {
+      matricula_solicitante: AJ.matricula,
+      nombre_solicitante: AJ.nombre,
+      matricula_destino: _nscCompElegido.matricula,
+      nombre_destino: _nscCompElegido.nombre,
+      anio: _nscMiDia.anio,
+      dia_ofrece: _nscMiDia.dia,
+      dia_pide: _nscSuDia.dia,
+      detalle_ofrece: _nscMiDetalle,
+      detalle_pide: _nscSuDetalle,
+      mensaje: document.getElementById('nscMensajeInput').value.trim() || null,
+      estado: 'pendiente'
+    };
+    var r = await sbAdmin.from('cambios_turno').insert(payload);
+    if(r.error){
+      estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ No se pudo enviar (¿existe la tabla cambios_turno en Supabase?): '+r.error.message+'</span>';
+      return;
+    }
+    estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Solicitud enviada.</span>';
+    setTimeout(function(){ closeOv('ov-nueva-solicitud-cambio'); cargarCambiosTurno(); }, 900);
+  }catch(e){
+    estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Error: '+e.message+'</span>';
+  }
+}
+window.enviarSolicitudCambioTurno = enviarSolicitudCambioTurno;
+
+// ── 5) Bandeja: cargar recibidas + enviadas, y pintarlas ──
+async function cargarCambiosTurno(){
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  try{
+    var recibidas = await sbAdmin.from('cambios_turno').select('*').eq('matricula_destino', AJ.matricula).eq('estado','pendiente').order('fecha_hora',{ascending:false});
+    var enviadas = await sbAdmin.from('cambios_turno').select('*').eq('matricula_solicitante', AJ.matricula).order('fecha_hora',{ascending:false}).limit(20);
+    var recibidasData = (recibidas && recibidas.data) || [];
+    var enviadasData = (enviadas && enviadas.data) || [];
+
+    var badge = document.getElementById('cambiosTurnoBadgeCount');
+    if(recibidasData.length){ badge.style.display=''; badge.textContent = recibidasData.length; }
+    else { badge.style.display = 'none'; }
+
+    var lblR = document.getElementById('cambiosTurnoRecibidasLbl');
+    var contR = document.getElementById('cambiosTurnoRecibidas');
+    lblR.style.display = recibidasData.length ? '' : 'none';
+    contR.innerHTML = recibidasData.map(function(s){ return _renderTarjetaCambioRecibido(s); }).join('');
+
+    var lblE = document.getElementById('cambiosTurnoEnviadasLbl');
+    var contE = document.getElementById('cambiosTurnoEnviadas');
+    lblE.style.display = enviadasData.length ? '' : 'none';
+    contE.innerHTML = enviadasData.map(function(s){ return _renderTarjetaCambioEnviado(s); }).join('');
+  }catch(e){ console.warn('cargarCambiosTurno:', e); }
+}
+window.cargarCambiosTurno = cargarCambiosTurno;
+
+function _resumenTurno(det){
+  if(!det || !det.turnos || !det.turnos.length) return 'sin datos';
+  var txt = det.turnos.map(function(t){ return 'Tren '+t.numTren; }).join(' + ');
+  if(det.esPernocta) txt += ' 🌙';
+  return txt;
+}
+
+function _renderTarjetaCambioRecibido(s){
+  return '<div class="ct-req-card">'
+    + '<div class="ct-req-hdr"><div class="ct-pcard-av">'+initials(s.nombre_solicitante)+'</div><div><div class="ct-req-name">'+s.nombre_solicitante+'</div><div class="ct-req-sub">Día '+s.dia_ofrece+' ⇄ Día '+s.dia_pide+'</div></div></div>'
+    + '<div class="ct-req-swap">'
+    + '<div class="ct-req-swap-col"><div class="ct-req-swap-lbl">Te da</div><div class="ct-req-swap-day">Día '+s.dia_ofrece+'</div><div class="ct-req-swap-turno">'+_resumenTurno(s.detalle_ofrece)+'</div></div>'
+    + '<div class="ct-req-swap-arr">⇄</div>'
+    + '<div class="ct-req-swap-col"><div class="ct-req-swap-lbl">Te pide</div><div class="ct-req-swap-day">Día '+s.dia_pide+'</div><div class="ct-req-swap-turno">'+_resumenTurno(s.detalle_pide)+'</div></div>'
+    + '</div>'
+    + (s.mensaje ? '<div class="ct-req-msg">"'+s.mensaje+'"</div>' : '')
+    + '<div class="ct-req-actions">'
+    + '<div class="ct-btn-reject" onclick="responderCambioTurno('+s.id+',\'rechazada\')">Rechazar</div>'
+    + '<div class="ct-btn-accept" onclick="responderCambioTurno('+s.id+',\'aceptada\')">Aceptar</div>'
+    + '</div></div>';
+}
+function _renderTarjetaCambioEnviado(s){
+  var chip = s.estado==='pendiente' ? '<span class="ct-status-chip ct-status-pend">⏳ Pendiente</span>'
+    : s.estado==='aceptada' ? '<span class="ct-status-chip ct-status-ok">✅ Aceptada</span>'
+    : s.estado==='rechazada' ? '<span class="ct-status-chip ct-status-no">✕ Rechazada</span>'
+    : '<span class="ct-status-chip" style="background:var(--s2);color:var(--tx3)">Cancelada</span>';
+  var accionesExtra = '';
+  if(s.estado==='aceptada' && !s.confirmado_solicitante){
+    accionesExtra = '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacion('+s.id+')">Ver siguiente paso (correo + confirmar)</div>';
+  } else if(s.estado==='pendiente'){
+    accionesExtra = '<div class="ct-cancel-btn" onclick="cancelarSolicitudCambio('+s.id+')">Cancelar solicitud</div>';
+  }
+  return '<div class="ct-req-card" style="padding:12px">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center">'
+    + '<div><div class="ct-req-name" style="font-size:12px">'+s.nombre_destino+'</div><div class="ct-req-sub">Día '+s.dia_ofrece+' ⇄ Día '+s.dia_pide+'</div></div>'
+    + chip + '</div>' + accionesExtra + '</div>';
+}
+window.responderCambioTurno = null; // se define abajo, tras declarar la función real
+
+async function responderCambioTurno(id, nuevoEstado){
+  if(!sbAdmin) return;
+  try{
+    await sbAdmin.from('cambios_turno').update({ estado: nuevoEstado }).eq('id', id);
+    cargarCambiosTurno();
+  }catch(e){ console.warn('responderCambioTurno:', e); }
+}
+window.responderCambioTurno = responderCambioTurno;
+
+async function cancelarSolicitudCambio(id){
+  if(!sbAdmin) return;
+  try{
+    await sbAdmin.from('cambios_turno').update({ estado: 'cancelada' }).eq('id', id);
+    cargarCambiosTurno();
+  }catch(e){ console.warn('cancelarSolicitudCambio:', e); }
+}
+window.cancelarSolicitudCambio = cancelarSolicitudCambio;
+
+// ── 6) Tras aceptar: correo a Programación + confirmar en MI
+//    calendario (aviso visual aparte, nunca escribe en TV/TV2). ──
+async function mostrarPasosPostAceptacion(id){
+  if(!sbAdmin) return;
+  var r = await sbAdmin.from('cambios_turno').select('*').eq('id', id).maybeSingle();
+  if(!r.data) return;
+  var s = r.data;
+  var asunto = encodeURIComponent('Solicitud de cambio de turno — '+s.nombre_solicitante+' / '+s.nombre_destino);
+  var cuerpo = encodeURIComponent(
+    'Solicitud de cambio de turno aceptada por ambas partes:\n\n'
+    + s.nombre_solicitante+' (día '+s.dia_ofrece+') cambia con '+s.nombre_destino+' (día '+s.dia_pide+').\n\n'
+    + 'Detalle de '+s.nombre_solicitante+' el día '+s.dia_ofrece+': '+_resumenTurno(s.detalle_ofrece)+'\n'
+    + 'Detalle de '+s.nombre_destino+' el día '+s.dia_pide+': '+_resumenTurno(s.detalle_pide)+'\n\n'
+    + 'Por favor, actualizar la programación con este cambio.\n\nGracias.'
+  );
+  var mailto = 'mailto:?subject='+asunto+'&body='+cuerpo;
+  var html = '<div class="ov on" id="ov-post-aceptacion-temp" onclick="if(event.target===this) document.getElementById(\'ov-post-aceptacion-temp\').remove()">'
+    + '<div class="sh" onclick="event.stopPropagation()">'
+    + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+s.nombre_destino+'</div></div>'
+    + '<button class="sh-close" onclick="document.getElementById(\'ov-post-aceptacion-temp\').remove()">✕</button></div>'
+    + '<div style="padding:16px">'
+    + '<div class="ct-mail-prompt">'
+    + '<div class="ct-mail-prompt-ico">✉️</div>'
+    + '<div class="ct-mail-prompt-tit">Envía el correo a Programación</div>'
+    + '<div class="ct-mail-prompt-sub">Se abrirá tu app de correo, ya escrito. Solo dale a "Enviar".</div>'
+    + '<a href="'+mailto+'" class="ct-mail-btn">Abrir correo</a>'
+    + '</div>'
+    + (s.confirmado_solicitante
+      ? '<div style="text-align:center;color:var(--green2);font-size:12px;font-weight:700">✅ Ya confirmaste este cambio en tu calendario.</div>'
+      : '<div class="ct-confirm-box">'
+        + '<div class="ct-confirm-box-tit">📅 Actualizar tu calendario</div>'
+        + '<div class="ct-confirm-box-sub">Solo un aviso visual — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>'
+        + '<div class="ct-confirm-btn" onclick="confirmarCambioEnMiCalendario('+s.id+',true)">Ya envié el correo — actualizar mi calendario</div>'
+        + '</div>')
+    + '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+window.mostrarPasosPostAceptacion = mostrarPasosPostAceptacion;
+
+// Aviso visual local — NUNCA toca TV/TV2. Se guarda por mes, con la
+// matrícula propia como parte de la clave para no mezclarse si el
+// móvil se comparte entre perfiles.
+function _claveCambiosVisual(){
+  return 'cambiosTurnoVisual_' + ((AJ&&AJ.matricula)||'sinmatricula');
+}
+function _leerCambiosVisual(){
+  try{ return JSON.parse(localStorage.getItem(_claveCambiosVisual())||'{}'); }catch(e){ return {}; }
+}
+function _guardarCambiosVisual(obj){
+  try{ localStorage.setItem(_claveCambiosVisual(), JSON.stringify(obj)); }catch(e){}
+}
+
+async function confirmarCambioEnMiCalendario(id, soySolicitante){
+  if(!sbAdmin) return;
+  var r = await sbAdmin.from('cambios_turno').select('*').eq('id', id).maybeSingle();
+  if(!r.data) return;
+  var s = r.data;
+  var diaQueDoy = soySolicitante ? s.dia_ofrece : s.dia_pide;
+  var diaQueRecibo = soySolicitante ? s.dia_pide : s.dia_ofrece;
+  var detalleQueRecibo = soySolicitante ? s.detalle_pide : s.detalle_ofrece;
+  var nombreOtro = soySolicitante ? s.nombre_destino : s.nombre_solicitante;
+
+  var visual = _leerCambiosVisual();
+  var claveMes = s.anio + '-' + (visual._mes || (new Date().getMonth()+1));
+  // Se guarda contra el mes indicado en la solicitud (mismo mes que
+  // ya confirmamos con el usuario que basta, sin cruzar dos meses).
+  var mesReal = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  claveMes = s.anio + '-' + mesReal;
+  if(!visual[claveMes]) visual[claveMes] = {};
+  visual[claveMes][diaQueDoy] = { tipo:'dado', con:nombreOtro, id:id };
+  visual[claveMes][diaQueRecibo] = { tipo:'recibido', con:nombreOtro, id:id, turnos: detalleQueRecibo };
+  _guardarCambiosVisual(visual);
+
+  var campo = soySolicitante ? 'confirmado_solicitante' : 'confirmado_destino';
+  var payload = {}; payload[campo] = true;
+  await sbAdmin.from('cambios_turno').update(payload).eq('id', id);
+
+  var ovTemp = document.getElementById('ov-post-aceptacion-temp');
+  if(ovTemp) ovTemp.remove();
+  if(typeof renderCal === 'function') renderCal();
+  cargarCambiosTurno();
+}
+window.confirmarCambioEnMiCalendario = confirmarCambioEnMiCalendario;
+
+// ── 7) Aviso visual en cada celda del calendario — leído en
+//    renderCal() mediante esta función; NUNCA modifica TV/TV2. ──
+function _badgeCambioTurnoParaDia(dia){
+  var visual = _leerCambiosVisual();
+  var mesReal = (typeof calM!=='undefined' && calM) ? (calM.getMonth()+1) : (new Date().getMonth()+1);
+  var anioReal = (typeof calM!=='undefined' && calM) ? calM.getFullYear() : new Date().getFullYear();
+  var claveMes = anioReal + '-' + mesReal;
+  var mesData = visual[claveMes];
+  if(!mesData || !mesData[dia]) return '';
+  var info = mesData[dia];
+  var texto = info.tipo==='dado' ? '🔄 Cambiado' : ('🔄 '+(info.turnos && info.turnos.turnos && info.turnos.turnos[0] ? 'Tren '+info.turnos.turnos[0].numTren : 'Cambio'));
+  return '<span style="position:absolute;top:1px;left:50%;transform:translateX(-50%);'
+    + 'font-size:6px;line-height:1;white-space:nowrap;background:rgba(168,85,247,.9);color:#fff;'
+    + 'border-radius:3px;padding:1px 3px;font-weight:900;letter-spacing:.2px;z-index:2">'+texto+'</span>';
+}
+window._badgeCambioTurnoParaDia = _badgeCambioTurnoParaDia;
+
+// ── 8) Acordeón de la sección + carga inicial al entrar a Calendario ──
+function toggleCambiosTurnoAcordeon(){
+  var acc = document.getElementById('cambiosTurnoAcordeon');
+  var arr = document.getElementById('cambiosTurnoAcordeonArr');
+  if(!acc) return;
+  var abierto = acc.style.display !== 'none';
+  acc.style.display = abierto ? 'none' : '';
+  if(arr) arr.textContent = abierto ? '›' : '⌄';
+  if(!abierto) cargarCambiosTurno();
+}
+window.toggleCambiosTurnoAcordeon = toggleCambiosTurnoAcordeon;
+
 })();
 /* ═══════════════════════════════════════════════════════════
    COPIA — Buscar por tren para INTERVENTOR (trTrainInput2/
@@ -30193,7 +30829,13 @@ clearBtn.addEventListener('click', ()=>{
       // puede rellenar a mano si hace falta).
       var solicitudAceptadaInterv = await _matriculaTieneSolicitudAceptada(matricula);
       if(solicitudAceptadaInterv){
-        resultado = { valida:true, nombre:null };
+        // FIX — Confirmado por el usuario: antes se dejaba siempre
+        // nombre:null aquí, así que nunca salía el saludo "Hola, ..."
+        // para quien entraba por solicitud (en vez de estar ya en el
+        // Informe oficial). Ahora se recupera el nombre que la propia
+        // persona escribió al pedir el acceso.
+        var nombreDeSolicitud = await _obtenerNombreSolicitudAceptada(matricula);
+        resultado = { valida:true, nombre: nombreDeSolicitud };
       } else {
         if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en el Informe de Intervención publicado.')+'</span>';
         mostrarBloqueSolicitudAccesoInterv();
@@ -30570,11 +31212,21 @@ var NADM_SEDES = ['Barcelona','Madrid','Valencia','Sevilla','Bilbao','Alicante']
 // ── Paso 1 del formulario: destinatarios ──
 var nadmModoDest = 'todas';
 var nadmSedeElegida = 'Barcelona';
+// NUEVO — Confirmado por el usuario: texto legible para el campo
+// "sede" guardado — antes de esto, elegir "Interventores" mostraría
+// el valor interno tal cual ("INTERVENTORES") en vez de un texto
+// natural a juego con el resto ("Todas las sedes", "Barcelona"...).
+function _nadmEtiquetaDestino(sede){
+  if(!sede) return 'todas las sedes';
+  if(sede === 'INTERVENTORES') return 'Interventores';
+  return sede;
+}
 function nadmSegSede(m){
   nadmModoDest = m;
-  var elT = document.getElementById('nadmSegTodas'), elU = document.getElementById('nadmSegUna');
+  var elT = document.getElementById('nadmSegTodas'), elU = document.getElementById('nadmSegUna'), elI = document.getElementById('nadmSegInterv');
   if(elT) elT.classList.toggle('on', m==='todas');
   if(elU) elU.classList.toggle('on', m==='una');
+  if(elI) elI.classList.toggle('on', m==='interventores');
   var chips = document.getElementById('nadmSedeChips');
   if(chips) chips.style.display = m==='una' ? 'flex' : 'none';
 }
@@ -30612,7 +31264,11 @@ async function enviarNotificacionAdmin(){
     estado.innerHTML = '<span style="color:var(--red2)">Falta el título o el mensaje.</span>';
     return;
   }
-  var sede = nadmModoDest==='una' ? nadmSedeElegida : null;
+  // NUEVO — Confirmado por el usuario: tercera opción "Interventores"
+  // — se guarda con un valor especial ('INTERVENTORES') en la misma
+  // columna "sede" que ya existía, para no tener que tocar la tabla en
+  // Supabase — filtrado en refrescarNotificacionesActivas().
+  var sede = nadmModoDest==='una' ? nadmSedeElegida : (nadmModoDest==='interventores' ? 'INTERVENTORES' : null);
   estado.textContent = 'Enviando...';
   try{
     var r = await sbAdmin.from('notificaciones_admin').insert({
@@ -30623,7 +31279,7 @@ async function enviarNotificacionAdmin(){
       estado.innerHTML = '<span style="color:var(--red2)">No se pudo enviar: '+r.error.message+' (¿existe la tabla notificaciones_admin en Supabase?)</span>';
       return;
     }
-    estado.innerHTML = '<b style="color:var(--green2)">✅ Enviada</b> como <b>'+NADM_TIPOS[nadmTipoSel].label+'</b> a <b>'+(sede || 'todas las sedes')+'</b>.';
+    estado.innerHTML = '<b style="color:var(--green2)">✅ Enviada</b> como <b>'+NADM_TIPOS[nadmTipoSel].label+'</b> a <b>'+_nadmEtiquetaDestino(sede)+'</b>.';
     document.getElementById('nadmInpTitulo').value = '';
     document.getElementById('nadmInpMsg').value = '';
     cargarHistorialNotificacionesAdmin();
@@ -30649,7 +31305,7 @@ async function cargarHistorialNotificacionesAdmin(){
       + '<div style="flex:1;min-width:0">'
         + '<div class="nadm-hist-tit">'+t.ic+' '+n.titulo+'</div>'
         + '<div class="nadm-hist-msg">'+n.mensaje+'</div>'
-        + '<div class="nadm-hist-meta">'+fecha+' · '+(n.sede || 'Todas las sedes')+'</div>'
+        + '<div class="nadm-hist-meta">'+fecha+' · '+_nadmEtiquetaDestino(n.sede)+'</div>'
       + '</div>'
       + '<button class="nadm-hist-del" onclick="retirarNotificacionAdmin('+n.id+')">🗑 Retirar</button>'
     + '</div>';
@@ -30717,7 +31373,15 @@ async function refrescarNotificacionesActivas(){
       });
       console.log('Notificaciones caducadas (24h) desactivadas:', expiradas.map(function(n){return n.id;}).join(', '));
     }
-    _nadmActivasTodas = vigentes;
+    // NUEVO — Confirmado por el usuario: Interventor ya no ve TODO sin
+    // filtrar — antes recibía también los avisos pensados solo para
+    // una sede concreta de Tripulante (p. ej. "Barcelona"), que no le
+    // pintaban nada a él. Ahora solo ve los de "todas las sedes"
+    // (sede=null) y los que se manden específicamente a
+    // Interventores (sede='INTERVENTORES', ver nadmSegSede()).
+    _nadmActivasTodas = vigentes.filter(function(n){
+      return !n.sede || n.sede === 'INTERVENTORES';
+    });
     // NUEVO — Confirmado por Alex: Interventor no tiene una Estación
     // Base como el tripulante (se valida por matrícula contra el
     // Informe de Intervención, organizado por servicio, no por sede),
@@ -30814,6 +31478,63 @@ nadmPintarTipoGrid();
 refrescarNotificacionesActivas();
 
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ANUNCIOS start.io — App ID: 208438860
+     Confirmado por el usuario. Solo funciona dentro de la app
+     empaquetada con Cordova (window.StartIO), nunca al abrir
+     este mismo archivo en un navegador normal — por eso todo
+     está protegido con comprobaciones que no rompen nada si
+     StartIO no existe (p. ej. mientras se sigue usando la
+     versión web de GitHub en paralelo).
+═══════════════════════════════════════════════════════════ -->
+<script>
+var STARTIO_APP_ID = 208438860;
+// TODO: cuando ya hayas probado que todo funciona bien, cambia
+// esto a "false" antes de publicar la app de verdad. Con "true"
+// ves anuncios de PRUEBA (no ganas dinero real con ellos).
+var STARTIO_MODO_PRUEBA = true;
+
+document.addEventListener('deviceready', function () {
+  if (typeof StartIO === 'undefined') {
+    console.log('start.io no disponible (¿estás en el navegador, no en la app?)');
+    return;
+  }
+
+  var opciones = { returnAd: true, splashAd: false };
+  StartIO.init(STARTIO_APP_ID, opciones, STARTIO_MODO_PRUEBA);
+
+  /* ── BANNER — franja fija abajo, siempre visible ── */
+  document.addEventListener('startio.banner.load', function () {
+    StartIO.showBanner();
+  });
+  StartIO.loadBanner();
+
+  /* ── INTERSTITIAL — pantalla completa, a demanda ── */
+  window.mostrarAnuncioInterstitial = function () {
+    StartIO.showInterstitial();
+  };
+});
+
+/* Muestra el interstitial cada 4 cambios de pestaña (Calendario/
+   Horario/Compañeros/Nómina...), para que no sea molesto viéndolo
+   todo el rato. Confirmado: la función de cambiar de pestaña se
+   llama goP() — aquí se "engancha" desde fuera, sin tocar goP()
+   en sí, así que no puede romper nada de la navegación. */
+var _contadorNavegacionAds = 0;
+var _navegacionesEntreAnuncios = 4;
+var _goP_original = window.goP;
+window.goP = function (n) {
+  _goP_original(n);
+  _contadorNavegacionAds++;
+  if (_contadorNavegacionAds >= _navegacionesEntreAnuncios) {
+    _contadorNavegacionAds = 0;
+    if (typeof window.mostrarAnuncioInterstitial === 'function') {
+      window.mostrarAnuncioInterstitial();
+    }
+  }
+};
 </script>
 
 </body>
