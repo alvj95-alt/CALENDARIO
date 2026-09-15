@@ -29981,6 +29981,19 @@ var _nscMiDetalle = null;
 var _nscSuDetalle = null;
 
 function abrirNuevaSolicitudCambio(){
+  // FIX — Confirmado por el usuario: la búsqueda salía vacía porque
+  // activeBase solo se cargaba al entrar en la pestaña Compañeros —
+  // esta función vive en Calendario, así que nunca se disparaba esa
+  // carga. Si todavía no hay nada cargado, se lleva a la persona a
+  // Compañeros (que ya dispara ese mismo proceso probado: matrícula
+  // + descargo la primera vez, silencioso las siguientes) — al
+  // volver a Calendario y tocar otra vez esta tarjeta, ya estará
+  // cargado y el formulario se abrirá con normalidad.
+  if(!activeBase){
+    if(typeof toast==='function') toast('Primero confirma tu matrícula en Compañeros...');
+    if(typeof goP==='function') goP('companeros');
+    return;
+  }
   _nscCompElegido = null; _nscMiDia = null; _nscSuDia = null; _nscMiDetalle = null; _nscSuDetalle = null;
   document.getElementById('nscBuscarInput').value = '';
   document.getElementById('nscResultadosBusqueda').innerHTML = '';
