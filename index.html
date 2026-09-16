@@ -31044,7 +31044,19 @@ function toggleCambiosTurnoAcordeon(){
   var abierto = acc.style.display !== 'none';
   acc.style.display = abierto ? 'none' : '';
   if(arr) arr.textContent = abierto ? '›' : '⌄';
-  if(!abierto) cargarCambiosTurno();
+  if(!abierto){
+    cargarCambiosTurno();
+    // NUEVO — Confirmado por el usuario: al abrir, baja la pantalla
+    // sola para que se vea de una vez la tarjeta de "Nueva solicitud
+    // de cambio", sin tener que desplazarse a mano para encontrarla.
+    // El pequeño margen (setTimeout) es porque el acordeón tarda un
+    // instante en tener su altura real tras quitarle el display:none
+    // — si se hiciera scroll en el mismo momento, el navegador aún
+    // no sabría hasta dónde puede bajar.
+    setTimeout(function(){
+      acc.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 60);
+  }
 }
 window.toggleCambiosTurnoAcordeon = toggleCambiosTurnoAcordeon;
 
