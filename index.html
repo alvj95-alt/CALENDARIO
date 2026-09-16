@@ -32124,11 +32124,16 @@ async function mostrarPasosPostAceptacionPublicacion(ofertaId){
   var miNombre = (AJ && AJ.nombre) || '';
   var miMatricula = (AJ && AJ.matricula) || '';
   var asunto = 'Solicitud de cambio de turno - '+o.nombre_ofertante+' / '+p.nombre_publicador;
+  // FIX — Confirmado por el usuario: quitar "(publicado en el
+  // tablon)" y las etiquetas "Ofertante"/"Publicador" — ahora usa
+  // las MISMAS etiquetas que ya usa el correo de "Nueva solicitud de
+  // cambio" ("Solicitante"/"Companero"), para que sea consistente
+  // entre las dos funciones.
   var cuerpoBruto =
     'Buenos dias.\n\n'
-    + 'Cambio de turno aceptado por ambas partes (publicado en el tablon):\n\n'
-    + 'Ofertante: '+o.nombre_ofertante+' (matricula '+o.matricula_ofertante+')\n'
-    + 'Publicador: '+p.nombre_publicador+' (matricula '+p.matricula_publicador+')\n\n'
+    + 'Cambio de turno entre companeros, aceptado por ambas partes:\n\n'
+    + 'Solicitante: '+o.nombre_ofertante+' (matricula '+o.matricula_ofertante+')\n'
+    + 'Companero: '+p.nombre_publicador+' (matricula '+p.matricula_publicador+')\n\n'
     + o.nombre_ofertante+' cambia: '+_resumenSecuenciaTextoPlano(o.dias, o.detalle)+'\n'
     + 'por el turno de '+p.nombre_publicador+': '+_resumenSecuenciaTextoPlano(p.dias, p.detalle)+'\n\n'
     + 'Espero su pronta respuesta.\nSaludos cordiales.\n\n'
