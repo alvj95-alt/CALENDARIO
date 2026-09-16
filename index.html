@@ -1362,13 +1362,30 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 /* NUEVO — Confirmado por el usuario: mismas clases y forma visual
    que la maqueta aprobada (maqueta_cambio_turno.html), solo que
    ahora con var(--...) reales de la app en vez de hex sueltos. */
-.ct-menu-card{display:flex;align-items:center;gap:14px;padding:16px;background:var(--s1);
-  border:1px solid var(--div);border-radius:16px;cursor:pointer;margin-bottom:12px}
-.ct-menu-ico{width:44px;height:44px;border-radius:12px;background:rgba(37,99,235,.15);
-  display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
-.ct-menu-tit{font-size:14px;font-weight:800;color:var(--tx)}
+/* FIX — Confirmado por el usuario: más llamativo, para que se note
+   de un vistazo entre el resto de la pantalla — fondo con tono
+   azul degradado, borde más marcado, y un resplandor suave. */
+.ct-menu-card{display:flex;align-items:center;gap:14px;padding:16px;
+  background:linear-gradient(135deg, rgba(37,99,235,.16), rgba(37,99,235,.05));
+  border:1.5px solid rgba(37,99,235,.55);border-radius:16px;cursor:pointer;margin-bottom:12px;
+  box-shadow:0 0 0 1px rgba(37,99,235,.08), 0 6px 20px rgba(37,99,235,.18)}
+.ct-menu-ico{width:44px;height:44px;border-radius:12px;background:var(--acc);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+  box-shadow:0 3px 10px rgba(37,99,235,.4)}
+.ct-menu-tit{font-size:14.5px;font-weight:800;color:var(--tx)}
 .ct-menu-sub{font-size:11px;color:var(--tx3);margin-top:2px}
-.ct-menu-arr{color:var(--tx3);font-size:16px;margin-left:auto}
+.ct-menu-arr{color:var(--acc3,var(--tx3));font-size:16px;margin-left:auto}
+
+/* NUEVO — Confirmado por el usuario: encabezado de "Cambios de
+   turno" más llamativo que un acordeón normal, para que se note
+   entre el resto de la pantalla de Calendario. */
+.ct-hdr-llamativo{display:flex;align-items:center;gap:8px;padding:11px 14px;margin:6px 0;
+  background:linear-gradient(135deg, rgba(37,99,235,.18), rgba(37,99,235,.06));
+  border:1.5px solid rgba(37,99,235,.5);border-radius:14px;cursor:pointer;user-select:none;
+  box-shadow:0 4px 14px rgba(37,99,235,.15)}
+.ct-hdr-tit{font-size:12.5px;font-weight:800;color:var(--tx);letter-spacing:.2px}
+.ct-hdr-guia{margin-left:auto;font-size:10px;font-weight:800;color:var(--acc);
+  background:rgba(255,255,255,.06);padding:4px 9px;border-radius:20px;border:1px solid rgba(37,99,235,.4)}
 
 .ct-field-lbl{font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;
   letter-spacing:.4px;margin:14px 0 7px}
@@ -3747,10 +3764,12 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
          debajo del calendario. El turno REAL (TV/TV2) nunca se toca
          aquí — esto es solo gestión de solicitudes + un aviso visual
          aparte, sin afectar a Nómina/HP/HE/HTDL. -->
-    <div class="turnos-mes-hdr" onclick="toggleCambiosTurnoAcordeon()">
-      <span class="turnos-mes-tit">🔄 Cambios de turno</span>
+    <div class="ct-hdr-llamativo" onclick="toggleCambiosTurnoAcordeon()">
+      <span style="font-size:17px">🔄</span>
+      <span class="ct-hdr-tit">Cambios de turno</span>
       <span id="cambiosTurnoBadgeCount" style="display:none;background:var(--nar);color:#1a1306;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px"></span>
-      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:auto">›</span>
+      <span class="ct-hdr-guia" onclick="event.stopPropagation();abrirGuiaCambioTurno()">📖 Guía</span>
+      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:8px">›</span>
     </div>
     <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
       <div style="padding:10px 4px">
@@ -6677,6 +6696,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     <div style="padding:16px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
       <div class="cal-tren-panel" id="nscCalPanel"></div>
     </div>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: guía visual de "Cambios de
+     turno" incrustada dentro de la propia app (mismo contenido que
+     guia_cambio_de_turno.html), para que cualquiera la pueda abrir
+     y entender cómo funciona sin salir de aquí. Usa un iframe con
+     su propio HTML/CSS independiente (srcdoc) a propósito, para que
+     el diseño de la guía no choque con los estilos del resto de la
+     app. -->
+<div class="ov" id="ov-guia-cambio-turno" onclick="if(event.target===this)closeOv('ov-guia-cambio-turno')" style="align-items:stretch">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:94%;height:94%">
+    <div class="sh-hdr">
+      <div class="sh-ico">📖</div>
+      <div><div class="sh-tit">Guía: Cambio de turno</div><div class="sh-sub">Ejemplo con nombres inventados</div></div>
+      <button class="sh-close" onclick="closeOv('ov-guia-cambio-turno')">✕</button>
+    </div>
+    <iframe id="iframeGuiaCambioTurno" style="flex:1;min-height:0;width:100%;border:none;background:#070D16"></iframe>
   </div>
 </div>
 
@@ -30364,7 +30401,7 @@ function _renderTarjetaAceptadaPorMi(s){
     + '<div><div class="ct-req-name" style="font-size:12px">'+s.nombre_solicitante+'</div><div class="ct-req-sub">Día '+s.dia_ofrece+' ⇄ Día '+s.dia_pide+'</div></div>'
     + '<span class="ct-status-chip ct-status-ok">✅ Aceptado por ti</span>'
     + '</div>'
-    + '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacion('+s.id+')">Ver siguiente paso (correo + confirmar)</div>'
+    + '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacion('+s.id+')">Ver siguiente paso (confirmar en tu calendario)</div>'
     + '</div>';
 }
 
@@ -30400,7 +30437,7 @@ function _renderBannerCambioTurno(recibidasData, enviadasData, aceptadasPorMiDat
       + '<div class="nadm-banner-ico">✅</div>'
       + '<div style="flex:1">'
         + '<div class="nadm-banner-tit">Aceptaste el cambio de '+s.nombre_solicitante+'</div>'
-        + '<div class="nadm-banner-msg">Toca para mandar el correo y confirmar en tu calendario.</div>'
+        + '<div class="nadm-banner-msg">Toca para confirmar en tu calendario.</div>'
       + '</div>'
     + '</div>';
   });
@@ -30552,24 +30589,44 @@ async function mostrarPasosPostAceptacion(id){
     + 'Atentamente,\n'+miNombre+'\nMatricula: '+miMatricula
     + '\n\nSolicitud generada automaticamente por TrenTurno V5';
   var cuerpoLimpio = (typeof sanitizarTexto==='function') ? sanitizarTexto(cuerpoBruto) : cuerpoBruto;
+  // FIX — Confirmado por el usuario: algunos clientes de correo no
+  // respetan bien un salto de línea suelto ("\n") dentro de un
+  // enlace mailto: — hace falta "\r\n" (CRLF) para que los párrafos
+  // se vean separados de verdad. Se hace DESPUÉS de sanitizarTexto()
+  // a propósito: esa función no reconoce "\r" en su lista de
+  // caracteres permitidos y lo habría vuelto a quitar.
+  cuerpoLimpio = cuerpoLimpio.replace(/\n/g, '\r\n');
   var mailto = 'mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpoLimpio);
+  // FIX — Confirmado por el usuario: el correo a Programación lo
+  // manda SOLO quien pidió el cambio (el solicitante) — nunca quien
+  // lo recibe. A quien lo recibe ya no se le muestra el bloque de
+  // correo, solo un aviso de que el solicitante se encarga, y su
+  // propio botón para actualizar su calendario.
+  var bloqueCorreo = soySolicitante
+    ? ('<div class="ct-mail-prompt">'
+        + '<div class="ct-mail-prompt-ico">✉️</div>'
+        + '<div class="ct-mail-prompt-tit">Envía el correo a Programación</div>'
+        + '<div class="ct-mail-prompt-sub">Se abrirá tu app de correo, ya escrito. Solo dale a "Enviar".</div>'
+        + '<a href="'+mailto+'" class="ct-mail-btn">Abrir correo</a>'
+        + '</div>')
+    : ('<div class="ct-mail-prompt">'
+        + '<div class="ct-mail-prompt-ico">✅</div>'
+        + '<div class="ct-mail-prompt-tit">Ya no tienes que hacer nada con el correo</div>'
+        + '<div class="ct-mail-prompt-sub">'+s.nombre_solicitante+' se encarga de avisar a Programación.</div>'
+        + '</div>');
+  var textoBtnConfirmar = soySolicitante ? 'Ya envié el correo — actualizar mi calendario' : 'Actualizar mi calendario';
   var html = '<div class="ov on" id="ov-post-aceptacion-temp" onclick="if(event.target===this) document.getElementById(\'ov-post-aceptacion-temp\').remove()">'
     + '<div class="sh" onclick="event.stopPropagation()">'
     + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+otroNombre+'</div></div>'
     + '<button class="sh-close" onclick="document.getElementById(\'ov-post-aceptacion-temp\').remove()">✕</button></div>'
     + '<div style="padding:16px">'
-    + '<div class="ct-mail-prompt">'
-    + '<div class="ct-mail-prompt-ico">✉️</div>'
-    + '<div class="ct-mail-prompt-tit">Envía el correo a Programación</div>'
-    + '<div class="ct-mail-prompt-sub">Se abrirá tu app de correo, ya escrito. Solo dale a "Enviar".</div>'
-    + '<a href="'+mailto+'" class="ct-mail-btn">Abrir correo</a>'
-    + '</div>'
+    + bloqueCorreo
     + (yaConfirmado
       ? '<div style="text-align:center;color:var(--green2);font-size:12px;font-weight:700">✅ Ya confirmaste este cambio en tu calendario.</div>'
       : '<div class="ct-confirm-box">'
         + '<div class="ct-confirm-box-tit">📅 Actualizar tu calendario</div>'
         + '<div class="ct-confirm-box-sub">Solo un aviso visual — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>'
-        + '<div class="ct-confirm-btn" onclick="confirmarCambioEnMiCalendario('+s.id+','+soySolicitante+')">Ya envié el correo — actualizar mi calendario</div>'
+        + '<div class="ct-confirm-btn" onclick="confirmarCambioEnMiCalendario('+s.id+','+soySolicitante+')">'+textoBtnConfirmar+'</div>'
         + '</div>')
     + '</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
@@ -30645,6 +30702,341 @@ function _badgeCambioTurnoParaDia(dia){
 window._badgeCambioTurnoParaDia = _badgeCambioTurnoParaDia;
 
 // ── 8) Acordeón de la sección + carga inicial al entrar a Calendario ──
+// NUEVO — Confirmado por el usuario: contenido completo de la
+// guia_cambio_de_turno.html incrustado como texto, para poder
+// mostrarla dentro de la propia app (ver abrirGuiaCambioTurno()
+// más abajo) sin depender de ningún archivo externo.
+var GUIA_CAMBIO_TURNO_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cómo usar: Solicitar cambio de turno</title>
+<style>
+:root{
+  --bg:#070D16; --panel:#0D1B2E; --panel2:#132236; --line:#1E3350;
+  --blue:#2563EB; --blue-soft:#93C5FD; --amber:#F59E0B; --amber-soft:#FCD34D;
+  --purple:#7C3AED; --purple-soft:#C084FC; --green:#16A34A;
+  --ink:#F8FAFC; --ink-dim:#B8C2D0; --ink-faint:#6B7A90;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  line-height:1.5;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+
+/* ── Portada ── */
+.cover{padding:56px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.cover-eyebrow{font-size:13px;color:var(--blue-soft);font-weight:600;margin-bottom:14px}
+.cover h1{font-size:34px;line-height:1.15;margin:0 0 16px;font-weight:800;letter-spacing:-.01em}
+.cover p{font-size:16px;color:var(--ink-dim);max-width:520px;margin:0}
+.cover-rail{width:56px;height:3px;background:var(--amber);border-radius:2px;margin-bottom:20px}
+
+/* ── Reparto (las dos personas de ejemplo) ── */
+.cast{display:flex;gap:14px;margin:28px 0 0;flex-wrap:wrap}
+.cast-card{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:12px}
+.cast-av{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.cast-name{font-size:13.5px;font-weight:700}
+.cast-sub{font-size:11.5px;color:var(--ink-faint);margin-top:2px}
+
+/* ── Pasos ── */
+.step{display:flex;gap:24px;padding:40px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.step:last-of-type{border-bottom:none}
+.step-num{width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
+  color:var(--blue-soft);flex-shrink:0;margin-top:2px}
+.step-body{flex:1;min-width:0}
+.step-who{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.step-who.sara{background:rgba(37,99,235,.15);color:var(--blue-soft)}
+.step-who.marcos{background:rgba(124,58,237,.15);color:var(--purple-soft)}
+.step-title{font-size:19px;font-weight:700;margin:0 0 10px}
+.step-text{font-size:14.5px;color:var(--ink-dim);margin:0 0 16px;max-width:480px}
+.step-text b{color:var(--ink);font-weight:600}
+
+/* ── Mini pantalla de teléfono, incrustada en cada paso ── */
+.phone-shot{
+  background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:14px 16px; max-width:420px; font-size:12.5px;
+}
+.ps-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ps-av{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;flex-shrink:0}
+.ps-name{font-weight:700;font-size:12.5px}
+.ps-sub{font-size:10px;color:var(--ink-faint)}
+.ps-swap{display:flex;align-items:center;gap:8px;background:var(--panel2);border-radius:10px;padding:10px;margin:10px 0}
+.ps-swap-col{flex:1;text-align:center}
+.ps-swap-lbl{font-size:8.5px;color:var(--ink-faint);text-transform:uppercase;font-weight:800;letter-spacing:.3px}
+.ps-swap-day{font-size:12px;font-weight:800;margin-top:3px}
+.ps-swap-turno{font-size:9.5px;color:var(--ink-dim);margin-top:2px}
+.ps-swap-arr{color:var(--blue-soft);font-size:15px}
+.ps-msg{font-size:10.5px;font-style:italic;color:var(--ink-dim);background:var(--panel2);
+  border-radius:7px;padding:6px 9px;margin-bottom:10px}
+.ps-btns{display:flex;gap:7px}
+.ps-btn{flex:1;padding:8px;border-radius:8px;font-size:10.5px;font-weight:700;text-align:center}
+.ps-btn.reject{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.4);color:#F87171}
+.ps-btn.accept{background:var(--green);color:#fff}
+.ps-btn.solo{background:var(--blue);color:#fff}
+.ps-field-lbl{font-size:9px;font-weight:800;color:var(--ink-faint);text-transform:uppercase;
+  letter-spacing:.3px;margin:10px 0 5px}
+.ps-box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:11.5px}
+.ps-pill{display:inline-block;font-size:8.5px;font-weight:800;background:rgba(124,58,237,.18);
+  color:var(--purple-soft);padding:2px 7px;border-radius:6px;margin-top:5px}
+.ps-mail{background:rgba(37,99,235,.1);border:1.5px solid var(--blue);border-radius:12px;
+  padding:14px;text-align:center}
+.ps-mail-tit{font-size:12px;font-weight:800;margin-bottom:8px}
+.ps-cal-day{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:9px;font-size:14px;font-weight:800;position:relative}
+.ps-cal-badge{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:6.5px;
+  font-weight:900;background:var(--purple);color:#fff;padding:1px 4px;border-radius:4px;white-space:nowrap}
+
+/* ── Vista realista del correo (Gmail) para el paso del correo ── */
+.gm-shell{background:#fff;border-radius:14px;overflow:hidden;max-width:420px;
+  font-family:'Google Sans',Roboto,-apple-system,sans-serif;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.gm-top{display:flex;align-items:center;gap:16px;padding:12px 14px;border-bottom:1px solid #e8eaed}
+.gm-close{font-size:17px;color:#5f6368}
+.gm-actions{margin-left:auto;display:flex;gap:16px;color:#5f6368;font-size:15px}
+.gm-send{color:#1a73e8;font-weight:700;font-size:12.5px;margin-left:auto}
+.gm-from{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid #f1f3f4}
+.gm-av{width:26px;height:26px;border-radius:50%;background:#1a73e8;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.gm-from-name{font-size:12px;color:#202124;font-weight:500}
+.gm-from-email{font-size:10.5px;color:#5f6368}
+.gm-field{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid #f1f3f4;font-size:12px}
+.gm-field-lbl{color:#5f6368;width:48px;flex-shrink:0}
+.gm-field-val{color:#202124;flex:1}
+.gm-field-val.ph{color:#80868b;font-style:italic}
+.gm-subject{padding:11px 14px;border-bottom:1px solid #f1f3f4;font-size:12.5px;font-weight:500;color:#202124}
+.gm-body{padding:14px;font-size:11.5px;color:#202124;line-height:1.6;white-space:pre-wrap}
+
+/* ── Nota lateral ── */
+.note{background:var(--panel);border-left:3px solid var(--amber);border-radius:0 10px 10px 0;
+  padding:12px 16px;font-size:13px;color:var(--ink-dim);margin-top:16px;max-width:480px}
+.note b{color:var(--amber-soft)}
+
+/* ── Cierre ── */
+.closing{padding:44px 0 0}
+.closing h2{font-size:20px;margin:0 0 12px}
+.closing p{font-size:14.5px;color:var(--ink-dim);max-width:520px}
+.closing-list{margin:18px 0 0;padding:0;list-style:none}
+.closing-list li{font-size:13.5px;color:var(--ink-dim);padding:8px 0 8px 22px;position:relative;
+  border-top:1px solid var(--line)}
+.closing-list li:before{content:"—";position:absolute;left:0;color:var(--ink-faint)}
+
+@media (max-width:600px){
+  .step{flex-direction:column;gap:12px}
+  .cover h1{font-size:27px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="cover-rail"></div>
+    <div class="cover-eyebrow">TrenTurnos · Guía rápida</div>
+    <h1>Cómo pedir un cambio de turno con un compañero</h1>
+    <p>Ejemplo completo, paso a paso, con dos compañeros y turnos inventados para que se entienda de un vistazo. Los nombres, matrículas y trenes de esta guía no son reales.</p>
+
+    <div class="cast">
+      <div class="cast-card">
+        <div class="cast-av" style="background:rgba(37,99,235,.18);color:#93C5FD">SD</div>
+        <div>
+          <div class="cast-name">Sara Domínguez Ruiz</div>
+          <div class="cast-sub">Matrícula 5512340 · pide el cambio</div>
+        </div>
+      </div>
+      <div class="cast-card">
+        <div class="cast-av" style="background:rgba(124,58,237,.18);color:#C084FC">MI</div>
+        <div>
+          <div class="cast-name">Marcos Iglesias Peña</div>
+          <div class="cast-sub">Matrícula 5598761 · recibe la solicitud</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Sara abre "Cambios de turno" en su Calendario</h3>
+      <p class="step-text">Está debajo del calendario de siempre. Toca <b>"Nueva solicitud de cambio"</b> y busca a Marcos por su nombre.</p>
+      <div class="phone-shot">
+        <div class="ps-field-lbl">Con quién</div>
+        <div class="ps-row" style="background:var(--panel2);border-radius:9px;padding:9px 10px;border:1px solid var(--blue)">
+          <div class="ps-av" style="background:rgba(124,58,237,.2);color:#C084FC">MI</div>
+          <div class="ps-name">Marcos Iglesias Peña</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Elige su día y el de Marcos</h3>
+      <p class="step-text">Sara ofrece su <b>miércoles 23</b> (hace el Tren 4021) y pide el <b>viernes 25</b> de Marcos (hace el Tren 6187). Puede añadir un mensaje si quiere.</p>
+      <div class="phone-shot">
+        <div class="ps-field-lbl">Tu turno que ofreces</div>
+        <div class="ps-box">Miércoles 23 — Tren 4021</div>
+        <div class="ps-field-lbl">Su turno que quieres</div>
+        <div class="ps-box">Viernes 25 — Tren 6187</div>
+        <div class="ps-field-lbl">Mensaje (opcional)</div>
+        <div class="ps-box" style="color:var(--ink-faint);font-style:italic">"Tengo una cita ese día, ¿me lo cambias?"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVISO: compañero sin sincronizar -->
+  <div class="step">
+    <div class="step-num">⚠️</div>
+    <div class="step-body">
+      <h3 class="step-title">¿Y si Marcos nunca ha usado esto?</h3>
+      <p class="step-text">Para que Sara pueda ver el turno de Marcos con detalle, hacen falta <b>dos cosas de parte de Marcos</b>, antes de que Sara intente pedirle el cambio:</p>
+      <ul style="font-size:13.5px;color:var(--ink-dim);margin:0 0 16px;padding-left:20px;max-width:460px">
+        <li style="margin-bottom:6px">Tener su <b>Horario Individual</b> (el PDF) ya subido en su Horario.</li>
+        <li>Haber <b>abierto su Calendario</b> al menos una vez — así sube en silencio el detalle a la nube.</li>
+      </ul>
+      <p class="step-text">Si a Marcos le falta cualquiera de las dos, Sara ve este aviso al intentar elegir su día:</p>
+      <div class="phone-shot">
+        <div class="ps-box" style="color:#F59E0B;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)">⚠️ Marcos Iglesias Peña todavía no ha sincronizado ningún día futuro de este mes — pídele que abra su Calendario primero.</div>
+      </div>
+      <div class="note">No es un fallo — es a propósito. Sara solo puede ver el turno de Marcos si Marcos ya lo tiene cargado y ha abierto la app. La solución es simple: <b>pedirle a Marcos que entre a su Calendario</b> un momento, y ya está listo.</div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <span class="step-who marcos">Marcos</span>
+      <h3 class="step-title">Marcos ve la solicitud y decide</h3>
+      <p class="step-text">Al entrar en su Calendario, a Marcos le aparece un <b>banner morado</b> avisándole. Dentro ve los dos turnos uno al lado del otro, y puede <b>Aceptar</b> o <b>Rechazar</b>.</p>
+      <div class="phone-shot">
+        <div class="ps-row">
+          <div class="ps-av" style="background:rgba(37,99,235,.2);color:#93C5FD">SD</div>
+          <div><div class="ps-name">Sara Domínguez Ruiz</div><div class="ps-sub">Hoy</div></div>
+        </div>
+        <div class="ps-swap">
+          <div class="ps-swap-col"><div class="ps-swap-lbl">Te da</div><div class="ps-swap-day">Miér 23</div><div class="ps-swap-turno">Tren 4021</div></div>
+          <div class="ps-swap-arr">⇄</div>
+          <div class="ps-swap-col"><div class="ps-swap-lbl">Te pide</div><div class="ps-swap-day">Vie 25</div><div class="ps-swap-turno">Tren 6187</div></div>
+        </div>
+        <div class="ps-msg">"Tengo una cita ese día, ¿me lo cambias?"</div>
+        <div class="ps-btns">
+          <div class="ps-btn reject">Rechazar</div>
+          <div class="ps-btn accept">Aceptar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Sara manda el correo a Programación</h3>
+      <p class="step-text">Solo lo manda <b>quien pidió el cambio</b> — en este caso, Sara. En cuanto Marcos acepta, a Sara le sale ya escrito el correo con los datos de los dos (nombre y matrícula) — solo tiene que darle a <b>Enviar</b>. Marcos no tiene que hacer nada con el correo.</p>
+
+      <div class="gm-shell">
+        <div class="gm-top">
+          <span class="gm-close">✕</span>
+          <span class="gm-actions">📎 🖼️</span>
+          <span class="gm-send">ENVIAR ➤</span>
+        </div>
+        <div class="gm-from">
+          <div class="gm-av">S</div>
+          <div>
+            <div class="gm-from-name">Sara Domínguez Ruiz</div>
+            <div class="gm-from-email">sara.dominguez.ruiz@gmail.com</div>
+          </div>
+        </div>
+        <div class="gm-field">
+          <span class="gm-field-lbl">Para</span>
+          <span class="gm-field-val ph">programacion@empresa.com</span>
+        </div>
+        <div class="gm-subject">Solicitud de cambio de turno - Domínguez Ruiz Sara / Iglesias Peña Marcos</div>
+        <div class="gm-body">Buenos dias
+
+Solicitud de cambio de turno aceptada por ambas partes
+
+Solicitante Domínguez Ruiz Sara matricula 5512340
+Companero Iglesias Peña Marcos matricula 5598761
+
+Domínguez Ruiz Sara cambia su turno del dia 23 Tren 4021
+por el turno de Iglesias Peña Marcos del dia 25 Tren 6187
+
+Espero su pronta respuesta
+Saludos cordiales
+
+Atentamente
+Domínguez Ruiz Sara
+Matricula 5512340
+
+Solicitud generada automaticamente por TrenTurno V5</div>
+      </div>
+
+      <div class="note"><b>"Para" sale siempre vacío a propósito:</b> cada tripulante escribe ahí la dirección real de Programación de su empresa. Y el texto sale sin tildes ni símbolos raros — a propósito, para que el correo no se rompa al abrirse en algunos móviles.</div>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <span class="step-who marcos">Marcos</span> <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Cada uno confirma en su propio calendario</h3>
+      <p class="step-text">Después de mandar el correo, cada uno pulsa su propio botón para que le salga el aviso en su Calendario. <b>No hace falta que lo hagan a la vez</b> — cada uno a su ritmo.</p>
+      <div class="phone-shot">
+        <div style="text-align:center;padding:6px 0">
+          <div class="ps-cal-day" style="background:var(--panel2);color:var(--ink)">
+            23<span class="ps-cal-badge">🔄 CAMBIO</span>
+          </div>
+          <span style="display:inline-block;width:14px"></span>
+          <div class="ps-cal-day" style="background:var(--panel2);color:var(--ink)">
+            25<span class="ps-cal-badge">🔄 CAMBIO</span>
+          </div>
+        </div>
+      </div>
+      <div class="note">Esto es <b>solo un aviso visual</b>, en color distinto para reconocerlo de un vistazo. Lo que de verdad cuenta para la nómina y las horas sigue siendo el turno original, hasta que la empresa lo actualice de verdad tras recibir el correo.</div>
+    </div>
+  </div>
+
+  <div class="closing">
+    <h2>En resumen</h2>
+    <p>Todo el proceso pasa por Calendario → Cambios de turno. Nada de esto lo hace la app en automático por su cuenta — cada paso lo confirma una persona, a propósito.</p>
+    <ul class="closing-list">
+      <li>Buscar al compañero y elegir los dos días es cosa de quien pide el cambio.</li>
+      <li>Aceptar o rechazar es cosa de quien lo recibe.</li>
+      <li>El correo a Programación lo manda solo quien pidió el cambio, una vez el otro lo acepta.</li>
+      <li>El aviso en el calendario lo confirma cada uno por separado, cuando quiera.</li>
+      <li>Se puede deshacer el aviso, cancelar una solicitud pendiente, o eliminarla del historial en cualquier momento.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
+`;
+
+function abrirGuiaCambioTurno(){
+  var frame = document.getElementById('iframeGuiaCambioTurno');
+  if(frame && !frame.dataset.cargado){
+    frame.srcdoc = GUIA_CAMBIO_TURNO_HTML;
+    frame.dataset.cargado = '1';
+  }
+  openOv('ov-guia-cambio-turno');
+}
+window.abrirGuiaCambioTurno = abrirGuiaCambioTurno;
+
 function toggleCambiosTurnoAcordeon(){
   var acc = document.getElementById('cambiosTurnoAcordeon');
   var arr = document.getElementById('cambiosTurnoAcordeonArr');
