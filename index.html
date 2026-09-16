@@ -6850,9 +6850,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="ct-tabs">
         <div class="ct-tab on" id="cpubTabTodas" onclick="_cpubCambiarTab('todas')">Tablón</div>
         <div class="ct-tab" id="cpubTabMias" onclick="_cpubCambiarTab('mias')">Mis publicaciones</div>
+        <!-- NUEVO — Confirmado por el usuario: antes, si te
+             aceptaban una oferta y cerrabas la pantalla (o
+             recargabas la web), no había ningún sitio donde volver
+             a encontrarla — esta pestaña nueva soluciona eso. -->
+        <div class="ct-tab" id="cpubTabOfertas" onclick="_cpubCambiarTab('ofertas')">Mis ofertas</div>
       </div>
       <div id="cpubListaTodas"></div>
       <div id="cpubListaMias" style="display:none"></div>
+      <div id="cpubListaOfertas" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -18025,6 +18031,10 @@ function goP(n){
   // cambio de turno (y pinta el banner si hay algo) nada más entrar
   // en Calendario, sin esperar a que se despliegue la sección.
   if(n==='cal' && typeof cargarCambiosTurno==='function') cargarCambiosTurno();
+  // NUEVO — Confirmado por el usuario: mismo momento de carga que
+  // "Nueva solicitud de cambio", para las notificaciones de
+  // "Publicar un cambio" (ofertas nuevas / ofertas mías aceptadas).
+  if(n==='cal' && typeof cargarNotificacionesPublicaciones==='function') cargarNotificacionesPublicaciones();
   // NUEVO: refrescar la lista individual de meses al entrar en Horario
   if(n==='horario' && typeof renderMonthListIndividual==='function') renderMonthListIndividual();
   // NUEVO — al entrar en la pestaña Compañeros, dispara la misma
@@ -30618,7 +30628,19 @@ function _renderBannerCambioTurno(recibidasData, enviadasData, aceptadasPorMiDat
       + '</div>'
     + '</div>';
   });
-  zona.innerHTML = banners;
+  // FIX — Confirmado por el usuario: se guarda en una variable
+  // aparte en vez de pintar directo — así, si la carga de
+  // publicaciones/ofertas termina antes o después que esta, ninguna
+  // de las dos se pisa a la otra (ver _renderBannerCombinado()).
+  _bannerCambiosTurnoHTML = banners;
+  _renderBannerCombinado();
+}
+var _bannerCambiosTurnoHTML = '';
+var _bannerPublicacionesHTML = '';
+function _renderBannerCombinado(){
+  var zona = document.getElementById('notifBannerZonaCambioTurno');
+  if(!zona) return;
+  zona.innerHTML = _bannerCambiosTurnoHTML + _bannerPublicacionesHTML;
 }
 function _abrirCambiosTurnoDesdeBanner(){
   var acc = document.getElementById('cambiosTurnoAcordeon');
@@ -30627,6 +30649,57 @@ function _abrirCambiosTurnoDesdeBanner(){
   if(hdr && hdr.scrollIntoView) hdr.scrollIntoView({behavior:'smooth', block:'start'});
 }
 window._abrirCambiosTurnoDesdeBanner = _abrirCambiosTurnoDesdeBanner;
+
+// NUEVO — Confirmado por el usuario: mismo estilo de banner que ya
+// usa "Nueva solicitud de cambio", para "Publicar un cambio" —
+// ofertas nuevas en mis publicaciones, y ofertas mías ya aceptadas
+// pendientes de correo/confirmar.
+async function cargarNotificacionesPublicaciones(){
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  try{
+    var rp = await sbAdmin.from('publicaciones_cambio_turno').select('id').eq('matricula_publicador', AJ.matricula).eq('estado','activa');
+    var idsPropias = ((rp && rp.data) || []).map(function(p){ return p.id; });
+    var ofertasNuevas = [];
+    if(idsPropias.length){
+      var ro = await sbAdmin.from('ofertas_publicacion_turno').select('*').in('publicacion_id', idsPropias).eq('estado','pendiente');
+      ofertasNuevas = (ro && ro.data) || [];
+    }
+    var rmo = await sbAdmin.from('ofertas_publicacion_turno').select('*').eq('matricula_ofertante', AJ.matricula).eq('estado','aceptada').eq('confirmado_ofertante', false);
+    var misOfertasAceptadas = (rmo && rmo.data) || [];
+
+    var badge = document.getElementById('cambiosPublicadosBadge');
+    var totalPub = ofertasNuevas.length + misOfertasAceptadas.length;
+    if(totalPub){ badge.style.display=''; badge.textContent = totalPub; } else { badge.style.display='none'; }
+
+    var banners = '';
+    if(ofertasNuevas.length){
+      banners += '<div class="nadm-banner" style="--nadm-bc:#7C3AED;--nadm-bg:rgba(124,58,237,.12);--nadm-tc:#c084fc" onclick="_abrirCambiosPublicadosDesdeBanner(\'mias\')">'
+        + '<div class="nadm-banner-ico">📢</div>'
+        + '<div style="flex:1">'
+          + '<div class="nadm-banner-tit">'+ofertasNuevas.length+' oferta'+(ofertasNuevas.length>1?'s':'')+' en tu'+(idsPropias.length>1?'s':'')+' publicaci'+(idsPropias.length>1?'ones':'ón')+'</div>'
+          + '<div class="nadm-banner-msg">Toca para ver quién te la ha hecho.</div>'
+        + '</div>'
+      + '</div>';
+    }
+    misOfertasAceptadas.forEach(function(o){
+      banners += '<div class="nadm-banner" style="--nadm-bc:#16A34A;--nadm-bg:rgba(22,163,74,.12);--nadm-tc:#4ADE80" onclick="mostrarPasosPostAceptacionPublicacion('+o.id+')">'
+        + '<div class="nadm-banner-ico">✅</div>'
+        + '<div style="flex:1">'
+          + '<div class="nadm-banner-tit">Te aceptaron tu oferta</div>'
+          + '<div class="nadm-banner-msg">Toca para mandar el correo y confirmar en tu calendario.</div>'
+        + '</div>'
+      + '</div>';
+    });
+    _bannerPublicacionesHTML = banners;
+    _renderBannerCombinado();
+  }catch(e){ console.warn('cargarNotificacionesPublicaciones:', e); }
+}
+window.cargarNotificacionesPublicaciones = cargarNotificacionesPublicaciones;
+function _abrirCambiosPublicadosDesdeBanner(tab){
+  abrirCambiosPublicados();
+  setTimeout(function(){ _cpubCambiarTab(tab); }, 50);
+}
+window._abrirCambiosPublicadosDesdeBanner = _abrirCambiosPublicadosDesdeBanner;
 
 function _resumenTurno(det){
   if(!det) return 'sin datos';
@@ -31843,11 +31916,47 @@ window.abrirCambiosPublicados = abrirCambiosPublicados;
 function _cpubCambiarTab(tab){
   document.getElementById('cpubTabTodas').classList.toggle('on', tab==='todas');
   document.getElementById('cpubTabMias').classList.toggle('on', tab==='mias');
+  document.getElementById('cpubTabOfertas').classList.toggle('on', tab==='ofertas');
   document.getElementById('cpubListaTodas').style.display = tab==='todas' ? '' : 'none';
   document.getElementById('cpubListaMias').style.display = tab==='mias' ? '' : 'none';
-  if(tab==='todas') cargarCambiosPublicados(); else cargarMisPublicaciones();
+  document.getElementById('cpubListaOfertas').style.display = tab==='ofertas' ? '' : 'none';
+  if(tab==='todas') cargarCambiosPublicados();
+  else if(tab==='mias') cargarMisPublicaciones();
+  else cargarMisOfertas();
 }
 window._cpubCambiarTab = _cpubCambiarTab;
+
+// NUEVO — Confirmado por el usuario: "Mis ofertas" — todas las
+// ofertas que TÚ has hecho sobre publicaciones de otros, con su
+// estado, y el mismo botón "Ver siguiente paso" que ya usa "Tus
+// solicitudes enviadas" cuando te aceptan una.
+async function cargarMisOfertas(){
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  var cont = document.getElementById('cpubListaOfertas');
+  cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando...</div>';
+  try{
+    var r = await sbAdmin.from('ofertas_publicacion_turno').select('*').eq('matricula_ofertante', AJ.matricula).order('fecha_hora',{ascending:false}).limit(20);
+    var filas = (r && r.data) || [];
+    if(!filas.length){ cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Todavía no has hecho ninguna oferta.</div>'; return; }
+    var html = '';
+    for(var i=0;i<filas.length;i++){
+      var o = filas[i];
+      var rp = await sbAdmin.from('publicaciones_cambio_turno').select('nombre_publicador,dias').eq('id', o.publicacion_id).maybeSingle();
+      var nombrePub = (rp && rp.data) ? rp.data.nombre_publicador : '—';
+      var chip = o.estado==='pendiente' ? '<span class="ct-status-chip ct-status-pend">⏳ Pendiente</span>'
+        : o.estado==='aceptada' ? '<span class="ct-status-chip ct-status-ok">✅ Aceptada</span>'
+        : '<span class="ct-status-chip ct-status-no">✕ Rechazada</span>';
+      var accionesExtra = (o.estado==='aceptada' && !o.confirmado_ofertante)
+        ? '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacionPublicacion('+o.id+')">Ver siguiente paso (correo + confirmar)</div>' : '';
+      html += '<div class="ct-feed-item">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+        + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div></div>'
+        + chip + '</div>' + accionesExtra + '</div>';
+    }
+    cont.innerHTML = html;
+  }catch(e){ console.warn('cargarMisOfertas:', e); }
+}
+window.cargarMisOfertas = cargarMisOfertas;
 
 function _diasTexto(dias){
   if(dias.length===1) return weekdayForDay(dias[0])+' '+dias[0];
@@ -32095,6 +32204,7 @@ async function aceptarOfertaPublicacion(ofertaId, publicacionId){
     await sbAdmin.from('ofertas_publicacion_turno').update({estado:'rechazada'}).eq('publicacion_id', publicacionId).neq('id', ofertaId);
     await sbAdmin.from('publicaciones_cambio_turno').update({estado:'aceptada', oferta_aceptada_id: ofertaId}).eq('id', publicacionId);
     cargarMisPublicaciones();
+    if(typeof cargarNotificacionesPublicaciones === 'function') cargarNotificacionesPublicaciones();
     mostrarPasosPostAceptacionPublicacion(ofertaId);
   }catch(e){ console.warn('aceptarOfertaPublicacion:', e); }
 }
@@ -32197,6 +32307,9 @@ async function confirmarPublicacionEnMiCalendario(ofertaId, soyOfertante){
   if(ovTemp) ovTemp.remove();
   if(typeof renderCal === 'function') renderCal();
   if(typeof renderDiaArea === 'function') renderDiaArea();
+  // NUEVO — Confirmado por el usuario: refresca el banner/badge al
+  // terminar, igual que ya hace confirmarCambioEnMiCalendario().
+  if(typeof cargarNotificacionesPublicaciones === 'function') cargarNotificacionesPublicaciones();
 }
 window.confirmarPublicacionEnMiCalendario = confirmarPublicacionEnMiCalendario;
 
