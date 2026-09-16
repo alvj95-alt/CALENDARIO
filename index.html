@@ -3801,14 +3801,14 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <span style="font-size:17px">🔄</span>
       <span class="ct-hdr-tit">Cambios de turno</span>
       <span id="cambiosTurnoBadgeCount" style="display:none;background:var(--nar);color:#1a1306;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px"></span>
-      <span class="ct-hdr-guia" onclick="event.stopPropagation();abrirGuiaCambioTurno()">📖 Guía</span>
-      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:8px">›</span>
+      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:auto">›</span>
     </div>
     <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
       <div style="padding:10px 4px">
         <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
           <div class="ct-menu-ico">🔄</div>
           <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaCambioTurno()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
           <div class="ct-menu-arr">›</div>
         </div>
         <!-- NUEVO — Confirmado por el usuario: "Publicar un cambio",
@@ -3825,6 +3825,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div onclick="abrirCambiosPublicados()" class="ct-menu-card">
           <div class="ct-menu-ico" style="background:rgba(124,58,237,.15);color:#C084FC">📋</div>
           <div><div class="ct-menu-tit">Cambios publicados</div><div class="ct-menu-sub">Mira lo que han publicado otros</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaCambiosPublicados()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
           <span id="cambiosPublicadosBadge" style="display:none;background:rgba(249,115,22,.18);color:var(--nar2);font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:6px"></span>
           <div class="ct-menu-arr">›</div>
         </div>
@@ -6778,6 +6779,20 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-guia-publicar-cambio')">✕</button>
     </div>
     <iframe id="iframeGuiaPublicarCambio" style="flex:1;min-height:0;width:100%;border:none;background:#070D16"></iframe>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: guía visual de "Cambios
+     publicados" incrustada dentro de la app, mismo patrón que las
+     otras dos guías de arriba. -->
+<div class="ov" id="ov-guia-cambios-publicados" onclick="if(event.target===this)closeOv('ov-guia-cambios-publicados')" style="align-items:stretch">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:94%;height:94%">
+    <div class="sh-hdr">
+      <div class="sh-ico" style="background:rgba(124,58,237,.18);color:#C084FC">📖</div>
+      <div><div class="sh-tit">Guía: Cambios publicados</div><div class="sh-sub">Ejemplo con nombres inventados</div></div>
+      <button class="sh-close" onclick="closeOv('ov-guia-cambios-publicados')">✕</button>
+    </div>
+    <iframe id="iframeGuiaCambiosPublicados" style="flex:1;min-height:0;width:100%;border:none;background:#070D16"></iframe>
   </div>
 </div>
 
@@ -31441,6 +31456,219 @@ function abrirGuiaPublicarCambio(){
   openOv('ov-guia-publicar-cambio');
 }
 window.abrirGuiaPublicarCambio = abrirGuiaPublicarCambio;
+
+// NUEVO — Confirmado por el usuario: contenido completo de
+// guia_cambios_publicados.html incrustado como texto, mismo
+// patrón que las otras dos guías.
+var GUIA_CAMBIOS_PUBLICADOS_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cómo usar: Cambios publicados</title>
+<style>
+:root{
+  --bg:#070D16; --panel:#0D1B2E; --panel2:#132236; --line:#1E3350;
+  --purple:#7C3AED; --purple-soft:#C084FC; --nar:#F97316; --nar-soft:#FDBA74;
+  --blue:#2563EB; --blue-soft:#93C5FD; --green:#16A34A; --green-soft:#4ADE80;
+  --ink:#F8FAFC; --ink-dim:#B8C2D0; --ink-faint:#6B7A90;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+
+.cover{padding:56px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.cover-eyebrow{font-size:13px;color:var(--purple-soft);font-weight:600;margin-bottom:14px}
+.cover h1{font-size:32px;line-height:1.15;margin:0 0 16px;font-weight:800;letter-spacing:-.01em}
+.cover p{font-size:16px;color:var(--ink-dim);max-width:540px;margin:0}
+.cover-rail{width:56px;height:3px;background:var(--purple);border-radius:2px;margin-bottom:20px}
+
+.tabs-demo{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:11px;
+  padding:4px;max-width:320px;margin-top:24px}
+.tab-demo{flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:11.5px;font-weight:700}
+.tab-demo.on{background:var(--nar);color:#1a1306}
+.tab-demo.off{color:var(--ink-faint)}
+
+.step{display:flex;gap:24px;padding:38px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.step:last-of-type{border-bottom:none}
+.step-num{width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
+  color:var(--purple-soft);flex-shrink:0;margin-top:2px}
+.step-body{flex:1;min-width:0}
+.step-tab-tag{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:20px;margin-bottom:10px}
+.step-tab-tag.tablon{background:rgba(249,115,22,.15);color:var(--nar-soft)}
+.step-tab-tag.mias{background:rgba(124,58,237,.15);color:var(--purple-soft)}
+.step-title{font-size:18px;font-weight:700;margin:0 0 10px}
+.step-text{font-size:14.5px;color:var(--ink-dim);margin:0 0 16px;max-width:480px}
+.step-text b{color:var(--ink);font-weight:600}
+
+.phone-shot{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:14px 16px;max-width:420px;font-size:12.5px}
+.ps-feed-item{background:var(--panel2);border-radius:10px;padding:10px;margin-bottom:8px}
+.ps-feed-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ps-av{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;flex-shrink:0}
+.ps-name{font-weight:700;font-size:11px}
+.ps-sub{font-size:9px;color:var(--ink-faint)}
+.ps-expiry{font-size:8.5px;color:var(--ink-faint);margin-left:auto}
+.ps-day-txt{font-size:11px;font-weight:700}
+.ps-day-sub{font-size:9.5px;color:var(--blue-soft);margin-top:2px}
+.ps-note{font-size:9.5px;font-style:italic;color:var(--ink-dim);margin:6px 0}
+.ps-btn{padding:8px;border-radius:8px;font-size:10.5px;font-weight:700;text-align:center;margin-top:6px}
+.ps-btn.blue{background:var(--blue);color:#fff}
+.ps-btn.red{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.4);color:#F87171}
+.ps-check-item{display:flex;align-items:center;gap:9px;background:var(--panel2);border-radius:9px;
+  padding:8px 10px;margin-bottom:6px}
+.ps-check{width:15px;height:15px;border-radius:4px;background:var(--panel);border:1.3px solid var(--line);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent}
+.ps-check.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:900}
+.ps-offer{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;
+  padding:7px 9px;margin-bottom:6px}
+.ps-offer-info{flex:1}
+.ps-offer-name{font-size:10px;font-weight:700}
+.ps-offer-detail{font-size:9px;color:var(--ink-faint)}
+.ps-offer-btn{background:var(--green);color:#fff;font-size:8.5px;font-weight:800;padding:5px 9px;border-radius:7px}
+
+.note{background:var(--panel);border-left:3px solid var(--purple);border-radius:0 10px 10px 0;
+  padding:12px 16px;font-size:13px;color:var(--ink-dim);margin-top:16px;max-width:480px}
+.note b{color:var(--purple-soft)}
+
+.closing{padding:44px 0 0}
+.closing h2{font-size:20px;margin:0 0 12px}
+.closing p{font-size:14.5px;color:var(--ink-dim);max-width:520px}
+.closing-list{margin:18px 0 0;padding:0;list-style:none}
+.closing-list li{font-size:13.5px;color:var(--ink-dim);padding:8px 0 8px 22px;position:relative;border-top:1px solid var(--line)}
+.closing-list li:before{content:"—";position:absolute;left:0;color:var(--ink-faint)}
+
+@media (max-width:600px){ .step{flex-direction:column;gap:12px} .cover h1{font-size:25px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="cover-rail"></div>
+    <div class="cover-eyebrow">TrenTurnos · Guía rápida</div>
+    <h1>Cómo usar "Cambios publicados"</h1>
+    <p>Esta es la pantalla del <b>tablón</b> — para ver lo que otros compañeros han publicado, ofrecerles un cambio, y gestionar tus propias publicaciones. Si lo que quieres es aprender a publicar algo tuyo primero, mira la guía de "Publicar un cambio".</p>
+    <div class="tabs-demo">
+      <div class="tab-demo on">Tablón</div>
+      <div class="tab-demo off">Mis publicaciones</div>
+    </div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <span class="step-tab-tag tablon">Pestaña: Tablón</span>
+      <h3 class="step-title">Mira todo lo que hay publicado ahora</h3>
+      <p class="step-text">Aquí ves <b>todas las publicaciones activas de tu base</b> (menos las tuyas propias) — con el tren, hora de toma y deje de cada día, y cuántos días le quedan antes de caducar.</p>
+      <div class="phone-shot">
+        <div class="ps-feed-item">
+          <div class="ps-feed-hdr">
+            <div class="ps-av" style="background:rgba(249,115,22,.2);color:#FDBA74">SD</div>
+            <div><div class="ps-name">Sara Domínguez Ruiz</div><div class="ps-sub">Publicado hace 1 hora</div></div>
+            <div class="ps-expiry">Caduca en 6 días</div>
+          </div>
+          <div class="ps-day-txt">📦 Jueves 24 → Viernes 25</div>
+          <div class="ps-day-sub">Jue: Tren 7734 · 14:00→22:10</div>
+          <div class="ps-day-sub">Vie: Tren 7735 · 14:00→22:10</div>
+          <div class="ps-note">"Busco cambiar por algo de mañana"</div>
+          <div class="ps-btn blue">Ofrecer un cambio</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <span class="step-tab-tag tablon">Pestaña: Tablón</span>
+      <h3 class="step-title">Si te interesa, toca "Ofrecer un cambio"</h3>
+      <p class="step-text">Marca uno o varios días <b>tuyos</b> seguidos, para proponer a cambio del turno publicado. Puedes añadir un mensaje corto si quieres.</p>
+      <div class="phone-shot">
+        <div class="ps-check-item"><div class="ps-check"></div><div><div class="ps-day-txt">Miércoles 23</div><div class="ps-day-sub">Tren 4021</div></div></div>
+        <div class="ps-check-item" style="border:1px solid var(--blue)"><div class="ps-check on">✓</div><div><div class="ps-day-txt">Sábado 26</div><div class="ps-day-sub">Tren 6187</div></div></div>
+        <div class="ps-btn blue">Enviar oferta</div>
+      </div>
+      <div class="note">Esto es una <b>propuesta</b>, no algo definitivo todavía — quien publicó decide si la acepta, la deja pasar, o acepta la de otro compañero.</div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <span class="step-tab-tag mias">Pestaña: Mis publicaciones</span>
+      <h3 class="step-title">Aquí gestionas lo que TÚ has publicado</h3>
+      <p class="step-text">Cambia a esta pestaña para ver tus propias publicaciones activas, con las ofertas que te han hecho otros compañeros — cada una con su detalle completo.</p>
+      <div class="phone-shot">
+        <div class="ps-feed-item">
+          <div class="ps-day-txt">📦 Jueves 24 → Viernes 25</div>
+          <div class="ps-expiry" style="margin:2px 0 8px">Caduca en 6 días</div>
+          <div class="ps-offer">
+            <div class="ps-av" style="background:rgba(37,99,235,.2);color:#93C5FD">MI</div>
+            <div class="ps-offer-info"><div class="ps-offer-name">Marcos Iglesias Peña</div><div class="ps-offer-detail">Sáb 26: Tren 6187 · Dom 27: Tren 6188</div></div>
+            <div class="ps-offer-btn">Aceptar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <span class="step-tab-tag mias">Pestaña: Mis publicaciones</span>
+      <h3 class="step-title">Aceptar una oferta, o retirar la publicación</h3>
+      <p class="step-text">Si te convence una oferta, la aceptas — las demás se cierran solas. Si ya no te hace falta el cambio (aunque tengas ofertas o no), puedes <b>retirar la publicación</b> en cualquier momento.</p>
+      <div class="phone-shot">
+        <div class="ps-btn red">✕ Retirar publicación</div>
+      </div>
+      <div class="note">Al aceptar una oferta, esa publicación <b>desaparece del tablón</b> — ya no la ven los demás — pero se queda guardada en tu historial aquí mismo, para tener constancia de qué se cambió.</div>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <span class="step-tab-tag mias">Después de aceptar</span>
+      <h3 class="step-title">El correo lo manda quien hizo la oferta</h3>
+      <p class="step-text">En cuanto aceptas, a <b>Marcos</b> (quien te ofertó) le sale la pantalla para mandar el correo a Programación — tú no tienes que hacer nada con eso. Después, cada uno confirma en su propio calendario, cuando quiera.</p>
+    </div>
+  </div>
+
+  <div class="closing">
+    <h2>En resumen</h2>
+    <p>Dos pestañas, dos propósitos distintos: una para mirar y ofertar sobre lo de otros, otra para gestionar lo tuyo.</p>
+    <ul class="closing-list">
+      <li><b>Tablón:</b> ves las publicaciones de los demás y puedes ofrecer un cambio.</li>
+      <li><b>Mis publicaciones:</b> ves las tuyas, con las ofertas recibidas, y decides.</li>
+      <li>Ofertar no es definitivo — solo quien publicó decide si acepta, y solo puede aceptar una.</li>
+      <li>Puedes retirar tu publicación en cualquier momento, tengas o no ofertas.</li>
+      <li>Una publicación aceptada se queda como historial, aunque ya no se vea en el tablón.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
+`;
+function abrirGuiaCambiosPublicados(){
+  var frame = document.getElementById('iframeGuiaCambiosPublicados');
+  if(frame && !frame.dataset.cargado){
+    frame.srcdoc = GUIA_CAMBIOS_PUBLICADOS_HTML;
+    frame.dataset.cargado = '1';
+  }
+  openOv('ov-guia-cambios-publicados');
+}
+window.abrirGuiaCambiosPublicados = abrirGuiaCambiosPublicados;
+
 
 
 /* ═══════════════════════════════════════════════════════════
