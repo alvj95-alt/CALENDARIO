@@ -1387,6 +1387,39 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .ct-hdr-guia{margin-left:auto;font-size:10px;font-weight:800;color:var(--acc);
   background:rgba(255,255,255,.06);padding:4px 9px;border-radius:20px;border:1px solid rgba(37,99,235,.4)}
 
+/* NUEVO — Confirmado por el usuario: "Publicar un cambio" — misma
+   forma que las otras tarjetas .ct-menu-card, pero en naranja para
+   distinguirla de un vistazo (tablón público, no solicitud directa). */
+.ct-menu-card-publicar{border-color:rgba(249,115,22,.5);
+  background:linear-gradient(135deg, rgba(249,115,22,.14), rgba(249,115,22,.04))}
+
+/* NUEVO — checkbox para elegir uno o varios días seguidos, y aviso
+   de "secuencia" cuando hay más de uno marcado. */
+.ct-day-check{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--s1);
+  border:1px solid var(--div);border-radius:11px;margin-bottom:7px;cursor:pointer}
+.ct-day-check.sel{border-color:var(--nar);background:rgba(249,115,22,.08)}
+.ct-check-box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--div);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent}
+.ct-check-box.on{background:var(--nar);border-color:var(--nar);color:#1a1306;font-weight:900}
+.ct-seq-note{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);border-radius:10px;
+  padding:9px 11px;font-size:10.5px;color:var(--nar2);margin:10px 0}
+.ct-publish-btn{width:100%;padding:13px;background:var(--nar);border:none;border-radius:12px;
+  color:#1a1306;font-weight:800;font-size:13px;text-align:center;cursor:pointer}
+
+/* NUEVO — tarjetas del tablón público de publicaciones */
+.ct-feed-item{background:var(--s1);border:1px solid var(--div);border-radius:14px;padding:13px;margin-bottom:11px}
+.ct-feed-hdr{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ct-feed-name{font-size:12px;font-weight:800;color:var(--tx)}
+.ct-feed-sub{font-size:9.5px;color:var(--tx3)}
+.ct-feed-expiry{font-size:9px;font-weight:700;color:var(--tx3);margin-left:auto;white-space:nowrap}
+.ct-feed-turno{background:var(--s2);border-radius:9px;padding:9px 10px;margin-bottom:9px}
+.ct-feed-turno-day{font-size:12px;font-weight:800;color:var(--tx)}
+.ct-feed-turno-tren{font-size:10.5px;color:#93C5FD;margin-top:3px}
+.ct-feed-note{font-size:10.5px;font-style:italic;color:var(--tx2);margin-bottom:9px}
+.ct-tabs{display:flex;gap:6px;background:var(--s1);border:1px solid var(--div);border-radius:11px;padding:4px;margin-bottom:14px}
+.ct-tab{flex:1;text-align:center;padding:8px 4px;border-radius:8px;font-size:11.5px;font-weight:700;color:var(--tx3);cursor:pointer}
+.ct-tab.on{background:var(--nar);color:#1a1306}
+
 .ct-field-lbl{font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;
   letter-spacing:.4px;margin:14px 0 7px}
 .ct-pcard-mini{display:flex;align-items:center;gap:10px;background:var(--s1);
@@ -3776,6 +3809,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
           <div class="ct-menu-ico">🔄</div>
           <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
+          <div class="ct-menu-arr">›</div>
+        </div>
+        <!-- NUEVO — Confirmado por el usuario: "Publicar un cambio",
+             tablón público distinto de la solicitud directa — se
+             ofrece un turno (o una secuencia de varios días
+             seguidos) a TODOS los compañeros de la base, no a uno
+             en concreto. -->
+        <div onclick="abrirPublicarCambio()" class="ct-menu-card ct-menu-card-publicar">
+          <div class="ct-menu-ico" style="background:var(--nar);color:#1a1306">📢</div>
+          <div><div class="ct-menu-tit">Publicar un cambio</div><div class="ct-menu-sub">Ofrece uno o varios turnos a todos los compañeros</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaPublicarCambio()" style="font-size:10px;font-weight:800;color:var(--nar);background:rgba(255,255,255,.06);padding:4px 9px;border-radius:20px;border:1px solid rgba(249,115,22,.4);margin-right:6px">📖 Guía</span>
+          <div class="ct-menu-arr">›</div>
+        </div>
+        <div onclick="abrirCambiosPublicados()" class="ct-menu-card">
+          <div class="ct-menu-ico" style="background:rgba(124,58,237,.15);color:#C084FC">📋</div>
+          <div><div class="ct-menu-tit">Cambios publicados</div><div class="ct-menu-sub">Mira lo que han publicado otros</div></div>
+          <span id="cambiosPublicadosBadge" style="display:none;background:rgba(249,115,22,.18);color:var(--nar2);font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:6px"></span>
           <div class="ct-menu-arr">›</div>
         </div>
         <div id="cambiosTurnoRecibidasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:4px 2px 8px">Te han solicitado</div>
@@ -6714,6 +6764,118 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-guia-cambio-turno')">✕</button>
     </div>
     <iframe id="iframeGuiaCambioTurno" style="flex:1;min-height:0;width:100%;border:none;background:#070D16"></iframe>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: guía visual de "Publicar un
+     cambio" incrustada dentro de la app, mismo patrón que la guía
+     de "Nueva solicitud de cambio" de arriba (iframe con srcdoc). -->
+<div class="ov" id="ov-guia-publicar-cambio" onclick="if(event.target===this)closeOv('ov-guia-publicar-cambio')" style="align-items:stretch">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:94%;height:94%">
+    <div class="sh-hdr">
+      <div class="sh-ico" style="background:rgba(249,115,22,.18);color:#FDBA74">📖</div>
+      <div><div class="sh-tit">Guía: Publicar un cambio</div><div class="sh-sub">Ejemplo con nombres inventados</div></div>
+      <button class="sh-close" onclick="closeOv('ov-guia-publicar-cambio')">✕</button>
+    </div>
+    <iframe id="iframeGuiaPublicarCambio" style="flex:1;min-height:0;width:100%;border:none;background:#070D16"></iframe>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: "Publicar un cambio" —
+     eliges uno o varios días SEGUIDOS tuyos y los publicas para
+     que los vea toda la base. Nunca toca TV/TV2, solo lee. -->
+<div class="ov" id="ov-publicar-cambio" onclick="if(event.target===this)closeOv('ov-publicar-cambio')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico" style="background:rgba(249,115,22,.18);color:var(--nar2)">📢</div>
+      <div><div class="sh-tit">Publicar un cambio</div><div class="sh-sub" id="pubHdrSede">—</div></div>
+      <button class="sh-close" onclick="closeOv('ov-publicar-cambio')">✕</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
+      <div class="ct-field-lbl">Marca uno o varios días seguidos</div>
+      <div id="pubDiasLista"><div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Toca para elegir el mes y ver tus días...</div></div>
+      <div style="text-align:center;margin:8px 0"><span onclick="_pubElegirMes()" style="font-size:11.5px;font-weight:700;color:#93C5FD;cursor:pointer">📅 Cambiar de mes</span></div>
+      <div id="pubSeqResumen"></div>
+      <div class="ct-field-lbl">Nota para los compañeros (opcional)</div>
+      <div class="ct-msg-box"><textarea id="pubMensajeInput" rows="2" placeholder="Ej: Busco algo entre semana..."></textarea></div>
+      <div id="pubEstado" style="margin-top:10px;font-size:12px"></div>
+      <button class="ct-publish-btn" style="margin-top:14px" onclick="publicarCambioTurno()">📢 Publicar</button>
+      <div style="text-align:center;font-size:9.5px;color:var(--tx3);margin-top:8px">Se retira sola a los 7 días si nadie hace una oferta</div>
+    </div>
+  </div>
+</div>
+
+<!-- Mini calendario reutilizable para elegir el MES a explorar
+     dentro de "Publicar un cambio" (los días en sí se marcan en la
+     lista de checkboxes, esto solo cambia de qué mes son). -->
+<div class="ov" id="ov-pub-mes" onclick="if(event.target===this)closeOv('ov-pub-mes')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">📅</div>
+      <div><div class="sh-tit">Elige el mes</div></div>
+      <button class="sh-close" onclick="closeOv('ov-pub-mes')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div class="cal-tren-panel" id="pubMesCalPanel"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: "Cambios publicados", el
+     tablón público — todos ven todas las publicaciones activas de
+     la base, y "Mis publicaciones" para gestionar las propias. -->
+<div class="ov" id="ov-cambios-publicados" onclick="if(event.target===this)closeOv('ov-cambios-publicados')" style="align-items:stretch">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:92%;height:92%">
+    <div class="sh-hdr">
+      <div class="sh-ico" style="background:rgba(124,58,237,.18);color:#C084FC">📋</div>
+      <div><div class="sh-tit">Cambios publicados</div><div class="sh-sub" id="cpubHdrSede">—</div></div>
+      <button class="sh-close" onclick="closeOv('ov-cambios-publicados')">✕</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
+      <div class="ct-tabs">
+        <div class="ct-tab on" id="cpubTabTodas" onclick="_cpubCambiarTab('todas')">Tablón</div>
+        <div class="ct-tab" id="cpubTabMias" onclick="_cpubCambiarTab('mias')">Mis publicaciones</div>
+      </div>
+      <div id="cpubListaTodas"></div>
+      <div id="cpubListaMias" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — Confirmado por el usuario: ofrecer un cambio sobre una
+     publicación de otro — eliges uno o varios días TUYOS seguidos a
+     cambio (misma lógica de checkboxes que al publicar). -->
+<div class="ov" id="ov-ofrecer-publicacion" onclick="if(event.target===this)closeOv('ov-ofrecer-publicacion')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico" style="background:rgba(37,99,235,.18);color:#93C5FD">🔄</div>
+      <div><div class="sh-tit">Ofrecer un cambio</div><div class="sh-sub" id="ofrHdrA">—</div></div>
+      <button class="sh-close" onclick="closeOv('ov-ofrecer-publicacion')">✕</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;-webkit-overflow-scrolling:touch">
+      <div id="ofrSuTurno"></div>
+      <div class="ct-field-lbl">Marca uno o varios días tuyos seguidos, a cambio</div>
+      <div id="ofrDiasLista"><div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Toca para elegir el mes y ver tus días...</div></div>
+      <div style="text-align:center;margin:8px 0"><span onclick="_ofrElegirMes()" style="font-size:11.5px;font-weight:700;color:#93C5FD;cursor:pointer">📅 Cambiar de mes</span></div>
+      <div id="ofrSeqResumen"></div>
+      <div class="ct-field-lbl">Mensaje (opcional)</div>
+      <div class="ct-msg-box"><textarea id="ofrMensajeInput" rows="2" placeholder="Ej: Este me viene bien, ¿te sirve?"></textarea></div>
+      <div id="ofrEstado" style="margin-top:10px;font-size:12px"></div>
+      <button class="ct-send-btn" style="margin-top:14px" onclick="enviarOfertaPublicacion()">Enviar oferta</button>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ov-ofr-mes" onclick="if(event.target===this)closeOv('ov-ofr-mes')">
+  <div class="sh" onclick="event.stopPropagation()">
+    <div class="sh-hdr">
+      <div class="sh-ico">📅</div>
+      <div><div class="sh-tit">Elige el mes</div></div>
+      <button class="sh-close" onclick="closeOv('ov-ofr-mes')">✕</button>
+    </div>
+    <div style="padding:16px">
+      <div class="cal-tren-panel" id="ofrMesCalPanel"></div>
+    </div>
   </div>
 </div>
 
@@ -31036,6 +31198,774 @@ function abrirGuiaCambioTurno(){
   openOv('ov-guia-cambio-turno');
 }
 window.abrirGuiaCambioTurno = abrirGuiaCambioTurno;
+
+// NUEVO — Confirmado por el usuario: contenido completo de
+// guia_publicar_cambio.html incrustado como texto, mismo patrón
+// que GUIA_CAMBIO_TURNO_HTML de arriba.
+var GUIA_PUBLICAR_CAMBIO_HTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cómo usar: Publicar un cambio</title>
+<style>
+:root{
+  --bg:#070D16; --panel:#0D1B2E; --panel2:#132236; --line:#1E3350;
+  --nar:#F97316; --nar-soft:#FDBA74; --blue:#2563EB; --blue-soft:#93C5FD;
+  --purple:#7C3AED; --purple-soft:#C084FC; --green:#16A34A; --green-soft:#4ADE80;
+  --ink:#F8FAFC; --ink-dim:#B8C2D0; --ink-faint:#6B7A90;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+
+.cover{padding:56px 0 40px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.cover-eyebrow{font-size:13px;color:var(--nar-soft);font-weight:600;margin-bottom:14px}
+.cover h1{font-size:32px;line-height:1.15;margin:0 0 16px;font-weight:800;letter-spacing:-.01em}
+.cover p{font-size:16px;color:var(--ink-dim);max-width:540px;margin:0}
+.cover-rail{width:56px;height:3px;background:var(--nar);border-radius:2px;margin-bottom:20px}
+
+.cast{display:flex;gap:12px;margin:28px 0 0;flex-wrap:wrap}
+.cast-card{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:11px}
+.cast-av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.cast-name{font-size:12.5px;font-weight:700}
+.cast-sub{font-size:11px;color:var(--ink-faint);margin-top:2px}
+
+.step{display:flex;gap:24px;padding:38px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.step:last-of-type{border-bottom:none}
+.step-num{width:34px;height:34px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
+  color:var(--nar-soft);flex-shrink:0;margin-top:2px}
+.step-body{flex:1;min-width:0}
+.step-who{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:10px;margin-right:5px}
+.step-who.sara{background:rgba(249,115,22,.15);color:var(--nar-soft)}
+.step-who.marcos{background:rgba(37,99,235,.15);color:var(--blue-soft)}
+.step-who.laura{background:rgba(124,58,237,.15);color:var(--purple-soft)}
+.step-who.todos{background:rgba(255,255,255,.08);color:var(--ink-dim)}
+.step-title{font-size:18px;font-weight:700;margin:0 0 10px}
+.step-text{font-size:14.5px;color:var(--ink-dim);margin:0 0 16px;max-width:480px}
+.step-text b{color:var(--ink);font-weight:600}
+
+.phone-shot{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:14px 16px;max-width:420px;font-size:12.5px}
+.ps-row{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.ps-av{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;flex-shrink:0}
+.ps-name{font-weight:700;font-size:11.5px}
+.ps-sub{font-size:9.5px;color:var(--ink-faint)}
+.ps-check-item{display:flex;align-items:center;gap:9px;background:var(--panel2);border-radius:9px;
+  padding:8px 10px;margin-bottom:6px}
+.ps-check-item.on{border:1px solid var(--nar);background:rgba(249,115,22,.08)}
+.ps-check{width:15px;height:15px;border-radius:4px;background:var(--panel);border:1.3px solid var(--line);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.ps-check.on{background:var(--nar);border-color:var(--nar);color:#1a1306;font-weight:900}
+.ps-day-txt{font-size:10.5px;font-weight:700}
+.ps-day-sub{font-size:9px;color:var(--ink-faint);margin-top:1px}
+.ps-seq{background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.4);border-radius:9px;
+  padding:8px 10px;font-size:10px;color:var(--nar-soft);margin:8px 0}
+.ps-btn{padding:8px;border-radius:8px;font-size:10.5px;font-weight:700;text-align:center}
+.ps-btn.nar{background:var(--nar);color:#1a1306}
+.ps-btn.blue{background:var(--blue);color:#fff}
+.ps-btn.green{background:var(--green);color:#fff}
+.ps-feed-item{background:var(--panel2);border-radius:10px;padding:10px;margin-bottom:8px}
+.ps-feed-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ps-expiry{font-size:8.5px;color:var(--ink-faint);margin-left:auto}
+.ps-offer{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:8px;
+  padding:7px 9px;margin-bottom:6px}
+.ps-offer-info{flex:1}
+.ps-offer-name{font-size:10px;font-weight:700}
+.ps-offer-detail{font-size:9px;color:var(--ink-faint)}
+.ps-offer-btn{background:var(--green);color:#fff;font-size:8.5px;font-weight:800;padding:5px 9px;border-radius:7px}
+
+.note{background:var(--panel);border-left:3px solid var(--nar);border-radius:0 10px 10px 0;
+  padding:12px 16px;font-size:13px;color:var(--ink-dim);margin-top:16px;max-width:480px}
+.note b{color:var(--nar-soft)}
+
+.closing{padding:44px 0 0}
+.closing h2{font-size:20px;margin:0 0 12px}
+.closing p{font-size:14.5px;color:var(--ink-dim);max-width:520px}
+.closing-list{margin:18px 0 0;padding:0;list-style:none}
+.closing-list li{font-size:13.5px;color:var(--ink-dim);padding:8px 0 8px 22px;position:relative;border-top:1px solid var(--line)}
+.closing-list li:before{content:"—";position:absolute;left:0;color:var(--ink-faint)}
+
+@media (max-width:600px){ .step{flex-direction:column;gap:12px} .cover h1{font-size:25px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="cover-rail"></div>
+    <div class="cover-eyebrow">TrenTurnos · Guía rápida</div>
+    <h1>Cómo publicar un cambio para toda la base</h1>
+    <p>A diferencia de "Nueva solicitud de cambio" (que va dirigida a una persona en concreto), esto es un tablón público: publicas un turno tuyo y <b>cualquier compañero</b> de tu base puede ofrecerte un cambio. Nombres y matrículas de esta guía son inventados.</p>
+
+    <div class="cast">
+      <div class="cast-card"><div class="cast-av" style="background:rgba(249,115,22,.18);color:#FDBA74">SD</div><div><div class="cast-name">Sara Domínguez Ruiz</div><div class="cast-sub">Publica el cambio</div></div></div>
+      <div class="cast-card"><div class="cast-av" style="background:rgba(37,99,235,.18);color:#93C5FD">MI</div><div><div class="cast-name">Marcos Iglesias Peña</div><div class="cast-sub">Hace una oferta</div></div></div>
+      <div class="cast-card"><div class="cast-av" style="background:rgba(124,58,237,.18);color:#C084FC">LF</div><div><div class="cast-name">Laura Fernández Castro</div><div class="cast-sub">Hace otra oferta</div></div></div>
+    </div>
+  </div>
+
+  <!-- PASO 1 -->
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Sara marca uno o varios días seguidos suyos</h3>
+      <p class="step-text">En "Cambios de turno" → <b>Publicar un cambio</b>. Puede marcar un solo día, o varios <b>seguidos</b> (una secuencia completa, como un bloque de varios días de servicio) — no días sueltos random.</p>
+      <div class="phone-shot">
+        <div class="ps-check-item"><div class="ps-check"></div><div><div class="ps-day-txt">Miércoles 23</div><div class="ps-day-sub">Tren 4021 · 5:40 → 13:15</div></div></div>
+        <div class="ps-check-item on"><div class="ps-check on">✓</div><div><div class="ps-day-txt">Jueves 24</div><div class="ps-day-sub">Tren 7734 · 14:00 → 22:10</div></div></div>
+        <div class="ps-check-item on"><div class="ps-check on">✓</div><div><div class="ps-day-txt">Viernes 25</div><div class="ps-day-sub">Tren 7735 · 14:00 → 22:10</div></div></div>
+        <div class="ps-seq">📦 Secuencia de 2 días: jueves 24 a viernes 25 — se ofrecen juntos.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 2 -->
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Añade una nota y publica</h3>
+      <p class="step-text">La nota es opcional, pero ayuda a que los compañeros sepan qué busca. Se publica en el tablón de <b>toda su base</b>, y se retira sola a los <b>7 días</b> si nadie hace una oferta.</p>
+      <div class="phone-shot">
+        <div class="ps-day-sub" style="margin-bottom:8px;font-style:italic">"Busco cambiar por algo de mañana, tengo un compromiso esa tarde"</div>
+        <div class="ps-btn nar">📢 Publicar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 3 -->
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <span class="step-who todos">Todos los compañeros</span>
+      <h3 class="step-title">Aparece en "Cambios publicados"</h3>
+      <p class="step-text">Cualquiera de la base puede verlo, con el detalle completo (tren, hora de toma, hora de deje de cada día) — esto sale del <b>Horario Individual</b> que cada uno ya tiene subido.</p>
+      <div class="phone-shot">
+        <div class="ps-feed-item">
+          <div class="ps-feed-hdr">
+            <div class="ps-av" style="background:rgba(249,115,22,.2);color:#FDBA74">SD</div>
+            <div><div class="ps-name">Sara Domínguez Ruiz</div><div class="ps-sub">Publicado hace 1 hora</div></div>
+            <div class="ps-expiry">Caduca en 6 días</div>
+          </div>
+          <div class="ps-day-txt">📦 Jueves 24 → Viernes 25</div>
+          <div class="ps-day-sub">Jue: Tren 7734 · 14:00→22:10 · Vie: Tren 7735 · 14:00→22:10</div>
+        </div>
+        <div class="ps-btn blue">Ofrecer un cambio</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 4 -->
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <span class="step-who marcos">Marcos</span> <span class="step-who laura">Laura</span>
+      <h3 class="step-title">Dos compañeros distintos hacen su oferta</h3>
+      <p class="step-text">Cada uno elige sus propios días (uno o varios seguidos) para ofrecer a cambio. <b>No hay límite de cuántas ofertas puede recibir una publicación</b> — pueden ser varias personas a la vez, cada una proponiendo algo distinto.</p>
+      <div class="phone-shot">
+        <div class="ps-offer">
+          <div class="ps-av" style="background:rgba(37,99,235,.2);color:#93C5FD">MI</div>
+          <div class="ps-offer-info"><div class="ps-offer-name">Marcos Iglesias Peña</div><div class="ps-offer-detail">Ofrece: Sáb 26 → Dom 27 (2 días)</div></div>
+        </div>
+        <div class="ps-offer">
+          <div class="ps-av" style="background:rgba(124,58,237,.2);color:#C084FC">LF</div>
+          <div class="ps-offer-info"><div class="ps-offer-name">Laura Fernández Castro</div><div class="ps-offer-detail">Ofrece: Martes 29 (1 día)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 5 -->
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <span class="step-who sara">Sara</span>
+      <h3 class="step-title">Sara elige la oferta que más le convenga</h3>
+      <p class="step-text">En "Mis publicaciones" ve todas las ofertas recibidas, una por una, con el detalle completo. Al aceptar una, <b>las demás se cierran automáticamente</b> — solo se puede aceptar una.</p>
+      <div class="phone-shot">
+        <div class="ps-offer">
+          <div class="ps-av" style="background:rgba(37,99,235,.2);color:#93C5FD">MI</div>
+          <div class="ps-offer-info"><div class="ps-offer-name">Marcos Iglesias Peña</div><div class="ps-offer-detail">Sáb 26: Tren 6187 · Dom 27: Tren 6188</div></div>
+          <div class="ps-offer-btn">Aceptar</div>
+        </div>
+        <div class="ps-offer">
+          <div class="ps-av" style="background:rgba(124,58,237,.2);color:#C084FC">LF</div>
+          <div class="ps-offer-info"><div class="ps-offer-name">Laura Fernández Castro</div><div class="ps-offer-detail">Martes 29: Descanso</div></div>
+          <div class="ps-offer-btn">Aceptar</div>
+        </div>
+      </div>
+      <div class="note">La publicación <b>desaparece del tablón</b> en cuanto se acepta una oferta — pero se queda guardada en el historial de Sara ("Mis publicaciones"), para poder llevar un control de qué se cambió y con quién.</div>
+    </div>
+  </div>
+
+  <!-- PASO 6 -->
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <span class="step-who marcos">Marcos</span> <span class="step-who sara">Sara</span>
+      <h3 class="step-title">El correo lo manda quien ofreció, luego cada uno confirma</h3>
+      <p class="step-text">Igual que en "Nueva solicitud de cambio": <b>solo Marcos</b> (quien hizo la oferta aceptada) manda el correo a Programación. Sara no tiene que hacer nada con eso. Después, <b>cada uno confirma en su propio calendario</b>, a su ritmo — solo un aviso visual, la nómina no cambia hasta que la empresa lo actualice.</p>
+    </div>
+  </div>
+
+  <div class="closing">
+    <h2>En resumen</h2>
+    <p>Es un tablón, no una petición directa — publicas y esperas a que alguien se anime, en vez de pedírselo tú a una persona concreta.</p>
+    <ul class="closing-list">
+      <li>Se pueden marcar varios días seguidos (una secuencia completa), no solo uno suelto.</li>
+      <li>Se pueden tener varias publicaciones activas a la vez.</li>
+      <li>Cualquier compañero de la base puede ofrecer un cambio, y pueden ser varios a la vez.</li>
+      <li>Solo se puede aceptar una oferta — las demás se cierran solas.</li>
+      <li>Se retira sola a los 7 días si nadie hace ninguna oferta.</li>
+      <li>El correo lo manda quien ofreció el cambio, nunca quien publicó.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
+`;
+function abrirGuiaPublicarCambio(){
+  var frame = document.getElementById('iframeGuiaPublicarCambio');
+  if(frame && !frame.dataset.cargado){
+    frame.srcdoc = GUIA_PUBLICAR_CAMBIO_HTML;
+    frame.dataset.cargado = '1';
+  }
+  openOv('ov-guia-publicar-cambio');
+}
+window.abrirGuiaPublicarCambio = abrirGuiaPublicarCambio;
+
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Confirmado por el usuario: "Publicar un cambio" (tablón
+   público) + "Cambios publicados". Mismas reglas de oro que el
+   resto de "Cambios de turno": NUNCA se escribe en TV/TV2 — todo
+   esto es gestión de publicaciones/ofertas + el mismo aviso visual
+   aparte (_leerCambiosVisual/_guardarCambiosVisual, reutilizados
+   tal cual) para cada día implicado, sin tocar Nómina/HP/HE/HTDL.
+═══════════════════════════════════════════════════════════ */
+
+// ── Estado propio del formulario de publicar ──
+var _pubDias = []; // números de día marcados, del mes que se esté viendo
+var _pubMesActual = null; // {anio, mes}
+var _pubDetallePorDia = {}; // dia -> detalle (de construirDetalleDiaPropio)
+
+function abrirPublicarCambio(){
+  if(!activeBase){
+    if(typeof toast==='function') toast('Cargando compañeros...');
+    if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
+    _pubEsperarActiveBaseYAbrir();
+    return;
+  }
+  _pubDias = []; _pubDetallePorDia = {};
+  document.getElementById('pubMensajeInput').value = '';
+  document.getElementById('pubEstado').innerHTML = '';
+  document.getElementById('pubSeqResumen').innerHTML = '';
+  var sedeTxt = (activeBase && activeBase.label) ? activeBase.label : '—';
+  document.getElementById('pubHdrSede').textContent = sedeTxt;
+  var hoy = new Date();
+  _pubPintarDiasDelMes(hoy.getFullYear(), hoy.getMonth()+1);
+  openOv('ov-publicar-cambio');
+}
+window.abrirPublicarCambio = abrirPublicarCambio;
+
+var _pubEsperandoActiveBase = false;
+function _pubEsperarActiveBaseYAbrir(){
+  if(_pubEsperandoActiveBase) return;
+  _pubEsperandoActiveBase = true;
+  var intentos = 0;
+  var intervalo = setInterval(function(){
+    intentos++;
+    if(activeBase){
+      clearInterval(intervalo); _pubEsperandoActiveBase = false;
+      abrirPublicarCambio();
+      return;
+    }
+    if(intentos > 240){ clearInterval(intervalo); _pubEsperandoActiveBase = false; }
+  }, 500);
+}
+
+function _pubElegirMes(){
+  openOv('ov-pub-mes');
+  var panel = document.getElementById('pubMesCalPanel');
+  panel.innerHTML = '';
+  generarCalendarioUI('pubMesCalPanel', function(fecha){
+    closeOv('ov-pub-mes');
+    _pubDias = []; _pubDetallePorDia = {};
+    document.getElementById('pubSeqResumen').innerHTML = '';
+    _pubPintarDiasDelMes(fecha.getFullYear(), fecha.getMonth()+1);
+  });
+}
+window._pubElegirMes = _pubElegirMes;
+
+// Días con turno/estado propio de un mes, en días FUTUROS —
+// reutiliza construirDetalleDiaPropio() tal cual (misma fuente que
+// ya usa "Nueva solicitud de cambio" y la sincronización).
+function _pubPintarDiasDelMes(anio, mes){
+  _pubMesActual = { anio: anio, mes: mes };
+  var cont = document.getElementById('pubDiasLista');
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var diasEnMes = new Date(anio, mes, 0).getDate();
+  var html = '';
+  var huboAlguno = false;
+  for(var d=1; d<=diasEnMes; d++){
+    var fechaDia = new Date(anio, mes-1, d);
+    if(fechaDia < hoy) continue;
+    var det = construirDetalleDiaPropio(anio, mes, d);
+    if(!det) continue;
+    huboAlguno = true;
+    _pubDetallePorDia[d] = det;
+    var resumen = _resumenTurno(det);
+    html += '<div class="ct-day-check" id="pubDia_'+d+'" onclick="_pubToggleDia('+d+')">'
+      + '<div class="ct-check-box" id="pubCheck_'+d+'">✓</div>'
+      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d)+' '+d+'</div><div class="ct-req-sub">'+resumen+'</div></div>'
+      + '</div>';
+  }
+  cont.innerHTML = huboAlguno ? html : '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No tienes ningún día futuro con algo registrado en '+MESES_CAL_TREN[mes-1].toLowerCase()+' — prueba con otro mes.</div>';
+}
+
+function _pubToggleDia(dia){
+  var idx = _pubDias.indexOf(dia);
+  if(idx>=0) _pubDias.splice(idx,1); else _pubDias.push(dia);
+  _pubDias.sort(function(a,b){return a-b;});
+  var check = document.getElementById('pubCheck_'+dia);
+  var card = document.getElementById('pubDia_'+dia);
+  var marcado = _pubDias.indexOf(dia)>=0;
+  if(check) check.classList.toggle('on', marcado);
+  if(card) card.classList.toggle('sel', marcado);
+  _pubActualizarResumenSecuencia();
+}
+window._pubToggleDia = _pubToggleDia;
+
+// Comprueba que los días marcados sean CONSECUTIVOS (una secuencia
+// de verdad, no días sueltos random) y pinta el aviso.
+function _diasSonConsecutivos(dias){
+  if(dias.length<=1) return true;
+  for(var i=1;i<dias.length;i++){ if(dias[i] !== dias[i-1]+1) return false; }
+  return true;
+}
+function _pubActualizarResumenSecuencia(){
+  var el = document.getElementById('pubSeqResumen');
+  if(!_pubDias.length){ el.innerHTML=''; return; }
+  if(!_diasSonConsecutivos(_pubDias)){
+    el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08);color:#F87171">⚠️ Los días marcados tienen que ser seguidos (una secuencia), no sueltos.</div>';
+    return;
+  }
+  if(_pubDias.length===1){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = '<div class="ct-seq-note">📦 Vas a publicar una <b>secuencia de '+_pubDias.length+' días</b>: '+weekdayForDay(_pubDias[0])+' '+_pubDias[0]+' a '+weekdayForDay(_pubDias[_pubDias.length-1])+' '+_pubDias[_pubDias.length-1]+' — se ofrecen juntos, no por separado.</div>';
+}
+
+async function publicarCambioTurno(){
+  var estadoEl = document.getElementById('pubEstado');
+  if(!_pubDias.length){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Marca al menos un día.</span>'; return; }
+  if(!_diasSonConsecutivos(_pubDias)){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Los días tienen que ser seguidos.</span>'; return; }
+  if(!AJ || !AJ.matricula || !AJ.nombre){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Configura tu nombre y matrícula en Ajustes primero.</span>'; return; }
+  estadoEl.innerHTML = '<span style="color:var(--tx3)">Publicando...</span>';
+  try{
+    var detalleCompleto = {};
+    _pubDias.forEach(function(d){ detalleCompleto[d] = _pubDetallePorDia[d]; });
+    var fechaCad = new Date(); fechaCad.setDate(fechaCad.getDate()+7);
+    var payload = {
+      matricula_publicador: AJ.matricula,
+      nombre_publicador: AJ.nombre,
+      anio: _pubMesActual.anio,
+      dias: _pubDias,
+      detalle: detalleCompleto,
+      nota: document.getElementById('pubMensajeInput').value.trim() || null,
+      estado: 'activa',
+      fecha_caducidad: fechaCad.toISOString()
+    };
+    var r = await sbAdmin.from('publicaciones_cambio_turno').insert(payload);
+    if(r.error){
+      estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ No se pudo publicar (¿existe la tabla publicaciones_cambio_turno en Supabase?): '+r.error.message+'</span>';
+      return;
+    }
+    estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Publicado.</span>';
+    setTimeout(function(){ closeOv('ov-publicar-cambio'); }, 900);
+  }catch(e){
+    estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Error: '+e.message+'</span>';
+  }
+}
+window.publicarCambioTurno = publicarCambioTurno;
+
+// ── Tablón: "Cambios publicados" ──
+function abrirCambiosPublicados(){
+  if(!activeBase){
+    if(typeof toast==='function') toast('Cargando compañeros...');
+    if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
+    return;
+  }
+  var sedeTxt = (activeBase && activeBase.label) ? activeBase.label : '—';
+  document.getElementById('cpubHdrSede').textContent = sedeTxt;
+  openOv('ov-cambios-publicados');
+  _cpubCambiarTab('todas');
+}
+window.abrirCambiosPublicados = abrirCambiosPublicados;
+
+function _cpubCambiarTab(tab){
+  document.getElementById('cpubTabTodas').classList.toggle('on', tab==='todas');
+  document.getElementById('cpubTabMias').classList.toggle('on', tab==='mias');
+  document.getElementById('cpubListaTodas').style.display = tab==='todas' ? '' : 'none';
+  document.getElementById('cpubListaMias').style.display = tab==='mias' ? '' : 'none';
+  if(tab==='todas') cargarCambiosPublicados(); else cargarMisPublicaciones();
+}
+window._cpubCambiarTab = _cpubCambiarTab;
+
+function _diasTexto(dias){
+  if(dias.length===1) return weekdayForDay(dias[0])+' '+dias[0];
+  return weekdayForDay(dias[0])+' '+dias[0]+' → '+weekdayForDay(dias[dias.length-1])+' '+dias[dias.length-1];
+}
+function _detalleSecuenciaHTML(dias, detalle, prefijoDia){
+  var html = '';
+  dias.forEach(function(d){
+    var det = detalle[d];
+    if(!det) return;
+    var abbr = prefijoDia ? (['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][new Date().getDay()]) : '';
+    var etiqueta = dias.length>1 ? (weekdayForDay(d).slice(0,3)+' '+d+': ') : '';
+    if(det.esLibre){
+      html += '<div class="ct-feed-turno-tren">'+etiqueta+det.tipoLibreLbl+'</div>';
+    } else if(det.turnos && det.turnos.length){
+      det.turnos.forEach(function(t){
+        html += '<div class="ct-feed-turno-tren">'+etiqueta+'Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+      });
+      if(det.esPernocta && det.diaVuelta){
+        html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta el día '+det.diaVuelta+'</div>';
+        (det.turnosVuelta||[]).forEach(function(t){
+          html += '<div class="ct-feed-turno-tren">Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+        });
+      }
+    }
+  });
+  return html;
+}
+function _expiraEnTexto(fechaCaducidad){
+  var ms = new Date(fechaCaducidad) - new Date();
+  var dias = Math.ceil(ms/86400000);
+  if(dias<=0) return 'Caduca hoy';
+  if(dias===1) return 'Caduca mañana';
+  return 'Caduca en '+dias+' días';
+}
+
+async function cargarCambiosPublicados(){
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  var cont = document.getElementById('cpubListaTodas');
+  cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando...</div>';
+  try{
+    var r = await sbAdmin.from('publicaciones_cambio_turno').select('*').eq('estado','activa').neq('matricula_publicador', AJ.matricula).gt('fecha_caducidad', new Date().toISOString()).order('fecha_publicacion',{ascending:false});
+    var filas = (r && r.data) || [];
+    var badge = document.getElementById('cambiosPublicadosBadge');
+    if(filas.length){ badge.style.display=''; badge.textContent = filas.length; } else { badge.style.display='none'; }
+    if(!filas.length){ cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Nadie de tu base tiene publicado ningún cambio ahora mismo.</div>'; return; }
+    cont.innerHTML = filas.map(function(p){
+      return '<div class="ct-feed-item">'
+        + '<div class="ct-feed-hdr"><div class="ct-pcard-av">'+initials(p.nombre_publicador)+'</div>'
+        + '<div><div class="ct-feed-name">'+p.nombre_publicador+'</div><div class="ct-feed-sub">Publicado '+_fechaRelativa(p.fecha_publicacion)+'</div></div>'
+        + '<div class="ct-feed-expiry">'+_expiraEnTexto(p.fecha_caducidad)+'</div></div>'
+        + '<div class="ct-feed-turno"><div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 Secuencia: ':'')+_diasTexto(p.dias)+'</div>'+_detalleSecuenciaHTML(p.dias, p.detalle)+'</div>'
+        + (p.nota ? '<div class="ct-feed-note">"'+p.nota+'"</div>' : '')
+        + '<div class="feed-btn ct-send-btn" onclick="abrirOfrecerCambio('+p.id+')">Ofrecer un cambio</div>'
+        + '</div>';
+    }).join('');
+  }catch(e){ console.warn('cargarCambiosPublicados:', e); }
+}
+window.cargarCambiosPublicados = cargarCambiosPublicados;
+
+function _fechaRelativa(fecha){
+  var ms = new Date() - new Date(fecha);
+  var horas = Math.floor(ms/3600000);
+  if(horas < 1) return 'hace un momento';
+  if(horas < 24) return 'hace '+horas+'h';
+  var dias = Math.floor(horas/24);
+  if(dias===1) return 'ayer';
+  return 'hace '+dias+' días';
+}
+
+async function cargarMisPublicaciones(){
+  if(!sbAdmin || !AJ || !AJ.matricula) return;
+  var cont = document.getElementById('cpubListaMias');
+  cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Cargando...</div>';
+  try{
+    var r = await sbAdmin.from('publicaciones_cambio_turno').select('*').eq('matricula_publicador', AJ.matricula).order('fecha_publicacion',{ascending:false}).limit(15);
+    var filas = (r && r.data) || [];
+    if(!filas.length){ cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Todavía no has publicado ningún cambio.</div>'; return; }
+    var html = '';
+    for(var i=0;i<filas.length;i++){
+      var p = filas[i];
+      var chip = p.estado==='activa' ? '<span class="ct-status-chip ct-status-pend">⏳ Activa</span>'
+        : p.estado==='aceptada' ? '<span class="ct-status-chip ct-status-ok">✅ Aceptada</span>'
+        : p.estado==='retirada' ? '<span class="ct-status-chip" style="background:var(--s2);color:var(--tx3)">Retirada</span>'
+        : '<span class="ct-status-chip" style="background:var(--s2);color:var(--tx3)">Caducada</span>';
+      var ofertasHtml = '';
+      if(p.estado==='activa'){
+        var ro = await sbAdmin.from('ofertas_publicacion_turno').select('*').eq('publicacion_id', p.id).eq('estado','pendiente').order('fecha_hora',{ascending:false});
+        var ofertas = (ro && ro.data) || [];
+        if(ofertas.length){
+          ofertasHtml = '<div class="ct-field-lbl" style="margin:8px 0 6px">'+ofertas.length+' oferta'+(ofertas.length>1?'s':'')+' recibida'+(ofertas.length>1?'s':'')+'</div>'
+            + ofertas.map(function(o){
+              return '<div class="ct-req-swap" style="flex-direction:column;align-items:stretch;gap:4px">'
+                + '<div style="display:flex;align-items:center;gap:8px"><div class="ct-pcard-av" style="width:24px;height:24px;font-size:10px">'+initials(o.nombre_ofertante)+'</div><div class="ct-req-name" style="font-size:11px">'+o.nombre_ofertante+'</div></div>'
+                + '<div style="font-size:10px;color:var(--tx2)">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div>'
+                + _detalleSecuenciaHTML(o.dias, o.detalle)
+                + (o.mensaje ? '<div class="ct-req-msg" style="margin:4px 0">"'+o.mensaje+'"</div>' : '')
+                + '<div class="ct-btn-accept" style="margin-top:4px" onclick="aceptarOfertaPublicacion('+o.id+','+p.id+')">Aceptar esta oferta</div>'
+                + '</div>';
+            }).join('')
+          ;
+        } else {
+          ofertasHtml = '<div class="ct-field-lbl" style="margin:8px 0 4px">Sin ofertas todavía</div>';
+        }
+      }
+      html += '<div class="ct-feed-item">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center">'
+        + '<div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 ':'')+_diasTexto(p.dias)+'</div>'
+        + chip + '</div>'
+        + '<div class="ct-feed-expiry" style="margin-top:2px">'+(p.estado==='activa'?_expiraEnTexto(p.fecha_caducidad):'')+'</div>'
+        + ofertasHtml
+        + (p.estado==='activa' ? '<div class="ct-cancel-btn" onclick="retirarPublicacion('+p.id+')">Retirar publicación</div>' : '')
+        + '</div>';
+    }
+    cont.innerHTML = html;
+  }catch(e){ console.warn('cargarMisPublicaciones:', e); }
+}
+window.cargarMisPublicaciones = cargarMisPublicaciones;
+
+async function retirarPublicacion(id){
+  if(!sbAdmin) return;
+  if(!confirm('¿Retirar esta publicación? Dejará de verse en el tablón.')) return;
+  await sbAdmin.from('publicaciones_cambio_turno').update({estado:'retirada'}).eq('id', id);
+  cargarMisPublicaciones();
+}
+window.retirarPublicacion = retirarPublicacion;
+
+// ── Ofrecer un cambio sobre una publicación ──
+var _ofrDias = [];
+var _ofrMesActual = null;
+var _ofrDetallePorDia = {};
+var _ofrPublicacionActual = null;
+
+async function abrirOfrecerCambio(publicacionId){
+  var r = await sbAdmin.from('publicaciones_cambio_turno').select('*').eq('id', publicacionId).maybeSingle();
+  if(!r.data) return;
+  _ofrPublicacionActual = r.data;
+  _ofrDias = []; _ofrDetallePorDia = {};
+  document.getElementById('ofrMensajeInput').value = '';
+  document.getElementById('ofrEstado').innerHTML = '';
+  document.getElementById('ofrSeqResumen').innerHTML = '';
+  document.getElementById('ofrHdrA').textContent = 'A '+r.data.nombre_publicador;
+  document.getElementById('ofrSuTurno').innerHTML = '<div class="ct-feed-turno"><div class="ct-feed-turno-day">Su '+(r.data.dias.length>1?'secuencia: ':'turno: ')+_diasTexto(r.data.dias)+'</div>'+_detalleSecuenciaHTML(r.data.dias, r.data.detalle)+'</div>';
+  var hoy = new Date();
+  _ofrPintarDiasDelMes(hoy.getFullYear(), hoy.getMonth()+1);
+  openOv('ov-ofrecer-publicacion');
+}
+window.abrirOfrecerCambio = abrirOfrecerCambio;
+
+function _ofrElegirMes(){
+  openOv('ov-ofr-mes');
+  var panel = document.getElementById('ofrMesCalPanel');
+  panel.innerHTML = '';
+  generarCalendarioUI('ofrMesCalPanel', function(fecha){
+    closeOv('ov-ofr-mes');
+    _ofrDias = []; _ofrDetallePorDia = {};
+    document.getElementById('ofrSeqResumen').innerHTML = '';
+    _ofrPintarDiasDelMes(fecha.getFullYear(), fecha.getMonth()+1);
+  });
+}
+window._ofrElegirMes = _ofrElegirMes;
+
+function _ofrPintarDiasDelMes(anio, mes){
+  _ofrMesActual = { anio: anio, mes: mes };
+  var cont = document.getElementById('ofrDiasLista');
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var diasEnMes = new Date(anio, mes, 0).getDate();
+  var html = ''; var huboAlguno = false;
+  for(var d=1; d<=diasEnMes; d++){
+    var fechaDia = new Date(anio, mes-1, d);
+    if(fechaDia < hoy) continue;
+    var det = construirDetalleDiaPropio(anio, mes, d);
+    if(!det) continue;
+    huboAlguno = true;
+    _ofrDetallePorDia[d] = det;
+    html += '<div class="ct-day-check" id="ofrDia_'+d+'" onclick="_ofrToggleDia('+d+')">'
+      + '<div class="ct-check-box" id="ofrCheck_'+d+'">✓</div>'
+      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d)+' '+d+'</div><div class="ct-req-sub">'+_resumenTurno(det)+'</div></div>'
+      + '</div>';
+  }
+  cont.innerHTML = huboAlguno ? html : '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No tienes ningún día futuro con algo registrado en '+MESES_CAL_TREN[mes-1].toLowerCase()+'.</div>';
+}
+
+function _ofrToggleDia(dia){
+  var idx = _ofrDias.indexOf(dia);
+  if(idx>=0) _ofrDias.splice(idx,1); else _ofrDias.push(dia);
+  _ofrDias.sort(function(a,b){return a-b;});
+  var check = document.getElementById('ofrCheck_'+dia);
+  var card = document.getElementById('ofrDia_'+dia);
+  var marcado = _ofrDias.indexOf(dia)>=0;
+  if(check) check.classList.toggle('on', marcado);
+  if(card) card.classList.toggle('sel', marcado);
+  var el = document.getElementById('ofrSeqResumen');
+  if(!_ofrDias.length){ el.innerHTML=''; return; }
+  if(!_diasSonConsecutivos(_ofrDias)){
+    el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.08);color:#F87171">⚠️ Los días marcados tienen que ser seguidos.</div>';
+    return;
+  }
+  if(_ofrDias.length===1){ el.innerHTML=''; return; }
+  el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.08);color:#93C5FD">📦 Ofreces tu secuencia de '+_ofrDias.length+' días: '+_diasTexto(_ofrDias)+'</div>';
+}
+window._ofrToggleDia = _ofrToggleDia;
+
+async function enviarOfertaPublicacion(){
+  var estadoEl = document.getElementById('ofrEstado');
+  if(!_ofrDias.length){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Marca al menos un día.</span>'; return; }
+  if(!_diasSonConsecutivos(_ofrDias)){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Los días tienen que ser seguidos.</span>'; return; }
+  if(!AJ || !AJ.matricula || !AJ.nombre){ estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Configura tu nombre y matrícula en Ajustes primero.</span>'; return; }
+  estadoEl.innerHTML = '<span style="color:var(--tx3)">Enviando...</span>';
+  try{
+    var detalleCompleto = {};
+    _ofrDias.forEach(function(d){ detalleCompleto[d] = _ofrDetallePorDia[d]; });
+    var payload = {
+      publicacion_id: _ofrPublicacionActual.id,
+      matricula_ofertante: AJ.matricula,
+      nombre_ofertante: AJ.nombre,
+      dias: _ofrDias,
+      detalle: detalleCompleto,
+      mensaje: document.getElementById('ofrMensajeInput').value.trim() || null,
+      estado: 'pendiente'
+    };
+    var r = await sbAdmin.from('ofertas_publicacion_turno').insert(payload);
+    if(r.error){
+      estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ No se pudo enviar: '+r.error.message+'</span>';
+      return;
+    }
+    estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Oferta enviada.</span>';
+    setTimeout(function(){ closeOv('ov-ofrecer-publicacion'); }, 900);
+  }catch(e){
+    estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Error: '+e.message+'</span>';
+  }
+}
+window.enviarOfertaPublicacion = enviarOfertaPublicacion;
+
+// ── Aceptar una oferta: la publicación pasa a 'aceptada' (se
+//    retira del tablón pero se queda guardada como historial), las
+//    demás ofertas de esa publicación se marcan 'rechazada', y se
+//    muestra el mismo tipo de pantalla de correo + confirmar que ya
+//    usa "Nueva solicitud de cambio" — el ofertante manda el correo
+//    (propuso el cambio), el publicador solo confirma su calendario. ──
+async function aceptarOfertaPublicacion(ofertaId, publicacionId){
+  if(!sbAdmin) return;
+  try{
+    await sbAdmin.from('ofertas_publicacion_turno').update({estado:'aceptada'}).eq('id', ofertaId);
+    await sbAdmin.from('ofertas_publicacion_turno').update({estado:'rechazada'}).eq('publicacion_id', publicacionId).neq('id', ofertaId);
+    await sbAdmin.from('publicaciones_cambio_turno').update({estado:'aceptada', oferta_aceptada_id: ofertaId}).eq('id', publicacionId);
+    cargarMisPublicaciones();
+    mostrarPasosPostAceptacionPublicacion(ofertaId);
+  }catch(e){ console.warn('aceptarOfertaPublicacion:', e); }
+}
+window.aceptarOfertaPublicacion = aceptarOfertaPublicacion;
+
+function _resumenSecuenciaTextoPlano(dias, detalle){
+  return dias.map(function(d){
+    var det = detalle[d];
+    if(!det) return 'dia '+d+': sin datos';
+    if(det.esLibre) return 'dia '+d+': '+((det.tipoLibreLbl||'').replace(/[^\x00-\x7F]/g,'').trim()||'libre');
+    var trenes = (det.turnos||[]).map(function(t){ return 'Tren '+t.numTren; }).join(' y ');
+    return 'dia '+d+': '+trenes;
+  }).join(', ');
+}
+
+async function mostrarPasosPostAceptacionPublicacion(ofertaId){
+  if(!sbAdmin) return;
+  var ro = await sbAdmin.from('ofertas_publicacion_turno').select('*').eq('id', ofertaId).maybeSingle();
+  if(!ro.data) return;
+  var o = ro.data;
+  var rp = await sbAdmin.from('publicaciones_cambio_turno').select('*').eq('id', o.publicacion_id).maybeSingle();
+  if(!rp.data) return;
+  var p = rp.data;
+  var soyOfertante = !!(AJ && AJ.matricula && o.matricula_ofertante === AJ.matricula);
+  var otroNombre = soyOfertante ? p.nombre_publicador : o.nombre_ofertante;
+  var yaConfirmado = soyOfertante ? o.confirmado_ofertante : o.confirmado_publicador;
+  var miNombre = (AJ && AJ.nombre) || '';
+  var miMatricula = (AJ && AJ.matricula) || '';
+  var asunto = 'Solicitud de cambio de turno - '+o.nombre_ofertante+' / '+p.nombre_publicador;
+  var cuerpoBruto =
+    'Buenos dias.\n\n'
+    + 'Cambio de turno aceptado por ambas partes (publicado en el tablon):\n\n'
+    + 'Ofertante: '+o.nombre_ofertante+' (matricula '+o.matricula_ofertante+')\n'
+    + 'Publicador: '+p.nombre_publicador+' (matricula '+p.matricula_publicador+')\n\n'
+    + o.nombre_ofertante+' cambia: '+_resumenSecuenciaTextoPlano(o.dias, o.detalle)+'\n'
+    + 'por el turno de '+p.nombre_publicador+': '+_resumenSecuenciaTextoPlano(p.dias, p.detalle)+'\n\n'
+    + 'Espero su pronta respuesta.\nSaludos cordiales.\n\n'
+    + 'Atentamente,\n'+miNombre+'\nMatricula: '+miMatricula
+    + '\n\nSolicitud generada automaticamente por TrenTurno V5';
+  var cuerpoLimpio = (typeof sanitizarTexto==='function') ? sanitizarTexto(cuerpoBruto) : cuerpoBruto;
+  cuerpoLimpio = cuerpoLimpio.replace(/\n/g, '\r\n');
+  var mailto = 'mailto:?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpoLimpio);
+  var bloqueCorreo = soyOfertante
+    ? ('<div class="ct-mail-prompt"><div class="ct-mail-prompt-ico">✉️</div><div class="ct-mail-prompt-tit">Envía el correo a Programación</div><div class="ct-mail-prompt-sub">Se abrirá tu app de correo, ya escrito. Solo dale a "Enviar".</div><a href="'+mailto+'" class="ct-mail-btn">Abrir correo</a></div>')
+    : ('<div class="ct-mail-prompt"><div class="ct-mail-prompt-ico">✅</div><div class="ct-mail-prompt-tit">Ya no tienes que hacer nada con el correo</div><div class="ct-mail-prompt-sub">'+o.nombre_ofertante+' se encarga de avisar a Programación.</div></div>');
+  var textoBtn = soyOfertante ? 'Ya envié el correo — actualizar mi calendario' : 'Actualizar mi calendario';
+  var html = '<div class="ov on" id="ov-post-aceptacion-pub-temp" onclick="if(event.target===this) document.getElementById(\'ov-post-aceptacion-pub-temp\').remove()">'
+    + '<div class="sh" onclick="event.stopPropagation()">'
+    + '<div class="sh-hdr"><div class="sh-ico">✅</div><div><div class="sh-tit">Cambio aceptado</div><div class="sh-sub">Con '+otroNombre+'</div></div>'
+    + '<button class="sh-close" onclick="document.getElementById(\'ov-post-aceptacion-pub-temp\').remove()">✕</button></div>'
+    + '<div style="padding:16px">' + bloqueCorreo
+    + (yaConfirmado
+      ? '<div style="text-align:center;color:var(--green2);font-size:12px;font-weight:700">✅ Ya confirmaste este cambio en tu calendario.</div>'
+      : '<div class="ct-confirm-box"><div class="ct-confirm-box-tit">📅 Actualizar tu calendario</div><div class="ct-confirm-box-sub">Solo un aviso visual — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>'
+        + '<div class="ct-confirm-btn" onclick="confirmarPublicacionEnMiCalendario('+o.id+','+soyOfertante+')">'+textoBtn+'</div></div>')
+    + '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+window.mostrarPasosPostAceptacionPublicacion = mostrarPasosPostAceptacionPublicacion;
+
+// ── Confirmar en calendario (multi-día) — reutiliza EXACTAMENTE el
+//    mismo almacén visual local que ya usa la solicitud directa
+//    (_leerCambiosVisual/_guardarCambiosVisual), solo que ahora
+//    puede marcar VARIOS días seguidos a la vez en cada lado. ──
+async function confirmarPublicacionEnMiCalendario(ofertaId, soyOfertante){
+  if(!sbAdmin) return;
+  var ro = await sbAdmin.from('ofertas_publicacion_turno').select('*').eq('id', ofertaId).maybeSingle();
+  if(!ro.data) return;
+  var o = ro.data;
+  var rp = await sbAdmin.from('publicaciones_cambio_turno').select('*').eq('id', o.publicacion_id).maybeSingle();
+  if(!rp.data) return;
+  var p = rp.data;
+  var diasQueDoy = soyOfertante ? o.dias : p.dias;
+  var diasQueRecibo = soyOfertante ? p.dias : o.dias;
+  var detalleQueRecibo = soyOfertante ? p.detalle : o.detalle;
+  var nombreOtro = soyOfertante ? p.nombre_publicador : o.nombre_ofertante;
+
+  var visual = _leerCambiosVisual();
+  var mesReal = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
+  var claveMes = p.anio + '-' + mesReal;
+  if(!visual[claveMes]) visual[claveMes] = {};
+  diasQueDoy.forEach(function(d){
+    visual[claveMes][d] = { tipo:'dado', con:nombreOtro, id:'pub_'+o.id };
+  });
+  diasQueRecibo.forEach(function(d){
+    visual[claveMes][d] = { tipo:'recibido', con:nombreOtro, id:'pub_'+o.id, turnos: detalleQueRecibo[d] };
+  });
+  _guardarCambiosVisual(visual);
+
+  var campo = soyOfertante ? 'confirmado_ofertante' : 'confirmado_publicador';
+  var payload = {}; payload[campo] = true;
+  await sbAdmin.from('ofertas_publicacion_turno').update(payload).eq('id', ofertaId);
+
+  var ovTemp = document.getElementById('ov-post-aceptacion-pub-temp');
+  if(ovTemp) ovTemp.remove();
+  if(typeof renderCal === 'function') renderCal();
+  if(typeof renderDiaArea === 'function') renderDiaArea();
+}
+window.confirmarPublicacionEnMiCalendario = confirmarPublicacionEnMiCalendario;
 
 function toggleCambiosTurnoAcordeon(){
   var acc = document.getElementById('cambiosTurnoAcordeon');
