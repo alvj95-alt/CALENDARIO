@@ -1,17 +1,18 @@
 // sw.js — Service Worker de TrenTurnos v5
-// Sube este archivo UNA VEZ a la misma carpeta de GitHub Pages donde
-// está tren_turnos_v5.html (normalmente la raíz del repositorio, o la
-// misma carpeta donde vive ese HTML). No hace falta tocar nada más.
+// Sube este archivo a la misma carpeta de GitHub Pages donde está tu
+// HTML principal, reemplazando el que ya tenías. No hace falta tocar
+// nada más — la próxima vez que el móvil se conecte, cogerá esta
+// versión nueva automáticamente (por el cambio de CACHE_NAME de abajo).
 //
-// Qué hace: guarda una copia de la página en el propio teléfono la
-// primera vez que se abre, así que si luego no hay conexión, la app
-// sigue abriendo (con los datos que ya tenía guardados localmente,
-// como siempre). Cada vez que subas una versión nueva del HTML,
-// cambia el número de versión (CACHE_NAME) de abajo para que los
-// móviles de todo el mundo cojan la versión nueva en vez de la vieja
-// guardada en caché.
+// FIX — Confirmado por el usuario: el icono de la pantalla de inicio
+// desaparecía solo en Android. La causa: cuando fallaba la red y la
+// página pedida no estaba guardada en caché bajo esa URL exacta, el
+// Service Worker devolvía "nada" (undefined) — Android interpreta eso
+// como que la app está rota, y la desinstala sola sin avisar. Ahora,
+// si no encuentra la página exacta, usa como último recurso la página
+// principal ya guardada, para no devolver nunca "nada".
 
-const CACHE_NAME = 'trenturnos-v1';
+const CACHE_NAME = 'trenturnos-v2'; // subido de v1 a v2 a propósito, para forzar a limpiar la caché vieja (posiblemente rota) de todos los móviles
 const URLS_A_GUARDAR = [
   './',
   './index.html'
@@ -42,17 +43,35 @@ self.addEventListener('activate', function(event){
 });
 
 self.addEventListener('fetch', function(event){
-  // Estrategia "red primero, caché de respaldo": si hay internet,
-  // siempre coge la versión más reciente del servidor (para que los
-  // cambios que subo lleguen enseguida); si no hay internet, usa la
-  // última copia guardada.
+  // Solo se gestiona la caché para peticiones GET normales — las de
+  // otro tipo (POST, etc.) se dejan pasar tal cual, sin tocarlas.
+  if(event.request.method !== 'GET'){ return; }
+
   event.respondWith(
     fetch(event.request)
       .then(function(respuesta){
-        var copia = respuesta.clone();
-        caches.open(CACHE_NAME).then(function(cache){ cache.put(event.request, copia); });
+        // FIX — antes se guardaba CUALQUIER respuesta, incluidas
+        // páginas de error. Ahora solo se guarda si de verdad cargó
+        // bien (respuesta.ok), para no guardar por error una versión
+        // rota como si fuera buena.
+        if(respuesta && respuesta.ok){
+          var copia = respuesta.clone();
+          caches.open(CACHE_NAME).then(function(cache){
+            cache.put(event.request, copia).catch(function(){});
+          });
+        }
         return respuesta;
       })
-      .catch(function(){ return caches.match(event.request); })
+      .catch(function(){
+        return caches.match(event.request).then(function(match){
+          if(match) return match;
+          // FIX — Confirmado por el usuario: si no hay nada guardado
+          // bajo esa URL exacta, en vez de devolver "nada" (lo que
+          // Android interpreta como que la app está rota y la
+          // desinstala sola), se usa como último recurso la página
+          // principal ya guardada — así siempre hay algo que enseñar.
+          return caches.match('./');
+        });
+      })
   );
 });
