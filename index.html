@@ -30551,6 +30551,8 @@ async function enviarSolicitudCambioTurno(){
       return;
     }
     estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Solicitud enviada.</span>';
+    // NUEVO — Confirmado por el usuario: aviso push a quien recibe la solicitud.
+    _crearEventoPush(_nscCompElegido.matricula, 'Nueva solicitud de cambio', AJ.nombre+' te ha pedido un cambio de turno.');
     setTimeout(function(){ closeOv('ov-nueva-solicitud-cambio'); cargarCambiosTurno(); }, 900);
   }catch(e){
     estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Error: '+e.message+'</span>';
@@ -30779,6 +30781,23 @@ async function activarNotificacionesPush(){
 }
 window.activarNotificacionesPush = activarNotificacionesPush;
 
+// NUEVO — Confirmado por el usuario: función reutilizable para
+// apuntar en la "bandeja de salida" (eventos_push) — la función de
+// Supabase ya montada se encarga sola de mandar el aviso de
+// verdad. Si falla (sin conexión, matrícula sin notificaciones
+// activadas, etc.) no rompe nada más — el resto de la app sigue
+// funcionando exactamente igual, con o sin esto.
+async function _crearEventoPush(matriculaDestino, titulo, cuerpo){
+  if(!sbAdmin || !matriculaDestino) return;
+  try{
+    await sbAdmin.from('eventos_push').insert({
+      matricula_destino: matriculaDestino,
+      titulo: titulo,
+      cuerpo: cuerpo
+    });
+  }catch(e){ console.warn('_crearEventoPush:', e); }
+}
+
 function _resumenTurno(det){
   if(!det) return 'sin datos';
   if(det.esLibre) return det.tipoLibreLbl || 'Día libre';
@@ -30842,8 +30861,14 @@ window.eliminarSolicitudCambio = eliminarSolicitudCambio;
 async function responderCambioTurno(id, nuevoEstado){
   if(!sbAdmin) return;
   try{
-    await sbAdmin.from('cambios_turno').update({ estado: nuevoEstado }).eq('id', id);
+    var r = await sbAdmin.from('cambios_turno').update({ estado: nuevoEstado }).eq('id', id).select().maybeSingle();
     cargarCambiosTurno();
+    // NUEVO — Confirmado por el usuario: aviso push a quien pidió el
+    // cambio, tanto si se lo aceptan como si se lo rechazan.
+    if(r && r.data){
+      var mensajePush = nuevoEstado==='aceptada' ? (r.data.nombre_destino+' aceptó tu cambio de turno.') : (r.data.nombre_destino+' rechazó tu cambio de turno.');
+      _crearEventoPush(r.data.matricula_solicitante, nuevoEstado==='aceptada' ? 'Cambio aceptado' : 'Cambio rechazado', mensajePush);
+    }
     // FIX — Confirmado por el usuario: antes, al aceptar, a esa
     // persona no le salía nada — se quedaba sin saber que tenía que
     // mandar el correo y confirmar en su propio calendario. Ahora se
@@ -32309,6 +32334,8 @@ async function enviarOfertaPublicacion(){
       return;
     }
     estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Oferta enviada.</span>';
+    // NUEVO — Confirmado por el usuario: aviso push a quien publicó.
+    _crearEventoPush(_ofrPublicacionActual.matricula_publicador, 'Nueva oferta en tu publicación', AJ.nombre+' te ha ofrecido un cambio de turno.');
     setTimeout(function(){ closeOv('ov-ofrecer-publicacion'); }, 900);
   }catch(e){
     estadoEl.innerHTML = '<span style="color:var(--nar3)">⚠️ Error: '+e.message+'</span>';
@@ -32325,11 +32352,15 @@ window.enviarOfertaPublicacion = enviarOfertaPublicacion;
 async function aceptarOfertaPublicacion(ofertaId, publicacionId){
   if(!sbAdmin) return;
   try{
-    await sbAdmin.from('ofertas_publicacion_turno').update({estado:'aceptada'}).eq('id', ofertaId);
+    var r = await sbAdmin.from('ofertas_publicacion_turno').update({estado:'aceptada'}).eq('id', ofertaId).select().maybeSingle();
     await sbAdmin.from('ofertas_publicacion_turno').update({estado:'rechazada'}).eq('publicacion_id', publicacionId).neq('id', ofertaId);
     await sbAdmin.from('publicaciones_cambio_turno').update({estado:'aceptada', oferta_aceptada_id: ofertaId}).eq('id', publicacionId);
     cargarMisPublicaciones();
     if(typeof cargarNotificacionesPublicaciones === 'function') cargarNotificacionesPublicaciones();
+    // NUEVO — Confirmado por el usuario: aviso push a quien ofertó.
+    if(r && r.data){
+      _crearEventoPush(r.data.matricula_ofertante, 'Oferta aceptada', (AJ&&AJ.nombre?AJ.nombre:'Tu compañero')+' aceptó tu oferta de cambio de turno.');
+    }
     mostrarPasosPostAceptacionPublicacion(ofertaId);
   }catch(e){ console.warn('aceptarOfertaPublicacion:', e); }
 }
