@@ -32421,7 +32421,7 @@ function _inyectarInfoCambioTurnoEnDia(){
       }
     }
     html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>';
-    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno('+info.id+')">Deshacer este aviso</div>';
+    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno(\''+info.id+'\')">Deshacer este aviso</div>';
     html += '</div>';
   } else if(info.tipo === 'dado'){
     html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px">'
@@ -32430,7 +32430,7 @@ function _inyectarInfoCambioTurnoEnDia(){
     if(info.miDetalleOriginal){
       html += '<div style="font-size:10px;color:var(--tx3);margin-top:6px">Antes tenías: '+_resumenTurno(info.miDetalleOriginal)+'</div>';
     }
-    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno('+info.id+')">Deshacer este aviso</div>';
+    html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno(\''+info.id+'\')">Deshacer este aviso</div>';
     html += '</div>';
   }
   if(html) area.insertAdjacentHTML('beforeend', html);
@@ -32447,7 +32447,12 @@ function deshacerAvisoCambioTurno(id){
   Object.keys(visual).forEach(function(claveMes){
     var mesData = visual[claveMes];
     Object.keys(mesData).forEach(function(dia){
-      if(mesData[dia] && mesData[dia].id === id){
+      // FIX — Confirmado por el usuario: el botón ahora siempre
+      // manda el id como texto (String), pero lo guardado puede ser
+      // número (cambios directos) o texto con prefijo "pub_"
+      // (publicaciones) — se compara como texto en los dos casos
+      // para que "Deshacer" funcione siempre, venga de donde venga.
+      if(mesData[dia] && String(mesData[dia].id) === String(id)){
         delete mesData[dia];
         cambiado = true;
       }
@@ -33622,63 +33627,6 @@ nadmPintarTipoGrid();
 refrescarNotificacionesActivas();
 
 })();
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════
-     ANUNCIOS start.io — App ID: 208438860
-     Confirmado por el usuario. Solo funciona dentro de la app
-     empaquetada con Cordova (window.StartIO), nunca al abrir
-     este mismo archivo en un navegador normal — por eso todo
-     está protegido con comprobaciones que no rompen nada si
-     StartIO no existe (p. ej. mientras se sigue usando la
-     versión web de GitHub en paralelo).
-═══════════════════════════════════════════════════════════ -->
-<script>
-var STARTIO_APP_ID = 208438860;
-// TODO: cuando ya hayas probado que todo funciona bien, cambia
-// esto a "false" antes de publicar la app de verdad. Con "true"
-// ves anuncios de PRUEBA (no ganas dinero real con ellos).
-var STARTIO_MODO_PRUEBA = true;
-
-document.addEventListener('deviceready', function () {
-  if (typeof StartIO === 'undefined') {
-    console.log('start.io no disponible (¿estás en el navegador, no en la app?)');
-    return;
-  }
-
-  var opciones = { returnAd: true, splashAd: false };
-  StartIO.init(STARTIO_APP_ID, opciones, STARTIO_MODO_PRUEBA);
-
-  /* ── BANNER — franja fija abajo, siempre visible ── */
-  document.addEventListener('startio.banner.load', function () {
-    StartIO.showBanner();
-  });
-  StartIO.loadBanner();
-
-  /* ── INTERSTITIAL — pantalla completa, a demanda ── */
-  window.mostrarAnuncioInterstitial = function () {
-    StartIO.showInterstitial();
-  };
-});
-
-/* Muestra el interstitial cada 4 cambios de pestaña (Calendario/
-   Horario/Compañeros/Nómina...), para que no sea molesto viéndolo
-   todo el rato. Confirmado: la función de cambiar de pestaña se
-   llama goP() — aquí se "engancha" desde fuera, sin tocar goP()
-   en sí, así que no puede romper nada de la navegación. */
-var _contadorNavegacionAds = 0;
-var _navegacionesEntreAnuncios = 4;
-var _goP_original = window.goP;
-window.goP = function (n) {
-  _goP_original(n);
-  _contadorNavegacionAds++;
-  if (_contadorNavegacionAds >= _navegacionesEntreAnuncios) {
-    _contadorNavegacionAds = 0;
-    if (typeof window.mostrarAnuncioInterstitial === 'function') {
-      window.mostrarAnuncioInterstitial();
-    }
-  }
-};
 </script>
 
 </body>
