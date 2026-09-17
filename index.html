@@ -31947,7 +31947,13 @@ async function cargarMisOfertas(){
         : o.estado==='aceptada' ? '<span class="ct-status-chip ct-status-ok">✅ Aceptada</span>'
         : '<span class="ct-status-chip ct-status-no">✕ Rechazada</span>';
       var accionesExtra = (o.estado==='aceptada' && !o.confirmado_ofertante)
-        ? '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacionPublicacion('+o.id+')">Ver siguiente paso (correo + confirmar)</div>' : '';
+        ? '<div class="ct-next-step-btn" onclick="mostrarPasosPostAceptacionPublicacion('+o.id+')">Ver siguiente paso (correo + confirmar)</div>'
+        // NUEVO — Confirmado por el usuario: antes no había NINGÚN
+        // botón aquí salvo en el caso de aceptada-sin-confirmar —
+        // ahora se puede cancelar mientras esté pendiente, o
+        // eliminar del historial una vez resuelta.
+        : (o.estado==='pendiente' ? '<div class="ct-cancel-btn" onclick="cancelarOfertaPublicacion('+o.id+')">Cancelar oferta</div>'
+          : '<div class="ct-cancel-btn" onclick="eliminarOfertaPublicacion('+o.id+')">🗑 Eliminar</div>');
       html += '<div class="ct-feed-item">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
         + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div></div>'
@@ -31957,6 +31963,26 @@ async function cargarMisOfertas(){
   }catch(e){ console.warn('cargarMisOfertas:', e); }
 }
 window.cargarMisOfertas = cargarMisOfertas;
+
+// NUEVO — Confirmado por el usuario: cancelar una oferta propia
+// mientras siga pendiente (aún no la han aceptado ni rechazado).
+async function cancelarOfertaPublicacion(id){
+  if(!sbAdmin) return;
+  await sbAdmin.from('ofertas_publicacion_turno').update({estado:'rechazada'}).eq('id', id);
+  cargarMisOfertas();
+  if(typeof cargarNotificacionesPublicaciones === 'function') cargarNotificacionesPublicaciones();
+}
+window.cancelarOfertaPublicacion = cancelarOfertaPublicacion;
+
+// NUEVO — Confirmado por el usuario: eliminar del historial una
+// oferta ya resuelta (aceptada y confirmada, o rechazada/cancelada).
+async function eliminarOfertaPublicacion(id){
+  if(!sbAdmin) return;
+  if(!confirm('¿Eliminar esta oferta de tu historial? No se puede deshacer.')) return;
+  await sbAdmin.from('ofertas_publicacion_turno').delete().eq('id', id);
+  cargarMisOfertas();
+}
+window.eliminarOfertaPublicacion = eliminarOfertaPublicacion;
 
 function _diasTexto(dias){
   if(dias.length===1) return weekdayForDay(dias[0])+' '+dias[0];
@@ -32069,6 +32095,11 @@ async function cargarMisPublicaciones(){
         + '<div class="ct-feed-expiry" style="margin-top:2px">'+(p.estado==='activa'?_expiraEnTexto(p.fecha_caducidad):'')+'</div>'
         + ofertasHtml
         + (p.estado==='activa' ? '<div class="ct-cancel-btn" onclick="retirarPublicacion('+p.id+')">Retirar publicación</div>' : '')
+        // NUEVO — Confirmado por el usuario: para las ya resueltas
+        // (aceptada/retirada/caducada) antes no había ningún botón
+        // — ahora se puede eliminar del historial, igual que ya
+        // existe para "Tus solicitudes enviadas".
+        + (p.estado!=='activa' ? '<div class="ct-cancel-btn" onclick="eliminarPublicacion('+p.id+')">🗑 Eliminar</div>' : '')
         + '</div>';
     }
     cont.innerHTML = html;
@@ -32083,6 +32114,22 @@ async function retirarPublicacion(id){
   cargarMisPublicaciones();
 }
 window.retirarPublicacion = retirarPublicacion;
+
+// NUEVO — Confirmado por el usuario: eliminar del todo una
+// publicación ya resuelta (aceptada/retirada/caducada). Antes borra
+// sus ofertas asociadas — la tabla de ofertas apunta a la
+// publicación (REFERENCES), así que si no se borran primero, la
+// base de datos rechazaría borrar la publicación.
+async function eliminarPublicacion(id){
+  if(!sbAdmin) return;
+  if(!confirm('¿Eliminar esta publicación de tu historial? No se puede deshacer.')) return;
+  try{
+    await sbAdmin.from('ofertas_publicacion_turno').delete().eq('publicacion_id', id);
+    await sbAdmin.from('publicaciones_cambio_turno').delete().eq('id', id);
+    cargarMisPublicaciones();
+  }catch(e){ console.warn('eliminarPublicacion:', e); }
+}
+window.eliminarPublicacion = eliminarPublicacion;
 
 // ── Ofrecer un cambio sobre una publicación ──
 var _ofrDias = [];
