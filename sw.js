@@ -1,18 +1,12 @@
 // sw.js — Service Worker de TrenTurnos v5
 // Sube este archivo a la misma carpeta de GitHub Pages donde está tu
-// HTML principal, reemplazando el que ya tenías. No hace falta tocar
-// nada más — la próxima vez que el móvil se conecte, cogerá esta
-// versión nueva automáticamente (por el cambio de CACHE_NAME de abajo).
+// HTML principal, reemplazando el que ya tenías.
 //
-// FIX — Confirmado por el usuario: el icono de la pantalla de inicio
-// desaparecía solo en Android. La causa: cuando fallaba la red y la
-// página pedida no estaba guardada en caché bajo esa URL exacta, el
-// Service Worker devolvía "nada" (undefined) — Android interpreta eso
-// como que la app está rota, y la desinstala sola sin avisar. Ahora,
-// si no encuentra la página exacta, usa como último recurso la página
-// principal ya guardada, para no devolver nunca "nada".
+// Esta versión añade el soporte para NOTIFICACIONES PUSH (avisos con
+// la app cerrada), además de mantener el arreglo anterior del icono
+// que desaparecía solo de la pantalla de inicio en Android.
 
-const CACHE_NAME = 'trenturnos-v2'; // subido de v1 a v2 a propósito, para forzar a limpiar la caché vieja (posiblemente rota) de todos los móviles
+const CACHE_NAME = 'trenturnos-v3'; // subido a v3 para forzar a refrescar la caché de todos los móviles
 const URLS_A_GUARDAR = [
   './',
   './index.html'
@@ -43,17 +37,11 @@ self.addEventListener('activate', function(event){
 });
 
 self.addEventListener('fetch', function(event){
-  // Solo se gestiona la caché para peticiones GET normales — las de
-  // otro tipo (POST, etc.) se dejan pasar tal cual, sin tocarlas.
   if(event.request.method !== 'GET'){ return; }
 
   event.respondWith(
     fetch(event.request)
       .then(function(respuesta){
-        // FIX — antes se guardaba CUALQUIER respuesta, incluidas
-        // páginas de error. Ahora solo se guarda si de verdad cargó
-        // bien (respuesta.ok), para no guardar por error una versión
-        // rota como si fuera buena.
         if(respuesta && respuesta.ok){
           var copia = respuesta.clone();
           caches.open(CACHE_NAME).then(function(cache){
@@ -65,13 +53,42 @@ self.addEventListener('fetch', function(event){
       .catch(function(){
         return caches.match(event.request).then(function(match){
           if(match) return match;
-          // FIX — Confirmado por el usuario: si no hay nada guardado
-          // bajo esa URL exacta, en vez de devolver "nada" (lo que
-          // Android interpreta como que la app está rota y la
-          // desinstala sola), se usa como último recurso la página
-          // principal ya guardada — así siempre hay algo que enseñar.
           return caches.match('./');
         });
       })
+  );
+});
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Confirmado por el usuario: notificaciones PUSH.
+   Cuando llega un aviso (aunque la app esté cerrada), esto lo
+   recibe y lo muestra como cualquier notificación normal del
+   móvil.
+═══════════════════════════════════════════════════════════ */
+self.addEventListener('push', function(event){
+  var datos = {};
+  try{ datos = event.data ? event.data.json() : {}; }catch(e){ datos = {}; }
+  var titulo = datos.titulo || 'TrenTurnos';
+  var opciones = {
+    body: datos.cuerpo || '',
+    data: { url: datos.url || './' },
+    tag: 'trenturnos-aviso',
+    renotify: true
+  };
+  event.waitUntil(self.registration.showNotification(titulo, opciones));
+});
+
+// Al tocar la notificación, abre la app (o la enfoca si ya está
+// abierta en alguna pestaña), en vez de dejarla sin hacer nada.
+self.addEventListener('notificationclick', function(event){
+  event.notification.close();
+  var destino = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(listaClientes){
+      for(var i=0; i<listaClientes.length; i++){
+        if('focus' in listaClientes[i]) return listaClientes[i].focus();
+      }
+      if(clients.openWindow) return clients.openWindow(destino);
+    })
   );
 });
