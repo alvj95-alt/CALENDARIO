@@ -2574,6 +2574,44 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .filepick .fp-txt{font-size:11px;color:var(--tx2)}
 .filepick .fp-name{font-size:11px;color:var(--acc3);margin-top:5px;font-weight:600}
 
+/* NUEVO — Panel de Control Admin, rediseño en grupos plegables
+   (Confirmado por el usuario: mismo look de la app, sin tarjetas
+   siempre abiertas). Usa exactamente las variables de color ya
+   definidas en :root — nada de colores nuevos. */
+.padm-grplbl{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--tx3);
+  text-transform:uppercase;margin:18px 16px 6px}
+.padm-group{background:var(--s1);border:1px solid var(--div);border-radius:16px;
+  margin:0 16px 4px;overflow:hidden;box-shadow:var(--sh-card)}
+.padm-row{display:flex;align-items:center;gap:11px;padding:13px 14px;cursor:pointer;
+  border-bottom:1px solid var(--div)}
+.padm-group .padm-row:last-of-type{border-bottom:none}
+.padm-row .padm-ico{width:32px;height:32px;border-radius:9px;background:rgba(37,99,235,.15);
+  color:var(--acc3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.padm-row.nar .padm-ico{background:rgba(249,115,22,.15);color:var(--nar2)}
+.padm-row.amber .padm-ico{background:rgba(217,119,6,.15);color:var(--amber2)}
+.padm-row.red .padm-ico{background:rgba(220,38,38,.15);color:var(--red2)}
+.padm-row .padm-txt{flex:1;min-width:0}
+.padm-row .padm-t1{font-size:13.5px;font-weight:700;color:var(--tx)}
+.padm-row .padm-t2{font-size:10.5px;color:var(--tx2);margin-top:1px;line-height:1.3}
+.padm-row .padm-chev{color:var(--tx3);font-size:14px;transition:transform .15s;flex-shrink:0}
+.padm-row.open .padm-chev{transform:rotate(90deg)}
+.padm-panel{max-height:0;overflow:hidden;transition:max-height .2s ease;background:var(--s2)}
+.padm-panel-in{padding:2px 14px 14px}
+.padm-panel-in > label:first-child{margin-top:2px !important}
+
+.padm-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;
+  align-items:flex-end;justify-content:center}
+.padm-modal-ov.on{display:flex}
+.padm-modal-sheet{width:100%;max-width:480px;background:var(--s1);border-top-left-radius:20px;
+  border-top-right-radius:20px;border:1px solid var(--div);border-bottom:none;
+  max-height:82vh;display:flex;flex-direction:column}
+.padm-modal-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--div)}
+.padm-modal-hd h3{margin:0;font-size:15px;font-weight:800;color:var(--tx)}
+.padm-modal-hd button{background:var(--s2);border:1px solid var(--div);color:var(--tx2);
+  font-size:14px;cursor:pointer;width:30px;height:30px;border-radius:15px}
+.padm-modal-body{overflow-y:auto;padding:12px 18px 18px}
+
 /* ═══ NUEVO — Notificaciones del Admin a todos los trabajadores ═══
    Confirmado por Alex tras revisar la maqueta. 100% aditivo: clases
    nuevas con prefijo "nadm-" para no colisionar con nada existente. */
@@ -6466,209 +6504,159 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="msg-info" style="margin:0 0 10px">Ciérrala cuando termines de revisar o subir algo: mientras la sesión esté activa, cualquier acción de este panel (guardar, publicar, eliminar) queda habilitada. Cerrándola evitas guardar algo por error sin querer.</div>
     </div>
 
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico blue">📅</div>
-        <div>
-          <div class="admin-card-tit">Carga de Horario General</div>
-          <div class="admin-card-sub">Sube el mismo PDF de turnos que ya usas para Barcelona/Madrid. Se publica al instante para todos.</div>
+    <div class="padm-grplbl">Horario general</div>
+    <div class="padm-group">
+      <div class="padm-row" onclick="padmToggle(this)">
+        <div class="padm-ico">📅</div>
+        <div class="padm-txt"><div class="padm-t1">Carga de horario</div><div class="padm-t2">Se publica al instante para todos</div></div>
+        <div class="padm-chev">›</div>
+      </div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">1. SEDE DE ESTE ARCHIVO</label>
+        <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px" onfocus="this.select()">
+        <datalist id="listaSedes">
+          <option value="Barcelona"><option value="Madrid"><option value="Valencia">
+          <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
+        </datalist>
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">2. MES DE ESTE HORARIO</label>
+        <input type="month" class="aj-nombre-inp" id="mesHorarioGeneral" style="margin-bottom:10px">
+        <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">3. ARCHIVO</label>
+        <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
+          <div class="fp-ico">📄</div>
+          <div class="fp-txt" id="txtHorarioGeneral">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
         </div>
+        <input type="file" id="fileHorarioGeneral" style="display:none" onchange="document.getElementById('txtHorarioGeneral').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF (o CSV/XLSX si lo prefieres)'">
+        <button class="m-save" style="width:100%;margin-top:8px" onclick="subirArchivoGlobalAdmin('horario_general', document.getElementById('fileHorarioGeneral').files[0])">4. Subir y Publicar</button>
+        <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
+      </div></div>
+
+      <div class="padm-row" onclick="padmToggle(this)">
+        <div class="padm-ico">🗂️</div>
+        <div class="padm-txt"><div class="padm-t1">Horarios guardados</div><div class="padm-t2">Histórico por sede y mes</div></div>
+        <div class="padm-chev">›</div>
       </div>
-      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">1. SEDE DE ESTE ARCHIVO</label>
-      <input class="aj-nombre-inp" id="selSedeHorarioGeneral" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px" onfocus="this.select()">
-      <datalist id="listaSedes">
-        <option value="Barcelona"><option value="Madrid"><option value="Valencia">
-        <option value="Sevilla"><option value="Bilbao"><option value="Alicante">
-      </datalist>
-      <!-- NUEVO — Confirmado por Alex: cada mes se guarda aparte, sin
-           borrar los anteriores, así que hace falta decir de qué mes
-           es este archivo. Si es un PDF y se reconoce el mes en su
-           cabecera, se rellena solo (ver subirArchivoGlobalAdmin);
-           aun así queda editable por si hace falta corregirlo. -->
-      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">2. MES DE ESTE HORARIO</label>
-      <input type="month" class="aj-nombre-inp" id="mesHorarioGeneral" style="margin-bottom:10px">
-      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">3. ARCHIVO</label>
-      <div class="filepick" onclick="document.getElementById('fileHorarioGeneral').click()">
-        <div class="fp-ico">📄</div>
-        <div class="fp-txt" id="txtHorarioGeneral">Toca para elegir el PDF (o CSV/XLSX si lo prefieres)</div>
-      </div>
-      <input type="file" id="fileHorarioGeneral" style="display:none" onchange="document.getElementById('txtHorarioGeneral').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF (o CSV/XLSX si lo prefieres)'">
-      <button class="m-save" style="width:100%;margin-top:8px" onclick="subirArchivoGlobalAdmin('horario_general', document.getElementById('fileHorarioGeneral').files[0])">4. Subir y Publicar</button>
-      <div class="estado-archivo sin-archivo" id="estadoHorarioGeneral">Aún no hay ningún archivo activo.</div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="cargarHistorialHorarioGeneral(); padmAbrirLista('secHorarios','Horarios Generales guardados')">📂 Ver lista</button>
+      </div></div>
     </div>
 
-    <!-- NUEVO — Historial de Horarios Generales guardados (sede + mes).
-         Confirmado por Alex tras revisar la maqueta: cada subida se
-         guarda aparte, sin límite de tiempo — se elimina a mano desde
-         aquí si algún día sobra alguno. Sustituye al antiguo botón
-         único "🗑 Eliminar Horario General" (ya no tiene sentido: ya
-         no hay "un" archivo por sede, sino varios, uno por mes). -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🗂️</div>
-        <div>
-          <div class="admin-card-tit">Horarios Generales guardados</div>
-          <div class="admin-card-sub">Cada mes que subes queda guardado aparte, agrupado por sede — nada se borra solo.</div>
-        </div>
+    <div class="padm-grplbl">Comunicación</div>
+    <div class="padm-group">
+      <div class="padm-row nar" onclick="padmToggle(this)">
+        <div class="padm-ico">📣</div>
+        <div class="padm-txt"><div class="padm-t1">Enviar notificación</div><div class="padm-t2">A Tripulación, una sede o Interventores</div></div>
+        <div class="padm-chev">›</div>
       </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarHistorialHorarioGeneral()">🔄 Actualizar lista</button>
-      <div id="hgHistorialLista"><div class="estado-archivo sin-archivo">Toca "Actualizar lista" para ver lo guardado.</div></div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <label class="field-lbl">1. Destinatarios</label>
+        <div class="nadm-seg">
+          <div class="nadm-seg-btn on" id="nadmSegTodas" onclick="nadmSegSede('todas')">Todas las sedes</div>
+          <div class="nadm-seg-btn" id="nadmSegUna" onclick="nadmSegSede('una')">Una sede</div>
+          <div class="nadm-seg-btn" id="nadmSegInterv" onclick="nadmSegSede('interventores')">Interventores</div>
+        </div>
+        <div class="nadm-sede-chips" id="nadmSedeChips" style="display:none"></div>
+
+        <label class="field-lbl">2. Tipo de aviso</label>
+        <div class="nadm-tipo-grid" id="nadmTipoGrid"></div>
+
+        <label class="field-lbl">3. Título</label>
+        <input class="field-inp" id="nadmInpTitulo" placeholder="Escribe el título..." maxlength="60">
+
+        <label class="field-lbl">4. Mensaje</label>
+        <textarea class="field-inp" id="nadmInpMsg" placeholder="Escribe el aviso completo..." maxlength="400" style="min-height:66px;resize:vertical"></textarea>
+
+        <button class="m-save" id="nadmBtnEnviar" style="width:100%;margin-top:12px" onclick="enviarNotificacionAdmin()">Enviar</button>
+        <div class="estado-archivo" id="nadmEstadoEnvio">Elige destinatarios y tipo, escribe el aviso y pulsa enviar.</div>
+      </div></div>
+
+      <div class="padm-row nar" onclick="padmToggle(this)">
+        <div class="padm-ico">🕓</div>
+        <div class="padm-txt"><div class="padm-t1">Notificaciones enviadas</div></div>
+        <div class="padm-chev">›</div>
+      </div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="cargarHistorialNotificacionesAdmin(); padmAbrirLista('secNotificaciones','Notificaciones enviadas')">📂 Ver lista</button>
+      </div></div>
+
+      <div class="padm-row amber" onclick="padmToggle(this)">
+        <div class="padm-ico">📨</div>
+        <div class="padm-txt"><div class="padm-t1">Solicitudes de acceso <span id="badgeSolicitudesAcceso" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px"></span></div><div class="padm-t2">Sin Horario General asociado</div></div>
+        <div class="padm-chev">›</div>
+      </div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="cargarSolicitudesAccesoAdmin(); padmAbrirLista('secSolicitudes','Solicitudes de acceso')">📂 Ver lista</button>
+      </div></div>
     </div>
 
-    <!-- NUEVO — Notificaciones del Admin a todos los trabajadores.
-         Confirmado por Alex tras revisar la maqueta interactiva.
-         100% aditivo: no toca ninguna tarjeta ni función existente. -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">📣</div>
-        <div>
-          <div class="admin-card-tit">Enviar notificación a todos</div>
-          <div class="admin-card-sub">Llega tanto a Tripulación (Calendario) como a Interventor, al instante a quien tenga la app abierta y a quien la abra después, mientras siga activa.</div>
-        </div>
+    <div class="padm-grplbl">Registro de accesos</div>
+    <div class="padm-group">
+      <div class="padm-row" onclick="padmToggle(this)">
+        <div class="padm-ico">🕵️</div>
+        <div class="padm-txt"><div class="padm-t1">Accesos de Interventor</div></div>
+        <div class="padm-chev">›</div>
       </div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="cargarAccesosInterventorAdmin(); padmAbrirLista('secInterventor','Accesos de Interventor')">📂 Ver lista</button>
+      </div></div>
 
-      <label class="field-lbl">1. Destinatarios</label>
-      <div class="nadm-seg">
-        <div class="nadm-seg-btn on" id="nadmSegTodas" onclick="nadmSegSede('todas')">Todas las sedes</div>
-        <div class="nadm-seg-btn" id="nadmSegUna" onclick="nadmSegSede('una')">Una sede</div>
-        <!-- NUEVO — Confirmado por el usuario: mandar un aviso SOLO a
-             Interventores (antes solo existía "todas las sedes" o "una
-             sede", pensado para Tripulación — Interventor no tiene
-             sede, así que no encajaba en ninguna de las dos). -->
-        <div class="nadm-seg-btn" id="nadmSegInterv" onclick="nadmSegSede('interventores')">Interventores</div>
+      <div class="padm-row" onclick="padmToggle(this)">
+        <div class="padm-ico">🚂</div>
+        <div class="padm-txt"><div class="padm-t1">Accesos de Tripulante</div></div>
+        <div class="padm-chev">›</div>
       </div>
-      <div class="nadm-sede-chips" id="nadmSedeChips" style="display:none"></div>
-
-      <label class="field-lbl">2. Tipo de aviso</label>
-      <div class="nadm-tipo-grid" id="nadmTipoGrid"></div>
-
-      <label class="field-lbl">3. Título</label>
-      <input class="field-inp" id="nadmInpTitulo" placeholder="Escribe el título..." maxlength="60">
-
-      <label class="field-lbl">4. Mensaje</label>
-      <textarea class="field-inp" id="nadmInpMsg" placeholder="Escribe el aviso completo..." maxlength="400" style="min-height:66px;resize:vertical"></textarea>
-
-      <button class="m-save" id="nadmBtnEnviar" style="width:100%;margin-top:12px" onclick="enviarNotificacionAdmin()">Enviar</button>
-      <div class="estado-archivo" id="nadmEstadoEnvio">Elige destinatarios y tipo, escribe el aviso y pulsa enviar.</div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="cargarAccesosTripulanteAdmin(); padmAbrirLista('secTripulante','Accesos de Tripulante')">📂 Ver lista</button>
+      </div></div>
     </div>
 
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🕓</div>
-        <div>
-          <div class="admin-card-tit">Notificaciones enviadas</div>
-          <div class="admin-card-sub">Toca "Retirar" para que deje de mostrarse a quien todavía no la haya visto.</div>
-        </div>
+    <div class="padm-grplbl">Tu cuenta</div>
+    <div class="padm-group">
+      <div class="padm-row" onclick="padmToggle(this)">
+        <div class="padm-ico">☁️</div>
+        <div class="padm-txt"><div class="padm-t1">Horario personal en la nube</div><div class="padm-t2">Recupéralo desde otro dispositivo</div></div>
+        <div class="padm-chev">›</div>
       </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarHistorialNotificacionesAdmin()">🔄 Actualizar lista</button>
-      <div id="nadmListaHistorial"><div class="estado-archivo sin-archivo">Toca "Actualizar lista" para ver las notificaciones enviadas.</div></div>
+      <div class="padm-panel"><div class="padm-panel-in">
+        <button class="m-save" style="width:100%" onclick="guardarHorarioEnNube()">☁️ Guardar mi horario ahora</button>
+        <div class="estado-archivo sin-archivo" id="estadoHorarioNube">Aún no se ha guardado nada en este dispositivo.</div>
+      </div></div>
     </div>
 
-    <!-- NUEVO — Accesos del Buscador de Compañeros (tripulación):
-         quién ha entrado, con qué matrícula/nombre y cuándo. Antes
-         solo se podía ver entrando a Supabase directamente. -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🔍</div>
-        <div>
-          <div class="admin-card-tit">Accesos del Buscador de Compañeros</div>
-          <div class="admin-card-sub">Quién ha entrado al Buscador de tripulación, con qué matrícula y cuándo.</div>
-        </div>
-      </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAceptacionesDescargoAdmin()">🔄 Actualizar lista</button>
-      <div class="estado-archivo sin-archivo" id="estadoAceptacionesDescargo">Toca "Actualizar lista" para ver los accesos.</div>
-      <div id="listaAceptacionesDescargo" style="margin-top:8px"></div>
-    </div>
+    <div style="height:8px"></div>
+  </div>
+</div>
 
-    <!-- NUEVO — Solicitudes de acceso: matrículas que pidieron entrar
-         sin estar en ningún Horario General todavía. Al aceptar, esa
-         matrícula queda válida para crear cuenta aunque no aparezca
-         en ningún PDF subido (ver _matriculaTieneSolicitudAceptada). -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico" style="background:rgba(245,158,11,.15);color:#FCD34D">📨</div>
-        <div>
-          <div class="admin-card-tit">Solicitudes de acceso <span id="badgeSolicitudesAcceso" style="display:none;background:#EF4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:800;margin-left:4px"></span></div>
-          <div class="admin-card-sub">Matrículas que han pedido entrar sin estar en ningún Horario General.</div>
-        </div>
+<!-- NUEVO — Ventana compartida para "Ver lista" del Panel Admin. Cada
+     sección conserva, tal cual, los ids que ya rellenaban las
+     funciones de carga existentes (cargarHistorialHorarioGeneral,
+     cargarHistorialNotificacionesAdmin, cargarSolicitudesAccesoAdmin,
+     cargarAccesosInterventorAdmin, cargarAccesosTripulanteAdmin) — no
+     se tocó ninguna de esas funciones, solo se cambió DÓNDE se ve su
+     resultado. Colocada fuera de ov-panel-admin (aunque solo se
+     muestra mientras este está abierto) para que su position:fixed
+     no dependa de ningún ancestro. -->
+<div class="padm-modal-ov" id="padmModalOv" onclick="if(event.target===this)padmCerrarLista()">
+  <div class="padm-modal-sheet" onclick="event.stopPropagation()">
+    <div class="padm-modal-hd"><h3 id="padmModalTit">Lista</h3><button onclick="padmCerrarLista()">✕</button></div>
+    <div class="padm-modal-body">
+      <div class="padm-modal-sec" id="secHorarios" style="display:none">
+        <div id="hgHistorialLista"><div class="estado-archivo sin-archivo">Toca "Ver lista" para ver lo guardado.</div></div>
       </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarSolicitudesAccesoAdmin()">🔄 Actualizar lista</button>
-      <div class="estado-archivo sin-archivo" id="estadoSolicitudesAcceso">Toca "Actualizar lista" para ver las solicitudes.</div>
-      <div id="listaSolicitudesAcceso" style="margin-top:8px"></div>
-    </div>
-
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🔀</div>
-        <div>
-          <div class="admin-card-tit">Carga de Intervención</div>
-          <div class="admin-card-sub">Sube el Gráfico + el Informe. Cada compañero los cruza solo, en su móvil, con estos mismos datos.</div>
-        </div>
+      <div class="padm-modal-sec" id="secNotificaciones" style="display:none">
+        <div id="nadmListaHistorial"><div class="estado-archivo sin-archivo">Toca "Ver lista" para ver las notificaciones enviadas.</div></div>
       </div>
-      <label class="field-lbl">Nombre del servicio</label>
-      <input type="text" id="nombreServicioIntervencion" class="field-inp" placeholder="p. ej. SC Nordeste, Valencia...">
-      <label class="field-lbl">Primer día de columna del Informe</label>
-      <input type="date" id="fechaInicioIntervencion" class="field-inp">
-      <div class="filepick" onclick="document.getElementById('fileIntervencionGrafico').click()">
-        <div class="fp-ico">📄</div>
-        <div class="fp-txt" id="txtIntervencionGrafico">Toca para elegir el PDF del Gráfico de Intervención (GL)</div>
+      <div class="padm-modal-sec" id="secSolicitudes" style="display:none">
+        <div class="estado-archivo sin-archivo" id="estadoSolicitudesAcceso">Toca "Ver lista" para ver las solicitudes.</div>
+        <div id="listaSolicitudesAcceso" style="margin-top:8px"></div>
       </div>
-      <input type="file" id="fileIntervencionGrafico" style="display:none" onchange="document.getElementById('txtIntervencionGrafico').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Gráfico de Intervención (GL)'">
-      <div class="filepick" onclick="document.getElementById('fileIntervencionInforme').click()">
-        <div class="fp-ico">📄</div>
-        <div class="fp-txt" id="txtIntervencionInforme">Toca para elegir el PDF del Informe / Servicio Previsto</div>
+      <div class="padm-modal-sec" id="secInterventor" style="display:none">
+        <div class="estado-archivo sin-archivo" id="estadoAccesosInterventor">Toca "Ver lista" para ver los accesos.</div>
+        <div id="listaAccesosInterventor" style="margin-top:8px"></div>
       </div>
-      <input type="file" id="fileIntervencionInforme" style="display:none" onchange="document.getElementById('txtIntervencionInforme').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF del Informe / Servicio Previsto'">
-      <button class="m-save" style="width:100%;margin-top:6px" onclick="subirIntervencionGlobalAdmin()">Publicar Intervención</button>
-      <div class="estado-archivo sin-archivo" id="estadoGraficoIntervencion">Aún no hay ninguna Intervención activa.</div>
-      <button class="dct-btn-sec" style="width:100%;margin-top:8px" onclick="diagnosticarIntervencionAdmin()">🔍 Diagnóstico: ver agentes detectados</button>
-      <div class="estado-archivo sin-archivo" id="estadoDiagIntervencion" style="display:none;white-space:pre-wrap;font-size:11px;text-align:left;max-height:260px;overflow-y:auto"></div>
-      <button class="dct-btn-sec sec-red" style="width:100%;margin-top:8px" onclick="eliminarIntervencionAdmin()">🗑 Eliminar Intervención</button>
-    </div>
-
-    <!-- NUEVO — Accesos de Interventor: quién ha entrado, con qué
-         matrícula/nombre y cuándo. Se rellena sola cada vez que
-         alguien pasa el Acceso de Interventor del Portal de Perfil. -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🕵️</div>
-        <div>
-          <div class="admin-card-tit">Accesos de Interventor</div>
-          <div class="admin-card-sub">Quién ha entrado como Interventor, con qué matrícula y cuándo.</div>
-        </div>
+      <div class="padm-modal-sec" id="secTripulante" style="display:none">
+        <div class="estado-archivo sin-archivo" id="estadoAccesosTripulante">Toca "Ver lista" para ver los accesos.</div>
+        <div id="listaAccesosTripulante" style="margin-top:8px"></div>
       </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAccesosInterventorAdmin()">🔄 Actualizar lista</button>
-      <div class="estado-archivo sin-archivo" id="estadoAccesosInterventor">Toca "Actualizar lista" para ver los accesos.</div>
-      <div id="listaAccesosInterventor" style="margin-top:8px"></div>
-    </div>
-
-    <!-- NUEVO — Accesos de Tripulante: igual que Interventor, pero
-         para quien entra por el otro botón del Portal de Perfil.
-         Solo aparece una fila por matrícula (la primera vez que
-         entra), no cada vez que abre la app. -->
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">🚂</div>
-        <div>
-          <div class="admin-card-tit">Accesos de Tripulante</div>
-          <div class="admin-card-sub">Quién ha entrado como Tripulante (primera vez por matrícula), con nombre, sede y cuándo.</div>
-        </div>
-      </div>
-      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarAccesosTripulanteAdmin()">🔄 Actualizar lista</button>
-      <div class="estado-archivo sin-archivo" id="estadoAccesosTripulante">Toca "Actualizar lista" para ver los accesos.</div>
-      <div id="listaAccesosTripulante" style="margin-top:8px"></div>
-    </div>
-
-    <div class="admin-card">
-      <div class="admin-card-hdr">
-        <div class="admin-card-ico">☁️</div>
-        <div>
-          <div class="admin-card-tit">Mi horario personal en la nube</div>
-          <div class="admin-card-sub">Guarda tus turnos y tu horario individual en tu cuenta, para poder recuperarlos desde otro móvil u ordenador. Solo tú puedes verlos ni escribirlos (acceso restringido a tu usuario).</div>
-        </div>
-      </div>
-      <button class="m-save" style="width:100%" onclick="guardarHorarioEnNube()">☁️ Guardar mi horario ahora</button>
-      <div class="estado-archivo sin-archivo" id="estadoHorarioNube">Aún no se ha guardado nada en este dispositivo.</div>
     </div>
   </div>
 </div>
@@ -24983,6 +24971,48 @@ async function cerrarSesionAdmin(){
   document.body.classList.remove('modo-admin');
   closeOv('ov-panel-admin');
   toast('🚪 Sesión de administrador cerrada');
+}
+
+// NUEVO — Panel de Control Admin en grupos plegables. Confirmado por
+// el usuario: cada fila se abre/cierra al tocarla, en vez de tener
+// todas las tarjetas siempre desplegadas. No toca ninguna función de
+// carga/guardado existente — solo enseña/oculta lo que ya había.
+function padmToggle(rowEl){
+  var panel = rowEl.nextElementSibling;
+  var abierta = rowEl.classList.contains('open');
+  // Cierra cualquier otra fila abierta del mismo grupo, para que no
+  // se acumulen varios formularios abiertos a la vez.
+  var grupo = rowEl.closest('.padm-group');
+  if(grupo){
+    grupo.querySelectorAll('.padm-row.open').forEach(function(fila){
+      if(fila !== rowEl){ fila.classList.remove('open'); fila.nextElementSibling.style.maxHeight = ''; }
+    });
+  }
+  if(abierta){
+    rowEl.classList.remove('open');
+    panel.style.maxHeight = '';
+  } else {
+    rowEl.classList.add('open');
+    panel.style.maxHeight = panel.scrollHeight + 'px';
+  }
+}
+
+// NUEVO — Ventana emergente compartida para las listas del panel
+// ("Ver lista"). Cada sección de lista ya existente (con sus mismos
+// ids: hgHistorialLista, nadmListaHistorial, listaSolicitudesAcceso,
+// listaAccesosInterventor, listaAccesosTripulante) vive ahora dentro
+// de esta ventana — las funciones que las rellenan (cargarHistorial…,
+// cargarSolicitudesAccesoAdmin, etc.) siguen funcionando exactamente
+// igual, sin tocarlas: solo cambia DÓNDE se ve ese contenido.
+function padmAbrirLista(seccionId, titulo){
+  document.getElementById('padmModalTit').textContent = titulo;
+  document.querySelectorAll('.padm-modal-sec').forEach(function(s){ s.style.display = 'none'; });
+  var sec = document.getElementById(seccionId);
+  if(sec) sec.style.display = 'block';
+  document.getElementById('padmModalOv').classList.add('on');
+}
+function padmCerrarLista(){
+  document.getElementById('padmModalOv').classList.remove('on');
 }
 
 async function iniciarSesionAdmin(){
