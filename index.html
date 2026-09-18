@@ -319,19 +319,42 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .dc-ico{font-size:14px;line-height:1;margin-top:0}
 
 /* ═══════════════════════════════════════════════════════════
-   NUEVO — Confirmado por el usuario: en modo admin, cada celda del
-   calendario debe verse más clara — número de tren más legible y el
-   TIPO de turno en texto, no solo el icono. Fuera de modo admin, la
-   celda se queda exactamente como estaba (nada de esto se aplica).
+   NUEVO — Confirmado por el usuario: en modo admin la celda del
+   calendario se rediseña de verdad como la maqueta "G" — tarjeta
+   oscura con borde de color por tipo, número de día arriba y una
+   etiqueta de texto limpia debajo (tren o tipo de turno), en vez del
+   relleno de color + icono + badges sueltos de la vista normal.
+   Fuera de modo admin no se aplica NADA de esto.
 ═══════════════════════════════════════════════════════════ */
-body.modo-admin .dc-tren-badge{
-  font-size:8.5px!important;padding:2px 5px!important;bottom:2px!important;
-  font-weight:800!important;letter-spacing:.1px!important;border-radius:4px!important;
+body.modo-admin .dc{
+  background:var(--s1)!important;border:1px solid var(--div)!important;
+  color:var(--tx)!important;
+  display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;gap:1px;
+  padding:3px 1px;
 }
-body.modo-admin .dc{padding-bottom:11px}
-.dc-tipo-lbl{position:absolute;top:1px;left:50%;transform:translateX(-50%);
-  font-size:6.5px;font-weight:800;letter-spacing:.02em;line-height:1;
-  white-space:nowrap;color:inherit;opacity:.85;text-transform:uppercase}
+body.modo-admin .dc-hoy{border-color:var(--nar)!important;background:rgba(249,115,22,.12)!important}
+body.modo-admin .dc-sel{outline:2px solid var(--acc)!important;outline-offset:-1px}
+body.modo-admin .dc-ord{border-color:rgba(37,99,235,.65)!important}
+body.modo-admin .dc-res{border-color:rgba(217,119,6,.65)!important}
+body.modo-admin .dc-des{border-color:rgba(22,163,74,.65)!important}
+body.modo-admin .dc-baj{border-color:rgba(220,38,38,.65)!important}
+body.modo-admin .dc-tra{border-color:rgba(124,58,237,.65)!important}
+body.modo-admin .dc-cmp{border-color:rgba(8,145,178,.65)!important}
+body.modo-admin .dc-dop{border-color:rgba(219,39,119,.65)!important}
+body.modo-admin .dc-art5152{border-color:rgba(59,127,255,.65)!important}
+body.modo-admin .dc-num{font-size:13px;font-weight:800;color:var(--tx);line-height:1.15;order:1}
+body.modo-admin .dc-ico{display:none!important}
+body.modo-admin .dc-tipo-lbl,
+body.modo-admin .dc-tren-badge{
+  position:static!important;transform:none!important;inset:auto!important;
+  order:2;margin-top:1px;font-size:7px!important;font-weight:800!important;
+  letter-spacing:.02em;line-height:1.2;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+body.modo-admin .dc-tren-badge{padding:1px 4px!important;border-radius:4px!important}
+body.modo-admin .dc-check-borrar{z-index:3}
+.dc-tipo-lbl{text-transform:uppercase}
 
 /* ── LEYENDA ── */
 .leyenda{display:flex;gap:5px;overflow-x:auto;padding:8px 10px;scrollbar-width:none}
@@ -12071,9 +12094,9 @@ function renderSlide(gridId, fecha){
     // modo admin no se añade nada — la celda se queda como siempre.
     var tipoLblBadge = '';
     if(t && !cambioTurnoBadge && document.body.classList.contains('modo-admin') && TIPO_INFO[t.tipo]){
-      tipoLblBadge = '<span class="dc-tipo-lbl">'+TIPO_INFO[t.tipo].lbl.slice(0,4)+'</span>';
+      tipoLblBadge = '<span class="dc-tipo-lbl" style="color:'+TIPO_INFO[t.tipo].col+'">'+TIPO_INFO[t.tipo].lbl.slice(0,4)+'</span>';
     }
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+tipoLblBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+tipoLblBadge+'<span class="dc-num">'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
     // NUEVO — modo selección para borrado múltiple (maqueta A): tap
     // normal sigue abriendo el día como siempre; mantener pulsado
