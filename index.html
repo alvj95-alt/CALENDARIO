@@ -28855,12 +28855,29 @@ function parsePageWords(rawWords, leftoverIn, pageNum){
 // ═══ BUSCADOR + PERFIL (opera sobre activeBase.data) ═══
 const OFF_CODES = {"DO":"des","F":"res","R":"res","LD":"oth","CP":"oth","DOP":"dop","B":"oth","EX":"oth","PP":"oth","FE":"oth","Pr":"oth"};
 const WEEKDAYS = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
-function weekdayForDay(d){
-  // FIX — estaba fijado a julio (mes índice 6); el Horario General
-  // que se está usando ahora es de AGOSTO 2026 (índice 7), así que
-  // los días de la semana salían todos desplazados uno respecto al
-  // PDF real. Si el mes cambia otra vez, hay que volver a tocar esto.
-  const dt = new Date(2026,7,d);
+function weekdayForDay(d, anioForzado, mesForzado){
+  // FIX — Confirmado por el usuario: esto estaba fijado a mano a un
+  // mes concreto (antes julio, luego agosto 2026) y había que
+  // acordarse de venir a cambiarlo cada vez que pasaba el mes — por
+  // eso los días de la semana salían desplazados (ej. "LUN 24" en
+  // vez de "JUE 24"). Ahora, en este orden: 1) si quien llama sabe
+  // exactamente a qué año/mes pertenece ese día (p.ej. una
+  // publicación del Tablón), se lo pasa como 2º/3er argumento y se
+  // usa tal cual; 2) si no, usa el mes/año real que detectó del PDF
+  // (BASES.global.mesAnio); 3) si tampoco hay eso, usa el mes que se
+  // está viendo ahora mismo en el Calendario (curM); 4) como último
+  // recurso, el mes real de hoy. Nunca más un mes fijo en el código.
+  var a, m;
+  if(anioForzado && mesForzado){
+    a = anioForzado; m = mesForzado;
+  } else if(typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio && BASES.global.mesAnio.anio && BASES.global.mesAnio.mes){
+    a = BASES.global.mesAnio.anio; m = BASES.global.mesAnio.mes;
+  } else if(typeof curM!=='undefined' && curM){
+    a = curM.getFullYear(); m = curM.getMonth()+1;
+  } else {
+    var _hoy = new Date(); a = _hoy.getFullYear(); m = _hoy.getMonth()+1;
+  }
+  const dt = new Date(a, m-1, d);
   return WEEKDAYS[dt.getDay()];
 }
 function classifyCell(cell){
@@ -29772,7 +29789,11 @@ const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', ot
 function _mesAnioParaPerfil(){
   var m = (typeof BASES!=='undefined' && BASES.global && BASES.global.mesAnio) ? BASES.global.mesAnio : null;
   if(m && m.anio && m.mes) return {anio:m.anio, mes:m.mes}; // mes: 1-12
-  return {anio:2026, mes:8}; // fallback — agosto 2026, igual que weekdayForDay()
+  // FIX — Confirmado por el usuario: el mes fijo a mano (agosto 2026)
+  // causaba el mismo desajuste que en weekdayForDay(). Ahora, si no
+  // hay mes detectado del PDF, usa el mes que se esté viendo ahora.
+  var base = (typeof curM!=='undefined' && curM) ? curM : new Date();
+  return {anio: base.getFullYear(), mes: base.getMonth()+1};
 }
 // NUEVO — cuadrícula de calendario (Maqueta 1B: código del turno visible
 // directo en cada celda, sin tener que tocarla). Reutiliza las mismas
@@ -32031,7 +32052,7 @@ function _pubActualizarResumenSecuencia(){
     el.innerHTML = '';
     return;
   }
-  el.innerHTML = '<div class="ct-seq-note">📦 Vas a publicar una <b>secuencia de '+_pubDias.length+' días</b>: '+weekdayForDay(_pubDias[0])+' '+_pubDias[0]+' a '+weekdayForDay(_pubDias[_pubDias.length-1])+' '+_pubDias[_pubDias.length-1]+' — se ofrecen juntos, no por separado.</div>';
+  el.innerHTML = '<div class="ct-seq-note">📦 Vas a publicar una <b>secuencia de '+_pubDias.length+' días</b>: '+weekdayForDay(_pubDias[0], _pubMesActual&&_pubMesActual.anio, _pubMesActual&&_pubMesActual.mes)+' '+_pubDias[0]+' a '+weekdayForDay(_pubDias[_pubDias.length-1], _pubMesActual&&_pubMesActual.anio, _pubMesActual&&_pubMesActual.mes)+' '+_pubDias[_pubDias.length-1]+' — se ofrecen juntos, no por separado.</div>';
 }
 
 async function publicarCambioTurno(){
@@ -32048,6 +32069,7 @@ async function publicarCambioTurno(){
       matricula_publicador: AJ.matricula,
       nombre_publicador: AJ.nombre,
       anio: _pubMesActual.anio,
+      mes: _pubMesActual.mes,
       dias: _pubDias,
       detalle: detalleCompleto,
       nota: document.getElementById('pubMensajeInput').value.trim() || null,
@@ -32124,7 +32146,7 @@ async function cargarMisOfertas(){
           : '<div class="ct-cancel-btn" onclick="eliminarOfertaPublicacion('+o.id+')">🗑 Eliminar</div>');
       html += '<div class="ct-feed-item">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div></div>'
+        + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias, o.anio, o.mes)+'</div></div>'
         + chip + '</div>' + accionesExtra + '</div>';
     }
     cont.innerHTML = html;
@@ -32152,17 +32174,17 @@ async function eliminarOfertaPublicacion(id){
 }
 window.eliminarOfertaPublicacion = eliminarOfertaPublicacion;
 
-function _diasTexto(dias){
-  if(dias.length===1) return weekdayForDay(dias[0])+' '+dias[0];
-  return weekdayForDay(dias[0])+' '+dias[0]+' → '+weekdayForDay(dias[dias.length-1])+' '+dias[dias.length-1];
+function _diasTexto(dias, anio, mes){
+  if(dias.length===1) return weekdayForDay(dias[0], anio, mes)+' '+dias[0];
+  return weekdayForDay(dias[0], anio, mes)+' '+dias[0]+' → '+weekdayForDay(dias[dias.length-1], anio, mes)+' '+dias[dias.length-1];
 }
-function _detalleSecuenciaHTML(dias, detalle, prefijoDia){
+function _detalleSecuenciaHTML(dias, detalle, prefijoDia, anio, mes){
   var html = '';
   dias.forEach(function(d){
     var det = detalle[d];
     if(!det) return;
     var abbr = prefijoDia ? (['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][new Date().getDay()]) : '';
-    var etiqueta = dias.length>1 ? (weekdayForDay(d).slice(0,3)+' '+d+': ') : '';
+    var etiqueta = dias.length>1 ? (weekdayForDay(d, anio, mes).slice(0,3)+' '+d+': ') : '';
     if(det.esLibre){
       html += '<div class="ct-feed-turno-tren">'+etiqueta+det.tipoLibreLbl+'</div>';
     } else if(det.turnos && det.turnos.length){
@@ -32204,7 +32226,7 @@ async function cargarCambiosPublicados(){
         + '<div class="ct-feed-hdr"><div class="ct-pcard-av">'+initials(p.nombre_publicador)+'</div>'
         + '<div><div class="ct-feed-name">'+p.nombre_publicador+'</div><div class="ct-feed-sub">Publicado '+_fechaRelativa(p.fecha_publicacion)+'</div></div>'
         + '<div class="ct-feed-expiry">'+_expiraEnTexto(p.fecha_caducidad)+'</div></div>'
-        + '<div class="ct-feed-turno"><div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 Secuencia: ':'')+_diasTexto(p.dias)+'</div>'+_detalleSecuenciaHTML(p.dias, p.detalle)+'</div>'
+        + '<div class="ct-feed-turno"><div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 Secuencia: ':'')+_diasTexto(p.dias, p.anio, p.mes)+'</div>'+_detalleSecuenciaHTML(p.dias, p.detalle, null, p.anio, p.mes)+'</div>'
         + (p.nota ? '<div class="ct-feed-note">"'+p.nota+'"</div>' : '')
         + '<div class="feed-btn ct-send-btn" onclick="abrirOfrecerCambio('+p.id+')">Ofrecer un cambio</div>'
         + '</div>';
@@ -32247,8 +32269,8 @@ async function cargarMisPublicaciones(){
             + ofertas.map(function(o){
               return '<div class="ct-req-swap" style="flex-direction:column;align-items:stretch;gap:4px">'
                 + '<div style="display:flex;align-items:center;gap:8px"><div class="ct-pcard-av" style="width:24px;height:24px;font-size:10px">'+initials(o.nombre_ofertante)+'</div><div class="ct-req-name" style="font-size:11px">'+o.nombre_ofertante+'</div></div>'
-                + '<div style="font-size:10px;color:var(--tx2)">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div>'
-                + _detalleSecuenciaHTML(o.dias, o.detalle)
+                + '<div style="font-size:10px;color:var(--tx2)">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias, o.anio, o.mes)+'</div>'
+                + _detalleSecuenciaHTML(o.dias, o.detalle, null, o.anio, o.mes)
                 + (o.mensaje ? '<div class="ct-req-msg" style="margin:4px 0">"'+o.mensaje+'"</div>' : '')
                 + '<div class="ct-btn-accept" style="margin-top:4px" onclick="aceptarOfertaPublicacion('+o.id+','+p.id+')">Aceptar esta oferta</div>'
                 + '</div>';
@@ -32260,7 +32282,7 @@ async function cargarMisPublicaciones(){
       }
       html += '<div class="ct-feed-item">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        + '<div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 ':'')+_diasTexto(p.dias)+'</div>'
+        + '<div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 ':'')+_diasTexto(p.dias, p.anio, p.mes)+'</div>'
         + chip + '</div>'
         + '<div class="ct-feed-expiry" style="margin-top:2px">'+(p.estado==='activa'?_expiraEnTexto(p.fecha_caducidad):'')+'</div>'
         + ofertasHtml
@@ -32316,7 +32338,7 @@ async function abrirOfrecerCambio(publicacionId){
   document.getElementById('ofrEstado').innerHTML = '';
   document.getElementById('ofrSeqResumen').innerHTML = '';
   document.getElementById('ofrHdrA').textContent = 'A '+r.data.nombre_publicador;
-  document.getElementById('ofrSuTurno').innerHTML = '<div class="ct-feed-turno"><div class="ct-feed-turno-day">Su '+(r.data.dias.length>1?'secuencia: ':'turno: ')+_diasTexto(r.data.dias)+'</div>'+_detalleSecuenciaHTML(r.data.dias, r.data.detalle)+'</div>';
+  document.getElementById('ofrSuTurno').innerHTML = '<div class="ct-feed-turno"><div class="ct-feed-turno-day">Su '+(r.data.dias.length>1?'secuencia: ':'turno: ')+_diasTexto(r.data.dias, r.data.anio, r.data.mes)+'</div>'+_detalleSecuenciaHTML(r.data.dias, r.data.detalle, null, r.data.anio, r.data.mes)+'</div>';
   var hoy = new Date();
   _ofrPintarDiasDelMes(hoy.getFullYear(), hoy.getMonth()+1);
   openOv('ov-ofrecer-publicacion');
@@ -32373,7 +32395,7 @@ function _ofrToggleDia(dia){
     return;
   }
   if(_ofrDias.length===1){ el.innerHTML=''; return; }
-  el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.08);color:#93C5FD">📦 Ofreces tu secuencia de '+_ofrDias.length+' días: '+_diasTexto(_ofrDias)+'</div>';
+  el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.08);color:#93C5FD">📦 Ofreces tu secuencia de '+_ofrDias.length+' días: '+_diasTexto(_ofrDias, _ofrMesActual&&_ofrMesActual.anio, _ofrMesActual&&_ofrMesActual.mes)+'</div>';
 }
 window._ofrToggleDia = _ofrToggleDia;
 
@@ -32388,6 +32410,8 @@ async function enviarOfertaPublicacion(){
     _ofrDias.forEach(function(d){ detalleCompleto[d] = _ofrDetallePorDia[d]; });
     var payload = {
       publicacion_id: _ofrPublicacionActual.id,
+      anio: _ofrMesActual.anio,
+      mes: _ofrMesActual.mes,
       matricula_ofertante: AJ.matricula,
       nombre_ofertante: AJ.nombre,
       dias: _ofrDias,
