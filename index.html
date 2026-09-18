@@ -30199,14 +30199,14 @@ function construirDetalleDiaPropio(anio, mes, dia){
   if(!t) return null;
   var esPernocta = (t.modo === 'pernocta' || t.modo === 'pernocta3');
   var turnos = [];
-  if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)) });
+  if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)), origen: t.sal||null, destino: t.lle||null });
   // NUEVO — "ida y vuelta el mismo día" (sin pernocta): el segundo
   // tramo vive en el MISMO día, como numTrenVuelta/hF2/hL2.
-  if(!esPernocta && t.numTrenVuelta) turnos.push({ numTren: t.numTrenVuelta, horaCI: t.hF2||null, horaCO: t.hL2||null });
+  if(!esPernocta && t.numTrenVuelta) turnos.push({ numTren: t.numTrenVuelta, horaCI: t.hF2||null, horaCO: t.hL2||null, origen: t.sal2||null, destino: t.lle2||null });
   // Turnos adicionales del mismo día (TV2) — varios servicios sueltos.
   if(typeof TV2 !== 'undefined' && TV2[k] && TV2[k].length){
     TV2[k].forEach(function(t2){
-      if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+      if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null, origen: t2.sal||null, destino: t2.lle||null });
     });
   }
   var diaVuelta = null, turnosVuelta = [];
@@ -30214,10 +30214,10 @@ function construirDetalleDiaPropio(anio, mes, dia){
     // t.diaSiguiente YA es una key completa ("2026-09-16"), no un
     // número de día suelto — se usa tal cual para buscar en TV/TV2.
     var tv = TV[t.diaSiguiente];
-    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: tv.hF||null, horaCO: tv.hL||null });
+    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: tv.hF||null, horaCO: tv.hL||null, origen: tv.sal||null, destino: tv.lle||null });
     if(typeof TV2 !== 'undefined' && TV2[t.diaSiguiente] && TV2[t.diaSiguiente].length){
       TV2[t.diaSiguiente].forEach(function(t2){
-        if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+        if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null, origen: t2.sal||null, destino: t2.lle||null });
       });
     }
     // Solo para MOSTRAR ("incluye la vuelta del día 27") se extrae el
@@ -30548,12 +30548,18 @@ function _nscPintarDetalleDia(idSelector, idDetalle, fecha, det, esMio){
   }
   var html = '<div class="ct-day-pick">';
   det.turnos.forEach(function(t){
-    html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+    var ruta = (t.origen && t.destino) ? (t.origen+' → '+t.destino) : '';
+    var horas = (t.horaCI||t.horaCO) ? ((t.horaCI||'')+(t.horaCO?' → '+t.horaCO:'')) : '';
+    html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(ruta?' · '+ruta:'')+'</div>'
+      + (horas?'<div style="font-size:10px;color:var(--tx3);margin-top:1px">'+horas+'</div>':'');
   });
   if(det.esPernocta && det.diaVuelta){
     html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta del día '+det.diaVuelta+'</div>';
     det.turnosVuelta.forEach(function(t){
-      html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+      var ruta = (t.origen && t.destino) ? (t.origen+' → '+t.destino) : '';
+      var horas = (t.horaCI||t.horaCO) ? ((t.horaCI||'')+(t.horaCO?' → '+t.horaCO:'')) : '';
+      html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(ruta?' · '+ruta:'')+'</div>'
+        + (horas?'<div style="font-size:10px;color:var(--tx3);margin-top:1px">'+horas+'</div>':'');
     });
   }
   html += '</div>';
