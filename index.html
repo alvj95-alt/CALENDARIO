@@ -4089,7 +4089,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <!-- NUEVO — Confirmado por el usuario: activar notificaciones
            push (avisos aunque la app esté cerrada del todo). -->
       <div class="aj-acc-item" id="aj-acc-notificaciones">
-        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-notificaciones')">
+        <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-notificaciones'); comprobarEstadoNotificacionesPush()">
           <span class="aj-acc-hdr-ico">🔔</span>
           <span class="aj-acc-hdr-tit">Notificaciones</span>
           <span class="aj-acc-hdr-arr">›</span>
@@ -30823,6 +30823,29 @@ async function activarNotificacionesPush(){
 }
 window.activarNotificacionesPush = activarNotificacionesPush;
 
+// NUEVO — Confirmado por el usuario: al volver a entrar en Ajustes,
+// el botón "Activar notificaciones" siempre aparecía igual, sin decir
+// si ya estaban activadas en este móvil — daba la sensación de que
+// había que repetirlo cada vez, aunque en realidad la suscripción
+// (guardada por el navegador + en push_subscriptions) seguía ahí.
+// Esto solo CONSULTA el estado real y lo enseña; no crea ni cambia
+// ninguna suscripción — activarNotificacionesPush() sigue siendo la
+// única función que activa algo.
+async function comprobarEstadoNotificacionesPush(){
+  var estadoEl = document.getElementById('notifPushEstado');
+  if(!estadoEl) return;
+  if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if(Notification.permission !== 'granted') return; // deja el botón tal cual, nada que avisar
+  try{
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if(sub){
+      estadoEl.innerHTML = '<span style="color:var(--green2)">✅ Ya activadas en este móvil — no hace falta repetirlo.</span>';
+    }
+  }catch(e){ /* silencioso: si falla la consulta, se deja el botón normal */ }
+}
+window.comprobarEstadoNotificacionesPush = comprobarEstadoNotificacionesPush;
+
 // NUEVO — Confirmado por el usuario: función reutilizable para
 // apuntar en la "bandeja de salida" (eventos_push) — la función de
 // Supabase ya montada se encarga sola de mandar el aviso de
@@ -32144,12 +32167,14 @@ function _detalleSecuenciaHTML(dias, detalle, prefijoDia){
       html += '<div class="ct-feed-turno-tren">'+etiqueta+det.tipoLibreLbl+'</div>';
     } else if(det.turnos && det.turnos.length){
       det.turnos.forEach(function(t){
-        html += '<div class="ct-feed-turno-tren">'+etiqueta+'Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+        var ruta = (t.origen && t.destino) ? (' · '+t.origen+' → '+t.destino) : '';
+        html += '<div class="ct-feed-turno-tren">'+etiqueta+'Tren '+t.numTren+ruta+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
       });
       if(det.esPernocta && det.diaVuelta){
         html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta el día '+det.diaVuelta+'</div>';
         (det.turnosVuelta||[]).forEach(function(t){
-          html += '<div class="ct-feed-turno-tren">Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+          var ruta = (t.origen && t.destino) ? (' · '+t.origen+' → '+t.destino) : '';
+          html += '<div class="ct-feed-turno-tren">Vuelta: Tren '+t.numTren+ruta+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
         });
       }
     }
@@ -32562,12 +32587,14 @@ function _inyectarInfoCambioTurnoEnDia(){
       html += '<div class="ct-day-pick-turno">'+td.tipoLibreLbl+'</div>';
     } else if(td){
       (td.turnos||[]).forEach(function(t){
-        html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+        var ruta = (t.origen && t.destino) ? (' · '+t.origen+' → '+t.destino) : '';
+        html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+ruta+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
       });
       if(td.esPernocta && td.diaVuelta){
         html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta del día '+td.diaVuelta+'</div>';
         (td.turnosVuelta||[]).forEach(function(t){
-          html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
+          var ruta = (t.origen && t.destino) ? (' · '+t.origen+' → '+t.destino) : '';
+          html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+ruta+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
         });
       }
     }
