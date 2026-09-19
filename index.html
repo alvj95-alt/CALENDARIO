@@ -3923,16 +3923,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="htdl-dias-stats-box"></div>
       <div id="cs-info-adicional-box"></div>
       <div id="cs-total-pagar-box"></div>
-
-      <!-- NUEVO — hueco del anuncio "Banner 468x60" (Adsterra). El
-           banner mide 468px de ancho, más que la pantalla del móvil
-           (~390px), así que se encoge con "zoom" para que quepa
-           entero sin desbordar ni forzar scroll lateral — mismo
-           truco que ya se usa con el Native Banner. Vacío hasta que
-           se aceptan las cookies (ver cargarAnunciosSiConsentido()). -->
-      <div style="margin:14px 0 4px;display:flex;justify-content:center;overflow:hidden">
-        <div id="hueco-banner-468x60" style="zoom:0.8"></div>
-      </div>
     </div>
   </div>
 
@@ -5047,47 +5037,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-     NUEVO — AVISO SOBRE LA PUBLICIDAD. Aparece UNA sola vez, a
-     cualquiera (Tripulación o Interventor), y no vuelve a salir tras
-     pulsar "Entendido" (mismo mecanismo que Novedades: una clave en
-     localStorage). Ver mostrarAvisoPublicidadSiHaceFalta() y
-     cerrarAvisoPublicidad() en el bloque de JS.
-═══════════════════════════════════════════════════════════ -->
-<div class="ov" id="ov-aviso-publicidad">
-  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
-    <div class="sh-handle"></div>
-    <div class="sh-hdr">
-      <div class="sh-ico">📢</div>
-      <div><div class="sh-tit">Un aviso sobre la publicidad</div><div class="sh-sub">TrenTurnos v5</div></div>
-    </div>
-    <div style="padding:18px 20px;overflow-y:auto">
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🙏</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Si te ha salido algún anuncio que no te ha gustado, de verdad te pido <b style="color:var(--tx)">DISCULPAS</b> — sé que es un rollo cuando solo quieres mirar tus turnos.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🔌</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Nosotros no elegimos qué publicidad concreta se muestra — eso lo decide la plataforma externa que gestiona los anuncios, no la app.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🗑️</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">En cuanto vimos que se estaba colando contenido que no queríamos, <b style="color:var(--tx)">quitamos el anuncio más grande</b> para reducir ese riesgo.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">💛</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Esperamos que no te haya resultado muy molesto, y gracias por tu paciencia — seguimos revisándolo.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:20px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🛡️</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6"><b style="color:var(--tx)">Esto no es ningún virus.</b> Es un servicio de publicidad real, como el que usan miles de páginas web — genera unos céntimos que ayudan a seguir manteniendo y mejorando la app.</div>
-      </div>
-      <button onclick="cerrarAvisoPublicidad()" style="width:100%;padding:14px;background:var(--acc);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">✅ Entendido</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══════════════════════════════════════════════════════════
-     NUEVO — NÓMINA ESTIMADA. Confirmada con Alex tras varias rondas
+     NÓMINA ESTIMADA. Confirmada con Alex tras varias rondas
      de maqueta (ver conversación). Dos pestañas: "Desde el Excel"
      (usa _computoExcelPorMes, ya subido para la comparación de
      horas) y "Desde tu Calendario" (reutiliza calculateEarnings()).
@@ -5887,16 +5838,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <button class="sh-close" onclick="closeOv('ov-privacidad')">✕</button>
     </div>
     <div class="legal-body">
-      <p><strong>1. Resumen</strong><br>TrenTurnos v5 no tiene servidor propio, no requiere registro ni cuenta, y no recopila ni transmite tus datos personales a ningún tercero para fines propios de la app. Todo funciona 100% en tu dispositivo. La única excepción es la publicidad que financia la app gratuita, explicada en el punto 4.</p>
-      <p><strong>2. Qué datos se guardan y dónde</strong><br>Los turnos, horarios, nombre, matrícula, ajustes económicos y cualquier otro dato que introduzcas se guardan exclusivamente en el almacenamiento local de tu navegador (localStorage). Nunca salen de tu dispositivo ni se envían a ningún servidor nuestro.</p>
+      <p><strong>1. Resumen</strong><br>TrenTurnos v5 no tiene servidor, no requiere registro ni cuenta, y no recopila ni transmite tus datos a ningún tercero. Todo funciona 100% en tu dispositivo.</p>
+      <p><strong>2. Qué datos se guardan y dónde</strong><br>Los turnos, horarios, nombre, matrícula, ajustes económicos y cualquier otro dato que introduzcas se guardan exclusivamente en el almacenamiento local de tu navegador (localStorage). Nunca salen de tu dispositivo ni se envían a ningún servidor.</p>
       <p><strong>3. Archivos PDF que subes a la app</strong><br>Si utilizas la función de comparación de horarios con compañeros y subes un PDF de cuadrante, ese archivo se procesa íntegramente en tu navegador (nunca se sube a internet). Si ese PDF contiene nombres de compañeros, esa información se trata con el mismo criterio: se queda solo en tu dispositivo.</p>
-      <p><strong>4. Publicidad y cookies</strong><br>Para poder mantener la app gratuita, TrenTurnos v5 muestra anuncios a través de un proveedor externo de publicidad (Adsterra). Este proveedor puede usar cookies y tecnologías similares en el espacio del anuncio para mostrar publicidad y medir su rendimiento, según sus propias políticas. Nosotros no elegimos qué anuncio concreto se muestra ni recibimos los datos que ese proveedor pueda recopilar. Al aceptar el aviso de cookies dentro de la app, consientes este uso; puedes rechazarlo, aunque eso puede limitar la publicidad mostrada.</p>
-      <p><strong>5. Sin analítica ni rastreo propio</strong><br>Fuera de la publicidad descrita arriba, la app no utiliza cookies de rastreo, píxeles publicitarios ni herramientas de analítica de terceros para fines propios.</p>
-      <p><strong>6. Enlaces externos</strong><br>Los botones de WhatsApp (soporte) y Buy Me a Coffee (donaciones) te llevan a servicios externos con sus propias políticas de privacidad, ajenas a esta app.</p>
-      <p><strong>7. Copias de seguridad</strong><br>Si usas la función de exportar/importar datos, el archivo generado (con tus turnos y ajustes) se descarga a tu dispositivo y es tu responsabilidad custodiarlo.</p>
-      <p><strong>8. Borrado de datos</strong><br>Puedes borrar todos tus datos en cualquier momento desde Ajustes ("Borrar todos los turnos"), o eliminando los datos del navegador/desinstalando la app — la eliminación es total e irreversible.</p>
-      <p><strong>9. Menores de edad</strong><br>La app está pensada para uso profesional de personal ferroviario adulto.</p>
-      <p><strong>10. Responsable y contacto</strong><br>El responsable de esta aplicación es José Alejandro Alvarado. Para cualquier consulta o duda sobre esta Política de Privacidad o el tratamiento de tus datos, puedes escribir a <a href="mailto:Alvj321th@gmail.com" style="color:var(--acc2)">Alvj321th@gmail.com</a>.</p>
+      <p><strong>4. Sin cookies de seguimiento ni analítica</strong><br>La app no utiliza cookies de rastreo, píxeles publicitarios ni herramientas de analítica de terceros.</p>
+      <p><strong>5. Enlaces externos</strong><br>Los botones de WhatsApp (soporte) y Buy Me a Coffee (donaciones) te llevan a servicios externos con sus propias políticas de privacidad, ajenas a esta app.</p>
+      <p><strong>6. Copias de seguridad</strong><br>Si usas la función de exportar/importar datos, el archivo generado (con tus turnos y ajustes) se descarga a tu dispositivo y es tu responsabilidad custodiarlo.</p>
+      <p><strong>7. Borrado de datos</strong><br>Puedes borrar todos tus datos en cualquier momento desde Ajustes ("Borrar todos los turnos"), o eliminando los datos del navegador/desinstalando la app — la eliminación es total e irreversible.</p>
+      <p><strong>8. Menores de edad</strong><br>La app está pensada para uso profesional de personal ferroviario adulto.</p>
+      <p><strong>9. Responsable y contacto</strong><br>El responsable de esta aplicación es José Alejandro Alvarado. Para cualquier consulta o duda sobre esta Política de Privacidad o el tratamiento de tus datos, puedes escribir a <a href="mailto:Alvj321th@gmail.com" style="color:var(--acc2)">Alvj321th@gmail.com</a>.</p>
     </div>
   </div>
 </div>
@@ -6935,30 +6885,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     NUEVO — Aviso de cookies (Google AdSense / Adsterra). Se
-     muestra SOLO la primera vez (comprueba localStorage). Los
-     scripts de publicidad de verdad NO se cargan hasta que la
-     persona pulsa "Aceptar" — así se cumple la normativa europea
-     de cookies (no cargar cookies de terceros sin consentimiento
-     previo). Ver cargarAnunciosSiConsentido() más abajo: ahí es
-     donde se pegará el código real de AdSense/Adsterra en cuanto
-     Alex tenga aprobada alguna de las dos cuentas — de momento no
-     hace nada, solo deja el sitio preparado.
-═══════════════════════════════════════════════════════════ -->
-<div id="cookie-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;
-  background:var(--s1);border-top:1px solid var(--div);padding:16px 18px calc(16px + env(safe-area-inset-bottom));
-  box-shadow:0 -10px 30px rgba(0,0,0,.4)">
-  <div style="font-size:12px;color:var(--tx2);line-height:1.5;margin-bottom:12px">
-    🍪 Usamos cookies para poder mostrar publicidad y mantener la app gratis. No se usan para acceder a tus turnos ni a tu matrícula.
-    <a href="./politica-privacidad.html" target="_blank" style="color:var(--acc2);font-weight:700">Más info</a>
-  </div>
-  <div style="display:flex;gap:8px">
-    <button onclick="rechazarCookies()" style="flex:1;padding:11px;background:var(--s2);border:1px solid var(--div);border-radius:9px;color:var(--tx2);font-size:12.5px;font-weight:700;cursor:pointer">Rechazar</button>
-    <button onclick="aceptarCookies()" style="flex:1;padding:11px;background:var(--acc);border:none;border-radius:9px;color:#fff;font-size:12.5px;font-weight:800;cursor:pointer">Aceptar</button>
-  </div>
-</div>
 
 <!-- NUEVO — barra de borrado múltiple (modo selección, maqueta A) -->
 <div id="barra-borrado-masivo">
@@ -8887,24 +8813,6 @@ var WHATSAPP_SOPORTE = '66660753771'; // +66 660 753 771 (Alex)
 // Palabras muy comunes que no ayudan a encontrar el tema — se
 // ignoran al buscar, para que no distorsionen la puntuación.
 var CHATBOT_PALABRAS_VACIAS = ['de','la','el','en','un','una','como','que','para','con','mi','se','a','y','o','los','las','del','al','es','no','me','tengo','puedo','quiero','hace','hacer','tiempo','manana','necesito','esta','este','hay','soy','muy','mas','pero','sobre'];
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — AVISO SOBRE LA PUBLICIDAD. Aparece una sola vez para
-   cualquiera (Tripulación o Interventor); ver openOv/closeOv propios
-   más abajo — usa "display:flex" directo en vez de openOv() genérico
-   porque este aviso no debe cerrarse tocando fuera (solo con el
-   botón "Entendido"), a diferencia del resto de overlays.
-═══════════════════════════════════════════════════════════ */
-function mostrarAvisoPublicidadSiHaceFalta(){
-  if(localStorage.getItem('aviso_publicidad_visto')==='1') return;
-  var el = document.getElementById('ov-aviso-publicidad');
-  if(el) el.classList.add('on');
-}
-function cerrarAvisoPublicidad(){
-  localStorage.setItem('aviso_publicidad_visto', '1');
-  var el = document.getElementById('ov-aviso-publicidad');
-  if(el) el.classList.remove('on');
-}
 
 function abrirChatbot(){
   var conv = document.getElementById('chatbot-conversacion');
@@ -18016,16 +17924,6 @@ function goP(n){
     renderNominaPublica();
     mostrarAvisoNominaSiCorresponde();
   }
-  // NUEVO — Confirmado por Alex: el Social Bar (Adsterra) solo debe
-  // aparecer en Ajustes, no en toda la app. Se carga al ENTRAR en
-  // Ajustes, y se retira (elimina del DOM) al SALIR — el propio
-  // script de Adsterra no sabe distinguir pantallas por sí solo, así
-  // que ese control lo hace este mismo goP().
-  if(n==='ajustes'){
-    if(typeof cargarSocialBarSiConsentido==='function') cargarSocialBarSiConsentido();
-  } else {
-    if(typeof quitarSocialBar==='function') quitarSocialBar();
-  }
   // NUEVO — refresca la píldora ✅ Check-in (visible/oculta según rol,
   // y en azul si ya hay check-in subido hoy) cada vez que se entra en
   // Calendario, para que nunca quede desactualizada de una sesión a otra.
@@ -24282,108 +24180,6 @@ function ciConTimeout(promesa, ms){
       resolve({ok:false, error:err});
     });
   });
-}
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — Consentimiento de cookies (Google AdSense / Adsterra).
-   100% aditivo — no toca ningún dato de TV/AJ/turnos.
-═══════════════════════════════════════════════════════════ */
-function mostrarAvisoCookiesSiHaceFalta(){
-  var decision = localStorage.getItem('cookie_consent');
-  if(decision === 'aceptado'){ cargarAnunciosSiConsentido(); return; }
-  if(decision === 'rechazado') return; // ya decidió que no, no se le vuelve a preguntar
-  var banner = document.getElementById('cookie-banner');
-  if(banner) banner.style.display = 'block';
-}
-function aceptarCookies(){
-  localStorage.setItem('cookie_consent', 'aceptado');
-  document.getElementById('cookie-banner').style.display = 'none';
-  cargarAnunciosSiConsentido();
-}
-function rechazarCookies(){
-  localStorage.setItem('cookie_consent', 'rechazado');
-  document.getElementById('cookie-banner').style.display = 'none';
-}
-// NUEVO — AQUÍ es donde se pega el script real de Google AdSense o
-// de Adsterra en cuanto Alex tenga aprobada la cuenta. De momento no
-// hace nada — solo se carga si la persona ya aceptó las cookies (o
-// ya las había aceptado antes), cumpliendo la ley de cookies europea
-// (nunca se cargan scripts de publicidad sin consentimiento previo).
-// NUEVO — Confirmado por Alex: toda la publicidad se oculta por
-// ahora, hasta nueva orden. Con este interruptor en "true" no se
-// carga NINGÚN anuncio (Banner 468x60 ni Social Bar), aunque la
-// persona haya aceptado las cookies — para volver a activarla, basta
-// con cambiar esto a "false", sin tocar nada más del código.
-var PUBLICIDAD_OCULTA_TEMPORALMENTE = true;
-
-function cargarAnunciosSiConsentido(){
-  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
-  // QUITADO — Confirmado por Alex: el Native Banner (id 30856817) se
-  // eliminó por completo. Estaba mostrando anuncios para adultos que
-  // Adsterra no filtró correctamente pese a tener el interruptor de
-  // "anuncios para adultos" en apagado — no era algo controlable
-  // desde este lado, así que se sacó del todo en vez de arriesgarse
-  // a que volviera a pasar.
-  // ADSTERRA — Banner 468x60 (id 30856819). Este formato usa
-  // "document.write" por dentro para dibujarse — si se ejecutara
-  // directamente en la página principal DESPUÉS de que ya haya
-  // cargado (que es justo este caso, se activa al aceptar cookies),
-  // "document.write" borraría sin querer toda la app. Por eso se
-  // mete dentro de un iframe propio, chiquito y sin bordes: dentro de
-  // ESE iframe sí es seguro usar document.write (tiene su propio
-  // documento en blanco), y nada de lo que haga puede tocar el resto
-  // de la página.
-  var huecoBanner = document.getElementById('hueco-banner-468x60');
-  if(huecoBanner && !document.getElementById('adsterra-banner-468x60')){
-    var iframeBanner = document.createElement('iframe');
-    iframeBanner.id = 'adsterra-banner-468x60';
-    iframeBanner.style.cssText = 'width:468px;height:60px;border:none;overflow:hidden';
-    iframeBanner.scrolling = 'no';
-    huecoBanner.appendChild(iframeBanner);
-    var docBanner = iframeBanner.contentWindow.document;
-    docBanner.open();
-    docBanner.write(
-      '<body style="margin:0;padding:0">' +
-      '<script>atOptions={key:"8f85bd49ca05e6f56f1b0ed1672b232f",format:"iframe",height:60,width:468,params:{}};<\/script>' +
-      '<script src="https://www.highrevenueformat.com/8f85bd49ca05e6f56f1b0ed1672b232f/invoke.js"><\/script>' +
-      '</body>'
-    );
-    docBanner.close();
-  }
-  // QUITADO de aquí (carga global) — Confirmado por Alex: el Social
-  // Bar (id 30856818) ahora solo se carga cuando entra en Ajustes
-  // (ver cargarSocialBarSiConsentido()/quitarSocialBar() más abajo,
-  // enganchados a goP()), no en toda la app como antes.
-}
-
-// NUEVO — Social Bar de Adsterra, SOLO en Ajustes. El script de
-// Adsterra no distingue pantallas por sí solo (suele fijar su
-// elemento directo en <body>, con position:fixed), así que aquí se
-// guarda una "foto" de qué hijos tenía <body> ANTES de cargarlo, y al
-// salir de Ajustes se borra cualquier hijo NUEVO que haya aparecido
-// desde entonces — así se retira de verdad, no solo se deja de
-// cargar el script.
-var _socialBarHijosPrevios = null;
-function cargarSocialBarSiConsentido(){
-  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
-  var decision = localStorage.getItem('cookie_consent');
-  if(decision !== 'aceptado') return; // respeta el aviso de cookies igual que el resto de anuncios
-  if(document.getElementById('adsterra-social-bar')) return; // ya está cargado, no se duplica
-  _socialBarHijosPrevios = Array.prototype.slice.call(document.body.children);
-  var s2 = document.createElement('script');
-  s2.id = 'adsterra-social-bar';
-  s2.src = 'https://pl30957317.effectivecpmnetwork.com/30/94/fc/3094fc270290b91a58eca9cd46919b21.js';
-  document.body.appendChild(s2);
-}
-function quitarSocialBar(){
-  var script = document.getElementById('adsterra-social-bar');
-  if(script) script.remove();
-  if(_socialBarHijosPrevios){
-    Array.prototype.slice.call(document.body.children).forEach(function(el){
-      if(_socialBarHijosPrevios.indexOf(el) === -1) el.remove();
-    });
-    _socialBarHijosPrevios = null;
-  }
 }
 
 async function abrirCheckin(){
@@ -33030,12 +32826,6 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     // Notificaciones del Admin al entrar a esta pantalla, por si hay
     // algo nuevo publicado desde la última vez.
     if(typeof refrescarNotificacionesActivas==='function') refrescarNotificacionesActivas();
-    // NUEVO — mismo aviso sobre la publicidad que ve Tripulación,
-    // por si alguien entra a Interventor directo sin haber pasado
-    // antes por el arranque normal de la app.
-    setTimeout(function(){
-      if(typeof mostrarAvisoPublicidadSiHaceFalta==='function') mostrarAvisoPublicidadSiHaceFalta();
-    }, 800);
     // FIX — antes se llamaba directamente a cargarHorarioGlobalDesdeAdmin()
     // y activateBase(), pero esas funciones viven DENTRO de un módulo
     // de código aislado (el mismo que usa el Buscador de Compañeros) y
@@ -33481,18 +33271,6 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     setTimeout(function(){
       if(typeof mostrarPillCheckinSiCorresponde==='function') mostrarPillCheckinSiCorresponde();
     }, 3500);
-    // NUEVO — aviso de cookies (Google AdSense / Adsterra), un poco
-    // más tarde que el resto para no competir visualmente con el
-    // splash de bienvenida.
-    setTimeout(function(){
-      if(typeof mostrarAvisoCookiesSiHaceFalta==='function') mostrarAvisoCookiesSiHaceFalta();
-    }, 4000);
-    // NUEVO — aviso sobre la publicidad (disculpa + qué se quitó),
-    // una sola vez. Se muestra un poco más tarde que las cookies para
-    // que no compitan por la atención al mismo tiempo.
-    setTimeout(function(){
-      if(typeof mostrarAvisoPublicidadSiHaceFalta==='function') mostrarAvisoPublicidadSiHaceFalta();
-    }, 4600);
   }
 
   if(document.readyState === 'loading'){
