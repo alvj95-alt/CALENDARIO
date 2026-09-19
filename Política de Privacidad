@@ -27,38 +27,31 @@
   <div class="updated">TrenTurnos v5 · Última actualización: septiembre de 2026</div>
 
   <h2>1. Resumen</h2>
-  <p>TrenTurnos v5 no tiene servidor propio, no requiere registro ni cuenta, y no recopila ni transmite tus datos personales a ningún tercero para fines propios de la app. Todos tus turnos, horarios y ajustes funcionan 100% en tu dispositivo. La única excepción es la publicidad que financia la app gratuita, explicada en el punto 4.</p>
+  <p>TrenTurnos v5 no tiene servidor, no requiere registro ni cuenta, y no recopila ni transmite tus datos a ningún tercero. Todo funciona 100% en tu dispositivo.</p>
 
   <h2>2. Qué datos se guardan y dónde</h2>
-  <p>Los turnos, horarios, nombre, matrícula, ajustes económicos y cualquier otro dato que introduzcas se guardan exclusivamente en el almacenamiento local de tu navegador (localStorage). Nunca salen de tu dispositivo ni se envían a ningún servidor nuestro.</p>
+  <p>Los turnos, horarios, nombre, matrícula, ajustes económicos y cualquier otro dato que introduzcas se guardan exclusivamente en el almacenamiento local de tu navegador (localStorage). Nunca salen de tu dispositivo ni se envían a ningún servidor.</p>
 
   <h2>3. Archivos PDF que subes a la app</h2>
   <p>Si utilizas la función de comparación de horarios con compañeros y subes un PDF de cuadrante, ese archivo se procesa íntegramente en tu navegador (nunca se sube a internet). Si ese PDF contiene nombres de compañeros, esa información se trata con el mismo criterio: se queda solo en tu dispositivo.</p>
 
-  <h2>4. Publicidad y cookies</h2>
-  <p>Para poder mantener la app gratuita, TrenTurnos v5 muestra anuncios a través de un proveedor externo de publicidad (Adsterra). Este proveedor puede usar cookies y tecnologías similares en el espacio del anuncio para mostrar publicidad y medir su rendimiento, según sus propias políticas — <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener">puedes consultarlas aquí</a>. Nosotros no elegimos qué anuncio concreto se muestra ni recibimos los datos que ese proveedor pueda recopilar. Al aceptar el aviso de cookies dentro de la app, consientes este uso; puedes rechazarlo, aunque eso puede limitar la publicidad mostrada.</p>
+  <h2>4. Sin cookies de seguimiento ni analítica</h2>
+  <p>La app no utiliza cookies de rastreo, píxeles publicitarios ni herramientas de analítica de terceros.</p>
 
-  <h2>5. Sin analítica ni rastreo propio</h2>
-  <p>Fuera de la publicidad descrita arriba, la app no utiliza cookies de rastreo, píxeles publicitarios ni herramientas de analítica de terceros para fines propios.</p>
-
-  <h2>6. Enlaces externos</h2>
+  <h2>5. Enlaces externos</h2>
   <p>Los botones de WhatsApp (soporte) y Buy Me a Coffee (donaciones) te llevan a servicios externos con sus propias políticas de privacidad, ajenas a esta app.</p>
 
-  <h2>7. Copias de seguridad</h2>
+  <h2>6. Copias de seguridad</h2>
   <p>Si usas la función de exportar/importar datos, el archivo generado (con tus turnos y ajustes) se descarga a tu dispositivo y es tu responsabilidad custodiarlo.</p>
 
-  <h2>8. Borrado de datos</h2>
+  <h2>7. Borrado de datos</h2>
   <p>Puedes borrar todos tus datos en cualquier momento desde Ajustes ("Borrar todos los turnos"), o eliminando los datos del navegador/desinstalando la app — la eliminación es total e irreversible.</p>
 
-  <h2>9. Menores de edad</h2>
+  <h2>8. Menores de edad</h2>
   <p>La app está pensada para uso profesional de personal ferroviario adulto.</p>
 
-  <h2>10. Responsable y contacto</h2>
+  <h2>9. Responsable y contacto</h2>
   <p>El responsable de esta aplicación es José Alejandro Alvarado. Para cualquier consulta o duda sobre esta Política de Privacidad o el tratamiento de tus datos, puedes escribir a <a href="mailto:Alvj321th@gmail.com">Alvj321th@gmail.com</a>.</p>
-
-  <div class="card">
-    <p>Esta página se usa como enlace de Política de Privacidad para la ficha de TrenTurnos v5 en Google Play. El texto dentro de la propia app se irá actualizando para que coincida con este.</p>
-  </div>
 </div>
 </body>
 </html>
