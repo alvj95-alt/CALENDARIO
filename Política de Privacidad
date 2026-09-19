@@ -2,87 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Política de Privacidad · TrenTurnos v5</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de Privacidad — TrenTurnos v5</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
   :root{
-    --bg:#07111F; --s1:#0D1B2E; --s2:#132236; --div:#1E3350;
-    --acc:#2563EB; --acc2:#3B82F6; --nar:#F97316; --nar2:#FB923C;
-    --tx:#F8FAFC; --tx2:#94A3B8; --tx3:#475569;
+    --bg:#07111F; --s1:#0D1B2E; --div:#1E3350;
+    --tx:#F8FAFC; --tx2:#94A3B8; --acc3:#93C5FD;
   }
-  *{box-sizing:border-box;font-family:'Inter',sans-serif}
-  body{background:var(--bg);color:var(--tx);margin:0;padding:0;line-height:1.65}
-  .wrap{max-width:720px;margin:0 auto;padding:32px 22px 80px}
-  .back{display:inline-flex;align-items:center;gap:6px;color:var(--acc2);text-decoration:none;font-size:13px;font-weight:700;margin-bottom:20px}
-  h1{font-size:26px;font-weight:900;margin:0 0 6px}
-  .sub{color:var(--tx3);font-size:12.5px;margin-bottom:32px}
-  h2{font-size:16px;font-weight:800;color:var(--acc2);margin:32px 0 10px;padding-top:16px;border-top:1px solid var(--div)}
-  h2:first-of-type{border-top:none;padding-top:0}
-  p{color:var(--tx2);font-size:14px;margin:0 0 12px}
-  ul{color:var(--tx2);font-size:14px;padding-left:20px;margin:0 0 12px}
-  li{margin-bottom:6px}
-  b{color:var(--tx)}
-  .box{background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:16px 18px;margin:14px 0}
-  .contact{background:var(--s2);border:1px solid var(--div);border-radius:12px;padding:18px;margin-top:30px;text-align:center}
-  .contact a{color:var(--acc2);text-decoration:none;font-weight:700}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
-  td,th{border:1px solid var(--div);padding:8px 10px;text-align:left;color:var(--tx2)}
-  th{color:var(--tx);font-weight:700;background:var(--s2)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;padding:32px 18px 60px}
+  .wrap{max-width:680px;margin:0 auto}
+  h1{font-size:22px;margin-bottom:4px}
+  .updated{color:var(--tx2);font-size:13px;margin-bottom:28px}
+  h2{font-size:15px;color:var(--acc3);margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--div)}
+  p{color:#E2E8F0;font-size:14.5px;margin:0 0 4px}
+  .card{background:var(--s1);border:1px solid var(--div);border-radius:12px;padding:16px 18px;margin-top:24px}
+  .card p{color:var(--tx2);font-size:13px;margin:0}
+  a{color:var(--acc3)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <a class="back" href="./index.html">‹ Volver a TrenTurnos</a>
-  <h1>Política de Privacidad</h1>
-  <div class="sub">TrenTurnos v5 · Última actualización: agosto de 2026</div>
+  <h1>🔒 Política de Privacidad</h1>
+  <div class="updated">TrenTurnos v5 · Última actualización: septiembre de 2026</div>
 
-  <h2>1. ¿Qué es TrenTurnos?</h2>
-  <p>TrenTurnos es una herramienta gratuita, creada de forma independiente, para ayudar a tripulantes de tren a gestionar sus turnos, horas trabajadas y compensaciones económicas. No está afiliada a ninguna empresa ferroviaria ni operadora — es un proyecto personal compartido con compañeros de trabajo.</p>
+  <h2>1. Resumen</h2>
+  <p>TrenTurnos v5 no tiene servidor propio, no requiere registro ni cuenta, y no recopila ni transmite tus datos personales a ningún tercero para fines propios de la app. Todos tus turnos, horarios y ajustes funcionan 100% en tu dispositivo. La única excepción es la publicidad que financia la app gratuita, explicada en el punto 4.</p>
 
-  <h2>2. Qué datos se guardan</h2>
-  <p>Para que la app funcione, se guardan los siguientes datos:</p>
-  <ul>
-    <li><b>En tu propio dispositivo</b> (almacenamiento local del navegador): tu nombre, matrícula, estación base, tarifas, y todos los turnos que registres. Estos datos <b>no salen de tu móvil u ordenador</b> salvo que actives la copia de seguridad en la nube.</li>
-    <li><b>Si activas la copia de seguridad en la nube</b> (opcional): una copia cifrada de tus turnos y ajustes se guarda en un servidor (Supabase) para que no los pierdas si cambias de dispositivo.</li>
-    <li><b>Si usas el Buscador de Compañeros</b>: se registra qué matrícula ha consultado el horario, con qué compañero y cuándo — esto es visible para el Administrador de tu base, para control de accesos.</li>
-    <li><b>Si subes el Check-in del día</b>: los datos que aparecen en el listado (matrícula, nombre, turno, posición) quedan guardados de forma compartida para tu base, visibles para tus compañeros y el Administrador.</li>
-  </ul>
+  <h2>2. Qué datos se guardan y dónde</h2>
+  <p>Los turnos, horarios, nombre, matrícula, ajustes económicos y cualquier otro dato que introduzcas se guardan exclusivamente en el almacenamiento local de tu navegador (localStorage). Nunca salen de tu dispositivo ni se envían a ningún servidor nuestro.</p>
 
-  <h2>3. Publicidad y cookies</h2>
-  <p>Para poder mantener esta herramienta de forma gratuita, TrenTurnos puede mostrar anuncios a través de redes publicitarias de terceros (como Google AdSense u otras). Estas redes pueden usar cookies u otras tecnologías similares para mostrar anuncios relevantes.</p>
-  <div class="box">
-    <p style="margin-bottom:0"><b>Al usar TrenTurnos con los anuncios activados, terceros pueden:</b></p>
-    <ul style="margin-top:8px">
-      <li>Usar cookies para medir el rendimiento de los anuncios.</li>
-      <li>Recoger datos técnicos (tipo de dispositivo, aproximación de ubicación) para personalizar anuncios.</li>
-      <li>No acceden en ningún caso a tus datos de turnos, matrícula o nombre — esos viven aparte, en el almacenamiento de la app.</li>
-    </ul>
-  </div>
-  <p>Puedes gestionar o rechazar las cookies de publicidad desde el aviso que aparece la primera vez que entras, o desde los ajustes de cookies de tu propio navegador.</p>
+  <h2>3. Archivos PDF que subes a la app</h2>
+  <p>Si utilizas la función de comparación de horarios con compañeros y subes un PDF de cuadrante, ese archivo se procesa íntegramente en tu navegador (nunca se sube a internet). Si ese PDF contiene nombres de compañeros, esa información se trata con el mismo criterio: se queda solo en tu dispositivo.</p>
 
-  <h2>4. Con quién se comparten los datos</h2>
-  <table>
-    <tr><th>Servicio</th><th>Para qué</th></tr>
-    <tr><td>Supabase</td><td>Copia de seguridad en la nube, check-in compartido, panel de administración (solo si los usas)</td></tr>
-    <tr><td>Google AdSense / redes publicitarias</td><td>Mostrar anuncios para sostener el proyecto (solo si están activos)</td></tr>
-  </table>
-  <p>No se vende ni se cede ningún dato a terceros con fines distintos a los descritos aquí.</p>
+  <h2>4. Publicidad y cookies</h2>
+  <p>Para poder mantener la app gratuita, TrenTurnos v5 muestra anuncios a través de un proveedor externo de publicidad (Adsterra). Este proveedor puede usar cookies y tecnologías similares en el espacio del anuncio para mostrar publicidad y medir su rendimiento, según sus propias políticas — <a href="https://adsterra.com/privacy-policy/" target="_blank" rel="noopener">puedes consultarlas aquí</a>. Nosotros no elegimos qué anuncio concreto se muestra ni recibimos los datos que ese proveedor pueda recopilar. Al aceptar el aviso de cookies dentro de la app, consientes este uso; puedes rechazarlo, aunque eso puede limitar la publicidad mostrada.</p>
 
-  <h2>5. Tus derechos</h2>
-  <p>Puedes en cualquier momento:</p>
-  <ul>
-    <li><b>Ver y borrar</b> tus datos locales desde Ajustes → Borrar todos los datos.</li>
-    <li><b>Solicitar la eliminación</b> de tu copia en la nube o de tus accesos registrados, escribiendo al contacto de abajo.</li>
-    <li><b>Rechazar las cookies de publicidad</b> sin que eso afecte al uso normal de la app.</li>
-  </ul>
+  <h2>5. Sin analítica ni rastreo propio</h2>
+  <p>Fuera de la publicidad descrita arriba, la app no utiliza cookies de rastreo, píxeles publicitarios ni herramientas de analítica de terceros para fines propios.</p>
 
-  <h2>6. Menores de edad</h2>
-  <p>TrenTurnos está pensado para personas trabajadoras del sector ferroviario, mayores de edad.</p>
+  <h2>6. Enlaces externos</h2>
+  <p>Los botones de WhatsApp (soporte) y Buy Me a Coffee (donaciones) te llevan a servicios externos con sus propias políticas de privacidad, ajenas a esta app.</p>
 
-  <div class="contact">
-    <div style="font-size:13px;color:var(--tx2);margin-bottom:6px">¿Dudas sobre tus datos o esta política?</div>
-    <a href="mailto:alvj321th@trenturnov5.es">alvj321th@trenturnov5.es</a>
+  <h2>7. Copias de seguridad</h2>
+  <p>Si usas la función de exportar/importar datos, el archivo generado (con tus turnos y ajustes) se descarga a tu dispositivo y es tu responsabilidad custodiarlo.</p>
+
+  <h2>8. Borrado de datos</h2>
+  <p>Puedes borrar todos tus datos en cualquier momento desde Ajustes ("Borrar todos los turnos"), o eliminando los datos del navegador/desinstalando la app — la eliminación es total e irreversible.</p>
+
+  <h2>9. Menores de edad</h2>
+  <p>La app está pensada para uso profesional de personal ferroviario adulto.</p>
+
+  <h2>10. Responsable y contacto</h2>
+  <p>El responsable de esta aplicación es José Alejandro Alvarado. Para cualquier consulta o duda sobre esta Política de Privacidad o el tratamiento de tus datos, puedes escribir a <a href="mailto:Alvj321th@gmail.com">Alvj321th@gmail.com</a>.</p>
+
+  <div class="card">
+    <p>Esta página se usa como enlace de Política de Privacidad para la ficha de TrenTurnos v5 en Google Play. El texto dentro de la propia app se irá actualizando para que coincida con este.</p>
   </div>
 </div>
 </body>
