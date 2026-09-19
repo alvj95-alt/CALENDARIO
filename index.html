@@ -318,44 +318,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
 .dc-ico{font-size:14px;line-height:1;margin-top:0}
 
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — Confirmado por el usuario: en modo admin la celda del
-   calendario se rediseña de verdad como la maqueta "G" — tarjeta
-   oscura con borde de color por tipo, número de día arriba y una
-   etiqueta de texto limpia debajo (tren o tipo de turno), en vez del
-   relleno de color + icono + badges sueltos de la vista normal.
-   Fuera de modo admin no se aplica NADA de esto.
-═══════════════════════════════════════════════════════════ */
-body.modo-admin .dc{
-  background:var(--s1)!important;border:1px solid var(--div)!important;
-  color:var(--tx)!important;
-  display:flex!important;flex-direction:column!important;
-  align-items:center!important;justify-content:center!important;gap:1px;
-  padding:3px 1px;
-}
-body.modo-admin .dc-hoy{border-color:var(--nar)!important;background:rgba(249,115,22,.12)!important}
-body.modo-admin .dc-sel{outline:2px solid var(--acc)!important;outline-offset:-1px}
-body.modo-admin .dc-ord{border-color:rgba(37,99,235,.65)!important}
-body.modo-admin .dc-res{border-color:rgba(217,119,6,.65)!important}
-body.modo-admin .dc-des{border-color:rgba(22,163,74,.65)!important}
-body.modo-admin .dc-baj{border-color:rgba(220,38,38,.65)!important}
-body.modo-admin .dc-tra{border-color:rgba(124,58,237,.65)!important}
-body.modo-admin .dc-cmp{border-color:rgba(8,145,178,.65)!important}
-body.modo-admin .dc-dop{border-color:rgba(219,39,119,.65)!important}
-body.modo-admin .dc-art5152{border-color:rgba(59,127,255,.65)!important}
-body.modo-admin .dc-num{font-size:13px;font-weight:800;color:var(--tx);line-height:1.15;order:1}
-body.modo-admin .dc-ico{display:none!important}
-body.modo-admin .dc-tipo-lbl,
-body.modo-admin .dc-tren-badge{
-  position:static!important;transform:none!important;inset:auto!important;
-  order:2;margin-top:1px;font-size:7px!important;font-weight:800!important;
-  letter-spacing:.02em;line-height:1.2;max-width:100%;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;
-}
-body.modo-admin .dc-tren-badge{padding:1px 4px!important;border-radius:4px!important}
-body.modo-admin .dc-check-borrar{z-index:3}
-.dc-tipo-lbl{text-transform:uppercase}
-
 /* ── LEYENDA ── */
 .leyenda{display:flex;gap:5px;overflow-x:auto;padding:8px 10px;scrollbar-width:none}
 .leyenda::-webkit-scrollbar{display:none}
@@ -12047,7 +12009,7 @@ function renderSlide(gridId, fecha){
         var textoPropio = nPropio + (tieneDHPropio?' DH':'');
         var bgP = tieneDHPropio ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
         var txP = tieneDHPropio ? '#1a0a00' : '#fff';
-        trenBadge = '<span class="dc-tren-badge" '
+        trenBadge = '<span '
           +'style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);'
           +'font-size:6px;line-height:1;white-space:nowrap;'
           +'background:'+bgP+';color:'+txP+';border-radius:3px;'
@@ -12076,7 +12038,7 @@ function renderSlide(gridId, fecha){
         if(texto){
           var bgColor = tieneDH ? 'rgba(245,158,11,.85)' : 'rgba(148,163,184,.45)';
           var txColor = tieneDH ? '#1a0a00' : '#fff';
-          trenBadge = '<span class="dc-tren-badge" '
+          trenBadge = '<span '
             +'style="position:absolute;bottom:1px;left:50%;transform:translateX(-50%);'
             +'font-size:6px;line-height:1;white-space:nowrap;'
             +'background:'+bgColor+';color:'+txColor+';border-radius:3px;'
@@ -12089,14 +12051,7 @@ function renderSlide(gridId, fecha){
     // turno" (morado, arriba de la celda) — puramente informativo,
     // no toca t ni ningún cálculo de esta función.
     var cambioTurnoBadge = (typeof _badgeCambioTurnoParaDia==='function') ? _badgeCambioTurnoParaDia(d) : '';
-    // NUEVO — Confirmado por el usuario: solo en modo admin, mostrar
-    // también el TIPO de turno en texto (no solo el icono). Fuera de
-    // modo admin no se añade nada — la celda se queda como siempre.
-    var tipoLblBadge = '';
-    if(t && !cambioTurnoBadge && document.body.classList.contains('modo-admin') && TIPO_INFO[t.tipo]){
-      tipoLblBadge = '<span class="dc-tipo-lbl" style="color:'+TIPO_INFO[t.tipo].col+'">'+TIPO_INFO[t.tipo].lbl.slice(0,4)+'</span>';
-    }
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+tipoLblBadge+'<span class="dc-num">'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
     // NUEVO — modo selección para borrado múltiple (maqueta A): tap
     // normal sigue abriendo el día como siempre; mantener pulsado
@@ -25015,7 +24970,6 @@ async function cerrarSesionAdmin(){
   var btnAdmin = document.getElementById('hbtn-admin');
   if(btnAdmin) btnAdmin.classList.remove('es-admin');
   document.body.classList.remove('modo-admin');
-  if(typeof renderCal==='function') renderCal();
   closeOv('ov-panel-admin');
   toast('🚪 Sesión de administrador cerrada');
 }
@@ -25102,10 +25056,6 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
     // persistida (así nunca se te olvida que sigues siendo admin,
     // aunque no hayas abierto el panel en esta carga de la página).
     document.body.classList.add('modo-admin');
-    // NUEVO — Confirmado por el usuario: repinta ya mismo el calendario
-    // al entrar en modo admin, para que el tipo de turno en texto se
-    // vea sin tener que cambiar de mes primero.
-    if(typeof renderCal==='function') renderCal();
     if(abrirPanel){
       closeOv('ov-admin-login');
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
