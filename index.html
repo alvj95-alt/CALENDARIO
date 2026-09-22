@@ -3256,6 +3256,57 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .m3-tren{font-size:12px;font-weight:800;color:var(--tx)}
 .m3-warn{color:var(--nar2)}
 .m3-cnt{font-size:8px;color:var(--tx3);font-weight:700;background:var(--s3);padding:1px 6px;border-radius:10px}
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — AVISO SOBRE EL SERVICIO EN LA NUBE (pestaña Compañeros)
+   Usa las mismas variables y el mismo estilo de "boletín" que ya
+   tiene la app (.ov / .sh / .nov2-*). Todo con prefijo avnb- para
+   no tocar nada existente.
+═══════════════════════════════════════════════════════════ */
+/* NUEVO — Confirmado por el usuario: el aviso de la nube pasa a una sola línea, compacta,
+   en vez de la tarjeta grande de antes (sigue abriendo el mismo texto completo al tocarlo). */
+.avnb-card{display:none;align-items:center;gap:9px;width:100%;text-align:left;font-family:inherit;color:var(--tx);cursor:pointer;
+  background:rgba(249,115,22,.10);border:1px solid rgba(251,146,60,.4);border-radius:12px;padding:10px 12px}
+.avnb-ico-mini{font-size:15px;flex-shrink:0}
+.avnb-txt{flex:1;font-size:11.5px;line-height:1.35;color:var(--tx)}
+.avnb-txt b{color:var(--amber2)}
+.avnb-arr{font-size:15px;color:var(--nar2);flex-shrink:0}
+.avnb-intro{font-size:13px;line-height:1.5;color:var(--tx2);padding:4px 0 8px}
+.avnb-h{font-weight:800;font-size:14px;color:var(--tx);margin-bottom:5px}
+.avnb-desc{font-size:13px;color:var(--tx2);line-height:1.55}
+.avnb-desc b{color:var(--tx)}
+.avnb-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.avnb-cmp>div{padding:11px 12px;border-radius:14px;background:var(--s2);border:1px solid var(--div)}
+.avnb-cmp>div.pro{background:rgba(37,99,235,.14);border-color:rgba(59,130,246,.55)}
+.avnb-cmp small{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--tx2)}
+.avnb-cmp>div.pro small{color:var(--acc3)}
+.avnb-cmp strong{display:block;font-size:24px;font-weight:800;margin-top:3px;color:var(--tx)}
+.avnb-cmp span{font-size:11.5px;color:var(--tx2)}
+.avnb-cmp>div.pro span{color:var(--acc3)}
+.avnb-call{margin:14px 0;padding:14px;border-radius:16px;background:rgba(252,211,77,.08);border:1px solid rgba(252,211,77,.45)}
+.avnb-call .avnb-h{color:var(--amber2)}
+.avnb-pago{display:none;margin-top:10px;padding:11px 13px;border-radius:14px;background:rgba(37,99,235,.1);border:1px dashed rgba(147,197,253,.55)}
+.avnb-pago small{display:block;font-size:11.5px;font-weight:700;color:var(--tx2)}
+.avnb-pago strong{font-size:14px;color:var(--acc3)}
+.avnb-firma{padding:8px 0 4px;font-size:13px;color:var(--tx2)}
+.avnb-firma b{display:block;font-size:14px;color:var(--tx);margin-top:2px}
+.avnb-btns{display:flex;gap:10px;padding:14px 22px 22px;flex-shrink:0}
+.avnb-btn2{flex:1;padding:15px 10px;background:var(--s2);border:1px solid var(--div);border-radius:10px;color:var(--tx);font-weight:800;font-size:13px;cursor:pointer}
+.avnb-btns .nov2-btn{flex:1;width:auto}
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Confirmado por el usuario: "Horario General" y "Cambios de
+   turno" van lado a lado, con el mismo aspecto (icono arriba, título,
+   subtítulo). El aviso de la nube pasa a una línea compacta, abajo del
+   todo en Compañeros.
+═══════════════════════════════════════════════════════════ */
+.hgct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hgct-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:7px;
+  padding:16px 12px;background:var(--s1);border-radius:16px;border:1px solid var(--div);
+  box-shadow:var(--sh-card);cursor:pointer;user-select:none}
+.hgct-card.sin-accion{cursor:default}
+.hgct-card:active{transform:scale(.98)}
+.hgct-ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.hgct-tit{font-size:13.5px;font-weight:800;color:var(--tx)}
+.hgct-sub{font-size:10.5px;color:var(--tx3);line-height:1.35}
 </style>
 </head>
 <body>
@@ -3793,48 +3844,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
     <div class="acordeon" id="acordeon" style="display:none"></div>
 
-    <!-- NUEVO — Confirmado por el usuario: "Solicitar cambio de turno"
-         debajo del calendario. El turno REAL (TV/TV2) nunca se toca
-         aquí — esto es solo gestión de solicitudes + un aviso visual
-         aparte, sin afectar a Nómina/HP/HE/HTDL. -->
-    <div class="ct-hdr-llamativo" onclick="toggleCambiosTurnoAcordeon()">
-      <span style="font-size:17px">🔄</span>
-      <span class="ct-hdr-tit">Cambios de turno</span>
-      <span id="cambiosTurnoBadgeCount" style="display:none;background:var(--nar);color:#1a1306;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px"></span>
-      <span class="turnos-mes-arr" id="cambiosTurnoAcordeonArr" style="margin-left:auto">›</span>
-    </div>
-    <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
-      <div style="padding:10px 4px">
-        <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
-          <div class="ct-menu-ico">🔄</div>
-          <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
-          <span onclick="event.stopPropagation();abrirGuiaCambioTurno()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
-          <div class="ct-menu-arr">›</div>
-        </div>
-        <!-- NUEVO — Confirmado por el usuario: "Publicar un cambio",
-             tablón público distinto de la solicitud directa — se
-             ofrece un turno (o una secuencia de varios días
-             seguidos) a TODOS los compañeros de la base, no a uno
-             en concreto. -->
-        <div onclick="abrirPublicarCambio()" class="ct-menu-card ct-menu-card-publicar">
-          <div class="ct-menu-ico" style="background:var(--nar);color:#1a1306">📢</div>
-          <div><div class="ct-menu-tit">Publicar un cambio</div><div class="ct-menu-sub">Ofrece uno o varios turnos a todos los compañeros</div></div>
-          <span onclick="event.stopPropagation();abrirGuiaPublicarCambio()" style="font-size:10px;font-weight:800;color:var(--nar);background:rgba(255,255,255,.06);padding:4px 9px;border-radius:20px;border:1px solid rgba(249,115,22,.4);margin-right:6px">📖 Guía</span>
-          <div class="ct-menu-arr">›</div>
-        </div>
-        <div onclick="abrirCambiosPublicados()" class="ct-menu-card">
-          <div class="ct-menu-ico" style="background:rgba(124,58,237,.15);color:#C084FC">📋</div>
-          <div><div class="ct-menu-tit">Cambios publicados</div><div class="ct-menu-sub">Mira lo que han publicado otros</div></div>
-          <span onclick="event.stopPropagation();abrirGuiaCambiosPublicados()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
-          <span id="cambiosPublicadosBadge" style="display:none;background:rgba(249,115,22,.18);color:var(--nar2);font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:6px"></span>
-          <div class="ct-menu-arr">›</div>
-        </div>
-        <div id="cambiosTurnoRecibidasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:4px 2px 8px">Te han solicitado</div>
-        <div id="cambiosTurnoRecibidas"></div>
-        <div id="cambiosTurnoEnviadasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:14px 2px 8px">Tus solicitudes enviadas</div>
-        <div id="cambiosTurnoEnviadas"></div>
-      </div>
-    </div>
+    
   </div>
 
   <!-- ESTADÍSTICAS -->
@@ -4637,25 +4647,62 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
           <div class="sel-sub">El horario lo publica el administrador — se sincroniza solo, no hace falta que subas nada.</div>
         </div>
 
-        <!-- NUEVO — Estado de la carga del Horario General publicado
-             por el Panel de Admin. Sustituye a la selección manual de
-             Barcelona/Madrid para el usuario normal. -->
-        <div class="base-card" style="cursor:default">
-          <div class="base-ico b-bcn">📡</div>
-          <div class="base-info">
-            <div class="base-name">Sincronizando</div>
-            <div class="base-meta" id="estadoHorarioGlobalBuscador">Buscando el horario publicado...</div>
+        <!-- NUEVO — Confirmado por el usuario: "Horario General" y "Cambios de turno" van lado a
+             lado, con el mismo aspecto. cargarHorarioGlobalDesdeAdmin()/abrirBuscadorConHorarioGlobal()
+             siguen escribiendo en los mismos elementos de siempre (#estadoHorarioGlobalBuscador y, al
+             terminar con éxito, ver renderTarjetaHorarioListo() más abajo) — nada de esa lógica cambia. -->
+        <div class="hgct-grid">
+          <div class="hgct-card sin-accion" id="cardHorarioGeneral">
+            <div class="hgct-ic b-bcn" id="icHorarioGeneral">📡</div>
+            <div class="hgct-tit" id="titHorarioGeneral">Sincronizando</div>
+            <div class="hgct-sub" id="estadoHorarioGlobalBuscador">Buscando el horario publicado...</div>
           </div>
+          <div class="hgct-card" id="ctTriggerCard" onclick="toggleCambiosTurnoAcordeon()">
+          <div class="hgct-ic" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔄</div>
+          <div class="hgct-tit">Cambios de turno</div>
+          <div class="hgct-sub">Publica o busca cambios</div>
+          <span id="cambiosTurnoBadgeCount" style="display:none;background:var(--nar);color:#1a1306;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-top:2px"></span>
+        </div>
         </div>
 
-        <!-- NUEVO — Estado de la Intervención publicada por el admin. -->
-        <div class="base-card" style="cursor:default">
-          <div class="base-ico" style="background:rgba(249,115,22,.15);color:var(--nar2)">🔀</div>
-          <div class="base-info">
-            <div class="base-name">Intervención</div>
-            <div class="base-meta" id="estadoIntervencionBuscador">Sincronizando...</div>
-          </div>
+    <div class="acordeon" id="cambiosTurnoAcordeon" style="display:none">
+      <div style="padding:10px 4px">
+        <div onclick="abrirNuevaSolicitudCambio()" class="ct-menu-card">
+          <div class="ct-menu-ico">🔄</div>
+          <div><div class="ct-menu-tit">Nueva solicitud de cambio</div><div class="ct-menu-sub">Propón un cambio con un compañero</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaCambioTurno()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
+          <div class="ct-menu-arr">›</div>
         </div>
+        <!-- NUEVO — Confirmado por el usuario: "Publicar un cambio",
+             tablón público distinto de la solicitud directa — se
+             ofrece un turno (o una secuencia de varios días
+             seguidos) a TODOS los compañeros de la base, no a uno
+             en concreto. -->
+        <div onclick="abrirPublicarCambio()" class="ct-menu-card ct-menu-card-publicar">
+          <div class="ct-menu-ico" style="background:var(--nar);color:#1a1306">📢</div>
+          <div><div class="ct-menu-tit">Publicar un cambio</div><div class="ct-menu-sub">Ofrece uno o varios turnos a todos los compañeros</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaPublicarCambio()" style="font-size:10px;font-weight:800;color:var(--nar);background:rgba(255,255,255,.06);padding:4px 9px;border-radius:20px;border:1px solid rgba(249,115,22,.4);margin-right:6px">📖 Guía</span>
+          <div class="ct-menu-arr">›</div>
+        </div>
+        <div onclick="abrirCambiosPublicados()" class="ct-menu-card">
+          <div class="ct-menu-ico" style="background:rgba(124,58,237,.15);color:#C084FC">📋</div>
+          <div><div class="ct-menu-tit">Cambios publicados</div><div class="ct-menu-sub">Mira lo que han publicado otros</div></div>
+          <span onclick="event.stopPropagation();abrirGuiaCambiosPublicados()" class="ct-hdr-guia" style="margin-left:0;margin-right:6px">📖 Guía</span>
+          <span id="cambiosPublicadosBadge" style="display:none;background:rgba(249,115,22,.18);color:var(--nar2);font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;margin-left:6px"></span>
+          <div class="ct-menu-arr">›</div>
+        </div>
+        <div id="cambiosTurnoRecibidasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:4px 2px 8px">Te han solicitado</div>
+        <div id="cambiosTurnoRecibidas"></div>
+        <div id="cambiosTurnoEnviadasLbl" style="display:none;font-size:10.5px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin:14px 2px 8px">Tus solicitudes enviadas</div>
+        <div id="cambiosTurnoEnviadas"></div>
+      </div>
+    </div>
+
+        <!-- NUEVO — se quitó de aquí la tarjeta "Intervención" (solo mostraba un texto de
+             estado, "Sincronizando..."/"Intervención sincronizada"; no hacía nada más). La
+             sincronización de verdad (cargarIntervencionGlobalDesdeAdmin) sigue intacta y se
+             sigue llamando desde el acceso de interventor, la validación de matrícula y el panel
+             de admin — nada de eso dependía de esta tarjeta ni de que estuviera visible. -->
 
         <div class="base-card" id="card-barcelona" style="display:none">
           <div class="base-ico b-bcn">🚆</div>
@@ -4896,6 +4943,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 
     </div>
 
+    <button type="button" id="avisoNubeCard" class="avnb-card" onclick="abrirAvisoNube()"></button>
     <div class="at-footer">Cada base se procesa de forma independiente · revisa siempre el original ante dudas</div>
   </div>
 </div>
@@ -6298,6 +6346,80 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
+<!-- NUEVO — AVISO SOBRE EL SERVICIO EN LA NUBE: mismo estilo que Novedades (hoja + boletín) -->
+<div class="ov" id="ov-aviso-nube" onclick="if(event.target===this)cerrarAvisoNube(false)">
+  <div class="sh" onclick="event.stopPropagation()" style="max-height:92%">
+    <div class="sh-handle"></div>
+    <div class="nov2-head" style="position:relative">
+      <button class="sh-close" onclick="cerrarAvisoNube(false)" aria-label="Cerrar aviso" style="position:absolute;top:18px;right:18px">✕</button>
+      <div class="nov2-brand">Sobre el servicio en la nube</div>
+      <div class="nov2-title">Aviso importante</div>
+    </div>
+    <div class="nov2-perf"><div class="nov2-perf-line"></div></div>
+    <div id="avnb-cuerpo" style="padding:2px 22px 0;overflow-y:auto">
+      <div class="avnb-intro">Queremos explicar con claridad por qué últimamente falla la app al entrar o al consultar a los compañeros.</div>
+
+      <div class="nov2-stub">
+        <div class="nov2-stub-ico">🔎</div>
+        <div>
+          <div class="avnb-h">¿Qué ha pasado?</div>
+          <div class="avnb-desc">La app usa <b>Supabase</b>, el sistema (la base de datos) donde se guardan los horarios y los accesos. El plan gratuito tiene un límite mensual de uso, es decir, de datos que se descargan. Como cada vez somos más los que usamos la app —algo muy bueno, porque significa que sirve—, nos hemos quedado cortos con ese límite. Cuando se supera, Supabase pausa el servicio hasta que se renueva el mes.</div>
+        </div>
+      </div>
+
+      <div class="nov2-stub">
+        <div class="nov2-stub-ico">✅</div>
+        <div>
+          <div class="avnb-h">¿Qué sigue funcionando?</div>
+          <div class="avnb-desc">Lo que cada uno tiene guardado en su móvil (calendario, horas, nómina) <b>funciona con normalidad</b>. Lo que se ve afectado son algunas funciones de la nube, como entrar con la matrícula, consultar compañeros o los cambios de turno.</div>
+        </div>
+      </div>
+
+      <div class="nov2-stub">
+        <div class="nov2-stub-ico">🛠️</div>
+        <div>
+          <div class="avnb-h">¿Cuál es la solución?</div>
+          <div class="avnb-desc">Pasar a un plan de pago de Supabase: <b>25 dólares al mes</b> (unos 22 € al cambio, que varía cada día), <b style="font-size:1.08em">divididos entre todos los que usamos la app</b>.</div>
+          <div class="avnb-desc" style="margin-top:6px">No es obligatorio para seguir usando la app: sigue siendo gratis.</div>
+          <div class="avnb-cmp">
+            <div><small>PLAN GRATUITO</small><strong>5 GB</strong><span>de descargas al mes</span></div>
+            <div class="pro"><small>PLAN DE PAGO</small><strong>250 GB</strong><span>50 veces más</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="avnb-call">
+        <div class="avnb-h">🤝 Quiero que quede muy, muy claro</div>
+        <div class="avnb-desc">Yo, como programador de la app, la creé porque es un servicio que nos ayuda a todos los trabajadores. <b>En ningún momento he querido cobrar dinero por ella, ni voy a cobrar.</b> Este dinero no es para mí: es solo para pagar la suscripción de la base de datos. Lamentablemente, por esta situación, me veo en la obligación de pedir la colaboración de todos, porque la app la usamos entre todos y no solo yo.</div>
+      </div>
+
+      <div class="nov2-stub">
+        <div class="nov2-stub-ico">☕</div>
+        <div>
+          <div class="avnb-h">¿Cómo lo hacemos?</div>
+          <div class="avnb-desc"><b>El primer mes lo pago yo</b>, como creador de la app. A partir del segundo mes, entre todos. Cuantos más seamos, menos toca a cada uno: una parte mínima, menos que un café al mes. No hay una cifra obligatoria: cada uno puede aportar lo que crea o quiera, grano a grano. Y esto nos ayuda a todos.</div>
+          <div class="avnb-pago" id="avnb-pago"><small>Quien quiera aportar:</small><strong id="avnb-pago-txt"></strong></div>
+        </div>
+      </div>
+
+      <div class="nov2-stub">
+        <div class="nov2-stub-ico">🧾</div>
+        <div>
+          <div class="avnb-h">Todo claro y transparente</div>
+          <div class="avnb-desc">La suscripción irá a mi nombre y yo me encargaré de gestionarla. <b>Cada mes enseñaré o publicaré en la app la factura</b> de la suscripción, para que todos puedan ver en qué se gasta cada euro.</div>
+          <div class="avnb-desc" style="margin-top:8px">Mientras tanto, estamos mejorando la app para que descargue menos datos.</div>
+        </div>
+      </div>
+
+      <div class="avnb-firma">Muchas gracias por el apoyo<b id="avnb-firma-txt"></b></div>
+    </div>
+    <div class="avnb-btns">
+      <button class="avnb-btn2" onclick="cerrarAvisoNube(false)">Recordármelo luego</button>
+      <button class="nov2-btn" onclick="cerrarAvisoNube(true)">Entendido</button>
+    </div>
+  </div>
+</div>
+
 <!-- NUEVO — OV: ACCESO SEGURO AL BUSCADOR DE COMPAÑEROS.
      Requisito: matrícula validada contra el Horario General ya
      cargado + aceptación del descargo de responsabilidades. Solo
@@ -6503,7 +6625,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
         <div class="admin-card-ico">🗂️</div>
         <div>
           <div class="admin-card-tit">Horarios Generales guardados</div>
-          <div class="admin-card-sub">Cada mes que subes queda guardado aparte, agrupado por sede — nada se borra solo.</div>
+          <div class="admin-card-sub">Cada mes que subes queda guardado aparte, agrupado por sede. La app solo usa el mes actual y los 6 anteriores; los más antiguos se borran solos cuando entras como administrador (el último de cada sede nunca se borra).</div>
         </div>
       </div>
       <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarHistorialHorarioGeneral()">🔄 Actualizar lista</button>
@@ -9990,13 +10112,34 @@ function secReservaHTDL(){
     +'</div>';
 
   if(toma && deje){
-    h += '<div class="calc-result">'
-      +'<div class="cr-row"><span class="cr-l">Horas HTDL</span><span class="cr-v">'+horas+' h</span></div>'
-      +'<div class="cr-div"></div>'
-      +'<div class="cr-row"><span class="cr-l">💶 Importe aprox. ('+horas+'h × '+tarifaHTDL.toFixed(2)+'€/h)</span>'
-      +'<span class="cr-v" style="color:var(--green2)">'+importeAprox.toFixed(2)+' €</span></div>'
-      +'<div style="font-size:9px;color:var(--tx3);margin-top:6px">El TAS recalculará el importe exacto con nocturnidad/pluses si aplican.</div>'
+    // NUEVO — Confirmado por el usuario: antes, en cuanto había toma y deje,
+    // se calculaba dinero directamente, sin preguntar. Ahora se pregunta
+    // primero "En dinero" o "En días" — mismo selector y mismo mecanismo
+    // que ya usa "Jornada Normal (HTDL)" (setComp), con 2 días fijos en el
+    // mes siguiente (Reserva no tiene pernocta, así que nunca son 4 ni 6).
+    h += '<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<div class="cc-btn '+(F.comp==='dinero'?'on':'')+'" onclick="setComp(\'dinero\')">'
+      +'<div class="cci">💶</div><div class="ccl">En dinero</div><div class="ccs">Pago €</div></div>'
+      +'<div class="cc-btn '+(F.comp==='dias'?'on':'')+'" onclick="setComp(\'dias\')">'
+      +'<div class="cci">📅</div><div class="ccl">2 días</div><div class="ccs">Mes siguiente</div></div>'
       +'</div>';
+    if(F.comp==='dinero'){
+      h += '<div class="calc-result">'
+        +'<div class="cr-row"><span class="cr-l">Horas HTDL</span><span class="cr-v">'+horas+' h</span></div>'
+        +'<div class="cr-div"></div>'
+        +'<div class="cr-row"><span class="cr-l">💶 Importe aprox. ('+horas+'h × '+tarifaHTDL.toFixed(2)+'€/h)</span>'
+        +'<span class="cr-v" style="color:var(--green2)">'+importeAprox.toFixed(2)+' €</span></div>'
+        +'<div style="font-size:9px;color:var(--tx3);margin-top:6px">El TAS recalculará el importe exacto con nocturnidad/pluses si aplican.</div>'
+        +'</div>';
+    } else if(F.comp==='dias'){
+      h += '<div style="font-size:10px;color:var(--tx2);background:rgba(6,182,212,.06);'
+        +'border:1px solid rgba(6,182,212,.18);border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+        +'📅 Selecciona <strong style="color:var(--cyan2)">2 días</strong> en el mes siguiente.'
+        +'<br><span style="color:var(--tx3);font-size:9px">Solo días del mes posterior.</span></div>'
+        +'<div id="mini-cal-cont"></div>';
+    } else {
+      h += '<div style="font-size:10px;color:var(--tx3);text-align:center;padding:8px 0">Elige "En dinero" o "2 días" para continuar</div>';
+    }
   } else {
     h += '<div style="font-size:10px;color:var(--tx3);text-align:center;padding:8px 0">Introduce ambas horas para ver el cálculo</div>';
   }
@@ -23636,6 +23779,52 @@ function cerrarNovedades(){
   closeOv('ov-novedades');
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — AVISO SOBRE EL SERVICIO EN LA NUBE (Supabase).
+   Se ve como una tarjeta naranja arriba de la pestaña Compañeros y
+   abre una hoja con el texto completo. Para MANEJARLO solo hay que
+   tocar estas cuatro líneas:
+═══════════════════════════════════════════════════════════ */
+var AVISO_NUBE_ACTIVO     = false;             // NUEVO — Confirmado por el usuario: oculto por ahora, avisará cuando quiera volver a activarlo (true)
+var AVISO_NUBE_VERSION    = 'aviso_nube_v1';   // si cambias el texto y quieres que vuelva a salir a quien ya pulsó "Entendido", súbele el número (v2, v3...)
+var AVISO_NUBE_FORMA_PAGO = '';                // p. ej. 'Bizum al 600 000 000'. Vacío = no se muestra el recuadro de "Quien quiera aportar"
+var AVISO_NUBE_FIRMA      = 'Jose Alejandro';
+
+function _avisoNubeVisto(){
+  try{ return !!localStorage.getItem(AVISO_NUBE_VERSION); }catch(e){ return false; }
+}
+function renderAvisoNubeCard(){
+  var el = document.getElementById('avisoNubeCard');
+  if(!el) return;
+  if(!AVISO_NUBE_ACTIVO || _avisoNubeVisto()){ el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.innerHTML = '<span class="avnb-ico-mini">📢</span>'
+    + '<span class="avnb-txt"><b>Aviso:</b> el buscador puede fallar por límite de uso en la nube — tu calendario sigue funcionando.</span>'
+    + '<span class="avnb-arr">›</span>';
+  el.style.display = 'flex';
+}
+function abrirAvisoNube(){
+  var pago = document.getElementById('avnb-pago');
+  var pagoTxt = document.getElementById('avnb-pago-txt');
+  if(pago && pagoTxt){
+    if(AVISO_NUBE_FORMA_PAGO){ pagoTxt.textContent = AVISO_NUBE_FORMA_PAGO; pago.style.display = 'block'; }
+    else { pagoTxt.textContent = ''; pago.style.display = 'none'; }
+  }
+  var firma = document.getElementById('avnb-firma-txt');
+  if(firma) firma.textContent = AVISO_NUBE_FIRMA;
+  var cuerpo = document.getElementById('avnb-cuerpo');
+  if(cuerpo) cuerpo.scrollTop = 0;
+  openOv('ov-aviso-nube');
+}
+// entendido=true → se marca como leído y la tarjeta desaparece de este móvil; false → solo se cierra ("Recordármelo luego")
+function cerrarAvisoNube(entendido){
+  if(entendido){
+    try{ localStorage.setItem(AVISO_NUBE_VERSION, '1'); }catch(e){}
+    renderAvisoNubeCard();
+  }
+  closeOv('ov-aviso-nube');
+}
+renderAvisoNubeCard();
+
 function mostrarNovedadesSiNuevas(){
   // APAGADO — Confirmado por Alex: el popup de "Novedades" queda
   // desactivado para todo el mundo, a propósito, hasta nuevo aviso.
@@ -24211,6 +24400,46 @@ function mostrarAvisoListaNegra(persona, onContinuar){
 ═══════════════════════════════════════════════════════════ */
 const SUPABASE_URL_ADMIN = 'https://xoftsdupynwhzxsiusox.supabase.co';
 const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Aviso claro cuando Supabase restringe el proyecto por
+   superar su cuota de tráfico (error HTTP 402). Antes cada pantalla
+   mostraba el texto en inglés del servidor y la app seguía insistiendo
+   con peticiones que iban a fallar igual. Ahora: se traduce el aviso y,
+   durante 10 minutos, no se vuelve a llamar a Supabase. El calendario,
+   las horas y la nómina son locales y no se ven afectados.
+   Solo interviene si el 402 habla de restricción/cuota; cualquier otra
+   respuesta se devuelve INTACTA.
+═══════════════════════════════════════════════════════════ */
+var _sbRestringidoHasta = 0;
+var _sbUltimoAvisoRestringido = 0;
+var SB_MENSAJE_RESTRINGIDO = 'El servicio en la nube está pausado temporalmente por límite de uso. Tu calendario, tus horas y la nómina siguen funcionando. Inténtalo de nuevo más tarde.';
+function _sbMarcarRestringido(){
+  _sbRestringidoHasta = Date.now() + 10*60*1000;
+  if(Date.now() - _sbUltimoAvisoRestringido > 10*60*1000){
+    _sbUltimoAvisoRestringido = Date.now();
+    try{ if(typeof toast==='function') toast('☁️ Servicio en la nube en pausa (límite de uso)'); }catch(e){}
+  }
+}
+function _sbRespuestaRestringida(){
+  // Se mantiene el estado 402 (no 503) a propósito: el cliente de Supabase lee el mensaje del
+  // cuerpo en 402, y NO reintenta solo (con 502/503/504 sí reintentaría y perdería el texto).
+  var m = SB_MENSAJE_RESTRINGIDO;
+  return new Response(JSON.stringify({ message: m, msg: m, error: 'servicio_restringido', error_description: m, code: 'servicio_restringido' }),
+                      { status: 402, headers: { 'Content-Type': 'application/json' } });
+}
+function _sbFetchProtegido(input, init){
+  if(Date.now() < _sbRestringidoHasta) return Promise.resolve(_sbRespuestaRestringida());
+  return fetch(input, init).then(function(resp){
+    if(resp && resp.status === 402){
+      return resp.clone().text().then(function(t){
+        if(/restrict|quota|exceed|violation/i.test(t)){ _sbMarcarRestringido(); return _sbRespuestaRestringida(); }
+        return resp;
+      }).catch(function(){ return resp; });
+    }
+    return resp;
+  });
+}
+
 // FIX — Confirmado por Alex: si el script de Supabase no llega a
 // cargar (conexión mala, bloqueado, CDN caído...), esta línea
 // rompía SIN capturar el error — y al ser código de nivel superior
@@ -24223,7 +24452,7 @@ const SUPABASE_KEY_ADMIN = 'sb_publishable_jpuwxGvqz80zsRn2N_-qww_xqS1InnE';
 // hay conexión en vez de romper la app entera.
 var sbAdmin = null;
 try{
-  sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN);
+  sbAdmin = supabase.createClient(SUPABASE_URL_ADMIN, SUPABASE_KEY_ADMIN, { global: { fetch: _sbFetchProtegido } });
 }catch(errSbAdminInit){
   console.error('No se pudo inicializar Supabase (revisa la conexión/CDN):', errSbAdminInit);
 }
@@ -24993,6 +25222,7 @@ function abrirAccesoAdmin(){
 async function cerrarSesionAdmin(){
   await sbAdmin.auth.signOut();
   perfilAdminActual = null;
+  if(typeof _hgCacheVaciar === 'function') _hgCacheVaciar(); // NUEVO — privacidad: el caché de horarios no se queda en el dispositivo
   var btnAdmin = document.getElementById('hbtn-admin');
   if(btnAdmin) btnAdmin.classList.remove('es-admin');
   document.body.classList.remove('modo-admin');
@@ -25040,6 +25270,8 @@ async function cargarPerfilYVerificarAdmin(user, abrirPanel){
     // persistida (así nunca se te olvida que sigues siendo admin,
     // aunque no hayas abierto el panel en esta carga de la página).
     document.body.classList.add('modo-admin');
+    // NUEVO — limpieza automática de horarios de más de 6 meses (sin botón; ver _hgLimpiezaAutomatica)
+    setTimeout(function(){ if(typeof _hgLimpiezaAutomatica === 'function') _hgLimpiezaAutomatica(); }, 5000);
     if(abrirPanel){
       closeOv('ov-admin-login');
       document.getElementById('adminSesionLbl').textContent = 'Administrador: '+perfilAdminActual.email;
@@ -25877,7 +26109,7 @@ async function _verificarMatriculaEnTodasLasSedes(matricula){
   var resp = await sbAdmin.from('config_global').select('*').like('tipo','horario_general_%');
   if(resp.error || !resp.data || !resp.data.length) return false;
 
-  var filasConArchivo = resp.data.filter(function(f){ return f.url_archivo; });
+  var filasConArchivo = _hgSoloMasRecientePorSede(resp.data.filter(function(f){ return f.url_archivo; }));
   if(!filasConArchivo.length) return false;
 
   var promesas = filasConArchivo.map(function(fila){
@@ -25899,7 +26131,7 @@ async function _verificarMatriculaEnTodasLasSedes(matricula){
 // página a página y para en cuanto la encuentra — no necesita parsear
 // el documento entero para responder que SÍ está.
 async function _buscarMatriculaEnArchivo(fila, matricula){
-  var archivoResp = await fetch(fila.url_archivo);
+  var archivoResp = await _hgFetchConCache(fila);
   if(!archivoResp.ok) return false;
   var nombreArchivo = fila.nombre_archivo || '';
   if(/\.xlsx$/i.test(nombreArchivo)){
@@ -26330,6 +26562,7 @@ async function iniciarSesionConMatricula(){
 
 function cerrarSesionUsuarioNube(){
   usuarioActual = null;
+  if(typeof _hgCacheVaciar === 'function') _hgCacheVaciar(); // NUEVO — privacidad: el caché de horarios no se queda en el móvil al cerrar sesión
   localStorage.removeItem('sesionMatriculaActiva');
   actualizarUICuentaNube();
   toast('🚪 Sesión cerrada');
@@ -26434,6 +26667,161 @@ function _hgParsearTipo(fila){
     fila: fila // referencia a la fila original completa (url_archivo, etc.)
   };
 }
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — Ahorro de tráfico de Supabase Storage (Horario General).
+   1) VENTANA DE 6 MESES: la app solo usa el mes actual y los 6
+      anteriores. NADA se borra por esto: los meses más antiguos
+      simplemente se ignoran (no se descargan ni se buscan en ellos).
+      Excepción de seguridad: el ÚLTIMO archivo de cada sede se
+      conserva siempre, aunque sea antiguo, para que ninguna sede
+      se quede sin horario.
+   2) CACHÉ EN EL DISPOSITIVO (IndexedDB): el archivo descargado se
+      guarda en el móvil y solo se vuelve a descargar cuando el admin
+      sube uno nuevo (cambia fecha_subida). Si IndexedDB falla o no
+      existe, todo funciona como antes (se descarga).
+   3) VERIFICACIÓN DE MATRÍCULA: solo contra el archivo más reciente
+      de cada sede (antes: todos los meses de todas las sedes).
+═══════════════════════════════════════════════════════════ */
+var HG_MESES_VENTANA = 6; // mes actual + los 6 anteriores
+
+function _hgCorteVentana(ahora){
+  var d = ahora || new Date();
+  return d.getFullYear()*12 + (d.getMonth()+1) - HG_MESES_VENTANA; // índice del mes MÁS ANTIGUO que se usa
+}
+function _hgSlugDeTipo(tipo){
+  var m = String(tipo).match(/^horario_general_(.+)_(\d{4})-(\d{2})$/);
+  return m ? m[1] : String(tipo).replace(/^horario_general_?/, '');
+}
+function _hgMasNuevoQue(a, b){ // a, b: resultado de _hgParsearTipo
+  var ia = (a.anio||0)*12 + (a.mes||0), ib = (b.anio||0)*12 + (b.mes||0);
+  if(ia !== ib) return ia > ib;
+  return String(a.fecha_subida||'') > String(b.fecha_subida||'');
+}
+// Conserva lo que está dentro de la ventana Y, siempre, lo más reciente de cada sede.
+function _hgFiltrarVentana(filas){
+  var corte = _hgCorteVentana(), nuevo = {};
+  filas.forEach(function(f){ var k = _hgSlugDeTipo(f.tipo); if(!nuevo[k] || _hgMasNuevoQue(f, nuevo[k])) nuevo[k] = f; });
+  return filas.filter(function(f){ return (f.anio*12 + f.mes) >= corte || nuevo[_hgSlugDeTipo(f.tipo)] === f; });
+}
+// De una lista de filas crudas de config_global, deja UNA por sede: la más reciente.
+function _hgSoloMasRecientePorSede(filasCrudas){
+  var mejor = {};
+  filasCrudas.forEach(function(fila){
+    var p = _hgParsearTipo(fila), k = _hgSlugDeTipo(fila.tipo);
+    if(!mejor[k] || _hgMasNuevoQue(p, mejor[k].p)) mejor[k] = { p: p, fila: fila };
+  });
+  return Object.keys(mejor).map(function(k){ return mejor[k].fila; });
+}
+
+// ── Caché de archivos en IndexedDB ──
+var _hgIdbPromesa = null;
+function _hgIdb(){
+  if(_hgIdbPromesa) return _hgIdbPromesa;
+  _hgIdbPromesa = new Promise(function(resolve){
+    try{
+      if(typeof indexedDB === 'undefined' || !indexedDB){ resolve(null); return; }
+      var t = setTimeout(function(){ resolve(null); }, 4000);
+      var req = indexedDB.open('trenturnos_cache', 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore('hg_archivos', { keyPath: 'tipo' }); };
+      req.onsuccess = function(){ clearTimeout(t); resolve(req.result); };
+      req.onerror = req.onblocked = function(){ clearTimeout(t); resolve(null); };
+    }catch(e){ resolve(null); }
+  });
+  return _hgIdbPromesa;
+}
+function _hgIdbOp(modo, fn){ // fn(store, poner) — cualquier fallo devuelve null y la app sigue como antes
+  return _hgIdb().then(function(db){
+    if(!db) return null;
+    return new Promise(function(resolve){
+      var res = null;
+      try{
+        var tx = db.transaction('hg_archivos', modo);
+        tx.oncomplete = function(){ resolve(res); };
+        tx.onerror = tx.onabort = function(){ resolve(null); };
+        fn(tx.objectStore('hg_archivos'), function(v){ res = v; });
+      }catch(e){ resolve(null); }
+    });
+  }).catch(function(){ return null; });
+}
+function _hgCacheLeer(fila){
+  if(!fila || !fila.tipo || !fila.fecha_subida) return Promise.resolve(null);
+  return _hgIdbOp('readonly', function(st, poner){
+    var r = st.get(fila.tipo); r.onsuccess = function(){ poner(r.result); };
+  }).then(function(e){
+    return (e && e.fecha_subida === fila.fecha_subida && e.url === fila.url_archivo && e.buffer) ? e : null;
+  });
+}
+function _hgCachePodar(){ // el caché del dispositivo también se limita a la ventana de 6 meses
+  var corte = _hgCorteVentana();
+  return _hgIdbOp('readwrite', function(st){
+    var cur = st.openCursor();
+    cur.onsuccess = function(){
+      var c = cur.result; if(!c) return;
+      var m = String(c.value.tipo).match(/_(\d{4})-(\d{2})$/);
+      if(m && (parseInt(m[1],10)*12 + parseInt(m[2],10)) < corte) c.delete();
+      c.continue();
+    };
+  });
+}
+// Une la información nueva con lo que ya hubiera de ESA misma versión del archivo (mismo tipo,
+// fecha_subida y url); si es otra versión, empieza una entrada nueva. Así el archivo "en bruto" y
+// el resultado ya leído (más abajo) nunca se pisan entre sí, se guarden en el orden que se guarden.
+function _hgCacheFusionar(fila, campos){
+  return _hgIdbOp('readwrite', function(st){
+    var r = st.get(fila.tipo);
+    r.onsuccess = function(){
+      var e = r.result;
+      if(!e || e.fecha_subida !== fila.fecha_subida || e.url !== fila.url_archivo) e = { tipo: fila.tipo, fecha_subida: fila.fecha_subida, url: fila.url_archivo };
+      Object.keys(campos).forEach(function(k){ e[k] = campos[k]; });
+      e.guardado = Date.now();
+      st.put(e);
+    };
+  }).then(function(){ return _hgCachePodar(); });
+}
+function _hgCacheGuardar(fila, buffer){
+  if(!fila || !fila.tipo || !fila.fecha_subida || !buffer) return Promise.resolve(null);
+  return _hgCacheFusionar(fila, { buffer: buffer });
+}
+function _hgCacheVaciar(){ return _hgIdbOp('readwrite', function(st){ st.clear(); }); }
+
+// ── Caché del resultado YA LEÍDO (la lista de empleados) ──
+// Con esto, al abrir el Buscador de Compañeros no se descarga NI se vuelve a leer el archivo
+// (leer un PDF grande es lo que más tarda): la lista sale directamente del dispositivo.
+var HG_CACHE_VERSION = 1; // súbelo si algún día cambia la forma de leer los archivos: se descartan las copias viejas
+function _hgCacheLeerParseado(fila){
+  if(!fila || !fila.tipo || !fila.fecha_subida) return Promise.resolve(null);
+  return _hgIdbOp('readonly', function(st, poner){
+    var r = st.get(fila.tipo); r.onsuccess = function(){ poner(r.result); };
+  }).then(function(e){
+    if(!e || e.fecha_subida !== fila.fecha_subida || e.url !== fila.url_archivo || e.ver !== HG_CACHE_VERSION) return null;
+    if(!Array.isArray(e.parsed) || !e.parsed.length) return null;
+    var arr = e.parsed;                                   // copia nueva en cada lectura: quien la use puede modificarla sin efectos
+    if(e.mesAnio !== undefined) arr.mesAnio = e.mesAnio;  // en los PDF, el mes va colgado del array
+    return arr;
+  });
+}
+function _hgCacheGuardarParseado(fila, datos){
+  if(!fila || !fila.tipo || !fila.fecha_subida || !datos || !datos.length) return Promise.resolve(null);
+  var plano;
+  try{ plano = JSON.parse(JSON.stringify(datos)); }catch(e){ return Promise.resolve(null); } // copia limpia, hecha ANTES de que nadie modifique los datos
+  return _hgCacheFusionar(fila, { parsed: plano, mesAnio: datos.mesAnio, ver: HG_CACHE_VERSION });
+}
+
+// Sustituye a fetch(fila.url_archivo): primero el dispositivo, y solo si no está (o hay uno nuevo) la red.
+async function _hgFetchConCache(fila){
+  try{
+    var e = await _hgCacheLeer(fila);
+    if(e) return new Response(e.buffer, { status: 200 });
+  }catch(err){}
+  if(Date.now() < _sbRestringidoHasta) return new Response('', { status: 402 }); // Supabase restringido: no insistir
+  var resp = await fetch(fila.url_archivo);
+  if(resp && resp.status === 402) _sbMarcarRestringido();
+  if(resp && resp.ok && fila.fecha_subida){
+    try{ resp.clone().arrayBuffer().then(function(buf){ _hgCacheGuardar(fila, buf); }).catch(function(){}); }catch(err){}
+  }
+  return resp;
+}
+
 async function cargarHistorialHorarioGeneral(){
   var cont = document.getElementById('hgHistorialLista');
   if(!cont || !sbAdmin) return;
@@ -26473,6 +26861,80 @@ async function eliminarHorarioGeneralMes(tipo){
   var r = await sbAdmin.from('config_global').delete().eq('tipo', tipo);
   if(r.error){ alert('No se pudo eliminar: '+r.error.message); return; }
   cargarHistorialHorarioGeneral();
+}
+// NUEVO — Limpieza AUTOMÁTICA de Horarios Generales de más de 6 meses.
+// Supabase solo deja borrar a la cuenta de administrador, así que "sola" significa: se ejecuta
+// por sí misma, sin botones ni preguntas, cuando el administrador entra en la app (como mucho
+// una vez cada 20 horas por dispositivo). Reglas de seguridad, todas a la vez:
+//  • Solo filas con mes explícito en la clave (horario_general_<sede>_AAAA-MM). Las de formato
+//    antiguo (sin mes) NO se tocan nunca.
+//  • El último horario de cada sede NUNCA se borra, por antiguo que sea.
+//  • La fecha de referencia nunca se adelanta más de 3 días a la última subida registrada: si el
+//    reloj del móvil está mal puesto hacia el futuro, no se borra de más. (Con el reloj bien, la
+//    limpieza puede retrasarse hasta la siguiente subida mensual: se conserva algo más, nunca menos.)
+//  • Como máximo 12 borrados por pasada.
+//  • Si la lectura falla o Supabase está restringido, no se borra nada.
+//  • Se borra primero la fila (la app deja de apuntar al archivo) y después el archivo de Storage.
+//  • Solo afecta a Horarios Generales: no toca la Intervención, cuentas, cambios de turno ni datos locales.
+var HG_LIMPIEZA_MAX_POR_PASADA = 12;
+var HG_LIMPIEZA_MARGEN_DIAS = 3;
+function _hgAhoraEfectivo(filas, ahoraMs){ // filas = resultado de _hgParsearTipo
+  var ult = 0;
+  filas.forEach(function(f){ var t = Date.parse(f.fecha_subida || ''); if(t && t > ult) ult = t; });
+  return new Date(ult ? Math.min(ahoraMs, ult + HG_LIMPIEZA_MARGEN_DIAS*24*3600*1000) : ahoraMs);
+}
+function _hgListarAntiguos(filas, ahora){ // filas = resultado de _hgParsearTipo
+  var nuevo = {};
+  filas.forEach(function(f){ if(!f.anio || !f.mes) return; var k = _hgSlugDeTipo(f.tipo); if(!nuevo[k] || _hgMasNuevoQue(f, nuevo[k])) nuevo[k] = f; });
+  var corte = _hgCorteVentana(ahora);
+  return filas.filter(function(f){
+    if(!/^horario_general_.+_(\d{4})-(\d{2})$/.test(f.tipo)) return false;   // formato antiguo: nunca
+    if(!f.anio || !f.mes) return false;
+    if(f.anio*12 + f.mes >= corte) return false;                              // dentro de la ventana
+    return nuevo[_hgSlugDeTipo(f.tipo)] !== f;                                // el último de cada sede: nunca
+  }).sort(function(a, b){ return (a.anio*12 + a.mes) - (b.anio*12 + b.mes); });
+}
+async function _hgBorrarUnHorario(f){ // devuelve null si todo bien, o el texto del error
+  var d = await sbAdmin.from('config_global').delete().eq('tipo', f.tipo);
+  if(d && d.error) return d.error.message || 'error';
+  try{ // el archivo de Storage: si no se puede borrar, queda huérfano pero no molesta a la app
+    var rutas = [];
+    var lst = await sbAdmin.storage.from('admin-archivos').list(f.tipo);
+    if(lst && lst.data) lst.data.forEach(function(o){ if(o && o.name) rutas.push(f.tipo + '/' + o.name); });
+    var partes = String((f.fila && f.fila.url_archivo) || '').split('/admin-archivos/');
+    if(partes[1]){
+      var p = decodeURIComponent(partes[1].split('?')[0]);
+      if(p.indexOf(f.tipo + '/') === 0 && rutas.indexOf(p) < 0) rutas.push(p);
+    }
+    if(rutas.length) await sbAdmin.storage.from('admin-archivos').remove(rutas);
+  }catch(eStorage){ console.warn('Limpieza automática: archivo de Storage no borrado', f.tipo, eStorage); }
+  return null;
+}
+async function _hgLimpiezaAutomatica(){
+  try{
+    if(!perfilAdminActual || perfilAdminActual.rol !== 'admin' || !sbAdmin) return;
+    if(Date.now() < _sbRestringidoHasta) return;
+    var ultimo = parseInt(localStorage.getItem('hg_limpieza_auto_ts') || '0', 10) || 0;
+    if(Date.now() - ultimo < 20*3600*1000) return;
+    var r = await sbAdmin.from('config_global').select('*').like('tipo', 'horario_general_%');
+    if(!r || r.error || !r.data) return;
+    try{ localStorage.setItem('hg_limpieza_auto_ts', String(Date.now())); }catch(e){}
+    var filas = r.data.map(_hgParsearTipo);
+    var lista = _hgListarAntiguos(filas, _hgAhoraEfectivo(filas, Date.now())).slice(0, HG_LIMPIEZA_MAX_POR_PASADA);
+    if(!lista.length) return;
+    var borrados = [], fallos = [];
+    for(var i = 0; i < lista.length; i++){
+      try{
+        var err = await _hgBorrarUnHorario(lista[i]);
+        if(err) fallos.push(lista[i].tipo + ': ' + err); else borrados.push(lista[i].tipo);
+      }catch(e){ fallos.push(lista[i].tipo + ': ' + (e && e.message ? e.message : e)); }
+    }
+    try{ localStorage.setItem('hg_limpieza_auto_log', JSON.stringify({ fecha: new Date().toISOString(), borrados: borrados, fallos: fallos })); }catch(e){}
+    console.log('Limpieza automática de horarios antiguos → borrados:', borrados, '| fallos:', fallos);
+    if(borrados.length && typeof toast === 'function') toast('🧹 Se borraron ' + borrados.length + ' horarios de más de ' + HG_MESES_VENTANA + ' meses');
+    var cont = document.getElementById('hgHistorialLista');
+    if(borrados.length && cont && cont.querySelector('.hg-grupo') && typeof cargarHistorialHorarioGeneral === 'function') cargarHistorialHorarioGeneral();
+  }catch(e){ console.warn('_hgLimpiezaAutomatica:', e); }
 }
 
 
@@ -26650,7 +27112,7 @@ async function cargarHorarioGlobalDesdeAdmin(mesElegido){
       // meses disponibles (para pintar los chips del selector) y se
       // filtra solo a las filas del mes objetivo — el elegido, o si
       // no se indica ninguno, el más reciente en conjunto.
-      var filasConMes = respTodas.data.map(_hgParsearTipo).filter(function(x){ return x.anio && x.mes; });
+      var filasConMes = _hgFiltrarVentana(respTodas.data.map(_hgParsearTipo).filter(function(x){ return x.anio && x.mes; }));
       if(!filasConMes.length){ _diagHorarioGeneral = 'Hay filas horario_general_%, pero ninguna con el formato de mes esperado'; return false; }
       window._hgMesesDisponibles = _hgListarMesesUnicos(filasConMes);
       var objetivo = mesElegido || window._hgMesesDisponibles[0];
@@ -26747,7 +27209,7 @@ async function cargarHorarioGlobalDesdeAdmin(mesElegido){
       return f.tipo === 'horario_general_'+sedeSlugUsuario || f.tipo.indexOf('horario_general_'+sedeSlugUsuario+'_')===0;
     }) };
     if(!respSede.data.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Sin filas para esta sede'; return false; }
-    var filasConMesUsuario = respSede.data.map(_hgParsearTipo).filter(function(x){ return x.anio && x.mes; });
+    var filasConMesUsuario = _hgFiltrarVentana(respSede.data.map(_hgParsearTipo).filter(function(x){ return x.anio && x.mes; }));
     if(!filasConMesUsuario.length){ _diagHorarioGeneral = 'esAdmin=false · miSede="'+miSede+'" · Ninguna fila con el formato de mes esperado'; return false; }
     window._hgMesesDisponibles = _hgListarMesesUnicos(filasConMesUsuario);
     var objetivoUsuario = mesElegido || window._hgMesesDisponibles[0];
@@ -26890,7 +27352,18 @@ window.hgPintarSelectorMes = hgPintarSelectorMes;
 // común extraído para poder reutilizarlo tanto en la ruta admin (varias
 // filas) como en la de usuario normal (una sola), sin duplicar código.
 async function _descargarYParsearHorario(fila){
-  var archivoResp = await fetch(fila.url_archivo);
+  // NUEVO — si este dispositivo ya tiene ESTA versión del archivo ya leída, se usa tal cual: sin
+  // descargar y sin volver a leerlo. Si no, se hace todo como siempre y se guarda el resultado.
+  try{
+    var yaLeido = await _hgCacheLeerParseado(fila);
+    if(yaLeido) return yaLeido;
+  }catch(errCache){}
+  var datos = await _descargarYParsearHorarioSinCache(fila);
+  if(datos && datos.length) _hgCacheGuardarParseado(fila, datos); // sin esperar: no retrasa la pantalla
+  return datos;
+}
+async function _descargarYParsearHorarioSinCache(fila){
+  var archivoResp = await _hgFetchConCache(fila);
   if(!archivoResp.ok) return null;
   var nombreArchivo = fila.nombre_archivo || '';
   var esXlsx = /\.xlsx$/i.test(nombreArchivo);
@@ -27048,6 +27521,33 @@ function _mesCalendarioActual(){
   return { anio: curM.getFullYear(), mes: curM.getMonth()+1 };
 }
 
+// NUEVO — Confirmado por el usuario: las dos "caras" de la tarjeta de la izquierda
+// (Sincronizando ⇄ Ver compañeros), junto a la tarjeta de Cambios de turno. Solo tocan lo
+// visual (icono/título/si se puede tocar) — la carga de datos de verdad la sigue haciendo
+// cargarHorarioGlobalDesdeAdmin(), exactamente igual que antes.
+function renderTarjetaHorarioSincronizando(){
+  var card = document.getElementById('cardHorarioGeneral');
+  var ic = document.getElementById('icHorarioGeneral');
+  var tit = document.getElementById('titHorarioGeneral');
+  if(!card) return;
+  card.classList.add('sin-accion');
+  card.onclick = null;
+  if(ic){ ic.textContent = '📡'; ic.className = 'hgct-ic b-bcn'; }
+  if(tit) tit.textContent = 'Sincronizando';
+}
+function renderTarjetaHorarioListo(){
+  var card = document.getElementById('cardHorarioGeneral');
+  var ic = document.getElementById('icHorarioGeneral');
+  var tit = document.getElementById('titHorarioGeneral');
+  var meta = document.getElementById('estadoHorarioGlobalBuscador');
+  if(!card) return;
+  card.classList.remove('sin-accion');
+  card.onclick = function(){ window._companerosCargadoEnEstaSesion = true; activateBase('global'); };
+  if(ic){ ic.textContent = '✅'; ic.className = 'hgct-ic'; ic.style.background = 'rgba(34,197,94,.15)'; ic.style.color = '#4ADE80'; }
+  if(tit) tit.textContent = 'Ver compañeros';
+  if(meta) meta.textContent = 'Horario ya sincronizado — toca para buscar';
+}
+
 window.abrirBuscadorConHorarioGlobal = async function(){
   // NUEVO — FIX de lentitud: la primera vez en la sesión se hace la
   // carga completa de siempre (con su comprobación de red). A partir
@@ -27086,11 +27586,19 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // forma de reintentar — la persona no podía hacer nada salvo cerrar
   // la app. Ahora todo el bloque está blindado con try/catch, y si
   // falla, aparece un botón para reintentar sin salir de la pestaña.
+  renderTarjetaHorarioSincronizando();
   try{
     var ok = await cargarHorarioGlobalDesdeAdmin(mesObjetivo);
     if(ok){
-      activateBase('global');
-      window._companerosCargadoEnEstaSesion = true;
+      // FIX — Confirmado por el usuario: antes esto marcaba la sesión como "ya
+      // vista" apenas terminaba de sincronizar, sin que la persona hubiera
+      // tocado nada. Si luego abría "Cambios de turno" sin haber tocado "Ver
+      // compañeros", ese botón volvía a llamar a esta función por detrás (ver
+      // _hgListo() más abajo) y, al encontrar la sesión ya marcada como
+      // "vista", tomaba el atajo que activa la base y ENVIABA A LA PERSONA AL
+      // BUSCADOR sin haberlo pedido. Ahora solo se marca como "vista" dentro
+      // del propio toque en "Ver compañeros" (ver renderTarjetaHorarioListo).
+      renderTarjetaHorarioListo();
     } else if(statusEl){
       statusEl.innerHTML = 'Todavía no hay ningún horario publicado por el administrador, o hubo un problema al cargarlo.'
         + (_diagHorarioGeneral ? (' [Diagnóstico: '+_diagHorarioGeneral+']') : '')
@@ -27266,7 +27774,7 @@ async function _buscarFilaMatriculaEnPdf(buf, matricula){
 }
 
 async function _buscarFilaMatriculaEnArchivo(fila, matricula){
-  var archivoResp = await fetch(fila.url_archivo);
+  var archivoResp = await _hgFetchConCache(fila);
   if(!archivoResp.ok) return null;
   var nombreArchivo = fila.nombre_archivo || '';
   if(/\.xlsx$/i.test(nombreArchivo)){
@@ -27289,7 +27797,7 @@ window.buscarTripulanteEnTodasLasSedes = async function(matricula){
   if(resp.error || !resp.data || !resp.data.length){
     return { valida:false, motivo:'No hay ningún Horario General publicado todavía.' };
   }
-  var filasConArchivo = resp.data.filter(function(f){ return f.url_archivo; });
+  var filasConArchivo = _hgSoloMasRecientePorSede(resp.data.filter(function(f){ return f.url_archivo; }));
   if(!filasConArchivo.length) return { valida:false, motivo:'No hay ningún Horario General publicado todavía.' };
 
   var promesas = filasConArchivo.map(function(fila){
@@ -28841,13 +29349,33 @@ window.parsePageWords = parsePageWords; // FIX — la usa _buscarMatriculaEnPdf(
 // ═══ BUSCADOR + PERFIL (opera sobre activeBase.data) ═══
 const OFF_CODES = {"DO":"des","F":"res","R":"res","LD":"oth","CP":"oth","DOP":"dop","B":"oth","EX":"oth","PP":"oth","FE":"oth","Pr":"oth"};
 const WEEKDAYS = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
-function weekdayForDay(d){
-  // FIX — estaba fijado a julio (mes índice 6); el Horario General
-  // que se está usando ahora es de AGOSTO 2026 (índice 7), así que
-  // los días de la semana salían todos desplazados uno respecto al
-  // PDF real. Si el mes cambia otra vez, hay que volver a tocar esto.
-  const dt = new Date(2026,7,d);
+// FIX — Confirmado por el usuario: esto llevaba dos veces fijado a mano a un
+// mes concreto (primero julio, luego agosto) — cada vez que pasaba el mes,
+// TODOS los días de la semana de toda la app (Cambios de turno, Tablón,
+// perfil de un compañero, búsqueda de tren...) volvían a salir mal, un mes
+// tras otro. Ahora mes y año son parámetros: cada sitio que ya sabe de qué
+// mes está hablando (Publicar un cambio, Tablón, el Horario General
+// cargado...) se lo pasa, y el día de la semana sale bien SIEMPRE, sin
+// tener que volver a tocar este archivo cuando cambie el mes.
+// mes: 1-12. Si no se indican mes/año (código antiguo que aún no se haya
+// actualizado), se mantiene el mismo agosto 2026 de antes — no cambia nada
+// para quien no pase estos parámetros nuevos.
+function weekdayForDay(d, mes, anio){
+  const m = (mes !== undefined && mes !== null) ? (mes - 1) : 7;
+  const a = (anio !== undefined && anio !== null) ? anio : 2026;
+  const dt = new Date(a, m, d);
   return WEEKDAYS[dt.getDay()];
+}
+// NUEVO — de qué mes/año es una fecha guardada como texto (por ejemplo
+// fecha_publicacion o fecha_hora de Supabase). Se usa como último recurso
+// para las publicaciones/ofertas antiguas que se guardaron ANTES de este
+// arreglo y no tienen su propio campo "mes" — nunca falla: si el texto no
+// se puede leer, se usa la fecha de hoy.
+function _mesAnioDeFecha(iso){
+  var d = null;
+  try{ if(iso) d = new Date(iso); }catch(e){}
+  if(!d || isNaN(d.getTime())) d = new Date();
+  return { anio: d.getFullYear(), mes: d.getMonth()+1 };
 }
 function classifyCell(cell){
   const trimmed = (cell||'').trim();
@@ -29555,7 +30083,7 @@ function _mostrarListaHoraTrasDia(fecha){
   var texto = document.getElementById('diaElegidoHoraTexto');
   if(wrap) wrap.style.display = 'none';
   if(resumen) resumen.style.display = 'flex';
-  if(texto) texto.textContent = weekdayForDay(fecha.getDate())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
+  if(texto) texto.textContent = weekdayForDay(fecha.getDate(),fecha.getMonth()+1,fecha.getFullYear())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
   renderListaTrenesPorHora(fecha.getDate());
 }
 function _cambiarDiaHora(){
@@ -29622,7 +30150,8 @@ function renderTrain(trainNum, day, matches, interventorMatches, concrecionMatch
   // sigue pintando en 'trainView' igual que hasta ahora.
   targetEl = targetEl || trainView;
   const _render = ()=>{
-  const wd = weekdayForDay(day);
+  const _m = _mesAnioParaPerfil();
+  const wd = weekdayForDay(day,_m.mes,_m.anio);
   const total = matches.length + interventorMatches.length + concrecionMatches.length;
   if(total===0){
     targetEl.innerHTML = `<div class="train-scene">
@@ -29797,13 +30326,14 @@ function _renderProfileCalendarioHTML(days){
 }
 function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina, horasCI, horasCO, rutaPorDia]){
   let items = '';
+  const _mProf = _mesAnioParaPerfil();
   for(let d=1; d<=31; d++){
     const cell = days[String(d)] || '';
     const info = classifyCell(cell);
     const tag = TAG_LABEL[info.type] || 'OTROS';
     items += `<div class="tl-item ${info.off?'off':''}" data-day="${d}">
       <div class="tl-rail">
-        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d)}</span></div>
+        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d,_mProf.mes,_mProf.anio)}</span></div>
         <div class="tl-line"></div>
       </div>
       <div class="tl-card">
@@ -29913,7 +30443,8 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
       var detalle = document.getElementById('pCalDayDetail');
       if(detalle){
         detalle.style.display = '';
-        detalle.innerHTML = '<div class="p-day-detail-hdr">'+weekdayForDay(d)+' '+d+'</div>'
+        var _mDet = _mesAnioParaPerfil();
+        detalle.innerHTML = '<div class="p-day-detail-hdr">'+weekdayForDay(d,_mDet.mes,_mDet.anio)+' '+d+'</div>'
           + '<div class="p-day-detail-val">'+(cell || 'Sin turno registrado')+'</div>';
       }
       viewEl.querySelectorAll('.p-cal-days .dc[data-day]').forEach(function(r){ r.style.outline=''; });
@@ -29927,7 +30458,8 @@ function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jo
 function renderCompanions(day, id, name, cell){
   const zone = document.getElementById('compZone');
   const info = classifyCell(cell);
-  const wd = weekdayForDay(day);
+  const _mComp = _mesAnioParaPerfil();
+  const wd = weekdayForDay(day,_mComp.mes,_mComp.anio);
   if(info.off || !cell){
     zone.innerHTML = `<div class="comp-wrap">
       <div class="comp-hdr"><span class="ct">${wd} ${day}</span><span class="cs">· sin tren asignado ese día</span></div>
@@ -30067,13 +30599,14 @@ function renderList(matches, query){
 const TAG_LABEL = {ord:'TURNO', des:'DESCANSO', res:'FRANCO/RES.', dop:'DOP', oth:'OTROS'};
 function renderProfile([id, name, days, sede, horasTotales, horasEF, horasPR, jorProrr, pagina]){
   let items = '';
+  const _mProf2 = _mesAnioParaPerfil();
   for(let d=1; d<=31; d++){
     const cell = days[String(d)] || '';
     const info = classifyCell(cell);
     const tag = TAG_LABEL[info.type] || 'OTROS';
     items += `<div class="tl-item ${info.off?'off':''}" data-day="${d}">
       <div class="tl-rail">
-        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d)}</span></div>
+        <div class="tl-node"><span class="tnum">${d}</span><span class="twd">${weekdayForDay(d,_mProf2.mes,_mProf2.anio)}</span></div>
         <div class="tl-line"></div>
       </div>
       <div class="tl-card">
@@ -30291,6 +30824,16 @@ var _nscSuDia = null;
 var _nscMiDetalle = null;
 var _nscSuDetalle = null;
 
+// NUEVO — Confirmado por el usuario: "Cambios de turno" (Nueva solicitud, Publicar
+// un cambio, Cambios publicados) necesita que el Horario General YA esté descargado
+// para poder buscar compañeros por nombre — pero NO necesita que la persona haya
+// tocado "Ver compañeros" ni que la pantalla cambie al buscador. Antes estas 3
+// funciones comprobaban `activeBase` (que solo se pone al TOCAR "Ver compañeros",
+// y de paso cambia de pantalla). Ahora comprueban solo si los datos existen.
+function _hgListo(){
+  return !!(BASES.global && BASES.global.data && BASES.global.data.length);
+}
+
 function abrirNuevaSolicitudCambio(){
   // FIX — Confirmado por el usuario: antes esto mandaba a la persona
   // a la pestaña Compañeros (podía confundir, "¿por qué me cambió de
@@ -30301,7 +30844,7 @@ function abrirNuevaSolicitudCambio(){
   // .ov ya funcionan así, cubren toda la pantalla sea cual sea la
   // pestaña activa debajo). En cuanto activeBase esté listo, este
   // formulario se abre solo, automáticamente.
-  if(!activeBase){
+  if(!_hgListo()){
     if(typeof toast==='function') toast('Cargando compañeros...');
     if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
     _nscEsperarActiveBaseYAbrir();
@@ -30336,7 +30879,7 @@ function _nscEsperarActiveBaseYAbrir(){
   var intentos = 0;
   var intervalo = setInterval(function(){
     intentos++;
-    if(activeBase){
+    if(_hgListo()){
       clearInterval(intervalo);
       _nscEsperandoActiveBase = false;
       abrirNuevaSolicitudCambio();
@@ -30515,7 +31058,7 @@ function _nscPintarCalendario(){
 
 function _nscPintarDetalleDia(idSelector, idDetalle, fecha, det, esMio){
   var dia = fecha.getDate(), mes = fecha.getMonth()+1;
-  var titulo = weekdayForDay(dia)+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase();
+  var titulo = weekdayForDay(dia,mes,fecha.getFullYear())+' '+dia+' de '+MESES_CAL_TREN[mes-1].toLowerCase();
   document.getElementById(idSelector).innerHTML = '<div style="font-size:12px;font-weight:700">'+titulo+'</div>';
   var elDet = document.getElementById(idDetalle);
   if(!det){
@@ -31239,8 +31782,8 @@ body{
     <div class="step-num">1</div>
     <div class="step-body">
       <span class="step-who sara">Sara</span>
-      <h3 class="step-title">Sara abre "Cambios de turno" en su Calendario</h3>
-      <p class="step-text">Está debajo del calendario de siempre. Toca <b>"Nueva solicitud de cambio"</b> y busca a Marcos por su nombre.</p>
+      <h3 class="step-title">Sara abre "Cambios de turno" en Compañeros</h3>
+      <p class="step-text">Está junto al Horario General de siempre. Toca <b>"Nueva solicitud de cambio"</b> y busca a Marcos por su nombre.</p>
       <div class="phone-shot">
         <div class="ps-field-lbl">Con quién</div>
         <div class="ps-row" style="background:var(--panel2);border-radius:9px;padding:9px 10px;border:1px solid var(--blue)">
@@ -31387,7 +31930,7 @@ Solicitud generada automaticamente por TrenTurno V5</div>
 
   <div class="closing">
     <h2>En resumen</h2>
-    <p>Todo el proceso pasa por Calendario → Cambios de turno. Nada de esto lo hace la app en automático por su cuenta — cada paso lo confirma una persona, a propósito.</p>
+    <p>Todo el proceso pasa por Compañeros → Cambios de turno. Nada de esto lo hace la app en automático por su cuenta — cada paso lo confirma una persona, a propósito.</p>
     <ul class="closing-list">
       <li>Buscar al compañero y elegir los dos días es cosa de quien pide el cambio.</li>
       <li>Aceptar o rechazar es cosa de quien lo recibe.</li>
@@ -31884,7 +32427,7 @@ var _pubMesActual = null; // {anio, mes}
 var _pubDetallePorDia = {}; // dia -> detalle (de construirDetalleDiaPropio)
 
 function abrirPublicarCambio(){
-  if(!activeBase){
+  if(!_hgListo()){
     if(typeof toast==='function') toast('Cargando compañeros...');
     if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
     _pubEsperarActiveBaseYAbrir();
@@ -31894,7 +32437,7 @@ function abrirPublicarCambio(){
   document.getElementById('pubMensajeInput').value = '';
   document.getElementById('pubEstado').innerHTML = '';
   document.getElementById('pubSeqResumen').innerHTML = '';
-  var sedeTxt = (activeBase && activeBase.label) ? activeBase.label : '—';
+  var sedeTxt = (BASES.global && BASES.global.label) ? BASES.global.label : '—';
   document.getElementById('pubHdrSede').textContent = sedeTxt;
   var hoy = new Date();
   _pubPintarDiasDelMes(hoy.getFullYear(), hoy.getMonth()+1);
@@ -31909,7 +32452,7 @@ function _pubEsperarActiveBaseYAbrir(){
   var intentos = 0;
   var intervalo = setInterval(function(){
     intentos++;
-    if(activeBase){
+    if(_hgListo()){
       clearInterval(intervalo); _pubEsperandoActiveBase = false;
       abrirPublicarCambio();
       return;
@@ -31951,7 +32494,7 @@ function _pubPintarDiasDelMes(anio, mes){
     var resumen = _resumenTurno(det);
     html += '<div class="ct-day-check" id="pubDia_'+d+'" onclick="_pubToggleDia('+d+')">'
       + '<div class="ct-check-box" id="pubCheck_'+d+'">✓</div>'
-      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d)+' '+d+'</div><div class="ct-req-sub">'+resumen+'</div></div>'
+      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d,mes,anio)+' '+d+'</div><div class="ct-req-sub">'+resumen+'</div></div>'
       + '</div>';
   }
   cont.innerHTML = huboAlguno ? html : '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No tienes ningún día futuro con algo registrado en '+MESES_CAL_TREN[mes-1].toLowerCase()+' — prueba con otro mes.</div>';
@@ -31988,7 +32531,7 @@ function _pubActualizarResumenSecuencia(){
     el.innerHTML = '';
     return;
   }
-  el.innerHTML = '<div class="ct-seq-note">📦 Vas a publicar una <b>secuencia de '+_pubDias.length+' días</b>: '+weekdayForDay(_pubDias[0])+' '+_pubDias[0]+' a '+weekdayForDay(_pubDias[_pubDias.length-1])+' '+_pubDias[_pubDias.length-1]+' — se ofrecen juntos, no por separado.</div>';
+  el.innerHTML = '<div class="ct-seq-note">📦 Vas a publicar una <b>secuencia de '+_pubDias.length+' días</b>: '+weekdayForDay(_pubDias[0],_pubMesActual.mes,_pubMesActual.anio)+' '+_pubDias[0]+' a '+weekdayForDay(_pubDias[_pubDias.length-1],_pubMesActual.mes,_pubMesActual.anio)+' '+_pubDias[_pubDias.length-1]+' — se ofrecen juntos, no por separado.</div>';
 }
 
 async function publicarCambioTurno(){
@@ -32005,6 +32548,7 @@ async function publicarCambioTurno(){
       matricula_publicador: AJ.matricula,
       nombre_publicador: AJ.nombre,
       anio: _pubMesActual.anio,
+      mes: _pubMesActual.mes, // NUEVO — antes solo se guardaba el año; hacía falta también el mes
       dias: _pubDias,
       detalle: detalleCompleto,
       nota: document.getElementById('pubMensajeInput').value.trim() || null,
@@ -32026,15 +32570,35 @@ window.publicarCambioTurno = publicarCambioTurno;
 
 // ── Tablón: "Cambios publicados" ──
 function abrirCambiosPublicados(){
-  if(!activeBase){
+  if(!_hgListo()){
     if(typeof toast==='function') toast('Cargando compañeros...');
     if(typeof abrirAccesoBuscadorCompaneros==='function') abrirAccesoBuscadorCompaneros();
+    _cpubEsperarListoYAbrir();
     return;
   }
-  var sedeTxt = (activeBase && activeBase.label) ? activeBase.label : '—';
+  var sedeTxt = (BASES.global && BASES.global.label) ? BASES.global.label : '—';
   document.getElementById('cpubHdrSede').textContent = sedeTxt;
   openOv('ov-cambios-publicados');
   _cpubCambiarTab('todas');
+}
+// NUEVO — igual que _nscEsperarActiveBaseYAbrir / _pubEsperarActiveBaseYAbrir: si al
+// tocar "Cambios publicados" el Horario General aún se está descargando, se reintenta
+// solo, en cuanto esté listo (antes esto no existía: si no había datos, el botón se
+// quedaba sin hacer nada más allá del aviso "Cargando compañeros...").
+var _cpubEsperandoListo = false;
+function _cpubEsperarListoYAbrir(){
+  if(_cpubEsperandoListo) return;
+  _cpubEsperandoListo = true;
+  var intentos = 0;
+  var intervalo = setInterval(function(){
+    intentos++;
+    if(_hgListo()){
+      clearInterval(intervalo); _cpubEsperandoListo = false;
+      abrirCambiosPublicados();
+      return;
+    }
+    if(intentos > 240){ clearInterval(intervalo); _cpubEsperandoListo = false; }
+  }, 500);
 }
 window.abrirCambiosPublicados = abrirCambiosPublicados;
 
@@ -32066,6 +32630,7 @@ async function cargarMisOfertas(){
     var html = '';
     for(var i=0;i<filas.length;i++){
       var o = filas[i];
+      var m = _mesAnioDeFila(o, 'fecha_hora');
       var rp = await sbAdmin.from('publicaciones_cambio_turno').select('nombre_publicador,dias').eq('id', o.publicacion_id).maybeSingle();
       var nombrePub = (rp && rp.data) ? rp.data.nombre_publicador : '—';
       var chip = o.estado==='pendiente' ? '<span class="ct-status-chip ct-status-pend">⏳ Pendiente</span>'
@@ -32081,7 +32646,7 @@ async function cargarMisOfertas(){
           : '<div class="ct-cancel-btn" onclick="eliminarOfertaPublicacion('+o.id+')">🗑 Eliminar</div>');
       html += '<div class="ct-feed-item">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div></div>'
+        + '<div><div class="ct-req-name" style="font-size:12px">'+nombrePub+'</div><div class="ct-req-sub">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias,m.mes,m.anio)+'</div></div>'
         + chip + '</div>' + accionesExtra + '</div>';
     }
     cont.innerHTML = html;
@@ -32109,17 +32674,25 @@ async function eliminarOfertaPublicacion(id){
 }
 window.eliminarOfertaPublicacion = eliminarOfertaPublicacion;
 
-function _diasTexto(dias){
-  if(dias.length===1) return weekdayForDay(dias[0])+' '+dias[0];
-  return weekdayForDay(dias[0])+' '+dias[0]+' → '+weekdayForDay(dias[dias.length-1])+' '+dias[dias.length-1];
+// NUEVO — de qué mes/año es una publicación/oferta ya guardada: usa el campo
+// "mes" si esa fila ya lo tiene (publicada después de este arreglo); si no
+// existe (una fila más antigua), se calcula de su fecha de creación.
+function _mesAnioDeFila(fila, campoFecha){
+  if(fila && fila.mes) return { mes: fila.mes, anio: fila.anio };
+  return _mesAnioDeFecha(fila && fila[campoFecha]);
 }
-function _detalleSecuenciaHTML(dias, detalle, prefijoDia){
+
+function _diasTexto(dias, mes, anio){
+  if(dias.length===1) return weekdayForDay(dias[0],mes,anio)+' '+dias[0];
+  return weekdayForDay(dias[0],mes,anio)+' '+dias[0]+' → '+weekdayForDay(dias[dias.length-1],mes,anio)+' '+dias[dias.length-1];
+}
+function _detalleSecuenciaHTML(dias, detalle, prefijoDia, mes, anio){
   var html = '';
   dias.forEach(function(d){
     var det = detalle[d];
     if(!det) return;
     var abbr = prefijoDia ? (['','Lun','Mar','Mié','Jue','Vie','Sáb','Dom'][new Date().getDay()]) : '';
-    var etiqueta = dias.length>1 ? (weekdayForDay(d).slice(0,3)+' '+d+': ') : '';
+    var etiqueta = dias.length>1 ? (weekdayForDay(d,mes,anio).slice(0,3)+' '+d+': ') : '';
     if(det.esLibre){
       html += '<div class="ct-feed-turno-tren">'+etiqueta+det.tipoLibreLbl+'</div>';
     } else if(det.turnos && det.turnos.length){
@@ -32155,11 +32728,12 @@ async function cargarCambiosPublicados(){
     if(filas.length){ badge.style.display=''; badge.textContent = filas.length; } else { badge.style.display='none'; }
     if(!filas.length){ cont.innerHTML = '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">Nadie de tu base tiene publicado ningún cambio ahora mismo.</div>'; return; }
     cont.innerHTML = filas.map(function(p){
+      var m = _mesAnioDeFila(p, 'fecha_publicacion');
       return '<div class="ct-feed-item">'
         + '<div class="ct-feed-hdr"><div class="ct-pcard-av">'+initials(p.nombre_publicador)+'</div>'
         + '<div><div class="ct-feed-name">'+p.nombre_publicador+'</div><div class="ct-feed-sub">Publicado '+_fechaRelativa(p.fecha_publicacion)+'</div></div>'
         + '<div class="ct-feed-expiry">'+_expiraEnTexto(p.fecha_caducidad)+'</div></div>'
-        + '<div class="ct-feed-turno"><div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 Secuencia: ':'')+_diasTexto(p.dias)+'</div>'+_detalleSecuenciaHTML(p.dias, p.detalle)+'</div>'
+        + '<div class="ct-feed-turno"><div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 Secuencia: ':'')+_diasTexto(p.dias,m.mes,m.anio)+'</div>'+_detalleSecuenciaHTML(p.dias, p.detalle, null, m.mes, m.anio)+'</div>'
         + (p.nota ? '<div class="ct-feed-note">"'+p.nota+'"</div>' : '')
         + '<div class="feed-btn ct-send-btn" onclick="abrirOfrecerCambio('+p.id+')">Ofrecer un cambio</div>'
         + '</div>';
@@ -32189,6 +32763,7 @@ async function cargarMisPublicaciones(){
     var html = '';
     for(var i=0;i<filas.length;i++){
       var p = filas[i];
+      var m = _mesAnioDeFila(p, 'fecha_publicacion');
       var chip = p.estado==='activa' ? '<span class="ct-status-chip ct-status-pend">⏳ Activa</span>'
         : p.estado==='aceptada' ? '<span class="ct-status-chip ct-status-ok">✅ Aceptada</span>'
         : p.estado==='retirada' ? '<span class="ct-status-chip" style="background:var(--s2);color:var(--tx3)">Retirada</span>'
@@ -32200,10 +32775,11 @@ async function cargarMisPublicaciones(){
         if(ofertas.length){
           ofertasHtml = '<div class="ct-field-lbl" style="margin:8px 0 6px">'+ofertas.length+' oferta'+(ofertas.length>1?'s':'')+' recibida'+(ofertas.length>1?'s':'')+'</div>'
             + ofertas.map(function(o){
+              var mo = _mesAnioDeFila(o, 'fecha_hora');
               return '<div class="ct-req-swap" style="flex-direction:column;align-items:stretch;gap:4px">'
                 + '<div style="display:flex;align-items:center;gap:8px"><div class="ct-pcard-av" style="width:24px;height:24px;font-size:10px">'+initials(o.nombre_ofertante)+'</div><div class="ct-req-name" style="font-size:11px">'+o.nombre_ofertante+'</div></div>'
-                + '<div style="font-size:10px;color:var(--tx2)">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias)+'</div>'
-                + _detalleSecuenciaHTML(o.dias, o.detalle)
+                + '<div style="font-size:10px;color:var(--tx2)">'+(o.dias.length>1?'📦 ':'')+_diasTexto(o.dias,mo.mes,mo.anio)+'</div>'
+                + _detalleSecuenciaHTML(o.dias, o.detalle, null, mo.mes, mo.anio)
                 + (o.mensaje ? '<div class="ct-req-msg" style="margin:4px 0">"'+o.mensaje+'"</div>' : '')
                 + '<div class="ct-btn-accept" style="margin-top:4px" onclick="aceptarOfertaPublicacion('+o.id+','+p.id+')">Aceptar esta oferta</div>'
                 + '</div>';
@@ -32215,8 +32791,11 @@ async function cargarMisPublicaciones(){
       }
       html += '<div class="ct-feed-item">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
-        + '<div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 ':'')+_diasTexto(p.dias)+'</div>'
+        + '<div class="ct-feed-turno-day">'+(p.dias.length>1?'📦 ':'')+_diasTexto(p.dias,m.mes,m.anio)+'</div>'
         + chip + '</div>'
+        // FIX — "Mis publicaciones" no mostraba los detalles (trenes y horas) que SÍ ve el resto en el
+        // Tablón. Se reutiliza _detalleSecuenciaHTML() tal cual; p.detalle||{} evita romper con filas antiguas sin detalle.
+        + (function(){ var det = _detalleSecuenciaHTML(p.dias, p.detalle||{}, null, m.mes, m.anio); return det ? '<div class="ct-feed-turno" style="margin-top:8px">'+det+'</div>' : ''; })()
         + '<div class="ct-feed-expiry" style="margin-top:2px">'+(p.estado==='activa'?_expiraEnTexto(p.fecha_caducidad):'')+'</div>'
         + ofertasHtml
         + (p.estado==='activa' ? '<div class="ct-cancel-btn" onclick="retirarPublicacion('+p.id+')">Retirar publicación</div>' : '')
@@ -32271,7 +32850,8 @@ async function abrirOfrecerCambio(publicacionId){
   document.getElementById('ofrEstado').innerHTML = '';
   document.getElementById('ofrSeqResumen').innerHTML = '';
   document.getElementById('ofrHdrA').textContent = 'A '+r.data.nombre_publicador;
-  document.getElementById('ofrSuTurno').innerHTML = '<div class="ct-feed-turno"><div class="ct-feed-turno-day">Su '+(r.data.dias.length>1?'secuencia: ':'turno: ')+_diasTexto(r.data.dias)+'</div>'+_detalleSecuenciaHTML(r.data.dias, r.data.detalle)+'</div>';
+  var mOfr = _mesAnioDeFila(r.data, 'fecha_publicacion');
+  document.getElementById('ofrSuTurno').innerHTML = '<div class="ct-feed-turno"><div class="ct-feed-turno-day">Su '+(r.data.dias.length>1?'secuencia: ':'turno: ')+_diasTexto(r.data.dias,mOfr.mes,mOfr.anio)+'</div>'+_detalleSecuenciaHTML(r.data.dias, r.data.detalle, null, mOfr.mes, mOfr.anio)+'</div>';
   var hoy = new Date();
   _ofrPintarDiasDelMes(hoy.getFullYear(), hoy.getMonth()+1);
   openOv('ov-ofrecer-publicacion');
@@ -32306,7 +32886,7 @@ function _ofrPintarDiasDelMes(anio, mes){
     _ofrDetallePorDia[d] = det;
     html += '<div class="ct-day-check" id="ofrDia_'+d+'" onclick="_ofrToggleDia('+d+')">'
       + '<div class="ct-check-box" id="ofrCheck_'+d+'">✓</div>'
-      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d)+' '+d+'</div><div class="ct-req-sub">'+_resumenTurno(det)+'</div></div>'
+      + '<div><div class="ct-req-name" style="font-size:11.5px">'+weekdayForDay(d,mes,anio)+' '+d+'</div><div class="ct-req-sub">'+_resumenTurno(det)+'</div></div>'
       + '</div>';
   }
   cont.innerHTML = huboAlguno ? html : '<div style="padding:14px;text-align:center;color:var(--tx3);font-size:12px">No tienes ningún día futuro con algo registrado en '+MESES_CAL_TREN[mes-1].toLowerCase()+'.</div>';
@@ -32328,7 +32908,7 @@ function _ofrToggleDia(dia){
     return;
   }
   if(_ofrDias.length===1){ el.innerHTML=''; return; }
-  el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.08);color:#93C5FD">📦 Ofreces tu secuencia de '+_ofrDias.length+' días: '+_diasTexto(_ofrDias)+'</div>';
+  el.innerHTML = '<div class="ct-seq-note" style="border-color:rgba(37,99,235,.4);background:rgba(37,99,235,.08);color:#93C5FD">📦 Ofreces tu secuencia de '+_ofrDias.length+' días: '+_diasTexto(_ofrDias,_ofrMesActual.mes,_ofrMesActual.anio)+'</div>';
 }
 window._ofrToggleDia = _ofrToggleDia;
 
@@ -32345,6 +32925,8 @@ async function enviarOfertaPublicacion(){
       publicacion_id: _ofrPublicacionActual.id,
       matricula_ofertante: AJ.matricula,
       nombre_ofertante: AJ.nombre,
+      anio: _ofrMesActual.anio, // NUEVO — antes no se guardaba ni el año ni el mes de estos días
+      mes: _ofrMesActual.mes,
       dias: _ofrDias,
       detalle: detalleCompleto,
       mensaje: document.getElementById('ofrMensajeInput').value.trim() || null,
@@ -32661,7 +33243,8 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     concrecionMatches = concrecionMatches || [];
     targetEl2 = targetEl2 || trainView2;
     const _render = ()=>{
-      const wd = weekdayForDay(day);
+      const _m2 = _mesAnioParaPerfil();
+      const wd = weekdayForDay(day,_m2.mes,_m2.anio);
       const total = matches.length + interventorMatches.length + concrecionMatches.length;
       if(total===0){
         targetEl2.innerHTML = `<div class="train-scene">
@@ -32828,7 +33411,7 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     var texto = document.getElementById('diaElegidoHora2Texto');
     if(wrap) wrap.style.display = 'none';
     if(resumen) resumen.style.display = 'flex';
-    if(texto) texto.textContent = weekdayForDay(fecha.getDate())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
+    if(texto) texto.textContent = weekdayForDay(fecha.getDate(),fecha.getMonth()+1,fecha.getFullYear())+' '+fecha.getDate()+' de '+MESES_CAL_TREN[fecha.getMonth()].toLowerCase();
     renderListaTrenesPorHora2(fecha.getDate());
   }
   function _cambiarDiaHora2(){
