@@ -7806,10 +7806,32 @@ function _nominaConceptosFijos(rol, anio, mes){
   var fracMarzo = ventanaPaga(3, anioPagoMarzo);
   var pagaMarzoMensual = Math.round((c.pagaMarzo*pct*fracMarzo/12)*100)/100;
   var salarioBaseProp = Math.round(c.salarioBase*pct*100)/100;
+  // NUEVO — Confirmado por el usuario: si la Fecha de antigüedad (Ajustes)
+  // cae DENTRO del mes que se está viendo, este es el primer mes trabajado
+  // y un nuevo ingreso no cobra el mes completo — solo los días naturales
+  // desde su fecha de ingreso (incluida) hasta fin de mes. Se aplica SOLO
+  // a Salario Base, Plus Transporte y Plus Manutención (los tres conceptos
+  // que se pagan iguales cada mes); la Paga de Marzo y las extras de
+  // Verano/Otoño/Navidad ya tienen su propio prorrateo por periodo de
+  // devengo (_nominaFraccionDevengo) y no se tocan aquí — por eso usan
+  // "salarioBaseProp" (sin este prorrateo) como referencia, no el
+  // importe ya prorrateado del mes de ingreso.
+  var fracMesIngreso = 1;
+  if(AJ.antiguedad){
+    var _fechaIngreso = new Date(AJ.antiguedad+'T00:00:00');
+    var _esMesDeIngreso = _fechaIngreso.getFullYear()===anio && (_fechaIngreso.getMonth()+1)===mes;
+    if(_esMesDeIngreso){
+      var _diasEnMes = new Date(anio, mes, 0).getDate();
+      var _diaIngreso = _fechaIngreso.getDate();
+      var _diasTrabajados = _diasEnMes - _diaIngreso + 1; // incluye el propio día de ingreso
+      fracMesIngreso = Math.max(0, Math.min(1, _diasTrabajados/_diasEnMes));
+    }
+  }
+  var _sufijoIngreso = fracMesIngreso<1 ? ' · prorrateado (mes de ingreso)' : '';
   var fijos = [
-    {label:'Salario Base', val:salarioBaseProp},
-    {label:'Plus Transporte', val:Math.round(c.plusTransporte*pct*100)/100},
-    {label:'Plus Manutención', val:Math.round(c.plusManutencion*pct*100)/100},
+    {label:'Salario Base'+_sufijoIngreso, val:Math.round(salarioBaseProp*fracMesIngreso*100)/100},
+    {label:'Plus Transporte'+_sufijoIngreso, val:Math.round(c.plusTransporte*pct*fracMesIngreso*100)/100},
+    {label:'Plus Manutención'+_sufijoIngreso, val:Math.round(c.plusManutencion*pct*fracMesIngreso*100)/100},
     {label:'Paga de Marzo (÷12)'+(fracMarzo<1?' · prorrateada':''), val:pagaMarzoMensual}
   ];
   // CONFIRMADO por Alex (última versión): las tres pagas (Verano,
