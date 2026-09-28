@@ -3475,6 +3475,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;padding:14px;cursor:pointer;margin-bottom:8px">
       Continuar
     </button>
+    <!-- NUEVO — Ayuda: si alguien no consigue entrar, puede escribir por WhatsApp
+         (número en WHATSAPP_CONTACTO_AYUDA, en el JS). Se muestra siempre en esta pantalla. -->
+    <a id="linkWhatsappAyudaTrip" href="#" onclick="return abrirWhatsappAyudaTrip(event)" target="_blank" rel="noopener"
+      style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box;margin:2px 0 10px;
+      background:rgba(37,211,102,.10);border:1px solid rgba(37,211,102,.35);border-radius:12px;color:#86EFAC;font-size:12.5px;font-weight:800;padding:11px">
+      💬 ¿Problemas para entrar? Escríbeme por WhatsApp
+    </a>
     <button id="btnSaltarAccesoTripulante" style="width:100%;background:transparent;border:none;
       color:#94A3B8;font-size:12px;font-weight:700;padding:8px;cursor:pointer">
       No la tengo a mano, rellenar a mano en Ajustes
@@ -3616,15 +3623,27 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
      z-index fijo, entre el Portal de Perfil (10000) y la pantalla de
      Interventor (9998). -->
 <div id="portal-interventor-acceso" style="display:none;position:fixed;inset:0;z-index:9999;
-  background:#0F0A1F;align-items:center;justify-content:center;padding:20px">
-  <div style="width:100%;max-width:360px;text-align:center">
+  background:#0F0A1F;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px">
+  <div style="width:100%;max-width:360px;text-align:center;margin:auto">
     <div style="font-size:44px;margin-bottom:6px">🔒</div>
     <div style="font-size:18px;font-weight:900;color:#A78BFA;margin-bottom:2px">Acceso de Interventor</div>
-    <div style="font-size:12px;color:#94A3B8;margin-bottom:22px;line-height:1.5">
-      Introduce tu número de matrícula (o, si eres de Valencia, tu número de móvil de 6 dígitos).<br>Debe figurar en el Informe de Intervención publicado.
+    <div style="font-size:12px;color:#94A3B8;margin-bottom:16px;line-height:1.5">
+      Introduce tu número de matrícula.
     </div>
 
-    <input type="text" id="accesoMatriculaInterventorInput" placeholder="Matrícula o móvil" inputmode="numeric" autocomplete="off"
+    <!-- NUEVO — Mensaje del reinicio de accesos de Interventor. Se muestra/oculta con
+         AVISO_REINICIO_ACCESOS_INTERV (en el JS): pon false para quitarlo. -->
+    <div id="avisoReinicioAccesosInterv" style="display:none;text-align:left;margin:0 0 14px;padding:12px;
+      background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);border-radius:12px">
+      <div style="font-size:13px;font-weight:800;color:#FDE68A;margin-bottom:6px">ℹ️ Accesos reiniciados</div>
+      <div style="font-size:12.5px;line-height:1.55;color:#FEF3C7">
+        Disculpa las molestias. Por un error del sistema, algunos tripulantes estaban entrando por equivocación a esta sección, que es solo para interventores.<br><br>
+        Para corregirlo hemos reiniciado los accesos. Si eres interventor, vuelve a solicitar acceso con tu nombre y tu base, y lo revisaremos lo antes posible. Si eres tripulante, marca «Tripulante» y te llevamos a tu portal.<br><br>
+        Perdona el inconveniente. Feliz viaje y feliz día.
+      </div>
+    </div>
+
+    <input type="text" id="accesoMatriculaInterventorInput" placeholder="Matrícula" inputmode="numeric" autocomplete="off"
       style="width:100%;background:#1E1533;border:2px solid #7C3AED;border-radius:12px;color:#F8FAFC;
       font-size:15px;font-weight:700;padding:14px 16px;text-align:center;letter-spacing:.5px;margin-bottom:10px;outline:none">
 
@@ -3635,9 +3654,24 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
          validarMatriculaInterventor() lo activa. -->
     <div id="bloqueSolicitudAccesoInterv" style="display:none;margin:0 0 16px;padding-top:10px;border-top:1px solid #2E1A5C;text-align:left">
       <div style="font-size:11px;color:#C4B5FD;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:9px;padding:8px 10px;margin-bottom:8px;line-height:1.4">Puedes solicitar acceso — el administrador la revisará y te avisará cuando esté activa.</div>
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:#94A3B8;display:block;margin-bottom:6px">¿QUÉ ERES?</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;background:#1E1533;border:2px solid #2E1A5C;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;color:#F8FAFC;cursor:pointer">
+          <input type="checkbox" id="solicitudTipoInterventor" onchange="elegirTipoSolicitudInterv('interventor')" style="width:17px;height:17px;accent-color:#7C3AED"> Interventor
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;background:#1E1533;border:2px solid #2E1A5C;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700;color:#F8FAFC;cursor:pointer">
+          <input type="checkbox" id="solicitudTipoTripulante" onchange="elegirTipoSolicitudInterv('tripulante')" style="width:17px;height:17px;accent-color:#7C3AED"> Tripulante
+        </label>
+      </div>
+      <div id="avisoTipoTripulanteInterv" style="display:none;font-size:11px;color:#C4B5FD;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:9px;padding:8px 10px;margin-bottom:10px;line-height:1.4">Los tripulantes no necesitan solicitar acceso aquí: te llevamos al portal de tripulación para que entres con tu matrícula.</div>
+      <div id="bloqueDatosSolicitudInterv">
       <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:#94A3B8;display:block;margin-bottom:4px">NOMBRE COMPLETO</label>
       <input type="text" id="solicitudNombreInputInterv" placeholder="Tu nombre completo…" autocomplete="off"
         style="width:100%;background:#1E1533;border:2px solid #2E1A5C;border-radius:12px;color:#F8FAFC;font-size:14px;font-weight:600;padding:12px 14px;margin-bottom:10px;outline:none;box-sizing:border-box">
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:#94A3B8;display:block;margin-bottom:4px">BASE</label>
+      <input type="text" id="solicitudBaseInputInterv" placeholder="Tu base (p. ej. Barcelona Sants)…" autocomplete="off"
+        style="width:100%;background:#1E1533;border:2px solid #2E1A5C;border-radius:12px;color:#F8FAFC;font-size:14px;font-weight:600;padding:12px 14px;margin-bottom:10px;outline:none;box-sizing:border-box">
+      </div>
       <button id="btnEnviarSolicitudAccesoInterv" onclick="enviarSolicitudAccesoInterv()" style="width:100%;background:linear-gradient(135deg,#7C3AED,#A78BFA);
         border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:800;padding:12px;cursor:pointer;margin-bottom:8px">📨 Enviar solicitud de acceso</button>
       <div id="estadoSolicitudAccesoInterv" style="display:none;font-size:11px;color:#94A3B8;margin-bottom:8px;line-height:1.4"></div>
@@ -3890,15 +3924,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="cs-info-adicional-box"></div>
       <div id="cs-total-pagar-box"></div>
 
-      <!-- NUEVO — hueco del anuncio "Banner 468x60" (Adsterra). El
-           banner mide 468px de ancho, más que la pantalla del móvil
-           (~390px), así que se encoge con "zoom" para que quepa
-           entero sin desbordar ni forzar scroll lateral — mismo
-           truco que ya se usa con el Native Banner. Vacío hasta que
-           se aceptan las cookies (ver cargarAnunciosSiConsentido()). -->
-      <div style="margin:14px 0 4px;display:flex;justify-content:center;overflow:hidden">
-        <div id="hueco-banner-468x60" style="zoom:0.8"></div>
-      </div>
     </div>
   </div>
 
@@ -5050,45 +5075,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     NUEVO — AVISO SOBRE LA PUBLICIDAD. Aparece UNA sola vez, a
-     cualquiera (Tripulación o Interventor), y no vuelve a salir tras
-     pulsar "Entendido" (mismo mecanismo que Novedades: una clave en
-     localStorage). Ver mostrarAvisoPublicidadSiHaceFalta() y
-     cerrarAvisoPublicidad() en el bloque de JS.
-═══════════════════════════════════════════════════════════ -->
-<div class="ov" id="ov-aviso-publicidad">
-  <div class="sh" onclick="event.stopPropagation()" style="max-height:88%">
-    <div class="sh-handle"></div>
-    <div class="sh-hdr">
-      <div class="sh-ico">📢</div>
-      <div><div class="sh-tit">Un aviso sobre la publicidad</div><div class="sh-sub">TrenTurnos v5</div></div>
-    </div>
-    <div style="padding:18px 20px;overflow-y:auto">
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🙏</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Si te ha salido algún anuncio que no te ha gustado, de verdad te pido <b style="color:var(--tx)">DISCULPAS</b> — sé que es un rollo cuando solo quieres mirar tus turnos.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🔌</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Nosotros no elegimos qué publicidad concreta se muestra — eso lo decide la plataforma externa que gestiona los anuncios, no la app.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🗑️</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">En cuanto vimos que se estaba colando contenido que no queríamos, <b style="color:var(--tx)">quitamos el anuncio más grande</b> para reducir ese riesgo.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">💛</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6">Esperamos que no te haya resultado muy molesto, y gracias por tu paciencia — seguimos revisándolo.</div>
-      </div>
-      <div style="display:flex;gap:12px;margin-bottom:20px">
-        <div style="font-size:22px;flex-shrink:0;width:30px;text-align:center">🛡️</div>
-        <div style="font-size:13px;color:var(--tx2);line-height:1.6"><b style="color:var(--tx)">Esto no es ningún virus.</b> Es un servicio de publicidad real, como el que usan miles de páginas web — genera unos céntimos que ayudan a seguir manteniendo y mejorando la app.</div>
-      </div>
-      <button onclick="cerrarAvisoPublicidad()" style="width:100%;padding:14px;background:var(--acc);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer">✅ Entendido</button>
-    </div>
-  </div>
-</div>
 
 <!-- ═══════════════════════════════════════════════════════════
      NUEVO — NÓMINA ESTIMADA. Confirmada con Alex tras varias rondas
@@ -5724,6 +5710,7 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="hora-seg" id="hd-m" onclick="horaFocus('m')">00</div>
     </div>
     <div class="hora-cursor-lbl" id="hora-cursor-lbl">Editando horas</div>
+
 
     <!-- Teclado numérico -->
     <div class="hora-pad">
@@ -6714,7 +6701,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="listaSolicitudesAcceso" style="margin-top:8px"></div>
     </div>
 
-    <div class="admin-card">
+    <!-- OCULTA a petición de Alex (no borrada): para volver a verla, quita display:none de la línea de abajo. -->
+    <div class="admin-card" style="display:none">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">🔀</div>
         <div>
@@ -7063,29 +7051,6 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     NUEVO — Aviso de cookies (Google AdSense / Adsterra). Se
-     muestra SOLO la primera vez (comprueba localStorage). Los
-     scripts de publicidad de verdad NO se cargan hasta que la
-     persona pulsa "Aceptar" — así se cumple la normativa europea
-     de cookies (no cargar cookies de terceros sin consentimiento
-     previo). Ver cargarAnunciosSiConsentido() más abajo: ahí es
-     donde se pegará el código real de AdSense/Adsterra en cuanto
-     Alex tenga aprobada alguna de las dos cuentas — de momento no
-     hace nada, solo deja el sitio preparado.
-═══════════════════════════════════════════════════════════ -->
-<div id="cookie-banner" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:99999;
-  background:var(--s1);border-top:1px solid var(--div);padding:16px 18px calc(16px + env(safe-area-inset-bottom));
-  box-shadow:0 -10px 30px rgba(0,0,0,.4)">
-  <div style="font-size:12px;color:var(--tx2);line-height:1.5;margin-bottom:12px">
-    🍪 Usamos cookies para poder mostrar publicidad y mantener la app gratis. No se usan para acceder a tus turnos ni a tu matrícula.
-    <a href="./politica-privacidad.html" target="_blank" style="color:var(--acc2);font-weight:700">Más info</a>
-  </div>
-  <div style="display:flex;gap:8px">
-    <button onclick="rechazarCookies()" style="flex:1;padding:11px;background:var(--s2);border:1px solid var(--div);border-radius:9px;color:var(--tx2);font-size:12.5px;font-weight:700;cursor:pointer">Rechazar</button>
-    <button onclick="aceptarCookies()" style="flex:1;padding:11px;background:var(--acc);border:none;border-radius:9px;color:#fff;font-size:12.5px;font-weight:800;cursor:pointer">Aceptar</button>
-  </div>
-</div>
 
 <!-- NUEVO — barra de borrado múltiple (modo selección, maqueta A) -->
 <div id="barra-borrado-masivo">
@@ -9055,24 +9020,6 @@ var WHATSAPP_SOPORTE = '66660753771'; // +66 660 753 771 (Alex)
 // Palabras muy comunes que no ayudan a encontrar el tema — se
 // ignoran al buscar, para que no distorsionen la puntuación.
 var CHATBOT_PALABRAS_VACIAS = ['de','la','el','en','un','una','como','que','para','con','mi','se','a','y','o','los','las','del','al','es','no','me','tengo','puedo','quiero','hace','hacer','tiempo','manana','necesito','esta','este','hay','soy','muy','mas','pero','sobre'];
-
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — AVISO SOBRE LA PUBLICIDAD. Aparece una sola vez para
-   cualquiera (Tripulación o Interventor); ver openOv/closeOv propios
-   más abajo — usa "display:flex" directo en vez de openOv() genérico
-   porque este aviso no debe cerrarse tocando fuera (solo con el
-   botón "Entendido"), a diferencia del resto de overlays.
-═══════════════════════════════════════════════════════════ */
-function mostrarAvisoPublicidadSiHaceFalta(){
-  if(localStorage.getItem('aviso_publicidad_visto')==='1') return;
-  var el = document.getElementById('ov-aviso-publicidad');
-  if(el) el.classList.add('on');
-}
-function cerrarAvisoPublicidad(){
-  localStorage.setItem('aviso_publicidad_visto', '1');
-  var el = document.getElementById('ov-aviso-publicidad');
-  if(el) el.classList.remove('on');
-}
 
 function abrirChatbot(){
   var conv = document.getElementById('chatbot-conversacion');
@@ -18208,15 +18155,6 @@ function goP(n){
     mostrarAvisoNominaSiCorresponde();
   }
   // NUEVO — Confirmado por Alex: el Social Bar (Adsterra) solo debe
-  // aparecer en Ajustes, no en toda la app. Se carga al ENTRAR en
-  // Ajustes, y se retira (elimina del DOM) al SALIR — el propio
-  // script de Adsterra no sabe distinguir pantallas por sí solo, así
-  // que ese control lo hace este mismo goP().
-  if(n==='ajustes'){
-    if(typeof cargarSocialBarSiConsentido==='function') cargarSocialBarSiConsentido();
-  } else {
-    if(typeof quitarSocialBar==='function') quitarSocialBar();
-  }
   // NUEVO — refresca la píldora ✅ Check-in (visible/oculta según rol,
   // y en azul si ya hay check-in subido hoy) cada vez que se entra en
   // Calendario, para que nunca quede desactualizada de una sesión a otra.
@@ -24561,108 +24499,6 @@ function ciConTimeout(promesa, ms){
   });
 }
 
-/* ═══════════════════════════════════════════════════════════
-   NUEVO — Consentimiento de cookies (Google AdSense / Adsterra).
-   100% aditivo — no toca ningún dato de TV/AJ/turnos.
-═══════════════════════════════════════════════════════════ */
-function mostrarAvisoCookiesSiHaceFalta(){
-  var decision = localStorage.getItem('cookie_consent');
-  if(decision === 'aceptado'){ cargarAnunciosSiConsentido(); return; }
-  if(decision === 'rechazado') return; // ya decidió que no, no se le vuelve a preguntar
-  var banner = document.getElementById('cookie-banner');
-  if(banner) banner.style.display = 'block';
-}
-function aceptarCookies(){
-  localStorage.setItem('cookie_consent', 'aceptado');
-  document.getElementById('cookie-banner').style.display = 'none';
-  cargarAnunciosSiConsentido();
-}
-function rechazarCookies(){
-  localStorage.setItem('cookie_consent', 'rechazado');
-  document.getElementById('cookie-banner').style.display = 'none';
-}
-// NUEVO — AQUÍ es donde se pega el script real de Google AdSense o
-// de Adsterra en cuanto Alex tenga aprobada la cuenta. De momento no
-// hace nada — solo se carga si la persona ya aceptó las cookies (o
-// ya las había aceptado antes), cumpliendo la ley de cookies europea
-// (nunca se cargan scripts de publicidad sin consentimiento previo).
-// NUEVO — Confirmado por Alex: toda la publicidad se oculta por
-// ahora, hasta nueva orden. Con este interruptor en "true" no se
-// carga NINGÚN anuncio (Banner 468x60 ni Social Bar), aunque la
-// persona haya aceptado las cookies — para volver a activarla, basta
-// con cambiar esto a "false", sin tocar nada más del código.
-var PUBLICIDAD_OCULTA_TEMPORALMENTE = true;
-
-function cargarAnunciosSiConsentido(){
-  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
-  // QUITADO — Confirmado por Alex: el Native Banner (id 30856817) se
-  // eliminó por completo. Estaba mostrando anuncios para adultos que
-  // Adsterra no filtró correctamente pese a tener el interruptor de
-  // "anuncios para adultos" en apagado — no era algo controlable
-  // desde este lado, así que se sacó del todo en vez de arriesgarse
-  // a que volviera a pasar.
-  // ADSTERRA — Banner 468x60 (id 30856819). Este formato usa
-  // "document.write" por dentro para dibujarse — si se ejecutara
-  // directamente en la página principal DESPUÉS de que ya haya
-  // cargado (que es justo este caso, se activa al aceptar cookies),
-  // "document.write" borraría sin querer toda la app. Por eso se
-  // mete dentro de un iframe propio, chiquito y sin bordes: dentro de
-  // ESE iframe sí es seguro usar document.write (tiene su propio
-  // documento en blanco), y nada de lo que haga puede tocar el resto
-  // de la página.
-  var huecoBanner = document.getElementById('hueco-banner-468x60');
-  if(huecoBanner && !document.getElementById('adsterra-banner-468x60')){
-    var iframeBanner = document.createElement('iframe');
-    iframeBanner.id = 'adsterra-banner-468x60';
-    iframeBanner.style.cssText = 'width:468px;height:60px;border:none;overflow:hidden';
-    iframeBanner.scrolling = 'no';
-    huecoBanner.appendChild(iframeBanner);
-    var docBanner = iframeBanner.contentWindow.document;
-    docBanner.open();
-    docBanner.write(
-      '<body style="margin:0;padding:0">' +
-      '<script>atOptions={key:"8f85bd49ca05e6f56f1b0ed1672b232f",format:"iframe",height:60,width:468,params:{}};<\/script>' +
-      '<script src="https://www.highrevenueformat.com/8f85bd49ca05e6f56f1b0ed1672b232f/invoke.js"><\/script>' +
-      '</body>'
-    );
-    docBanner.close();
-  }
-  // QUITADO de aquí (carga global) — Confirmado por Alex: el Social
-  // Bar (id 30856818) ahora solo se carga cuando entra en Ajustes
-  // (ver cargarSocialBarSiConsentido()/quitarSocialBar() más abajo,
-  // enganchados a goP()), no en toda la app como antes.
-}
-
-// NUEVO — Social Bar de Adsterra, SOLO en Ajustes. El script de
-// Adsterra no distingue pantallas por sí solo (suele fijar su
-// elemento directo en <body>, con position:fixed), así que aquí se
-// guarda una "foto" de qué hijos tenía <body> ANTES de cargarlo, y al
-// salir de Ajustes se borra cualquier hijo NUEVO que haya aparecido
-// desde entonces — así se retira de verdad, no solo se deja de
-// cargar el script.
-var _socialBarHijosPrevios = null;
-function cargarSocialBarSiConsentido(){
-  if(PUBLICIDAD_OCULTA_TEMPORALMENTE) return;
-  var decision = localStorage.getItem('cookie_consent');
-  if(decision !== 'aceptado') return; // respeta el aviso de cookies igual que el resto de anuncios
-  if(document.getElementById('adsterra-social-bar')) return; // ya está cargado, no se duplica
-  _socialBarHijosPrevios = Array.prototype.slice.call(document.body.children);
-  var s2 = document.createElement('script');
-  s2.id = 'adsterra-social-bar';
-  s2.src = 'https://pl30957317.effectivecpmnetwork.com/30/94/fc/3094fc270290b91a58eca9cd46919b21.js';
-  document.body.appendChild(s2);
-}
-function quitarSocialBar(){
-  var script = document.getElementById('adsterra-social-bar');
-  if(script) script.remove();
-  if(_socialBarHijosPrevios){
-    Array.prototype.slice.call(document.body.children).forEach(function(el){
-      if(_socialBarHijosPrevios.indexOf(el) === -1) el.remove();
-    });
-    _socialBarHijosPrevios = null;
-  }
-}
-
 async function abrirCheckin(){
   _ciFechaViendo = new Date();
   openOv('ov-checkin');
@@ -25799,6 +25635,7 @@ async function cargarAceptacionesDescargoAdmin(){
 // General publicado (ver enviarSolicitudAcceso), con botones para
 // aceptar/rechazar cada una. Al aceptar, esa matrícula queda válida
 // para crear cuenta gracias a _matriculaTieneSolicitudAceptada().
+function _escHtmlSol(t){ return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 async function cargarSolicitudesAccesoAdmin(){
   if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
   var elLista = document.getElementById('listaSolicitudesAcceso');
@@ -25821,7 +25658,7 @@ async function cargarSolicitudesAccesoAdmin(){
     var fecha = fila.fecha_hora ? new Date(fila.fecha_hora).toLocaleString('es-ES') : '';
     var etiquetaEstado = fila.estado==='aceptada' ? '✅ Aceptada' : (fila.estado==='rechazada' ? '🚫 Rechazada' : '⏳ Pendiente');
     var filaHtml = '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<span><b>'+(fila.nombre||'(sin nombre)')+'</b> · '+fila.matricula+'</span>'
+      + '<span><b>'+_escHtmlSol(fila.nombre||'(sin nombre)')+'</b> · '+fila.matricula+(fila.base?' · 📍 '+_escHtmlSol(fila.base):'')+'</span>'
       + '<span style="color:var(--tx3);font-size:10px">'+fecha+'</span></div>'
       + '<div style="margin-top:4px;font-size:11px;color:var(--tx3)">'+etiquetaEstado+'</div>';
     if(fila.estado==='pendiente'){
@@ -26377,27 +26214,102 @@ function mostrarBloqueSolicitudAccesoInterv(){
   if(nombreInp) nombreInp.focus();
 }
 
+// NUEVO — REINICIO DE ACCESOS DE INTERVENTOR ("borrón y cuenta nueva").
+// - Desde INTERV_ACCESO_DESDE solo valen solicitudes de Interventor aceptadas
+//   creadas a partir de esa fecha. Las anteriores NO se borran de Supabase, simplemente
+//   dejan de contar para entrar como Interventor (los tripulantes no se ven afectados).
+// - El Informe de Intervención ya no da acceso: solo las solicitudes aceptadas.
+// - Cambiar INTERV_ACCESO_VERSION vuelve a cerrar la sesión guardada en todos los móviles.
+// - AVISO_REINICIO_ACCESOS_INTERV = false quita el mensaje de la pantalla de acceso.
+var INTERV_ACCESO_VERSION = 'interv_reinicio_v1';
+var INTERV_ACCESO_DESDE = '2026-09-28T00:00:00Z';
+var AVISO_REINICIO_ACCESOS_INTERV = true;
+// Una solicitud es de Interventor si lleva la base (columna "base", o pegada al nombre
+// cuando esa columna aún no existía). Las de tripulantes no llevan base.
+function _esFilaSolicitudInterventor(f){ return !!(f && (f.base || /\(Base:/i.test(f.nombre||''))); }
+// Devuelve la fila de la solicitud aceptada, false si no hay ninguna, o null si no se pudo comprobar.
+async function _intervAccesoConcedido(matricula){
+  if(!sbAdmin) return null;
+  try{
+    var r = await sbAdmin.from('solicitudes_acceso').select('*').eq('matricula', matricula).eq('estado','aceptada').gte('fecha_hora', INTERV_ACCESO_DESDE);
+    if(r.error || !r.data) return null;
+    var fila = r.data.filter(_esFilaSolicitudInterventor)[0];
+    return fila || false;
+  }catch(e){ return null; }
+}
+
+// NUEVO — WhatsApp de ayuda para quien no consigue entrar. Para cambiar el número,
+// basta con editar esta línea (formato internacional, sin "+" ni espacios; en España empieza por 34).
+var WHATSAPP_CONTACTO_AYUDA = '66660753771';
+function abrirWhatsappAyudaTrip(ev){
+  var inp = document.getElementById('accesoMatriculaTripulanteInput');
+  var mat = inp ? inp.value.trim() : '';
+  var texto = 'Hola, tengo un problema para entrar a TrenTurnos como tripulante.' + (mat ? ' Mi matrícula es ' + mat + '.' : '');
+  var a = document.getElementById('linkWhatsappAyudaTrip');
+  if(a) a.href = 'https://wa.me/' + WHATSAPP_CONTACTO_AYUDA + '?text=' + encodeURIComponent(texto);
+  return true; // deja que el enlace se abra ya con el href actualizado
+}
+
+// Casillas Interventor / Tripulante del formulario de solicitud: solo una a la vez.
+// Con "Tripulante" se ocultan nombre y base (no hace falta solicitud) y se avisa de que
+// el botón te lleva al portal de tripulación.
+function elegirTipoSolicitudInterv(cual){
+  var ci = document.getElementById('solicitudTipoInterventor');
+  var ct = document.getElementById('solicitudTipoTripulante');
+  if(cual==='interventor' && ci && ci.checked && ct) ct.checked = false;
+  if(cual==='tripulante' && ct && ct.checked && ci) ci.checked = false;
+  var esTrip = !!(ct && ct.checked);
+  var datos = document.getElementById('bloqueDatosSolicitudInterv');
+  var aviso = document.getElementById('avisoTipoTripulanteInterv');
+  var btn = document.getElementById('btnEnviarSolicitudAccesoInterv');
+  if(datos) datos.style.display = esTrip ? 'none' : 'block';
+  if(aviso) aviso.style.display = esTrip ? 'block' : 'none';
+  if(btn && !btn.disabled) btn.textContent = esTrip ? '🚂 Ir al portal de tripulación' : '📨 Enviar solicitud de acceso';
+}
+
 async function enviarSolicitudAccesoInterv(){
   var matricula = document.getElementById('accesoMatriculaInterventorInput').value.trim();
   var nombre = document.getElementById('solicitudNombreInputInterv').value.trim();
+  var baseInp = document.getElementById('solicitudBaseInputInterv');
+  var base = baseInp ? baseInp.value.trim() : '';
+  var esInterv = !!(document.getElementById('solicitudTipoInterventor') || {}).checked;
+  var esTrip = !!(document.getElementById('solicitudTipoTripulante') || {}).checked;
   var estadoEl = document.getElementById('estadoSolicitudAccesoInterv');
   var mostrar = function(txt){ if(estadoEl){ estadoEl.style.display='block'; estadoEl.textContent = txt; } };
 
+  if(!esInterv && !esTrip){ mostrar('Marca si eres Interventor o Tripulante.'); return; }
+
+  // Tripulante: no se guarda ninguna solicitud, se le lleva al portal de tripulación.
+  if(esTrip){
+    if(typeof window.__irAPortalTripulacion === 'function'){ window.__irAPortalTripulacion(); }
+    else { mostrar('No se pudo abrir el portal de tripulación. Pulsa «Volver» y elige Tripulante.'); }
+    return;
+  }
+
   if(!matricula){ mostrar('Falta la matrícula — escríbela arriba primero.'); return; }
   if(!nombre){ mostrar('Escribe tu nombre completo.'); return; }
+  if(!base){ mostrar('Escribe tu base.'); return; }
   if(!sbAdmin){ mostrar('No se pudo conectar. Inténtalo de nuevo en unos segundos.'); return; }
 
   var btn = document.getElementById('btnEnviarSolicitudAccesoInterv');
   if(btn){ btn.disabled = true; btn.textContent = 'Enviando...'; }
 
-  var yaPendiente = await sbAdmin.from('solicitudes_acceso').select('id').eq('matricula', matricula).eq('estado','pendiente').maybeSingle();
-  if(yaPendiente.error){
-    mostrar('No se pudo guardar la solicitud (¿existe la tabla solicitudes_acceso en Supabase?): ' + yaPendiente.error.message);
+  // Solo cuentan las pendientes de Interventor creadas desde el reinicio de accesos.
+  var pend = await sbAdmin.from('solicitudes_acceso').select('*').eq('matricula', matricula).eq('estado','pendiente').gte('fecha_hora', INTERV_ACCESO_DESDE);
+  if(pend.error){
+    mostrar('No se pudo guardar la solicitud (¿existe la tabla solicitudes_acceso en Supabase?): ' + pend.error.message);
     if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
     return;
   }
-  if(!yaPendiente.data){
-    var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, estado: 'pendiente' });
+  var yaPendienteInterv = (pend.data||[]).some(_esFilaSolicitudInterventor);
+  if(!yaPendienteInterv){
+    var ahoraISO = new Date().toISOString();
+    var alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre, base: base, estado: 'pendiente', fecha_hora: ahoraISO });
+    // Si la tabla aún no tiene la columna "base", no se pierde la solicitud:
+    // se reintenta guardando la base junto al nombre.
+    if(alta.error && /base/i.test(alta.error.message || '')){
+      alta = await sbAdmin.from('solicitudes_acceso').insert({ matricula: matricula, nombre: nombre + ' (Base: ' + base + ')', estado: 'pendiente', fecha_hora: ahoraISO });
+    }
     if(alta.error){
       mostrar('No se pudo enviar la solicitud: ' + alta.error.message);
       if(btn){ btn.disabled = false; btn.textContent = '📨 Enviar solicitud de acceso'; }
@@ -26408,7 +26320,7 @@ async function enviarSolicitudAccesoInterv(){
   if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
   mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
 
-  var textoAviso = 'Hola, soy '+nombre+' (matrícula '+matricula+'). He solicitado acceso como Interventor a TrenTurnos, ¿puedes revisarlo?';
+  var textoAviso = 'Hola, soy '+nombre+' (matrícula '+matricula+', base '+base+'). He solicitado acceso como Interventor a TrenTurnos, ¿puedes revisarlo?';
   var linkWa = document.getElementById('linkWhatsappSolicitudInterv');
   var linkCorreo = document.getElementById('linkCorreoSolicitudInterv');
   if(linkWa) linkWa.href = 'https://wa.me/66660753771?text=' + encodeURIComponent(textoAviso);
@@ -27683,20 +27595,13 @@ window.cargarDatosParaInterventor = async function(){
   // vuelve a pedir — en vez de dejar entrar con una matrícula
   // desactualizada.
   var matriculaGuardada = localStorage.getItem('interventorMatriculaValidada');
-  if(matriculaGuardada && INTERVENTOR_SERVICES.length){
-    var sigueValida = INTERVENTOR_SERVICES.some(function(servicio){
-      return (servicio.data||[]).some(function(agente){ return String(agente[0]).trim() === matriculaGuardada; });
-    });
-    // FIX — esta revalidación solo miraba el Informe de Intervención
-    // oficial, sin tener en cuenta las solicitudes de acceso que TÚ
-    // aceptaste a mano (tabla solicitudes_acceso). Por eso un
-    // interventor aceptado por solicitud entraba bien la primera vez
-    // (esa comprobación sí lo tenía en cuenta) pero lo expulsaba
-    // enseguida aquí, en la siguiente comprobación silenciosa.
-    if(!sigueValida && typeof _matriculaTieneSolicitudAceptada==='function'){
-      try{ sigueValida = await _matriculaTieneSolicitudAceptada(matriculaGuardada); }catch(errRevalSolicitud){ /* si falla la comprobación, no se expulsa por eso */ }
-    }
-    if(!sigueValida && typeof window.__cerrarSesionInterventorPorMatriculaInvalida === 'function'){
+  if(matriculaGuardada && typeof _intervAccesoConcedido==='function'){
+    // REINICIO DE ACCESOS: el acceso solo se mantiene si sigue habiendo una solicitud
+    // de Interventor aceptada desde el corte. Si la comprobación falla (sin red, etc.),
+    // NO se expulsa a nadie: solo se cierra cuando la respuesta es un "no" claro.
+    var concedidoReval = null;
+    try{ concedidoReval = await _intervAccesoConcedido(matriculaGuardada); }catch(errReval){ concedidoReval = null; }
+    if(concedidoReval === false && typeof window.__cerrarSesionInterventorPorMatriculaInvalida === 'function'){
       window.__cerrarSesionInterventorPorMatriculaInvalida();
     }
   }
@@ -30492,11 +30397,11 @@ function renderCompanions(day, id, name, cell){
   }
   const companions = findCompanions(day, id, name, cell);
 
-  // ── NUEVO: buscar también el/los interventor(es) de ese mismo tren ese día ──
-  // Esta vista de "Buscar por nombre" asume siempre julio de 2026 (igual que
-  // weekdayForDay), así que se construye la fecha real con ese mismo supuesto
-  // para poder cruzar contra los servicios de Interventor cargados.
-  const fechaParaInterventor = new Date(2026, 7, day); // FIX: agosto, no julio
+  // ── buscar también el/los interventor(es) de ese mismo tren ese día ──
+  // FIX — esto asumía siempre agosto de 2026 fijo, en vez del mes real que
+  // ya se usa un poco más arriba para pintar el día de la semana (_mComp).
+  // Ahora reutiliza ese mismo mes/año real para el cruce con Interventor.
+  const fechaParaInterventor = new Date(_mComp.anio, _mComp.mes-1, day);
   const trenesDelDia = [...trainTokens(cell)];
   let interventorMatches = [];
   for(const t of trenesDelDia){
@@ -33564,12 +33469,6 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     // Notificaciones del Admin al entrar a esta pantalla, por si hay
     // algo nuevo publicado desde la última vez.
     if(typeof refrescarNotificacionesActivas==='function') refrescarNotificacionesActivas();
-    // NUEVO — mismo aviso sobre la publicidad que ve Tripulación,
-    // por si alguien entra a Interventor directo sin haber pasado
-    // antes por el arranque normal de la app.
-    setTimeout(function(){
-      if(typeof mostrarAvisoPublicidadSiHaceFalta==='function') mostrarAvisoPublicidadSiHaceFalta();
-    }, 800);
     // FIX — antes se llamaba directamente a cargarHorarioGlobalDesdeAdmin()
     // y activateBase(), pero esas funciones viven DENTRO de un módulo
     // de código aislado (el mismo que usa el Buscador de Compañeros) y
@@ -33647,6 +33546,8 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     var modal = document.getElementById('interventorDescargoModal');
     if(input) input.value = '';
     if(msg) msg.innerHTML = msgError ? '<span style="color:#FCA5A5">'+msgError+'</span>' : '';
+    var avisoRein = document.getElementById('avisoReinicioAccesosInterv');
+    if(avisoRein) avisoRein.style.display = (typeof AVISO_REINICIO_ACCESOS_INTERV !== 'undefined' && AVISO_REINICIO_ACCESOS_INTERV) ? 'block' : 'none';
     // Cada vez que se abre esta pantalla se vuelve a exigir abrir el
     // descargo: la casilla arranca deshabilitada y sin marcar.
     if(check){ check.checked = false; check.disabled = true; }
@@ -33693,41 +33594,22 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
       if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Abre el descargo de responsabilidad y marca la casilla para continuar.</span>';
       return;
     }
-    if(typeof validarMatriculaInterventorContraInforme !== 'function'){
+    var textoOriginal = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Comprobando...'; }
+    // Acceso SOLO por solicitud aceptada (creada tras el reinicio de accesos).
+    var concedido = (typeof _intervAccesoConcedido === 'function') ? await _intervAccesoConcedido(matricula) : null;
+    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
+
+    if(concedido === null){
       if(msg) msg.innerHTML = '<span style="color:#FCA5A5">No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.</span>';
       return;
     }
-
-    var textoOriginal = btn ? btn.textContent : '';
-    if(btn){ btn.disabled = true; btn.textContent = 'Comprobando...'; }
-    var resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
-    try{
-      resultado = await validarMatriculaInterventorContraInforme(matricula);
-    }catch(e){
-      resultado = { valida:false, motivo:'No se pudo comprobar la matrícula ahora mismo. Inténtalo de nuevo.' };
+    if(!concedido){
+      if(msg) msg.innerHTML = '<span style="color:#FCA5A5">Esa matrícula todavía no tiene acceso de interventor. Puedes solicitarlo aquí abajo.</span>';
+      mostrarBloqueSolicitudAccesoInterv();
+      return;
     }
-    if(btn){ btn.disabled = false; btn.textContent = textoOriginal; }
-
-    if(!resultado || !resultado.valida){
-      // NUEVO — si el admin ya aceptó manualmente una solicitud de
-      // acceso para esta matrícula, se deja pasar aunque no esté en
-      // el Informe de Intervención todavía (nombre queda vacío: se
-      // puede rellenar a mano si hace falta).
-      var solicitudAceptadaInterv = await _matriculaTieneSolicitudAceptada(matricula);
-      if(solicitudAceptadaInterv){
-        // FIX — Confirmado por el usuario: antes se dejaba siempre
-        // nombre:null aquí, así que nunca salía el saludo "Hola, ..."
-        // para quien entraba por solicitud (en vez de estar ya en el
-        // Informe oficial). Ahora se recupera el nombre que la propia
-        // persona escribió al pedir el acceso.
-        var nombreDeSolicitud = await _obtenerNombreSolicitudAceptada(matricula);
-        resultado = { valida:true, nombre: nombreDeSolicitud };
-      } else {
-        if(msg) msg.innerHTML = '<span style="color:#FCA5A5">'+(resultado && resultado.motivo ? resultado.motivo : 'Esa matrícula no aparece en el Informe de Intervención publicado.')+'</span>';
-        mostrarBloqueSolicitudAccesoInterv();
-        return;
-      }
-    }
+    var resultado = { valida:true, nombre: (concedido.nombre||'').replace(/\s*\(Base:[^)]*\)\s*$/i,'') || null };
 
     // NUEVO — Registro del acceso (matrícula + nombre + fecha/hora)
     // en la tabla dedicada accesos_interventor, para que el admin
@@ -33745,6 +33627,7 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
 
     localStorage.setItem('interventorMatriculaValidada', matricula);
     localStorage.setItem('interventorNombreValidado', resultado.nombre || '');
+    try{ localStorage.setItem('intervAccesoVersion', INTERV_ACCESO_VERSION); }catch(eV){}
     localStorage.setItem('perfilPortalTrenTurnos', 'interventor');
     ocultarAccesoInterventor();
     mostrarPantallaInterventor();
@@ -33755,6 +33638,13 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
   // matrícula guardada deja de aparecer en el Informe de Intervención
   // más reciente — por ejemplo tras la actualización semanal del
   // admin.
+  // NUEVO — Desde el formulario de solicitud de acceso de Interventor:
+  // quien marca "Tripulante" no solicita nada, se le lleva al portal de
+  // tripulación (matrícula) cerrando antes el acceso de Interventor.
+  window.__irAPortalTripulacion = function(){
+    ocultarAccesoInterventor();
+    elegirTripulante();
+  };
   window.__cerrarSesionInterventorPorMatriculaInvalida = function(){
     localStorage.removeItem('interventorMatriculaValidada');
     localStorage.removeItem('interventorNombreValidado');
@@ -33982,6 +33872,15 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     _yaSeReviso = true;
     var elegido = localStorage.getItem('perfilPortalTrenTurnos');
     if(elegido === 'interventor'){
+      // REINICIO DE ACCESOS — una sola vez por versión (INTERV_ACCESO_VERSION) se cierra la
+      // sesión de Interventor guardada en este móvil, para que vuelva a pedir acceso.
+      try{
+        if(typeof INTERV_ACCESO_VERSION !== 'undefined' && localStorage.getItem('intervAccesoVersion') !== INTERV_ACCESO_VERSION){
+          localStorage.removeItem('interventorMatriculaValidada');
+          localStorage.removeItem('interventorNombreValidado');
+          localStorage.setItem('intervAccesoVersion', INTERV_ACCESO_VERSION);
+        }
+      }catch(eRein){}
       // NUEVO — solo se entra directo si esta matrícula ya quedó
       // validada antes en este dispositivo (localStorage). Si no —
       // primera vez con esta versión, o la matrícula fue invalidada
@@ -34015,18 +33914,6 @@ if(typeof window.renderDiaArea === 'function' && !window._renderDiaArea_ctWrappe
     setTimeout(function(){
       if(typeof mostrarPillCheckinSiCorresponde==='function') mostrarPillCheckinSiCorresponde();
     }, 3500);
-    // NUEVO — aviso de cookies (Google AdSense / Adsterra), un poco
-    // más tarde que el resto para no competir visualmente con el
-    // splash de bienvenida.
-    setTimeout(function(){
-      if(typeof mostrarAvisoCookiesSiHaceFalta==='function') mostrarAvisoCookiesSiHaceFalta();
-    }, 4000);
-    // NUEVO — aviso sobre la publicidad (disculpa + qué se quitó),
-    // una sola vez. Se muestra un poco más tarde que las cookies para
-    // que no compitan por la atención al mismo tiempo.
-    setTimeout(function(){
-      if(typeof mostrarAvisoPublicidadSiHaceFalta==='function') mostrarAvisoPublicidadSiHaceFalta();
-    }, 4600);
   }
 
   if(document.readyState === 'loading'){
