@@ -8633,6 +8633,33 @@ function _nominaActualizarManual(){
 // "base" de cada jornada, sin la parte añadida de enlace cruzado con
 // Art.51/52), y las paga a la tarifa de HTDL — un número más simple
 // y limpio, pensado solo para esta pantalla.
+// FIX — Confirmado por Alex: esto contaba en € TODO día HTDL/Art.51-52
+// trabajado, sin mirar si la compensación elegida era Dinero, Días o Mix.
+// Un HTDL pedido en Días no genera ni un céntimo (solo el día de
+// descanso); en Mix (solo pernocta) SOLO cuenta el tramo marcado como
+// dinero (el de más horas — ver calcularMix), nunca el de días. Las
+// horas mostradas en Estadísticas no cambian: siguen sumando siempre,
+// se elija lo que se elija — solo cambia lo que aquí se convierte en €.
+function _turnoOrigenHTDLParaDia(k, turnosDelDia){
+  var t = TV[k];
+  if(t && t.origenPernocta) t = TV[t.origenPernocta]; // día de vuelta de una pernocta
+  if(t && (t.tipo==='trabajado' || t.tipo==='art5152')) return t;
+  // el turno HTDL/Art.51-52 del día puede venir de un adicional (TV2), no del principal
+  var otro = (turnosDelDia||[]).filter(function(tt){ return tt && (tt.tipo==='trabajado'||tt.tipo==='art5152'); })[0];
+  return otro || t || null;
+}
+function _minutosEconomicosHTDL(k, turnosDelDia, minDia){
+  if(!minDia) return 0;
+  var t = _turnoOrigenHTDLParaDia(k, turnosDelDia);
+  if(!t) return minDia; // no se pudo determinar el origen: se deja tal cual (comportamiento anterior)
+  var comp = (t.tipo==='art5152') ? t.compensacion : t.comp;
+  if(comp === 'dias') return 0;
+  if(comp === 'mix'){
+    if(t.mixDinero && t.mixDinero.dia === k) return Math.round((t.mixDinero.horas||0)*60);
+    return 0; // este día es el lado de "días" del mix
+  }
+  return minDia; // 'dinero', o turnos antiguos sin comp explícito: sin cambios
+}
 function _nominaHTDLPuro(ks, tarifaHTDL){
   var minTotal = 0;
   // NUEVO — Confirmado por el usuario: además del total, se guarda el
@@ -8644,7 +8671,7 @@ function _nominaHTDLPuro(ks, tarifaHTDL){
   ks.forEach(function(k){
     var turnosDelDia = [TV[k]].concat(TV2[k]||[]);
     var jornada = calcularJornadaDiaria(turnosDelDia, k);
-    var minDia = jornada.efectivasHTDLMin||0;
+    var minDia = _minutosEconomicosHTDL(k, turnosDelDia, jornada.efectivasHTDLMin||0);
     minTotal += minDia;
     if(minDia>0){
       diasDetalle.push({fecha:k, horas: Math.round((minDia/60)*100)/100});
