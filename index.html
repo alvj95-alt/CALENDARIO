@@ -570,6 +570,11 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
                   color:var(--red2);line-height:1}
 /* NUEVO — Badge de "turno pisado por baja" en la celda del calendario */
 .dc-baja-pisada::after{content:'🏥';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
+/* NUEVO — Días Libres: aviso cuando un día marcado como libre en el
+   PDF de Días Libres ahora tiene un turno de trabajo real encima. */
+.dc-libre-conflicto{outline:1.5px solid var(--red2);outline-offset:-1.5px}
+.dc-libre-conflicto::before{content:'⚠';position:absolute;bottom:1px;left:1px;font-size:7px;
+                  color:var(--red2);line-height:1}
 /* NUEVO — Badge de Reserva Art.51/52 pendiente de pinchar/verificar */
 .dc-art5152-reserva-pendiente::after{content:'⏳';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
 /* Input de retraso inline */
@@ -4597,6 +4602,23 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
     </div>
   </div>
 
+  <!-- NUEVO — Días Libres (previsión). El admin ya publica este PDF
+       para tu base con antelación (normalmente 2 meses vista); este
+       botón lo busca, lo reconoce solo, saca tus propios días y los
+       deja marcados en Calendario, en SU mes (no en el actual). No
+       toca TV/TV2 en ningún momento — es una capa aparte, solo para
+       avisarte si más adelante te ponen un turno encima de un día
+       que aquí figuraba libre. Ver cargarDiasLibresPrevistos(). -->
+  <div class="paso-h">
+    <div class="paso-h-line"><div class="paso-h-num">✨</div></div>
+    <div class="paso-h-body" style="padding-bottom:6px">
+      <div class="paso-h-tit">Días Libres</div>
+      <div class="paso-h-sub">El admin ya los publicó para tu base — los busca y los marca en su mes</div>
+      <button id="btnCargarDiasLibres" class="upload-btn" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#FCD34D;width:100%;justify-content:center" onclick="cargarDiasLibresPrevistos()">🧘 Cargar días libres</button>
+      <div class="upload-status" id="estadoDiasLibresTrip" style="margin-top:6px"></div>
+    </div>
+  </div>
+
   <!-- NUEVO — Confirmado por el usuario: HTDL y Cambiar rol no forman
        parte de la secuencia de arriba (no dependen de subir/cargar
        nada primero) — se quedan aparte, como acciones sueltas. Mismos
@@ -6617,6 +6639,35 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
       <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarHistorialHorarioGeneral()">🔄 Actualizar lista</button>
       <div id="hgHistorialLista"><div class="estado-archivo sin-archivo">Toca "Actualizar lista" para ver lo guardado.</div></div>
+    </div>
+
+    <!-- NUEVO — Días Libres. Mismo patrón que Horario General (sede +
+         mes + PDF), pero para el documento de días libres que la
+         empresa publica con dos meses de antelación. Se reconoce
+         solo (parsearBufferPdfDiasLibres) y se guarda en
+         config_global con tipo 'dias_libres_<sede>_<AAAA-MM>' —
+         misma tabla y mismo mecanismo que Horario General, así que
+         no hace falta ninguna tabla nueva en Supabase. -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico" style="background:rgba(124,58,237,.15);color:#A78BFA">🧘</div>
+        <div>
+          <div class="admin-card-tit">Días Libres</div>
+          <div class="admin-card-sub">El PDF de días libres por base, normalmente con 2 meses de antelación. Se publica al instante para esa sede.</div>
+        </div>
+      </div>
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">1. SEDE DE ESTE ARCHIVO</label>
+      <input class="aj-nombre-inp" id="selSedeDiasLibres" list="listaSedes" placeholder="Escribe la sede (Barcelona, Bilbao...)" autocomplete="off" style="margin-bottom:10px" onfocus="this.select()">
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">2. MES AL QUE CORRESPONDE</label>
+      <input type="month" class="aj-nombre-inp" id="mesDiasLibres" style="margin-bottom:10px">
+      <label style="font-size:10px;font-weight:800;letter-spacing:.3px;color:var(--tx3);display:block;margin-bottom:4px">3. ARCHIVO</label>
+      <div class="filepick" onclick="document.getElementById('fileDiasLibres').click()">
+        <div class="fp-ico">📄</div>
+        <div class="fp-txt" id="txtDiasLibres">Toca para elegir el PDF</div>
+      </div>
+      <input type="file" id="fileDiasLibres" accept="application/pdf" style="display:none" onchange="document.getElementById('txtDiasLibres').textContent = this.files[0] ? this.files[0].name : 'Toca para elegir el PDF'">
+      <button class="m-save" style="width:100%;margin-top:8px" onclick="subirDiasLibresAdmin(document.getElementById('fileDiasLibres').files[0])">4. Subir y Publicar</button>
+      <div class="estado-archivo sin-archivo" id="estadoDiasLibres">Aún no hay ningún archivo activo.</div>
     </div>
 
     <!-- NUEVO — Notificaciones del Admin a todos los trabajadores.
@@ -12116,6 +12167,16 @@ function renderSlide(gridId, fecha){
     // pinchar/verificar todavía, ya que comparte el mismo icono ⚖️
     // que el turno ya desglosado con tramos.
     if(t&&t.tipo==='art5152'&&t.modoArt5152==='reserva') cls+=' dc-art5152-reserva-pendiente';
+    // NUEVO — Días Libres: compara este día contra lo que ya se cargó
+    // con "🧘 Cargar días libres" (ver diasLibresPrevistosParaFecha()).
+    // Si ese día estaba previsto libre y ahora hay un turno de TRABAJO
+    // real encima, se avisa — no se toca t/TV en ningún momento, es
+    // solo una comparación de lectura para pintar la celda.
+    var diaLibrePrevisto = (typeof diasLibresPrevistosParaFecha==='function') ? diasLibresPrevistosParaFecha(k) : null;
+    var ES_TRABAJO_REAL = {ordinario:1, trabajado:1, art5152:1, 'vuelta-pernocta':1, 'pernocta3-intermedio':1};
+    var conflictoDiaLibre = !!(diaLibrePrevisto && t && ES_TRABAJO_REAL[t.tipo]);
+    if(conflictoDiaLibre) cls+=' dc-libre-conflicto';
+    var mostrarIconoLibrePrevisto = !!(diaLibrePrevisto && !t && !conflictoDiaLibre);
     var c=document.createElement('div');
     c.className=cls;
     c.dataset.k=k; // NUEVO — permite identificar la celda por fecha desde fuera (vista Compañero/Comparar)
@@ -12215,7 +12276,7 @@ function renderSlide(gridId, fecha){
     // turno" (morado, arriba de la celda) — puramente informativo,
     // no toca t ni ningún cálculo de esta función.
     var cambioTurnoBadge = (typeof _badgeCambioTurnoParaDia==='function') ? _badgeCambioTurnoParaDia(d) : '';
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':'')+'<span class="dc-check-borrar">✓</span>';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':(mostrarIconoLibrePrevisto&&!isS?'<span class="dc-ico" style="opacity:.55">🧘</span>':''))+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
     // NUEVO — modo selección para borrado múltiple (maqueta A): tap
     // normal sigue abriendo el día como siempre; mantener pulsado
@@ -12366,6 +12427,24 @@ function clickDia(d,k,t){
     // de ese renderizado, ya funciona correctamente.
     openOv('ov-dia-card');
     renderDiaArea();
+    // NUEVO — Días Libres: si este día tenía marcado un libre previsto
+    // (ver diasLibresPrevistosParaFecha()) y ahora hay un turno de
+    // trabajo real encima, se avisa aquí — por fuera de renderDiaArea(),
+    // sin tocar ninguna de sus ramas (multi-turno / vista compañero),
+    // para no arriesgarse a romper nada de lo que ya funciona ahí.
+    var _dlp = (typeof diasLibresPrevistosParaFecha==='function') ? diasLibresPrevistosParaFecha(k) : null;
+    var _ES_TRABAJO_REAL_CLICK = {ordinario:1, trabajado:1, art5152:1, 'vuelta-pernocta':1, 'pernocta3-intermedio':1};
+    if(_dlp && tReal && _ES_TRABAJO_REAL_CLICK[tReal.tipo]){
+      var _areaAviso = document.getElementById('dia-card-body') || document.getElementById('dia-area');
+      if(_areaAviso){
+        var _avisoHtml = '<div style="text-align:left;margin-bottom:10px;padding:12px;'
+          +'background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:12px">'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;color:#FCA5A5;font-size:13px;font-weight:800">⚠️ Conflicto con tus Días Libres</div>'
+          +'<div style="font-size:12.5px;line-height:1.55;color:#FECACA">Según el PDF de Días Libres, ese día tenías descanso (<b>'+_dlp+'</b>). Ahora tu horario registra un turno de trabajo.</div>'
+          +'</div>';
+        _areaAviso.insertAdjacentHTML('afterbegin', _avisoHtml);
+      }
+    }
   }
 }
 
@@ -17279,6 +17358,87 @@ function setPlus(k,v){var r=AJ.rol||'tripulante';if(!AJ.pluses[r])AJ.pluses[r]={
 function _sedeUsuarioActual(){
   if(!AJ.base) return '';
   return AJ.base.trim().split(/\s+/)[0] || '';
+}
+
+// NUEVO — Días Libres (tripulante). Busca el PDF de Días Libres más
+// reciente que el admin haya publicado para TU sede, lo descarga, lo
+// reconoce solo (parsearBufferPdfDiasLibres), saca tu propia fila por
+// matrícula, y la guarda localmente — en localStorage, con clave
+// "YYYY-MM-DD" igual que TV, para poder comparar directo contra tu
+// calendario real sin tocar TV/TV2 en ningún momento.
+function _diasLibresPrevistosClaveIndice(){ return 'diasLibresPrevistosIndice'; }
+function diasLibresPrevistosIndice(){
+  try{ return JSON.parse(localStorage.getItem(_diasLibresPrevistosClaveIndice())||'{}'); }catch(e){ return {}; }
+}
+function diasLibresPrevistosParaFecha(fechaISO){
+  var idx = diasLibresPrevistosIndice();
+  return idx[fechaISO] || null; // ej. "DO", "DOP"... o null si ese día no estaba en ningún PDF cargado
+}
+async function cargarDiasLibresPrevistos(){
+  var elEstado = document.getElementById('estadoDiasLibresTrip');
+  var matricula = (AJ.matricula||'').trim();
+  if(!matricula){
+    if(elEstado) elEstado.textContent = 'Primero pon tu matrícula en Ajustes.';
+    return;
+  }
+  var sedeSlug = _baseSlug(_sedeUsuarioActual());
+  if(!sedeSlug){
+    if(elEstado) elEstado.textContent = 'Primero pon tu Estación Base en Ajustes.';
+    return;
+  }
+  if(!sbAdmin){
+    if(elEstado) elEstado.textContent = 'No se pudo conectar. Inténtalo de nuevo en unos segundos.';
+    return;
+  }
+  if(elEstado) elEstado.textContent = 'Buscando el PDF de tu base...';
+  try{
+    var resp = await sbAdmin.from('config_global').select('*').like('tipo', 'dias_libres_'+sedeSlug+'_%');
+    if(resp.error){ if(elEstado) elEstado.textContent = 'No se pudo comprobar: ' + resp.error.message; return; }
+    var filas = resp.data || [];
+    if(!filas.length){ if(elEstado) elEstado.textContent = 'El admin todavía no ha publicado Días Libres para tu base.'; return; }
+    // el más reciente = el de anio-mes más alto, a partir del propio "tipo" (…_AAAA-MM)
+    filas.sort(function(a,b){
+      var ma = (a.tipo.match(/_(\d{4})-(\d{2})$/)||[]), mb = (b.tipo.match(/_(\d{4})-(\d{2})$/)||[]);
+      var va = ma.length ? (parseInt(ma[1],10)*12+parseInt(ma[2],10)) : 0;
+      var vb = mb.length ? (parseInt(mb[1],10)*12+parseInt(mb[2],10)) : 0;
+      return vb-va;
+    });
+    var masReciente = filas[0];
+    var mAnioMes = masReciente.tipo.match(/_(\d{4})-(\d{2})$/);
+    if(!mAnioMes){ if(elEstado) elEstado.textContent = 'El archivo publicado no tiene un mes reconocible.'; return; }
+    var anio = parseInt(mAnioMes[1],10), mes = parseInt(mAnioMes[2],10);
+
+    if(elEstado) elEstado.textContent = 'Descargando...';
+    var respArchivo = await fetch(masReciente.url_archivo);
+    if(!respArchivo.ok){ if(elEstado) elEstado.textContent = 'No se pudo descargar el archivo.'; return; }
+    var buf = await respArchivo.arrayBuffer();
+
+    if(elEstado) elEstado.textContent = 'Reconociendo tu matrícula...';
+    var datos = await parsearBufferPdfDiasLibres(buf);
+    var filaPropia = (datos.filas||[]).filter(function(f){ return f.matricula===matricula; })[0];
+    if(!filaPropia){
+      if(elEstado) elEstado.textContent = 'Tu matrícula no aparece en el PDF de ' + String(mes).padStart(2,'0')+'/'+anio + ' de tu base.';
+      return;
+    }
+
+    // Se guarda con clave "YYYY-MM-DD", igual que TV, y se funde con lo
+    // que ya hubiera de OTROS meses cargados antes (no se pisa entre sí).
+    var idx = diasLibresPrevistosIndice();
+    Object.keys(idx).forEach(function(k){ if(k.indexOf(anio+'-'+String(mes).padStart(2,'0')+'-')===0) delete idx[k]; });
+    Object.keys(filaPropia.dias).forEach(function(diaStr){
+      var fechaISO = anio+'-'+String(mes).padStart(2,'0')+'-'+String(diaStr).padStart(2,'0');
+      idx[fechaISO] = filaPropia.dias[diaStr];
+    });
+    localStorage.setItem(_diasLibresPrevistosClaveIndice(), JSON.stringify(idx));
+
+    var nDias = Object.keys(filaPropia.dias).length;
+    if(elEstado) elEstado.textContent = '✅ ' + nDias + ' días libres de ' + String(mes).padStart(2,'0')+'/'+anio + ' cargados en tu Calendario.';
+    toast('✅ Días Libres cargados en tu Calendario');
+    if(typeof renderCal==='function') renderCal();
+  }catch(errDL){
+    console.log('Error cargando Días Libres:', errDL);
+    if(elEstado) elEstado.textContent = 'No se pudo completar: ' + (errDL && errDL.message ? errDL.message : String(errDL));
+  }
 }
 
 function saveAj(){
@@ -25429,6 +25589,95 @@ async function subirArchivoGlobalAdmin(tipo, file){
   }
 }
 
+// NUEVO — Días Libres (admin). Mismo patrón que subirArchivoGlobalAdmin
+// para Horario General: valida el contenido real del PDF ANTES de
+// publicarlo (usando parsearBufferPdfDiasLibres), y solo si se
+// reconocen filas de verdad lo sube a Storage y lo registra en
+// config_global con tipo 'dias_libres_<sede>_<AAAA-MM>'.
+async function subirDiasLibresAdmin(file){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  var elEstado = document.getElementById('estadoDiasLibres');
+  if(!file){
+    elEstado.classList.remove('sin-archivo');
+    elEstado.textContent = 'Elige antes el archivo (paso 3).';
+    return;
+  }
+  var sedeSel = document.getElementById('selSedeDiasLibres');
+  var sedeNombre = sedeSel ? sedeSel.value.trim() : '';
+  if(!sedeNombre){
+    elEstado.classList.remove('sin-archivo');
+    elEstado.textContent = 'Selecciona antes la sede de este archivo (paso 1).';
+    return;
+  }
+  var campoMes = document.getElementById('mesDiasLibres');
+  var mesAnioTexto = campoMes ? campoMes.value : ''; // "AAAA-MM"
+
+  elEstado.textContent = 'Leyendo el archivo...';
+  var datosValidacion = null, errorTecnico = null, bufferParaSubir = null;
+  try{
+    bufferParaSubir = await file.arrayBuffer();
+    datosValidacion = await parsearBufferPdfDiasLibres(bufferParaSubir.slice(0));
+  }catch(errVal){
+    console.log('Error validando Días Libres:', errVal);
+    errorTecnico = errVal && errVal.message ? errVal.message : String(errVal);
+  }
+  if(!datosValidacion || !datosValidacion.filas || !datosValidacion.filas.length){
+    var msg = errorTecnico
+      ? ('No se ha podido leer el archivo por completo (' + errorTecnico + '). ¿Quieres publicarlo de todas formas?')
+      : 'Este archivo no parece un PDF de Días Libres válido: no se ha reconocido ninguna matrícula dentro. ¿Quieres publicarlo de todas formas?';
+    if(!confirm(msg)){
+      elEstado.classList.add('sin-archivo');
+      elEstado.textContent = 'Subida cancelada — el archivo no se reconoció como Días Libres.';
+      return;
+    }
+  }
+  // Si el mes no se escribió a mano, se autorrellena con el que el propio PDF trae en su cabecera.
+  if(!mesAnioTexto && datosValidacion && datosValidacion.anio && datosValidacion.mes){
+    mesAnioTexto = datosValidacion.anio + '-' + String(datosValidacion.mes).padStart(2,'0');
+    if(campoMes) campoMes.value = mesAnioTexto;
+  }
+  if(!mesAnioTexto){
+    elEstado.classList.remove('sin-archivo');
+    elEstado.textContent = 'Indica el mes al que corresponde (paso 2) — no se pudo detectar solo desde el archivo.';
+    return;
+  }
+
+  var sedeSlug = _baseSlug(sedeNombre);
+  var tipo = 'dias_libres_' + sedeSlug + '_' + mesAnioTexto;
+  elEstado.textContent = 'Subiendo...';
+  var path = tipo + '/' + Date.now() + '_' + _nombreArchivoSeguro(file.name);
+  var subida = await sbAdmin.storage.from('admin-archivos').upload(path, bufferParaSubir, { upsert:true, contentType: file.type||'application/pdf' });
+  if(subida.error){
+    elEstado.textContent = 'Error al subir: ' + subida.error.message;
+    return;
+  }
+  var urlData = sbAdmin.storage.from('admin-archivos').getPublicUrl(path);
+  var payload = {
+    tipo: tipo,
+    sede: sedeNombre,
+    nombre_archivo: file.name,
+    url_archivo: urlData.data.publicUrl,
+    fecha_subida: new Date().toISOString(),
+    subido_por: perfilAdminActual.id,
+    subido_por_email: perfilAdminActual.email || ''
+  };
+  var tabla = await sbAdmin.from('config_global').upsert(payload);
+  if(tabla.error){
+    elEstado.textContent = 'Archivo subido, pero no se pudo registrar: ' + tabla.error.message;
+    return;
+  }
+  var nFilas = (datosValidacion && datosValidacion.filas) ? datosValidacion.filas.length : 0;
+  elEstado.classList.remove('sin-archivo');
+  elEstado.textContent = '✅ ' + mesAnioTexto + ' · ' + sedeNombre + ' · ' + nFilas + ' matrículas reconocidas';
+  toast('✅ Días Libres publicados para ' + sedeNombre);
+
+  sedeSel.value = '';
+  var campoArchivo = document.getElementById('fileDiasLibres');
+  if(campoArchivo) campoArchivo.value = '';
+  var txtDL = document.getElementById('txtDiasLibres');
+  if(txtDL) txtDL.textContent = 'Toca para elegir el PDF';
+}
+
 // NUEVO — Sube el Gráfico + el Informe de Intervención, junto con el
 // nombre del servicio y la fecha de inicio. NO procesa los PDF aquí
 // (el admin no necesita esperar el cruce) — cada compañero los
@@ -26086,6 +26335,116 @@ async function _buscarMatriculaEnPdf(buf, matricula){
     }
   }
   return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NUEVO — DÍAS LIBRES. Lee el PDF de "días libres" que publica la
+// empresa por base (una tabla con una fila de marcas — DO, DOP, FE,
+// CP, EX, B, PP... — por matrícula, una columna por día del mes).
+// Trabaja por COORDENADAS (x,y de cada palabra), no por texto plano,
+// para que cada marca caiga en el día exacto sin importar si el
+// nombre de la persona ocupa 1, 2 o 3 líneas. Algoritmo probado
+// contra un PDF real (diciembre/Barcelona): coincide al 100% con el
+// total que el propio documento imprime al final de cada fila.
+// Devuelve {sede, mes, anio, filas:[{matricula,nombre,dias,totalLeido}]}
+// — 'dias' es {"4":"DO","30":"DOP",...} con el día del mes como clave.
+// ═══════════════════════════════════════════════════════════
+var MESES_NOMBRE_DIAS_LIBRES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+function _parsearPaginaDiasLibres(words, acc){
+  for(var i=0;i<words.length;i++){
+    var w = words[i];
+    if(w.text.indexOf('BASE:')===0) acc.sede = w.text.split(':')[1];
+    if(MESES_NOMBRE_DIAS_LIBRES.indexOf(w.text)!==-1) acc.mesTxt = w.text;
+    if(/^20\d\d$/.test(w.text)) acc.anioTxt = w.text;
+  }
+  var byTop = {};
+  words.forEach(function(w){
+    var t = Math.round(w.top*100)/100;
+    (byTop[t] = byTop[t]||[]).push(w);
+  });
+  var headerTop = null, diaX = null;
+  for(var t in byTop){
+    var ws = byTop[t];
+    var nums = ws.filter(function(w){ return /^\d{1,2}$/.test(w.text); });
+    if(nums.length>=25 && nums.length===ws.length){
+      var vals = nums.map(function(w){ return parseInt(w.text,10); }).sort(function(a,b){return a-b;});
+      var secuencial = true;
+      for(var j=0;j<vals.length;j++) if(vals[j]!==j+1){ secuencial=false; break; }
+      if(secuencial){
+        headerTop = parseFloat(t);
+        diaX = ws.slice().sort(function(a,b){return a.x0-b.x0;}).map(function(w){ return [parseInt(w.text,10), w.x0]; });
+        break;
+      }
+    }
+  }
+  if(headerTop===null) return; // página sin tabla reconocible (portada, pie, etc.) — no rompe nada
+  function diaCercano(x0){
+    var mejor=null, mejorDist=Infinity;
+    diaX.forEach(function(dx){ var dist=Math.abs(dx[1]-x0); if(dist<mejorDist){ mejorDist=dist; mejor=dx[0]; } });
+    return mejorDist<=9 ? mejor : null;
+  }
+  var tops = Object.keys(byTop).map(parseFloat).filter(function(t){ return t>headerTop+1; }).sort(function(a,b){return a-b;});
+  var buffer = [];
+  function flush(totalLeido){
+    var marcasRow=null, nombrePartes=[], matricula=null;
+    buffer.forEach(function(par){
+      var row = par[1];
+      var esMarcas = row.length>=1 && row.every(function(w){ return diaCercano(w.x0)!==null; })
+        && row.every(function(w){ return /^[A-ZÁÉÍÓÚÑ]{1,4}(-\d+)?$/.test(w.text); });
+      if(esMarcas && marcasRow===null){ marcasRow=row; }
+      else {
+        var m = row[0].text.match(/^(\d{5,7})-(.+)/);
+        if(m && matricula===null){
+          matricula = m[1];
+          var resto = row.slice(1).map(function(w){return w.text;}).join(' ');
+          nombrePartes.push(m[2] + (resto?(' '+resto):''));
+        } else {
+          nombrePartes.push(row.map(function(w){return w.text;}).join(' '));
+        }
+      }
+    });
+    if(matricula===null) return;
+    var dias = {};
+    if(marcasRow){ marcasRow.forEach(function(w){ var d=diaCercano(w.x0); dias[d]=w.text; }); }
+    acc.filas.push({matricula:matricula, nombre:nombrePartes.join(' '), dias:dias, totalLeido:totalLeido});
+  }
+  tops.forEach(function(t){
+    var row = byTop[t].slice().sort(function(a,b){return a.x0-b.x0;});
+    if(row[0].x0<55 && row[0].text==='DO' && row.length<=2 && (row.length===1 || /^\d+$/.test(row[1].text))){
+      var total = row.length===2 ? parseInt(row[1].text,10) : null;
+      flush(total); buffer=[];
+      return;
+    }
+    buffer.push([t,row]);
+  });
+}
+async function parsearBufferPdfDiasLibres(buf){
+  await asegurarPdfWorkerSeguro();
+  var pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  var acc = {sede:null, mesTxt:null, anioTxt:null, filas:[]};
+  for(var pi=1; pi<=pdf.numPages; pi++){
+    var page = await pdf.getPage(pi);
+    var viewport = page.getViewport({scale:1});
+    var pageHeight = viewport.height;
+    var content = await page.getTextContent();
+    var words = [];
+    content.items.forEach(function(item){
+      var str = (item.str||'').trim();
+      if(!str) return;
+      var x0 = item.transform[4];
+      var top = pageHeight - item.transform[5];
+      var parts = str.split(/\s+/).filter(Boolean);
+      if(parts.length<=1){
+        words.push({text: str, x0: x0, top: top});
+      } else {
+        var w = item.width||0;
+        parts.forEach(function(p, idx){ words.push({text:p, x0: x0 + (w*idx/parts.length), top: top}); });
+      }
+    });
+    _parsearPaginaDiasLibres(words, acc);
+  }
+  var mesNum = MESES_NOMBRE_DIAS_LIBRES.indexOf(acc.mesTxt) + 1;
+  return { sede: acc.sede, mes: mesNum||null, anio: acc.anioTxt?parseInt(acc.anioTxt,10):null, filas: acc.filas };
 }
 
 // NUEVO — Solicitudes de acceso para matrículas que todavía no están
