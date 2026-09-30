@@ -27233,10 +27233,10 @@ function _hgListarMesesUnicos(filasConMes){
 // última llamada a cargarHorarioGlobalDesdeAdmin(). Si solo hay un
 // mes guardado, no tiene sentido elegir — se deja vacío.
 // APAGADO — Confirmado por Alex: el selector de mes con chips
-// ("Ago/Sep") queda desactivado — ahora Compañeros e Interventor usan
-// automáticamente el mes puesto en el Calendario (ver
-// _mesCalendarioActual(), usada en abrirBuscadorConHorarioGlobal() y
-// cargarDatosParaInterventor()), sin ningún botón que elegir. No se
+// ("Ago/Sep") queda desactivado — ahora Compañeros e Interventor prueban
+// automáticamente el mes actual real y, si no está publicado, el
+// siguiente (ver _mesesCandidatosCompaneros()/_cargarHorarioMesActualOSiguiente()
+// más arriba), sin ningún botón que elegir. No se
 // borra el código de los chips (mismo criterio que con Novedades): si
 // algún día se quiere volver a este modelo, basta con quitar el
 // "return" de aquí abajo.
@@ -27482,6 +27482,32 @@ window.validarAccesoBuscador = async function(){
 function _mesCalendarioActual(){
   return { anio: curM.getFullYear(), mes: curM.getMonth()+1 };
 }
+// FIX — Confirmado por Alex: Compañeros/Interventor ya NO siguen el mes
+// que esté abierto en el Calendario (si alguien lo dejaba adelantado a
+// diciembre, se quedaban buscando ahí un horario que no existía). Ahora
+// prueban SOLO estos dos, en este orden: el mes real de hoy, y si el
+// admin todavía no lo ha publicado, el mes siguiente. Si ninguno de los
+// dos está publicado, no se prueba ningún otro — se queda en
+// "Sincronizando", tal como pidió Alex.
+function _mesesCandidatosCompaneros(){
+  var hoy = new Date();
+  var a1 = hoy.getFullYear(), m1 = hoy.getMonth()+1;
+  var m2 = m1+1, a2 = a1; if(m2>12){ m2=1; a2=a1+1; }
+  return [ {anio:a1, mes:m1}, {anio:a2, mes:m2} ];
+}
+function _esMesCandidatoCompaneros(mesAnio){
+  if(!mesAnio) return false;
+  return _mesesCandidatosCompaneros().some(function(c){ return c.anio===mesAnio.anio && c.mes===mesAnio.mes; });
+}
+// Prueba el mes actual y, si no está publicado, el siguiente — nada más.
+// Devuelve true en cuanto uno de los dos funciona (BASES.global ya queda
+// puesto por cargarHorarioGlobalDesdeAdmin); false si ninguno lo está.
+async function _cargarHorarioMesActualOSiguiente(){
+  var candidatos = _mesesCandidatosCompaneros();
+  var ok = await cargarHorarioGlobalDesdeAdmin(candidatos[0]);
+  if(ok) return true;
+  return await cargarHorarioGlobalDesdeAdmin(candidatos[1]);
+}
 
 // NUEVO — Confirmado por el usuario: las dos "caras" de la tarjeta de la izquierda
 // (Sincronizando ⇄ Ver compañeros), junto a la tarjeta de Cambios de turno. Solo tocan lo
@@ -27519,19 +27545,14 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // pero en segundo plano, sin bloquear la pantalla. Antes se repetía
   // la consulta a Supabase (y se esperaba a que respondiera) cada vez
   // que se tocaba la pestaña, aunque no hubiera nada nuevo que leer.
-  var mesObjetivo = _mesCalendarioActual();
-  // NUEVO — Confirmado por Alex: el atajo rápido (entrar al instante
-  // con lo que ya había en memoria) solo vale si ese dato en memoria
-  // es del MISMO mes que ahora mismo tienes puesto en el Calendario.
-  // Si moviste el Calendario a otro mes desde la última vez que
-  // entraste aquí, se fuerza una recarga completa para el mes nuevo —
-  // si no, te seguiría saliendo el mes viejo aunque hubieras movido
-  // el Calendario.
+  // FIX — antes seguía el mes que tuvieras abierto en el Calendario.
+  // Ahora solo prueba el mes actual real y, si no está publicado, el
+  // siguiente — ver _mesesCandidatosCompaneros() más arriba.
   var mesYaCargadoCoincide = BASES.global && BASES.global.mesAnio
-    && BASES.global.mesAnio.anio===mesObjetivo.anio && BASES.global.mesAnio.mes===mesObjetivo.mes;
+    && _esMesCandidatoCompaneros(BASES.global.mesAnio);
   if(window._companerosCargadoEnEstaSesion && mesYaCargadoCoincide && BASES.global.data && BASES.global.data.length){
     activateBase('global');
-    cargarHorarioGlobalDesdeAdmin(mesObjetivo).then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
+    _cargarHorarioMesActualOSiguiente().then(function(ok){ if(ok) activateBase('global'); }).catch(function(){});
     return;
   }
   // NUEVO — antes esto abría un overlay aparte (openOv('ov-buscador')).
@@ -27550,7 +27571,7 @@ window.abrirBuscadorConHorarioGlobal = async function(){
   // falla, aparece un botón para reintentar sin salir de la pestaña.
   renderTarjetaHorarioSincronizando();
   try{
-    var ok = await cargarHorarioGlobalDesdeAdmin(mesObjetivo);
+    var ok = await _cargarHorarioMesActualOSiguiente();
     if(ok){
       // FIX — Confirmado por el usuario: antes esto marcaba la sesión como "ya
       // vista" apenas terminaba de sincronizar, sin que la persona hubiera
@@ -27601,11 +27622,11 @@ window.abrirBuscadorConHorarioGlobal = async function(){
 // Se expone a window por el mismo motivo que la de arriba: el Portal
 // de Perfil vive fuera de este módulo aislado.
 window.cargarDatosParaInterventor = async function(){
-  // NUEVO — Confirmado por Alex: mismo mecanismo que Compañeros — el
-  // mes a buscar es el que YA está puesto en la pantalla de
-  // Calendario (curM), no "el más reciente subido". Así, mover el
-  // Calendario a otro mes y entrar a Interventor ya busca en ese mes.
-  var ok = await cargarHorarioGlobalDesdeAdmin(_mesCalendarioActual());
+  // FIX — Confirmado por Alex: ya no sigue el mes que esté puesto en
+  // el Calendario. Ahora prueba solo el mes actual real y, si el
+  // admin todavía no lo ha publicado, el mes siguiente — nada más
+  // (ver _mesesCandidatosCompaneros() más arriba).
+  var ok = await _cargarHorarioMesActualOSiguiente();
   if(ok) activateBase('global');
   try{
     await cargarIntervencionGlobalDesdeAdmin();
