@@ -12184,8 +12184,12 @@ function renderSlide(gridId, fecha){
     var conflictoDiaLibre = !!(diaLibrePrevisto && t && ES_TRABAJO_REAL[t.tipo]);
     if(conflictoDiaLibre) cls+=' dc-libre-conflicto';
     var mostrarIconoLibrePrevisto = !!(diaLibrePrevisto && !t && !conflictoDiaLibre);
+    // NUEVO — icono y color propios según el código (EX, B, PP...) en
+    // vez de un 🧘 genérico igual para todos — ver diasLibresIconoPara().
+    var iconoLibrePrevisto = mostrarIconoLibrePrevisto && typeof diasLibresIconoPara==='function' ? diasLibresIconoPara(diaLibrePrevisto) : null;
     var c=document.createElement('div');
     c.className=cls;
+    if(iconoLibrePrevisto) c.style.background = 'rgba('+iconoLibrePrevisto.color+',.15)';
     c.dataset.k=k; // NUEVO — permite identificar la celda por fecha desde fuera (vista Compañero/Comparar)
     c.style.position='relative';
     var tieneRetraso2=t&&((t.retrasos&&t.retrasos.length>0)||(t.retrasoMin>0));
@@ -12283,7 +12287,7 @@ function renderSlide(gridId, fecha){
     // turno" (morado, arriba de la celda) — puramente informativo,
     // no toca t ni ningún cálculo de esta función.
     var cambioTurnoBadge = (typeof _badgeCambioTurnoParaDia==='function') ? _badgeCambioTurnoParaDia(d) : '';
-    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':(mostrarIconoLibrePrevisto&&!isS?'<span class="dc-ico" style="opacity:.55">🧘</span>':''))+'<span class="dc-check-borrar">✓</span>';
+    c.innerHTML=retBadge+tv2Bg+parkingBadge+trenBadge+cambioTurnoBadge+'<span>'+d+'</span>'+(t&&!isS?'<span class="dc-ico">'+(TIPO_INFO[t.tipo]?TIPO_INFO[t.tipo].ico:'')+'</span>':(mostrarIconoLibrePrevisto&&!isS?'<span class="dc-ico">'+iconoLibrePrevisto.ico+'</span>':''))+'<span class="dc-check-borrar">✓</span>';
     // FIX closure: capturar d, k, t correctamente en cada iteración
     // NUEVO — modo selección para borrado múltiple (maqueta A): tap
     // normal sigue abriendo el día como siempre; mantener pulsado
@@ -12435,7 +12439,24 @@ function clickDia(d,k,t){
       var _dlpVacio = (typeof diasLibresPrevistosParaFecha==='function') ? diasLibresPrevistosParaFecha(k) : null;
       if(_dlpVacio){
         _avisoTipoEl.style.display = 'block';
-        _avisoTipoEl.innerHTML = '🧘 Según el PDF de Días Libres, este día tienes: <b>'+_dlpVacio+'</b>. Todavía no tienes ningún turno real puesto — si te ponen uno, se avisará aquí.';
+        // NUEVO — EX y B tienen nombre fijo; cualquier otro código (PP...)
+        // usa el nombre que ya se le haya puesto antes, o pregunta una
+        // vez (ver diasLibresGuardarNombrePersonalizado()).
+        var _NOMBRES_FIJOS_DL = {EX:'Excedencia', B:'Baja'};
+        var _nombreFijoDL = _NOMBRES_FIJOS_DL[_dlpVacio];
+        var _iconoDL = (typeof diasLibresIconoPara==='function') ? diasLibresIconoPara(_dlpVacio).ico : '';
+        if(_nombreFijoDL){
+          _avisoTipoEl.innerHTML = _iconoDL+' Según el PDF de Días Libres, este día es: <b>'+_nombreFijoDL+'</b> ('+_dlpVacio+'). Todavía no tienes ningún turno real puesto — si te ponen uno, se avisará aquí.';
+        } else {
+          var _nombresDL = (typeof diasLibresNombresPersonalizados==='function') ? diasLibresNombresPersonalizados() : {};
+          if(_nombresDL[_dlpVacio]){
+            _avisoTipoEl.innerHTML = _iconoDL+' Según el PDF de Días Libres, este día es: <b>'+_nombresDL[_dlpVacio]+'</b> ('+_dlpVacio+'). Todavía no tienes ningún turno real puesto — si te ponen uno, se avisará aquí.';
+          } else {
+            _avisoTipoEl.innerHTML = '❓ El PDF de Días Libres marca este día como <b>'+_dlpVacio+'</b>, un código que todavía no conoce. ¿Qué significa?'
+              + '<input type="text" id="tipoDiaLibreNombreInput" placeholder="Ej. Permiso particular…" onclick="event.stopPropagation()" style="width:100%;box-sizing:border-box;margin-top:8px;background:#1E1533;border:2px solid #2E1A5C;border-radius:10px;color:#F8FAFC;font-size:12.5px;padding:8px 10px">'
+              + '<button onclick="event.stopPropagation();_guardarNombreCodigoDiaLibre(\''+_dlpVacio+'\')" style="margin-top:8px;width:100%;background:var(--acc);border:none;border-radius:8px;color:#fff;font-weight:800;padding:8px;cursor:pointer">Guardar</button>';
+          }
+        }
       } else {
         _avisoTipoEl.style.display = 'none';
         _avisoTipoEl.innerHTML = '';
@@ -17397,6 +17418,48 @@ function diasLibresPrevistosParaFecha(fechaISO){
   var idx = diasLibresPrevistosIndice();
   return idx[fechaISO] || null; // ej. "DO", "DOP"... o null si ese día no estaba en ningún PDF cargado
 }
+
+// NUEVO — Confirmado por Alex: EX (Excedencia) y B (Baja) tienen su
+// propio icono y color fijos. Cualquier otro código que no cree turno
+// real (como PP, del que ni Alex sabe qué significa) se pregunta UNA
+// vez, la primera vez que aparece, y se guarda para siempre — vale
+// para todos los meses, no hay que volver a nombrarlo.
+var DIAS_LIBRES_ICONOS_FIJOS = {
+  EX: {ico:'🏠', color:'100,116,139'},   // gris azulado — Excedencia
+  B:  {ico:'🏥', color:'239,68,68'}      // rojo, mismo icono que ya usa "Baja" en el resto de la app
+};
+function _diasLibresClaveNombres(){ return 'diasLibresCodigosPersonalizados'; }
+function diasLibresNombresPersonalizados(){
+  try{ return JSON.parse(localStorage.getItem(_diasLibresClaveNombres())||'{}'); }catch(e){ return {}; }
+}
+function diasLibresGuardarNombrePersonalizado(codigo, nombre){
+  var mapa = diasLibresNombresPersonalizados();
+  mapa[codigo] = nombre;
+  localStorage.setItem(_diasLibresClaveNombres(), JSON.stringify(mapa));
+}
+// Icono + color a mostrar para un código que NO crea turno real
+// (EX, B, PP o cualquier otro que aparezca en el futuro).
+function diasLibresIconoPara(codigo){
+  if(DIAS_LIBRES_ICONOS_FIJOS[codigo]) return DIAS_LIBRES_ICONOS_FIJOS[codigo];
+  var nombres = diasLibresNombresPersonalizados();
+  if(nombres[codigo]) return {ico:'📝', color:'234,179,8'}; // ya se le puso nombre
+  return {ico:'❓', color:'234,179,8'}; // todavía sin nombrar
+}
+// NUEVO — Guarda, una sola vez y para siempre (todos los meses, no
+// solo este), el nombre que la persona escriba para un código que la
+// app no conocía (como PP). Se llama desde el botón "Guardar" del
+// aviso de clickDia(). Tras guardar, refresca ese mismo aviso y el
+// Calendario para que el icono cambie de ❓ a 📝 al momento.
+function _guardarNombreCodigoDiaLibre(codigo){
+  var inp = document.getElementById('tipoDiaLibreNombreInput');
+  var nombre = inp ? inp.value.trim() : '';
+  if(!nombre){ toast('Escribe qué significa antes de guardar.'); return; }
+  diasLibresGuardarNombrePersonalizado(codigo, nombre);
+  toast('✅ Guardado — a partir de ahora todos los días "'+codigo+'" se llamarán así');
+  if(typeof renderCal==='function') renderCal();
+  if(typeof clickDia==='function' && selDay) clickDia(selDay.d, selDay.k, selDay.t);
+}
+
 async function cargarDiasLibresPrevistos(){
   var elEstado = document.getElementById('estadoDiasLibresTrip');
   var matricula = (AJ.matricula||'').trim();
@@ -17454,27 +17517,45 @@ async function cargarDiasLibresPrevistos(){
     });
     localStorage.setItem(_diasLibresPrevistosClaveIndice(), JSON.stringify(idx));
 
-    // NUEVO — Confirmado por Alex: los días marcados como DO/DOP no se
-    // quedan solo como icono informativo — se añaden de verdad como
-    // turno de Descanso (DO→'descanso') o DOP (DOP→'dop') en el
-    // Calendario, igual que si se hubieran elegido a mano. Solo en
-    // días que todavía NO tengan ningún turno real puesto (nunca se
-    // sobrescribe nada que ya exista). El resto de códigos (FE, CP,
-    // EX, B, PP...) se dejan tal cual — solo como aviso, sin crear
-    // ningún turno, porque no son días de descanso.
-    var nuevosDescanso = 0, nuevosDOP = 0;
+    // NUEVO — Confirmado por Alex: los días marcados como DO/DOP/FE/CP
+    // no se quedan solo como icono informativo — se añaden de verdad
+    // como turno real en el Calendario, igual que si se hubieran
+    // elegido a mano: DO→Descanso, DOP→DOP, y FE/CP→Vacaciones (FE y
+    // CP son ambos vacaciones, según Alex). El resto de códigos (EX,
+    // B, PP...) se dejan tal cual — solo como aviso, sin crear ningún
+    // turno, porque no son vacaciones ni descanso.
+    // Si el día YA tiene un turno real puesto, no se sobrescribe en
+    // silencio: se pregunta uno a uno (confirm por día) si sustituirlo
+    // por lo que dice el PDF o dejarlo como está.
+    var MAPEO_TIPO_DIAS_LIBRES = {DO:'descanso', DOP:'dop', FE:'vacaciones', CP:'vacaciones'};
+    var nuevosDescanso = 0, nuevosDOP = 0, nuevosVacaciones = 0, mantenidos = 0;
     Object.keys(filaPropia.dias).forEach(function(diaStr){
-      var fechaISO = anio+'-'+String(mes).padStart(2,'0')+'-'+String(diaStr).padStart(2,'0');
-      if(TV[fechaISO]) return; // ya hay un turno real ese día: no se toca
       var codigo = filaPropia.dias[diaStr];
-      if(codigo==='DO'){ TV[fechaISO] = {tipo:'descanso'}; nuevosDescanso++; }
-      else if(codigo==='DOP'){ TV[fechaISO] = {tipo:'dop'}; nuevosDOP++; }
+      var tipoNuevo = MAPEO_TIPO_DIAS_LIBRES[codigo];
+      if(!tipoNuevo) return; // código que no se convierte en turno (EX, B, PP...)
+      var fechaISO = anio+'-'+String(mes).padStart(2,'0')+'-'+String(diaStr).padStart(2,'0');
+      if(TV[fechaISO]){
+        var tipoExistente = TV[fechaISO].tipo;
+        if(tipoExistente===tipoNuevo) return; // ya es lo mismo, no hace falta preguntar
+        var lblExistente = (TIPO_INFO[tipoExistente]&&TIPO_INFO[tipoExistente].lbl) || tipoExistente;
+        var sustituir = confirm('El día '+fechaISO+' ya tiene un turno puesto: '+lblExistente+'.\nEl PDF de Días Libres dice que es '+codigo+'.\n\n¿Quieres sustituirlo?');
+        if(!sustituir){ mantenidos++; return; }
+      }
+      TV[fechaISO] = {tipo: tipoNuevo};
+      if(tipoNuevo==='descanso') nuevosDescanso++;
+      else if(tipoNuevo==='dop') nuevosDOP++;
+      else if(tipoNuevo==='vacaciones') nuevosVacaciones++;
     });
-    if(nuevosDescanso || nuevosDOP) saveTV();
+    if(nuevosDescanso || nuevosDOP || nuevosVacaciones) saveTV();
 
     var nDias = Object.keys(filaPropia.dias).length;
+    var resumenPartes = [];
+    if(nuevosDescanso) resumenPartes.push(nuevosDescanso+' descanso');
+    if(nuevosDOP) resumenPartes.push(nuevosDOP+' DOP');
+    if(nuevosVacaciones) resumenPartes.push(nuevosVacaciones+' vacaciones');
+    if(mantenidos) resumenPartes.push(mantenidos+' mantenidos tal cual');
     if(elEstado) elEstado.textContent = '✅ ' + nDias + ' días libres de ' + String(mes).padStart(2,'0')+'/'+anio + ' cargados'
-      + ((nuevosDescanso||nuevosDOP) ? (' (' + nuevosDescanso + ' descanso, ' + nuevosDOP + ' DOP añadidos al Calendario)') : '') + '.';
+      + (resumenPartes.length ? (' (' + resumenPartes.join(', ') + ')') : '') + '.';
     toast('✅ Días Libres cargados en tu Calendario');
     if(typeof renderCal==='function') renderCal();
   }catch(errDL){
