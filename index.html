@@ -5603,6 +5603,13 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div><div class="sh-tit" id="tipo-fecha-lbl"></div><div class="sh-sub">Tipo de jornada</div></div>
       <button class="sh-close" onclick="closeOv('ov-tipo');clearSelDay()">✕</button>
     </div>
+    <!-- NUEVO — Días Libres: aviso cuando este día ya estaba marcado
+         como libre en el PDF de Días Libres (ver clickDia()), para que
+         no parezca que la app "no sabe nada" de ese día solo porque
+         todavía no tiene un turno real puesto. -->
+    <div id="tipo-dia-libre-aviso" style="display:none;margin:0 16px 10px;padding:10px 12px;
+      background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.35);border-radius:10px;
+      font-size:12.5px;color:#C4B5FD;line-height:1.5"></div>
     <div style="overflow-y:auto">
       <div class="tipo-grid">
         <div class="topt t-ord" onclick="elegirTipo('ordinario')"><div class="to-ico">🚂</div><div class="to-lbl">Ordinario</div><div class="to-sub">Turno normal de trabajo</div></div>
@@ -12418,6 +12425,22 @@ function clickDia(d,k,t){
     var dt=new Date(y,mo-1,d);
     var wd=(dt.getDay()+6)%7;
     document.getElementById('tipo-fecha-lbl').textContent=DIAS_L[wd]+' '+d+' '+MESES_C[mo-1];
+    // NUEVO — Días Libres: si este día ya estaba marcado como libre en
+    // el PDF de Días Libres (aunque todavía no tenga turno real), se
+    // avisa aquí — antes, al no haber turno propio, se abría este
+    // mismo selector sin decir nada, como si la app no supiera nada
+    // de ese día. Ver también diasLibresPrevistosParaFecha().
+    var _avisoTipoEl = document.getElementById('tipo-dia-libre-aviso');
+    if(_avisoTipoEl){
+      var _dlpVacio = (typeof diasLibresPrevistosParaFecha==='function') ? diasLibresPrevistosParaFecha(k) : null;
+      if(_dlpVacio){
+        _avisoTipoEl.style.display = 'block';
+        _avisoTipoEl.innerHTML = '🧘 Según el PDF de Días Libres, este día tienes: <b>'+_dlpVacio+'</b>. Todavía no tienes ningún turno real puesto — si te ponen uno, se avisará aquí.';
+      } else {
+        _avisoTipoEl.style.display = 'none';
+        _avisoTipoEl.innerHTML = '';
+      }
+    }
     openOv('ov-tipo');
   } else {
     // Día con turno (propio, de pernocta, o solo referencia informativa
@@ -17431,8 +17454,27 @@ async function cargarDiasLibresPrevistos(){
     });
     localStorage.setItem(_diasLibresPrevistosClaveIndice(), JSON.stringify(idx));
 
+    // NUEVO — Confirmado por Alex: los días marcados como DO/DOP no se
+    // quedan solo como icono informativo — se añaden de verdad como
+    // turno de Descanso (DO→'descanso') o DOP (DOP→'dop') en el
+    // Calendario, igual que si se hubieran elegido a mano. Solo en
+    // días que todavía NO tengan ningún turno real puesto (nunca se
+    // sobrescribe nada que ya exista). El resto de códigos (FE, CP,
+    // EX, B, PP...) se dejan tal cual — solo como aviso, sin crear
+    // ningún turno, porque no son días de descanso.
+    var nuevosDescanso = 0, nuevosDOP = 0;
+    Object.keys(filaPropia.dias).forEach(function(diaStr){
+      var fechaISO = anio+'-'+String(mes).padStart(2,'0')+'-'+String(diaStr).padStart(2,'0');
+      if(TV[fechaISO]) return; // ya hay un turno real ese día: no se toca
+      var codigo = filaPropia.dias[diaStr];
+      if(codigo==='DO'){ TV[fechaISO] = {tipo:'descanso'}; nuevosDescanso++; }
+      else if(codigo==='DOP'){ TV[fechaISO] = {tipo:'dop'}; nuevosDOP++; }
+    });
+    if(nuevosDescanso || nuevosDOP) saveTV();
+
     var nDias = Object.keys(filaPropia.dias).length;
-    if(elEstado) elEstado.textContent = '✅ ' + nDias + ' días libres de ' + String(mes).padStart(2,'0')+'/'+anio + ' cargados en tu Calendario.';
+    if(elEstado) elEstado.textContent = '✅ ' + nDias + ' días libres de ' + String(mes).padStart(2,'0')+'/'+anio + ' cargados'
+      + ((nuevosDescanso||nuevosDOP) ? (' (' + nuevosDescanso + ' descanso, ' + nuevosDOP + ' DOP añadidos al Calendario)') : '') + '.';
     toast('✅ Días Libres cargados en tu Calendario');
     if(typeof renderCal==='function') renderCal();
   }catch(errDL){
