@@ -17482,20 +17482,59 @@ async function cargarDiasLibresPrevistos(){
     if(resp.error){ if(elEstado) elEstado.textContent = 'No se pudo comprobar: ' + resp.error.message; return; }
     var filas = resp.data || [];
     if(!filas.length){ if(elEstado) elEstado.textContent = 'El admin todavía no ha publicado Días Libres para tu base.'; return; }
-    // el más reciente = el de anio-mes más alto, a partir del propio "tipo" (…_AAAA-MM)
+    // más reciente primero, a partir del propio "tipo" (…_AAAA-MM)
     filas.sort(function(a,b){
       var ma = (a.tipo.match(/_(\d{4})-(\d{2})$/)||[]), mb = (b.tipo.match(/_(\d{4})-(\d{2})$/)||[]);
       var va = ma.length ? (parseInt(ma[1],10)*12+parseInt(ma[2],10)) : 0;
       var vb = mb.length ? (parseInt(mb[1],10)*12+parseInt(mb[2],10)) : 0;
       return vb-va;
     });
-    var masReciente = filas[0];
-    var mAnioMes = masReciente.tipo.match(/_(\d{4})-(\d{2})$/);
+    // NUEVO — Confirmado por Alex: si hay más de un mes publicado para
+    // tu base (ej. ya tenías diciembre y ahora también está noviembre),
+    // antes se cogía SIEMPRE el más reciente sin preguntar, así que
+    // nunca dejaba elegir el mes "más viejo" entre los publicados.
+    // Ahora, si hay varios, se enseña la lista y se elige; si solo hay
+    // uno, se carga directo como siempre, sin preguntar nada.
+    if(filas.length===1){
+      await _cargarDiasLibresDeFila(filas[0], elEstado, matricula);
+      return;
+    }
+    if(elEstado){
+      var htmlLista = '<div style="margin:4px 0 4px;color:var(--tx3)">Hay varios meses publicados — elige cuál cargar:</div>';
+      filas.forEach(function(f, i){
+        var m = f.tipo.match(/_(\d{4})-(\d{2})$/);
+        var etiqueta = m ? (m[2]+'/'+m[1]) : f.tipo;
+        htmlLista += '<button onclick="_elegirMesDiasLibres('+i+')" style="display:block;width:100%;text-align:left;'
+          +'background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.35);border-radius:8px;'
+          +'color:#C4B5FD;font-size:12.5px;font-weight:700;padding:8px 10px;margin-top:6px;cursor:pointer">📅 '+etiqueta+'</button>';
+      });
+      elEstado.innerHTML = htmlLista;
+    }
+    window._diasLibresFilasParaElegir = filas; // leído por _elegirMesDiasLibres()
+  }catch(errDL){
+    console.log('Error buscando Días Libres:', errDL);
+    if(elEstado) elEstado.textContent = 'No se pudo completar: ' + (errDL && errDL.message ? errDL.message : String(errDL));
+  }
+}
+// Se llama al tocar uno de los meses de la lista de arriba.
+async function _elegirMesDiasLibres(indice){
+  var elEstado = document.getElementById('estadoDiasLibresTrip');
+  var matricula = (AJ.matricula||'').trim();
+  var fila = (window._diasLibresFilasParaElegir||[])[indice];
+  if(!fila){ if(elEstado) elEstado.textContent = 'No se pudo identificar ese mes, inténtalo de nuevo.'; return; }
+  await _cargarDiasLibresDeFila(fila, elEstado, matricula);
+}
+// Descarga, reconoce y carga en el Calendario UN archivo de Días
+// Libres ya elegido (el único publicado, o el que la persona escogió
+// en la lista). Mismo comportamiento de siempre a partir de aquí.
+async function _cargarDiasLibresDeFila(filaElegida, elEstado, matricula){
+  try{
+    var mAnioMes = filaElegida.tipo.match(/_(\d{4})-(\d{2})$/);
     if(!mAnioMes){ if(elEstado) elEstado.textContent = 'El archivo publicado no tiene un mes reconocible.'; return; }
     var anio = parseInt(mAnioMes[1],10), mes = parseInt(mAnioMes[2],10);
 
     if(elEstado) elEstado.textContent = 'Descargando...';
-    var respArchivo = await fetch(masReciente.url_archivo);
+    var respArchivo = await fetch(filaElegida.url_archivo);
     if(!respArchivo.ok){ if(elEstado) elEstado.textContent = 'No se pudo descargar el archivo.'; return; }
     var buf = await respArchivo.arrayBuffer();
 
