@@ -2566,6 +2566,22 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
 .admin-card-ico.blue{background:rgba(37,99,235,.15);color:var(--acc3)}
 .admin-card-tit{font-size:14px;font-weight:800}
 .admin-card-sub{font-size:10.5px;color:var(--tx2);margin-top:2px;line-height:1.4}
+/* NUEVO — Grupos plegables del Panel Admin (maqueta "Opción A",
+   confirmada por Alex). padm-group envuelve varias .admin-card; el
+   body se abre/cierra con padmToggle(), sin tocar el contenido de
+   ninguna tarjeta ni sus IDs. */
+.padm-group{margin:14px 16px 0}
+.padm-group-hdr{display:flex;align-items:center;justify-content:space-between;
+  background:var(--s2);border:1px solid var(--div);border-radius:14px;
+  padding:13px 16px;cursor:pointer;user-select:none}
+.padm-group-tit{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:800;color:var(--tx)}
+.padm-group-badge{background:rgba(124,58,237,.22);color:var(--acc4,#C4B5FD);font-size:10px;font-weight:800;
+  padding:1px 7px;border-radius:999px}
+.padm-group-chev{color:var(--tx3);font-size:15px;transition:transform .15s ease}
+.padm-group-hdr.padm-abierto .padm-group-chev{transform:rotate(180deg)}
+.padm-group-body{display:flex;flex-direction:column;gap:0}
+.padm-group-body.padm-cerrado{display:none}
+.padm-group-body .admin-card{margin-left:0;margin-right:0}
 .estado-archivo{font-size:11px;color:var(--tx2);background:var(--s2);border:1px solid var(--div);
   border-radius:9px;padding:9px 11px;margin-top:10px;line-height:1.5}
 .estado-archivo b{color:var(--acc3)}
@@ -6599,6 +6615,17 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="msg-info" style="margin:0 0 10px">Ciérrala cuando termines de revisar o subir algo: mientras la sesión esté activa, cualquier acción de este panel (guardar, publicar, eliminar) queda habilitada. Cerrándola evitas guardar algo por error sin querer.</div>
     </div>
 
+    <!-- NUEVO — Confirmado por Alex (maqueta "Opción A"): las 11
+         tarjetas del Panel Admin, antes todas seguidas, ahora van en 4
+         grupos plegables (tipo Ajustes de iOS). 100% visual: ninguna
+         tarjeta cambia de contenido, ID ni función — solo se envuelven
+         en un grupo que se abre/cierra. Ver padmToggle() más abajo. -->
+    <div class="padm-group">
+      <div class="padm-group-hdr padm-abierto" onclick="padmToggle('padm-horarios')">
+        <div class="padm-group-tit">📅 Horarios <span class="padm-group-badge">4</span></div>
+        <div class="padm-group-chev" id="padm-horarios-chev">⌄</div>
+      </div>
+      <div class="padm-group-body" id="padm-horarios">
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico blue">📅</div>
@@ -6677,6 +6704,31 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div class="estado-archivo sin-archivo" id="estadoDiasLibres">Aún no hay ningún archivo activo.</div>
     </div>
 
+    <!-- NUEVO — Historial de Días Libres guardados (sede + mes), mismo
+         patrón que "Horarios Generales guardados": cada subida queda
+         aparte, se actualiza la lista a mano, y se puede eliminar
+         cualquiera de ellas. -->
+    <div class="admin-card">
+      <div class="admin-card-hdr">
+        <div class="admin-card-ico" style="background:rgba(124,58,237,.15);color:#A78BFA">🗂️</div>
+        <div>
+          <div class="admin-card-tit">Días Libres guardados</div>
+          <div class="admin-card-sub">Cada mes que subes queda guardado aparte, agrupado por sede. Nada se borra solo — elimínalo aquí si sobra alguno.</div>
+        </div>
+      </div>
+      <button class="m-save" style="width:100%;margin-bottom:8px" onclick="cargarHistorialDiasLibres()">🔄 Actualizar lista</button>
+      <div id="dlHistorialLista"><div class="estado-archivo sin-archivo">Toca "Actualizar lista" para ver lo guardado.</div></div>
+    </div>
+
+      </div>
+    </div>
+
+    <div class="padm-group">
+      <div class="padm-group-hdr" onclick="padmToggle('padm-comunicacion')">
+        <div class="padm-group-tit">📣 Comunicación <span class="padm-group-badge">2</span></div>
+        <div class="padm-group-chev" id="padm-comunicacion-chev">⌄</div>
+      </div>
+      <div class="padm-group-body padm-cerrado" id="padm-comunicacion">
     <!-- NUEVO — Notificaciones del Admin a todos los trabajadores.
          Confirmado por Alex tras revisar la maqueta interactiva.
          100% aditivo: no toca ninguna tarjeta ni función existente. -->
@@ -6726,6 +6778,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="nadmListaHistorial"><div class="estado-archivo sin-archivo">Toca "Actualizar lista" para ver las notificaciones enviadas.</div></div>
     </div>
 
+      </div>
+    </div>
+
+    <div class="padm-group">
+      <div class="padm-group-hdr" onclick="padmToggle('padm-accesos')">
+        <div class="padm-group-tit">🔑 Accesos <span class="padm-group-badge">4</span></div>
+        <div class="padm-group-chev" id="padm-accesos-chev">⌄</div>
+      </div>
+      <div class="padm-group-body padm-cerrado" id="padm-accesos">
     <!-- NUEVO — Accesos del Buscador de Compañeros (tripulación):
          quién ha entrado, con qué matrícula/nombre y cuándo. Antes
          solo se podía ver entrando a Supabase directamente. -->
@@ -6822,6 +6883,15 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       <div id="listaAccesosTripulante" style="margin-top:8px"></div>
     </div>
 
+      </div>
+    </div>
+
+    <div class="padm-group">
+      <div class="padm-group-hdr" onclick="padmToggle('padm-cuenta')">
+        <div class="padm-group-tit">👤 Tu cuenta <span class="padm-group-badge">1</span></div>
+        <div class="padm-group-chev" id="padm-cuenta-chev">⌄</div>
+      </div>
+      <div class="padm-group-body padm-cerrado" id="padm-cuenta">
     <div class="admin-card">
       <div class="admin-card-hdr">
         <div class="admin-card-ico">☁️</div>
@@ -6832,6 +6902,8 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
       <button class="m-save" style="width:100%" onclick="guardarHorarioEnNube()">☁️ Guardar mi horario ahora</button>
       <div class="estado-archivo sin-archivo" id="estadoHorarioNube">Aún no se ha guardado nada en este dispositivo.</div>
+    </div>
+      </div>
     </div>
   </div>
 </div>
@@ -25427,6 +25499,18 @@ function abrirAccesoAdmin(){
 // "perfilAdminActual && perfilAdminActual.rol==='admin'" antes de hacer
 // nada. Así se evita guardar/publicar algo sin querer mientras la
 // sesión sigue abierta.
+// NUEVO — Grupos plegables del Panel Admin (maqueta "Opción A"). Abre
+// o cierra el grupo tocado; los demás se quedan tal cual estaban (no
+// es un acordeón exclusivo — se puede tener varios abiertos a la vez).
+function padmToggle(idGrupo){
+  var body = document.getElementById(idGrupo);
+  var hdr = body ? body.previousElementSibling : null;
+  if(!body || !hdr) return;
+  var abrir = body.classList.contains('padm-cerrado');
+  body.classList.toggle('padm-cerrado', !abrir);
+  hdr.classList.toggle('padm-abierto', abrir);
+}
+
 async function cerrarSesionAdmin(){
   await sbAdmin.auth.signOut();
   perfilAdminActual = null;
@@ -25838,6 +25922,58 @@ async function subirDiasLibresAdmin(file){
   if(campoArchivo) campoArchivo.value = '';
   var txtDL = document.getElementById('txtDiasLibres');
   if(txtDL) txtDL.textContent = 'Toca para elegir el PDF';
+  if(typeof cargarHistorialDiasLibres==='function') cargarHistorialDiasLibres();
+}
+
+// NUEVO — Historial de Días Libres guardados (mismo patrón que
+// cargarHistorialHorarioGeneral): lista todo lo publicado, agrupado
+// por sede, más reciente primero, con botón de eliminar por fila.
+async function cargarHistorialDiasLibres(){
+  var cont = document.getElementById('dlHistorialLista');
+  if(!cont || !sbAdmin) return;
+  cont.innerHTML = '<div class="estado-archivo sin-archivo">Cargando...</div>';
+  var r = await sbAdmin.from('config_global').select('*').like('tipo','dias_libres_%');
+  if(!r || r.error){
+    cont.innerHTML = '<div class="estado-archivo sin-archivo">No se pudo cargar la lista'+(r&&r.error?(': '+r.error.message):'')+'.</div>';
+    return;
+  }
+  if(!r.data || !r.data.length){
+    cont.innerHTML = '<div class="estado-archivo sin-archivo">Aún no se ha subido ningún Días Libres.</div>';
+    return;
+  }
+  var filas = r.data.map(function(f){
+    var m = f.tipo.match(/_(\d{4})-(\d{2})$/);
+    return { tipo:f.tipo, sede: f.sede || '(sin sede)', anio: m?parseInt(m[1],10):null, mes: m?parseInt(m[2],10):null, fecha_subida:f.fecha_subida };
+  }).filter(function(f){ return f.anio && f.mes; });
+  if(!filas.length){
+    cont.innerHTML = '<div class="estado-archivo sin-archivo">No se encontró ningún Días Libres con el formato de mes esperado.</div>';
+    return;
+  }
+  var porSede = {};
+  filas.forEach(function(f){ (porSede[f.sede] = porSede[f.sede] || []).push(f); });
+  Object.keys(porSede).forEach(function(s){
+    porSede[s].sort(function(a,b){ return (b.anio*12+b.mes) - (a.anio*12+a.mes); }); // más reciente primero
+  });
+  cont.innerHTML = Object.keys(porSede).sort().map(function(sede){
+    var items = porSede[sede];
+    return '<div class="hg-grupo"><div class="hg-grupo-tit">📍 '+sede+'</div>'
+      + items.map(function(it){
+          var fecha = it.fecha_subida ? new Date(it.fecha_subida).toLocaleDateString('es-ES') : '';
+          return '<div class="hg-hist-item">'
+            + '<div class="hg-hist-mes">'+MESES[it.mes-1]+' '+it.anio+'</div>'
+            + '<div class="hg-hist-meta">Subido '+fecha+'</div>'
+            + '<button class="nadm-hist-del" onclick="eliminarDiasLibresMes(\''+it.tipo+'\')">🗑 Eliminar</button>'
+          + '</div>';
+        }).join('')
+      + '</div>';
+  }).join('');
+}
+async function eliminarDiasLibresMes(tipo){
+  if(!perfilAdminActual || perfilAdminActual.rol !== 'admin') return;
+  if(!confirm('¿Eliminar este Días Libres? No se puede deshacer, y quien lo esté buscando ahora mismo en ese mes dejará de encontrarlo.')) return;
+  var r = await sbAdmin.from('config_global').delete().eq('tipo', tipo);
+  if(r.error){ alert('No se pudo eliminar: '+r.error.message); return; }
+  cargarHistorialDiasLibres();
 }
 
 // NUEVO — Sube el Gráfico + el Informe de Intervención, junto con el
