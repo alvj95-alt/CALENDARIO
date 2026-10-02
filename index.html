@@ -4365,8 +4365,9 @@ body{background:var(--bg);color:var(--tx);display:flex;flex-direction:column;ali
       </div>
 
       <!-- ── ACORDEÓN: Alarmas inteligentes ── -->
-      <!-- OCULTO A PETICIÓN — display:none, sin borrar código ni funciones. -->
-      <div class="aj-acc-item" id="aj-acc-alarma" style="display:none">
+      <!-- Vuelta a mostrar — confirmado por Alex, ahora que la alarma
+           funciona también en el servidor con la app cerrada. -->
+      <div class="aj-acc-item" id="aj-acc-alarma">
         <div class="aj-acc-hdr" onclick="toggleAjAcc('aj-acc-alarma')">
           <span class="aj-acc-hdr-ico">🔔</span>
           <span class="aj-acc-hdr-tit">Alarmas inteligentes</span>
