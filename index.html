@@ -17685,6 +17685,7 @@ function saveAj(){
   localStorage.setItem('aj5',JSON.stringify(AJ));
   updHeader();toast('✅ Ajustes guardados');
   actualizarSaludo();
+  if(typeof _autoGuardarNubeDebounced==='function') _autoGuardarNubeDebounced();
 }
 function updHeader(){
   document.getElementById('hdr-nom').textContent=AJ.nombre||'Mis Turnos';
@@ -18515,7 +18516,24 @@ function esTurnoParking(t){
   return esParkingCI || esParkingCO;
 }
 function limiteHoras(sal){return AJ.base&&sal===AJ.base?12:8;}
-function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));}
+// NUEVO — Autoguardado en la nube, en segundo plano, sin avisos.
+// Se llama desde saveTV()/saveAj()/los toggles de alarmas — espera 8
+// segundos de inactividad antes de subir de verdad (si hay varios
+// cambios seguidos, solo sube una vez al final, no uno por cambio).
+// Así el servidor (la alarma que revisa cada minuto) siempre tiene
+// tu turno y tus ajustes al día, sin tener que acordarte del botón
+// "☁️ Guardar mi horario ahora" — ese botón sigue funcionando igual,
+// por si quieres forzar una subida inmediata.
+var _autoSyncNubeTimer = null;
+function _autoGuardarNubeDebounced(){
+  if(!usuarioActual) return; // sin sesión en la nube, no hay nada que subir
+  if(_autoSyncNubeTimer) clearTimeout(_autoSyncNubeTimer);
+  _autoSyncNubeTimer = setTimeout(function(){
+    if(typeof guardarHorarioEnNube==='function') guardarHorarioEnNube(true);
+  }, 8000);
+}
+
+function saveTV(){localStorage.setItem('tv5',JSON.stringify(TV));_autoGuardarNubeDebounced();}
 function openOv(id){
   var el = document.getElementById(id);
   if(!el) return;
@@ -21083,18 +21101,21 @@ function toggleAlarmas(activo){
   if(lbl) lbl.textContent = activo ? 'Activadas' : 'Desactivadas';
   var lbl2 = document.getElementById('alarm-lbl');
   if(lbl) lbl.style.color = activo ? 'var(--green2)' : 'var(--tx3)';
+  if(typeof _autoGuardarNubeDebounced==='function') _autoGuardarNubeDebounced();
 }
 
 function toggleAlarmFichar(v){
   if(!AJ.alarmas) AJ.alarmas={activas:false,fichar:true,salida:true};
   AJ.alarmas.fichar=v;
   localStorage.setItem('aj5',JSON.stringify(AJ));
+  if(typeof _autoGuardarNubeDebounced==='function') _autoGuardarNubeDebounced();
 }
 
 function toggleAlarmSalida(v){
   if(!AJ.alarmas) AJ.alarmas={activas:false,fichar:true,salida:true};
   AJ.alarmas.salida=v;
   localStorage.setItem('aj5',JSON.stringify(AJ));
+  if(typeof _autoGuardarNubeDebounced==='function') _autoGuardarNubeDebounced();
 }
 /* ═══════════════════════════════════════════════════════════
    FIN MÓDULO ALARMAS
@@ -26355,9 +26376,14 @@ function _actualizarEstadosNube(texto, esOk){
   });
 }
 
-async function guardarHorarioEnNube(){
+// NUEVO — parámetro "silencioso" (opcional, backward-compatible: las
+// llamadas de siempre sin argumento siguen mostrando el aviso igual
+// que antes). Se usa para el autoguardado en segundo plano — ver
+// _autoGuardarNubeDebounced() — para no mostrar un aviso cada pocos
+// segundos cada vez que cambia algo del calendario o los ajustes.
+async function guardarHorarioEnNube(silencioso){
   if(!usuarioActual) return;
-  _actualizarEstadosNube('Guardando...', false);
+  if(!silencioso) _actualizarEstadosNube('Guardando...', false);
 
   var indice = await getMonthIndex();
   var meses = {};
@@ -26411,11 +26437,12 @@ async function guardarHorarioEnNube(){
   };
   var resp = await sbAdmin.from('datos_personales').upsert(payload);
   if(resp.error){
-    _actualizarEstadosNube('Error al guardar: ' + resp.error.message, false);
+    if(!silencioso) _actualizarEstadosNube('Error al guardar: ' + resp.error.message, false);
+    else console.warn('Autoguardado en la nube falló:', resp.error.message);
     return;
   }
   _actualizarEstadosNube('✅ Guardado el ' + new Date().toLocaleString('es-ES'), true);
-  toast('☁️ Horario personal guardado en la nube');
+  if(!silencioso) toast('☁️ Horario personal guardado en la nube');
 }
 
 // Se llama SOLO tras un login explícito (dispositivo nuevo o sesión
@@ -26822,6 +26849,7 @@ async function enviarSolicitudAccesoBusc(){
       return;
     }
   }
+    _crearEventoPush('4179742', '🔔 Nueva solicitud de acceso', nombre+' ('+matricula+') ha pedido acceso a TrenTurnos.');
 
   if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
   mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
@@ -26874,6 +26902,7 @@ async function enviarSolicitudAccesoTrip(){
       return;
     }
   }
+    _crearEventoPush('4179742', '🔔 Nueva solicitud de acceso', nombre+' ('+matricula+') ha pedido acceso a TrenTurnos.');
 
   if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
   mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
@@ -27000,6 +27029,7 @@ async function enviarSolicitudAccesoInterv(){
       return;
     }
   }
+    _crearEventoPush('4179742', '🔔 Nueva solicitud de acceso', nombre+' ('+matricula+', base '+base+') ha pedido acceso como Interventor.');
 
   if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
   mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
@@ -27041,6 +27071,7 @@ async function enviarSolicitudAcceso(){
       return;
     }
   }
+    _crearEventoPush('4179742', '🔔 Nueva solicitud de acceso', nombre+' ('+matricula+') ha pedido acceso a TrenTurnos.');
 
   if(btn){ btn.disabled = false; btn.textContent = '✅ Solicitud enviada'; }
   mostrar('Solicitud guardada. Avisa también por WhatsApp o correo para que se revise antes:');
