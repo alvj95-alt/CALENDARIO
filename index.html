@@ -31377,20 +31377,35 @@ clearBtn.addEventListener('click', ()=>{
 // de la app. De paso, se añade el caso que faltaba: "ida y vuelta el
 // mismo día" (sin pernocta) guarda el segundo tramo en el MISMO día
 // con numTrenVuelta/hF2/hL2, en vez de en un día aparte.
+// NUEVO — Confirmado por el usuario: cada tramo lleva también su
+// origen/destino reales (los mismos t.sal/t.lle que ya usa el resto
+// de la app) y la duración calculada, para poder pintar el aviso de
+// cambio con el mismo detalle completo que un turno normal — sin
+// inventar nada: si un tramo no tiene esos datos guardados, se deja
+// sin ruta en vez de rellenar con algo falso.
+function _duracionEntreHoras(ini, fin){
+  if(!ini || !fin) return null;
+  var pi = ini.split(':').map(Number), pf = fin.split(':').map(Number);
+  if(pi.length<2 || pf.length<2 || pi.some(isNaN) || pf.some(isNaN)) return null;
+  var mIni = pi[0]*60+pi[1], mFin = pf[0]*60+pf[1];
+  var dif = mFin - mIni; if(dif<0) dif += 24*60; // cruza medianoche
+  var h = Math.floor(dif/60), m = dif%60;
+  return h+'h '+String(m).padStart(2,'0')+'m';
+}
 function construirDetalleDiaPropio(anio, mes, dia){
   var k = (typeof key==='function') ? key(anio, mes, dia) : (anio+'-'+String(mes).padStart(2,'0')+'-'+String(dia).padStart(2,'0'));
   var t = (typeof TV !== 'undefined') ? TV[k] : null;
   if(!t) return null;
   var esPernocta = (t.modo === 'pernocta' || t.modo === 'pernocta3');
   var turnos = [];
-  if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)) });
+  if(t.numTren) turnos.push({ numTren: t.numTren, horaCI: t.hF || null, horaCO: (esPernocta ? null : (t.hL||null)), origen: t.sal||null, destino: (esPernocta ? null : (t.lle||null)), duracion: esPernocta ? null : _duracionEntreHoras(t.hF, t.hL) });
   // NUEVO — "ida y vuelta el mismo día" (sin pernocta): el segundo
   // tramo vive en el MISMO día, como numTrenVuelta/hF2/hL2.
-  if(!esPernocta && t.numTrenVuelta) turnos.push({ numTren: t.numTrenVuelta, horaCI: t.hF2||null, horaCO: t.hL2||null });
+  if(!esPernocta && t.numTrenVuelta) turnos.push({ numTren: t.numTrenVuelta, horaCI: t.hF2||null, horaCO: t.hL2||null, origen: t.sal2||null, destino: t.lle2||null, duracion: _duracionEntreHoras(t.hF2, t.hL2) });
   // Turnos adicionales del mismo día (TV2) — varios servicios sueltos.
   if(typeof TV2 !== 'undefined' && TV2[k] && TV2[k].length){
     TV2[k].forEach(function(t2){
-      if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+      if(t2 && t2.numTren) turnos.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null, origen: t2.sal||null, destino: t2.lle||null, duracion: _duracionEntreHoras(t2.hF, t2.hL) });
     });
   }
   var diaVuelta = null, turnosVuelta = [];
@@ -31398,10 +31413,10 @@ function construirDetalleDiaPropio(anio, mes, dia){
     // t.diaSiguiente YA es una key completa ("2026-09-16"), no un
     // número de día suelto — se usa tal cual para buscar en TV/TV2.
     var tv = TV[t.diaSiguiente];
-    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: tv.hF||null, horaCO: tv.hL||null });
+    if(tv && tv.numTren) turnosVuelta.push({ numTren: tv.numTren, horaCI: tv.hF||null, horaCO: tv.hL||null, origen: tv.sal||null, destino: tv.lle||null, duracion: _duracionEntreHoras(tv.hF, tv.hL) });
     if(typeof TV2 !== 'undefined' && TV2[t.diaSiguiente] && TV2[t.diaSiguiente].length){
       TV2[t.diaSiguiente].forEach(function(t2){
-        if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null });
+        if(t2 && t2.numTren) turnosVuelta.push({ numTren: t2.numTren, horaCI: t2.hF||null, horaCO: t2.hL||null, origen: t2.sal||null, destino: t2.lle||null, duracion: _duracionEntreHoras(t2.hF, t2.hL) });
       });
     }
     // Solo para MOSTRAR ("incluye la vuelta del día 27") se extrae el
@@ -31768,6 +31783,12 @@ async function enviarSolicitudCambioTurno(){
       matricula_destino: _nscCompElegido.matricula,
       nombre_destino: _nscCompElegido.nombre,
       anio: _nscMiDia.anio,
+      // FIX — Confirmado por el usuario: antes no se guardaba el mes
+      // del cambio, así que al confirmarlo se archivaba bajo el mes
+      // que tuvieras abierto en el Calendario en ESE momento (no el
+      // mes real del cambio) — por eso el aviso podía "desaparecer"
+      // al volver al mes correcto. Ver confirmarCambioEnMiCalendario().
+      mes: _nscMiDia.mes,
       dia_ofrece: _nscMiDia.dia,
       dia_pide: _nscSuDia.dia,
       detalle_ofrece: _nscMiDetalle,
@@ -32241,7 +32262,15 @@ async function confirmarCambioEnMiCalendario(id, soySolicitante){
   var nombreOtro = soySolicitante ? s.nombre_destino : s.nombre_solicitante;
 
   var visual = _leerCambiosVisual();
-  var mesReal = (typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1);
+  // FIX — Confirmado por el usuario: antes usaba el mes que tuvieras
+  // ABIERTO en el Calendario en el momento de confirmar (curM), no el
+  // mes real al que pertenece el cambio — si confirmabas estando en
+  // otro mes, se archivaba mal y "desaparecía" al volver al mes
+  // correcto. Ahora usa s.mes (guardado en Supabase al crear la
+  // solicitud); solo si una solicitud muy antigua no lo tuviera
+  // guardado (de antes de este arreglo), se recurre a curM como
+  // antes, para no dejarla sin mostrar del todo.
+  var mesReal = s.mes || ((typeof curM!=='undefined' && curM) ? (curM.getMonth()+1) : (new Date().getMonth()+1));
   var claveMes = s.anio + '-' + mesReal;
   if(!visual[claveMes]) visual[claveMes] = {};
   // FIX — Confirmado por el usuario: antes solo se guardaba lo mínimo
@@ -32250,6 +32279,13 @@ async function confirmarCambioEnMiCalendario(id, soySolicitante){
   // (incluida la pernocta si la había) para los dos días implicados.
   visual[claveMes][diaQueDoy] = { tipo:'dado', con:nombreOtro, id:id, miDetalleOriginal: detalleQueDoy };
   visual[claveMes][diaQueRecibo] = { tipo:'recibido', con:nombreOtro, id:id, turnos: detalleQueRecibo };
+  // NUEVO — Confirmado por el usuario: si lo que recibes es una
+  // pernocta, el día de la VUELTA tiene que tener su propia tarjeta
+  // al abrirlo (con los datos reales de ESE día), no solo verse
+  // mezclado dentro de la tarjeta del día de la ida.
+  if(detalleQueRecibo && detalleQueRecibo.esPernocta && detalleQueRecibo.diaVuelta){
+    visual[claveMes][detalleQueRecibo.diaVuelta] = { tipo:'recibido_vuelta', con:nombreOtro, id:id, diaIda: diaQueRecibo, turnos: detalleQueRecibo.turnosVuelta };
+  }
   _guardarCambiosVisual(visual);
 
   var campo = soySolicitante ? 'confirmado_solicitante' : 'confirmado_destino';
@@ -33780,25 +33816,40 @@ function _inyectarInfoCambioTurnoEnDia(){
   var useModal = ovCard && ovCard.classList.contains('on');
   var area = useModal ? document.getElementById('dia-card-body') : document.getElementById('dia-area');
   if(!area) return;
+  // NUEVO — Confirmado por el usuario: cada tramo se pinta con el
+  // mismo nivel de detalle que un turno normal (número, ruta real,
+  // horario, duración) en vez de una línea suelta — manteniendo
+  // siempre visible que no cuenta para las horas/Nómina.
+  function _tramoCambioHtml(tr, etiqueta){
+    var h = '<div style="border-top:1px solid rgba(124,58,237,.3);padding-top:8px;margin-top:8px">'
+      + '<div style="font-size:10px;color:#c4b5fd;font-weight:800;margin-bottom:2px">🚆 '+etiqueta+'</div>'
+      + '<div style="font-size:15px;font-weight:800;color:var(--tx)">'+tr.numTren+'</div>';
+    if(tr.origen && tr.destino) h += '<div style="font-size:11.5px;color:var(--tx2);margin:1px 0">'+tr.origen+' → '+tr.destino+'</div>';
+    if(tr.horaCI) h += '<div style="font-size:12px;color:#93c5fd;font-weight:700">'+tr.horaCI+(tr.horaCO?' – '+tr.horaCO:'')+(tr.duracion?' <span style="color:var(--tx3);font-weight:500">· '+tr.duracion+'</span>':'')+'</div>';
+    h += '</div>';
+    return h;
+  }
   var html = '';
-  if(info.tipo === 'recibido'){
-    html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px">'
-      + '<div style="font-size:11px;font-weight:800;color:#c084fc;margin-bottom:6px">🔄 CAMBIO CON '+((info.con||'').toUpperCase())+'</div>';
-    var td = info.turnos;
-    if(td && td.esLibre){
-      html += '<div class="ct-day-pick-turno">'+td.tipoLibreLbl+'</div>';
-    } else if(td){
-      (td.turnos||[]).forEach(function(t){
-        html += '<div class="ct-day-pick-turno">🚆 Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
-      });
-      if(td.esPernocta && td.diaVuelta){
-        html += '<div class="ct-pernocta-tag">🌙 Pernocta — incluye la vuelta del día '+td.diaVuelta+'</div>';
-        (td.turnosVuelta||[]).forEach(function(t){
-          html += '<div class="ct-day-pick-turno" style="margin-top:4px">🚆 Vuelta: Tren '+t.numTren+(t.horaCI?' · '+t.horaCI:'')+(t.horaCO?' → '+t.horaCO:'')+'</div>';
-        });
+  if(info.tipo === 'recibido' || info.tipo === 'recibido_vuelta'){
+    html = '<div class="ct-day-pick" style="border-color:#7C3AED;margin-top:10px;padding:12px">'
+      + '<div style="font-size:12px;font-weight:800;color:#c084fc;margin-bottom:6px">🔄 CAMBIO CON '+((info.con||'').toUpperCase())+'</div>'
+      + '<div style="display:inline-block;background:rgba(234,179,8,.15);border:1px solid rgba(234,179,8,.4);color:#fde68a;font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:999px;margin-bottom:4px">⚠️ No cuenta para tus horas</div>';
+    if(info.tipo === 'recibido_vuelta'){
+      (info.turnos||[]).forEach(function(t){ html += _tramoCambioHtml(t, 'VUELTA · 🌙 viene de pernocta (día '+info.diaIda+')'); });
+    } else {
+      var td = info.turnos;
+      if(td && td.esLibre){
+        html += '<div class="ct-day-pick-turno" style="margin-top:8px">'+td.tipoLibreLbl+'</div>';
+      } else if(td){
+        (td.turnos||[]).forEach(function(t){ html += _tramoCambioHtml(t, td.esPernocta ? 'IDA · 🌙 pernocta' : 'IDA'); });
+        if(td.esPernocta && td.diaVuelta){
+          html += '<div style="font-size:10.5px;color:var(--tx3);margin-top:8px">La vuelta la verás el día '+td.diaVuelta+', con sus propios datos.</div>';
+        }
       }
     }
-    html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina no cambia hasta que la empresa lo actualice.</div>';
+    html += '<div style="font-size:11px;color:#c4b5fd;font-weight:700;margin:10px 0 4px">👥 Viajas con</div>';
+    html += '<div style="background:rgba(124,58,237,.12);border-radius:9px;padding:7px 10px;font-size:12px;color:#e9d5ff">'+(info.con||'')+'</div>';
+    html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina y Estadísticas no cambia hasta que la empresa lo actualice.</div>';
     html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno(\''+info.id+'\')">Deshacer este aviso</div>';
     html += '</div>';
   } else if(info.tipo === 'dado'){
