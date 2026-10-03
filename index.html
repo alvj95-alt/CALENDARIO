@@ -302,6 +302,7 @@ html[data-estetica="c"] .splash-half{background:#12081f}
 #intro-video .iv-skip{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;z-index:2;background:rgba(0,0,0,.55);color:#fff;font:700 13px system-ui,sans-serif;padding:9px 15px;border-radius:999px;border:1px solid rgba(255,255,255,.4);cursor:pointer}
 #intro-video .iv-snd{display:none;position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;background:rgba(0,0,0,.55);color:#fff;font:700 13px system-ui,sans-serif;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.4);cursor:pointer}
 #intro-video .iv-prog{position:absolute;left:0;bottom:0;height:3px;width:0;background:#a78bfa;z-index:2}
+#intro-video .iv-diag{display:none;position:absolute;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 62px);z-index:3;background:rgba(0,0,0,.72);color:#d1fae5;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:10px 12px;border-radius:10px;white-space:pre-wrap}
 
 @media (prefers-reduced-motion: reduce){
   #hw-decor *,.hw-mv *{animation:none!important}
@@ -3613,19 +3614,26 @@ html[data-estetica="c"] .splash-half{background:#12081f}
      archivo es intro.mp4 y vive junto a index.html en el repositorio.
      Reglas (confirmadas por Alex):
        · "Día" = la fecha del móvil (cambia a las 00:00).
+       · El vídeo NO tapa nada hasta que está de verdad listo para
+         reproducirse. Si falla (archivo ausente, sin internet…) se
+         retira EN SILENCIO — sin destellos — y se ve la pantalla de
+         carga normal; no cuenta como visto, se reintenta en la
+         siguiente entrada. Tampoco espera más de 3,5 s.
        · Con sonido si el navegador lo permite; si lo bloquea, se
          reproduce sin sonido y aparece el botón "Activar sonido".
-       · Botón "Saltar" siempre visible.
-       · Si el vídeo no carga (sin internet, fallo…) se cierra solo y
-         NO cuenta como visto: se volverá a intentar en la siguiente
-         entrada. Nunca bloquea la app.
+       · Botón "Saltar" siempre visible una vez que sale.
        · Si el móvil tiene activado "reducir movimiento" no se pone
          (hay destellos y movimiento rápido).
+       · MODO DE PRUEBA: abrir la app con ?video=1 al final de la
+         dirección fuerza el vídeo aunque ya se haya visto hoy o haya
+         "reducir movimiento", NO lo apunta como visto, y enseña un
+         panel con el estado y el motivo si algo falla.
 ═══════════════════════════════════════════════════════════ -->
 <div id="intro-video" role="dialog" aria-label="Vídeo de bienvenida">
   <video playsinline preload="auto"></video>
   <button type="button" class="iv-skip" aria-label="Saltar el vídeo">Saltar ›</button>
   <button type="button" class="iv-snd" aria-label="Activar el sonido">🔇 Activar sonido</button>
+  <div class="iv-diag" aria-live="polite"></div>
   <div class="iv-prog"></div>
 </div>
 <script>
@@ -3634,46 +3642,92 @@ html[data-estetica="c"] .splash-half{background:#12081f}
   if(!box) return;
   var KEY = 'trenturnos_video_intro_dia';
   function hoy(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function quitar(){ if(box.parentNode) box.parentNode.removeChild(box); }
+
+  var prueba = /[?&]video=1(&|$)/.test((window.location && window.location.search) || '');
   var vista = ''; try{ vista = localStorage.getItem(KEY) || ''; }catch(e){}
   var reducir = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  if(vista === hoy() || reducir){ box.parentNode.removeChild(box); return; }
+  if(!prueba && (vista === hoy() || reducir)){ quitar(); return; }
 
   var v = box.querySelector('video');
   var btnSkip = box.querySelector('.iv-skip');
   var btnSnd = box.querySelector('.iv-snd');
   var prog = box.querySelector('.iv-prog');
-  var cerrado = false, marcado = false, tLento = null;
+  var dg = box.querySelector('.iv-diag');
+  var cerrado = false, visible = false, marcado = false, sinSonido = false, tLimite = null, lineas = [];
 
-  function marcarVisto(){ if(marcado) return; marcado = true; try{ localStorage.setItem(KEY, hoy()); }catch(e){} }
+  function diag(t){ if(!prueba) return; lineas.push(t); dg.style.display = 'block'; dg.textContent = lineas.join('\n'); }
+  function motivo(c){ return ({1:'carga cancelada',2:'fallo de red al descargar',3:'no se pudo decodificar',4:'archivo no encontrado o formato no compatible'})[c] || 'desconocido'; }
+  function marcarVisto(){ if(prueba || marcado) return; marcado = true; try{ localStorage.setItem(KEY, hoy()); }catch(e){} }
+
+  // Se vuelve visible SOLO cuando ya hay vídeo reproduciéndose (o, en modo de prueba, desde el principio).
+  function mostrar(){
+    if(visible || cerrado) return;
+    visible = true; clearTimeout(tLimite);
+    box.style.transition = 'opacity .25s ease';
+    box.style.opacity = '1';
+    box.style.pointerEvents = 'auto';
+    if(sinSonido) btnSnd.style.display = 'block';
+    marcarVisto();
+  }
   function cerrar(){
     if(cerrado) return; cerrado = true;
-    clearTimeout(tLento);
+    clearTimeout(tLimite);
     try{ v.pause(); }catch(e){}
+    if(!visible){ quitar(); return; }           // nunca llegó a verse: se retira sin ningún efecto
     box.style.transition = 'opacity .35s ease';
     box.style.opacity = '0';
-    setTimeout(function(){ if(box.parentNode) box.parentNode.removeChild(box); }, 380);
+    box.style.pointerEvents = 'none';
+    setTimeout(quitar, 380);
   }
 
-  box.style.display = 'flex'; // se muestra ya, para tapar la pantalla de carga que corre por debajo
+  // Preparado pero INVISIBLE y sin interceptar toques: no tapa la pantalla de carga hasta que haya vídeo.
+  box.style.display = 'flex';
+  box.style.opacity = '0';
+  box.style.pointerEvents = 'none';
+
   btnSkip.addEventListener('click', function(){ marcarVisto(); cerrar(); });
   btnSnd.addEventListener('click', function(){ v.muted = false; btnSnd.style.display = 'none'; try{ var q2 = v.play(); if(q2 && q2.catch) q2.catch(function(){}); }catch(e){} });
-  v.addEventListener('playing', function(){ marcarVisto(); clearTimeout(tLento); });
+  v.addEventListener('loadedmetadata', function(){ diag('Vídeo reconocido (' + Math.round(v.duration) + ' s)'); });
+  v.addEventListener('playing', function(){ diag('Reproduciendo ' + (v.muted ? 'SIN' : 'CON') + ' sonido'); mostrar(); });
   v.addEventListener('ended', cerrar);
-  v.addEventListener('error', cerrar); // no se marca como visto: se reintentará
+  v.addEventListener('error', function(){
+    var c = v.error ? v.error.code : 0;
+    diag('ERROR del vídeo, código ' + c + ': ' + motivo(c));
+    if(prueba){ mostrar(); return; }            // en prueba se queda a la vista con el motivo
+    cerrar();                                   // normal: se retira en silencio, se ve la pantalla de carga
+  });
   v.addEventListener('timeupdate', function(){ if(v.duration) prog.style.width = (v.currentTime / v.duration * 100) + '%'; });
-  // Si en 6 s ni siquiera ha empezado (conexión muy lenta), se deja pasar a la app.
-  tLento = setTimeout(function(){ if(v.paused || v.readyState < 3) cerrar(); }, 6000);
 
-  v.src = 'intro.mp4'; // se asigna aquí (no en el HTML) para no descargarlo en los días que no toca
-  v.muted = false;     // primer intento: con sonido
+  if(prueba){
+    diag('MODO DE PRUEBA del vídeo (?video=1)');
+    diag('Archivo: intro.mp4');
+    diag('Service worker: ' + ((navigator.serviceWorker && navigator.serviceWorker.controller) ? 'activo' : 'no activo'));
+    diag('Cargando…');
+    mostrar();
+    if(typeof fetch === 'function'){
+      fetch('intro.mp4', {method:'HEAD', cache:'no-store'})
+        .then(function(r){ diag('Servidor: HTTP ' + r.status + (r.ok ? ' (el archivo existe)' : ' (el archivo NO está)')); })
+        .catch(function(e){ diag('Servidor: no se pudo consultar (' + e + ')'); });
+    }
+  } else {
+    // Si en 3,5 s no hay vídeo listo (conexión lenta), se descarta: la pantalla de carga sigue su curso.
+    tLimite = setTimeout(function(){ if(!visible) cerrar(); }, 3500);
+  }
+
+  v.src = 'intro.mp4';   // se asigna aquí (no en el HTML) para no descargarlo en los días que no toca
+  v.muted = false;       // primer intento: con sonido
   var p = v.play();
   if(p && p.catch){
     p.catch(function(){
-      // El navegador bloquea el sonido automático: se repite sin sonido y se ofrece el botón.
-      v.muted = true;
+      if(cerrado) return;
+      // El navegador bloquea el sonido automático: se repite sin sonido y se ofrecerá el botón.
+      sinSonido = true; v.muted = true;
       var q = v.play();
-      if(q && q.catch) q.catch(cerrar);
-      btnSnd.style.display = 'block';
+      if(q && q.catch) q.catch(function(){
+        diag('play() rechazado: ' + (v.error ? motivo(v.error.code) : 'el navegador no deja reproducir'));
+        if(prueba) mostrar(); else cerrar();
+      });
     });
   }
 })();
