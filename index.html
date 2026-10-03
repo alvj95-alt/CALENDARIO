@@ -33819,13 +33819,25 @@ function _inyectarInfoCambioTurnoEnDia(){
   // NUEVO — Confirmado por el usuario: cada tramo se pinta con el
   // mismo nivel de detalle que un turno normal (número, ruta real,
   // horario, duración) en vez de una línea suelta — manteniendo
-  // siempre visible que no cuenta para las horas/Nómina.
+  // siempre visible que no cuenta para las horas/Nómina. "Viajas con"
+  // ya NO pone el nombre de la persona del cambio (esa persona solo
+  // te cedió el día, no tiene por qué ir en el tren contigo) — ahora
+  // es POR TRAMO, buscando de verdad por número de tren con el mismo
+  // mecanismo que el Buscador de Compañeros (ver _tramosParaBuscarViajaCon
+  // y la resolución al final de esta función).
+  var _tramosParaBuscarViajaCon = []; // {placeholderId, numTren}
+  var _contadorTramoCambio = 0;
   function _tramoCambioHtml(tr, etiqueta){
+    _contadorTramoCambio++;
+    var placeholderId = 'cambioViajasCon_'+info.id+'_'+_contadorTramoCambio;
+    _tramosParaBuscarViajaCon.push({placeholderId: placeholderId, numTren: tr.numTren});
     var h = '<div style="border-top:1px solid rgba(124,58,237,.3);padding-top:8px;margin-top:8px">'
       + '<div style="font-size:10px;color:#c4b5fd;font-weight:800;margin-bottom:2px">🚆 '+etiqueta+'</div>'
       + '<div style="font-size:15px;font-weight:800;color:var(--tx)">'+tr.numTren+'</div>';
     if(tr.origen && tr.destino) h += '<div style="font-size:11.5px;color:var(--tx2);margin:1px 0">'+tr.origen+' → '+tr.destino+'</div>';
     if(tr.horaCI) h += '<div style="font-size:12px;color:#93c5fd;font-weight:700">'+tr.horaCI+(tr.horaCO?' – '+tr.horaCO:'')+(tr.duracion?' <span style="color:var(--tx3);font-weight:500">· '+tr.duracion+'</span>':'')+'</div>';
+    h += '<div style="font-size:10px;color:#c4b5fd;font-weight:700;margin-top:6px">👥 Viajas con (tren '+tr.numTren+')</div>';
+    h += '<div id="'+placeholderId+'" style="font-size:11.5px;color:var(--tx3);margin-top:2px">Buscando...</div>';
     h += '</div>';
     return h;
   }
@@ -33847,8 +33859,6 @@ function _inyectarInfoCambioTurnoEnDia(){
         }
       }
     }
-    html += '<div style="font-size:11px;color:#c4b5fd;font-weight:700;margin:10px 0 4px">👥 Viajas con</div>';
-    html += '<div style="background:rgba(124,58,237,.12);border-radius:9px;padding:7px 10px;font-size:12px;color:#e9d5ff">'+(info.con||'')+'</div>';
     html += '<div style="font-size:10px;color:var(--tx3);margin-top:8px">Aviso informativo — tu turno real para Nómina y Estadísticas no cambia hasta que la empresa lo actualice.</div>';
     html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno(\''+info.id+'\')">Deshacer este aviso</div>';
     html += '</div>';
@@ -33862,7 +33872,44 @@ function _inyectarInfoCambioTurnoEnDia(){
     html += '<div style="margin-top:8px;padding:7px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:#f87171;font-size:10.5px;font-weight:700;text-align:center;cursor:pointer" onclick="deshacerAvisoCambioTurno(\''+info.id+'\')">Deshacer este aviso</div>';
     html += '</div>';
   }
-  if(html) area.insertAdjacentHTML('beforeend', html);
+  // NUEVO — Confirmado por el usuario: la tarjeta del cambio va
+  // PRIMERO (arriba del todo), no al final del detalle del día.
+  if(html) area.insertAdjacentHTML('afterbegin', html);
+
+  // NUEVO — Resolución real de "Viajas con", por tramo, buscando por
+  // número de tren con el MISMO mecanismo que el Buscador de
+  // Compañeros (asegurarHorarioGeneralCargado + cellContainsTrain) —
+  // no es una copia aparte, es la misma función. Se hace después de
+  // insertar el HTML (los placeholders "Buscando..." ya están en la
+  // pantalla) para no bloquear la apertura del día ni un segundo.
+  if(_tramosParaBuscarViajaCon.length){
+    (async function(){
+      var partes = selDay.k.split('-');
+      var anio = parseInt(partes[0],10), mes = parseInt(partes[1],10), dia = parseInt(partes[2],10);
+      var ok = (typeof window.asegurarHorarioGeneralCargado==='function')
+        ? await window.asegurarHorarioGeneralCargado({anio:anio, mes:mes}).catch(function(){ return false; })
+        : false;
+      var propiaMatricula = (typeof AJ!=='undefined' && AJ && AJ.matricula) ? AJ.matricula : null;
+      _tramosParaBuscarViajaCon.forEach(function(item){
+        var el = document.getElementById(item.placeholderId);
+        if(!el) return; // ya no está en pantalla (se cerró el día mientras se buscaba)
+        if(!ok || typeof activeBase==='undefined' || !activeBase || !activeBase.data){
+          el.textContent = 'No se pudo comprobar ahora mismo.';
+          return;
+        }
+        var nombres = [];
+        activeBase.data.forEach(function(entry){
+          var idComp = entry[0], nombreComp = entry[1], diasComp = entry[2];
+          if(idComp === propiaMatricula) return;
+          var cell = diasComp ? diasComp[String(dia)] : null;
+          if(cell && typeof cellContainsTrain==='function' && cellContainsTrain(cell, item.numTren)) nombres.push(nombreComp);
+        });
+        el.innerHTML = nombres.length
+          ? nombres.map(function(n){ return '<div style="background:rgba(124,58,237,.12);border-radius:7px;padding:5px 8px;margin-top:2px;color:#e9d5ff">'+n+'</div>'; }).join('')
+          : 'Nadie más de tu base en este tren.';
+      });
+    })();
+  }
 }
 // NUEVO — Confirmado por el usuario: deshacer un aviso de cambio ya
 // confirmado — SOLO borra la marca visual de este móvil (los dos
