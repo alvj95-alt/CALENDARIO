@@ -740,6 +740,7 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
 .dc-punto-cambio{background:#A855F7}
 /* NUEVO — Badge de Reserva Art.51/52 pendiente de pinchar/verificar */
 .dc-art5152-reserva-pendiente::after{content:'⏳';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
+.dc-pmd{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.6);color:#FCD34D}
 /* Input de retraso inline */
 .retraso-wrap{display:flex;align-items:center;gap:7px;padding:8px 11px;
               background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);
@@ -4518,23 +4519,23 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
             <div class="aj-card-hdr c-gold">
               <div class="aj-card-hdr-ico">⚖️</div>
               <div class="aj-card-hdr-txt">
-                <div class="aj-card-hdr-tit">Artículo 51 y 52</div>
-                <div class="aj-card-hdr-sub">Compensación por pernocta / ida-vuelta</div>
+                <div class="aj-card-hdr-tit">Artículo 51</div>
+                <div class="aj-card-hdr-sub">Se paga por hora, de la toma al deje</div>
               </div>
             </div>
             <div class="aj-card-body">
               <div class="aj-num-row">
                 <div class="aj-num-ico">💶</div>
                 <div class="aj-num-info">
-                  <div class="aj-num-lbl">Monto a pagar</div>
-                  <div class="aj-num-sub">Por hora de tiempo efectivo (opción Dinero)</div>
+                  <div class="aj-num-lbl">Artículo 51 · Monto a pagar</div>
+                  <div class="aj-num-sub">Se paga por hora, de la toma al deje</div>
                 </div>
                 <div class="aj-num-right">
                   <input class="aj-num-inp" id="aj-art5152-monto" type="number" step="0.50" min="0">
                   <span class="aj-num-unit">€/h</span>
                 </div>
               </div>
-              <div class="aj-num-row">
+              <div class="aj-num-row" style="display:none">
                 <div class="aj-num-ico">📐</div>
                 <div class="aj-num-info">
                   <div class="aj-num-lbl">Valor base</div>
@@ -4550,6 +4551,28 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
                    maestro "💾 Guardar ajustes" al final de la pantalla. -->
             </div>
           </div>
+            <div class="aj-card" style="margin-top:10px">
+              <div class="aj-card-hdr c-gold">
+                <div class="aj-card-hdr-ico">⚖️</div>
+                <div class="aj-card-hdr-txt">
+                  <div class="aj-card-hdr-tit">Artículo 52 · P.M.D.</div>
+                  <div class="aj-card-hdr-sub">Plus por modificación de descanso</div>
+                </div>
+              </div>
+              <div class="aj-card-body">
+                <div class="aj-num-row">
+                  <div class="aj-num-ico">💶</div>
+                  <div class="aj-num-info">
+                    <div class="aj-num-lbl">Artículo 52 · Plus fijo (P.M.D.)</div>
+                    <div class="aj-num-sub">Por cada P.M.D. aplicado (bruto)</div>
+                  </div>
+                  <div class="aj-num-right">
+                    <input class="aj-num-inp" id="aj-pmd-importe" type="number" step="0.01" min="0">
+                    <span class="aj-num-unit">€</span>
+                  </div>
+                </div>
+              </div>
+            </div>
         </div>
       </div>
 
@@ -5913,7 +5936,8 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
         <div class="topt t-baj" onclick="elegirTipo('baja')"><div class="to-ico">🏥</div><div class="to-lbl">Baja</div><div class="to-sub">Médica o laboral</div></div>
         <div class="topt t-vac" onclick="elegirTipo('vacaciones')"><div class="to-ico">🏖</div><div class="to-lbl">Vacaciones</div><div class="to-sub">Días de vacaciones anuales</div></div>
         <div class="topt t-dop" onclick="elegirDOP()"><div class="to-ico">⭐</div><div class="to-lbl">DOP</div><div class="to-sub">Día de descanso opcional</div></div>
-        <div class="topt t-art" onclick="elegirArt5152()"><div class="to-ico">⚖️</div><div class="to-lbl">Artículo 51 y 52</div><div class="to-sub">Dinero, días o mix</div></div>
+        <div class="topt t-art" onclick="elegirArt5152()"><div class="to-ico">⚖️</div><div class="to-lbl">Artículo 51</div><div class="to-sub">Se paga por horas</div></div>
+        <div class="topt t-art" onclick="elegirArt52()"><div class="to-ico">⚖️</div><div class="to-lbl">Artículo 52</div><div class="to-sub">Plus fijo (P.M.D.)</div></div>
       </div>
     </div>
   </div>
@@ -5927,13 +5951,13 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
     <div class="sh-handle"></div>
     <div class="sh-hdr">
       <div class="sh-ico">⚖️</div>
-      <div><div class="sh-tit">Artículo 51 y 52</div><div class="sh-sub">¿Cómo se realizó este servicio?</div></div>
+      <div><div class="sh-tit">Artículo 51</div><div class="sh-sub">¿Cómo se realizó este servicio?</div></div>
       <button class="sh-close" onclick="closeOv('ov-modo-art5152');clearSelDay()">✕</button>
     </div>
     <div style="overflow-y:auto">
       <div class="tipo-grid" style="grid-template-columns:1fr">
-        <div class="topt t-res" onclick="elegirModoArt5152('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva (Art. 51/52)</div><div class="to-sub">Se paga el intervalo desde la toma hasta el deje</div></div>
-        <div class="topt t-art" onclick="elegirModoArt5152('normal')"><div class="to-ico">🚂</div><div class="to-lbl">Jornada Normal (Art. 51/52)</div><div class="to-sub">Con tramos, rutas, escalas o pernocta</div></div>
+        <div class="topt t-res" onclick="elegirModoArt5152('reserva')"><div class="to-ico">⏳</div><div class="to-lbl">Reserva (Art. 51)</div><div class="to-sub">Se paga el intervalo desde la toma hasta el deje</div></div>
+        <div class="topt t-art" onclick="elegirModoArt5152('normal')"><div class="to-ico">🚂</div><div class="to-lbl">Jornada Normal (Art. 51)</div><div class="to-sub">Con tramos, rutas, escalas o pernocta</div></div>
       </div>
     </div>
   </div>
@@ -6164,6 +6188,20 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
     <div class="conf-btns">
       <button class="conf-cancel" onclick="closeOv('ov-aviso-art5152')">Cancelar</button>
       <button class="m-save" onclick="closeOv('ov-aviso-art5152');_a5152SaltarAvisoMensual=true;guardarTurno()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO — Aviso del Artículo 52 (P.M.D.): solo AVISA de los límites, deja continuar -->
+<div class="ov" id="ov-aviso-pmd">
+  <div class="confirm-sh">
+    <div class="sh-handle" style="margin-bottom:14px"></div>
+    <div class="conf-ico">⚠️</div>
+    <div class="conf-tit">Aviso normativo · P.M.D.</div>
+    <div class="conf-txt" id="aviso-pmd-txt"></div>
+    <div class="conf-btns">
+      <button class="conf-cancel" onclick="closeOv('ov-aviso-pmd')">Cancelar</button>
+      <button class="m-save" onclick="closeOv('ov-aviso-pmd');_pmdSaltarAviso=true;guardarTurno()">Continuar</button>
     </div>
   </div>
 </div>
@@ -7757,7 +7795,7 @@ var AJ=Object.assign({
   // visible era dinero incorrecto). Mismo valor por defecto que 'vh'
   // para mantener coherencia; se sobreescribe en cuanto el usuario
   // guarda su propio monto en Ajustes.
-  art5152Monto:12.5, art5152ValorBase:0,
+  art5152Monto:12.5, art5152ValorBase:0, pmdImporte:95.53,
   pluses:{tripulante:Object.assign({},PLUS_DEF.tripulante),auxiliar:Object.assign({},PLUS_DEF.auxiliar)},
   alarmas:{activas:false,fichar:true,salida:true}
 },_leerJSONseguro('aj5', {}));
@@ -8565,6 +8603,7 @@ var REAL_CONCEPTO_A_APP = [
   {re:/JT|COOR\.?\s*SUPLENTE/i, appKey:'Plus JT'},
   {re:/TRASLACI/i, appKey:'Plus Traslación'},
   {re:/NOCTURNIDAD/i, appKey:'Nocturnidad'},
+  {re:/MODIFICACI[OÓ]N\s+(DE\s+)?DESCANSO|\bP\.?\s?M\.?\s?D\b/i, appKey:'Art. 52 (P.M.D.)'},
   {re:/REBASE/i, appKey:'Hora Rebase'}
 ];
 
@@ -8588,20 +8627,22 @@ function _nominaCompararConReal(anio, mes, datos){
   var earn = calculateEarnings(ks);
   var htdlPuro = _nominaHTDLPuro(ks, t.vh);
   var art5152Importe = _nominaArt5152Importe(ks);
+    var pmdNom = _nominaPMD(ks); // NUEVO — Artículo 52 (P.M.D.)
   var totalFijos = fijos.reduce(function(s,f){ return s+f.val; }, 0);
 
   var conceptosApp = {};
   fijos.forEach(function(f){ conceptosApp[f.label] = (conceptosApp[f.label]||0) + f.val; });
   conceptosApp['HTDL'] = htdlPuro.importe;
   conceptosApp['Nocturnidad'] = earn.totalNoc;
-  conceptosApp['Art. 51-52'] = art5152Importe;
+  conceptosApp['Art. 51'] = art5152Importe;
+    conceptosApp['Art. 52 (P.M.D.)'] = pmdNom.importe;
   conceptosApp['Plus Activación'] = earn.totalAct;
   conceptosApp['Plus JT'] = earn.totalJT;
   conceptosApp['Plus Internacional'] = earn.totalIntl;
   conceptosApp['Hora Rebase'] = earn.totalRebase;
   conceptosApp['Plus Traslación'] = earn.totalPlusTrasl;
 
-  var brutoApp = Math.round((totalFijos+htdlPuro.importe+art5152Importe+earn.totalNoc+earn.totalAct+earn.totalJT+earn.totalIntl+earn.totalRebase+earn.totalPlusTrasl)*100)/100;
+  var brutoApp = Math.round((totalFijos+htdlPuro.importe+art5152Importe+pmdNom.importe+earn.totalNoc+earn.totalAct+earn.totalJT+earn.totalIntl+earn.totalRebase+earn.totalPlusTrasl)*100)/100;
 
   // Agrupa los devengos REALES (sin las líneas de regularización, que
   // se explican aparte) por concepto de la App que les corresponde.
@@ -8615,7 +8656,7 @@ function _nominaCompararConReal(anio, mes, datos){
   var realPorApp = {}, realSinEmparejar = {};
   datos.devengos.forEach(function(d){
     if(d.esRegularizacion) return;
-    if(d.esHTDLForzoso){ realPorApp['Art. 51-52'] = (realPorApp['Art. 51-52']||0)+d.importe; return; }
+    if(d.esHTDLForzoso){ realPorApp['Art. 51'] = (realPorApp['Art. 51']||0)+d.importe; return; }
     if(d.esHTDL){ realPorApp['HTDL'] = (realPorApp['HTDL']||0)+d.importe; return; }
     var encontrado = null;
     for(var i=0;i<REAL_CONCEPTO_A_APP.length;i++){
@@ -8635,7 +8676,7 @@ function _nominaCompararConReal(anio, mes, datos){
       // El Art. 51-52 es justo el que suele confundirse con HTDL normal
       // mal marcado — se adjunta la lista de días HTDL de este mes,
       // para señalar dónde mirar primero.
-      if(key==='Art. 51-52') item.diasHTDL = htdlPuro.diasDetalle;
+      if(key==='Art. 51') item.diasHTDL = htdlPuro.diasDetalle;
       diffs.push(item);
     }
   });
@@ -8672,9 +8713,9 @@ function _nominaMotivoDiferencia(item, datos){
   // calendario está contando la app como HTDL normal, para que la
   // persona revise cuál de ellos debería estar marcado como Art.51-52
   // en su lugar.
-  if(item.concepto==='Art. 51-52'){
+  if(item.concepto==='Art. 51'){
     var dias = item.diasHTDL || [];
-    var base = 'El "HTDL FORZOSO" de tu nómina real es el mismo concepto que <b>Art. 51-52</b> (retirada/modificación de descanso, protocolo de llamamiento) — la app sí lo calcula, pero no encuentra ningún día marcado así en tu calendario de este mes trabajado. ';
+    var base = 'El "HTDL FORZOSO" de tu nómina real es el mismo concepto que <b>Art. 51</b> (retirada/modificación de descanso, protocolo de llamamiento) — la app sí lo calcula, pero no encuentra ningún día marcado así en tu calendario de este mes trabajado. ';
     if(!dias.length){
       return base+'Tampoco encuentra días de HTDL normal donde pudiera estar el error — revisa que ese día esté cargado en el calendario.';
     }
@@ -8683,7 +8724,7 @@ function _nominaMotivoDiferencia(item, datos){
       var etiqueta = (parseInt(p[2],10))+' '+MESES_C[parseInt(p[1],10)-1]+' ('+d.horas+'h)';
       return '<span onclick="_nominaIrAFecha(\''+d.fecha+'\')" style="text-decoration:underline;cursor:pointer;color:#fff">'+etiqueta+'</span>';
     }).join(', ');
-    return base+'Revisa estos días, marcados hoy como HTDL normal — uno de ellos es probablemente el que en realidad fue Art. 51-52: <b>'+listaDias+'</b>.';
+    return base+'Revisa estos días, marcados hoy como HTDL normal — uno de ellos es probablemente el que en realidad fue Art. 51: <b>'+listaDias+'</b>.';
   }
   if(item.tipo==='no_calculado'){
     return 'Este concepto ("'+item.concepto+'") todavía no lo calcula la app por su cuenta — no está en el calendario ni en las fórmulas de Nómina.';
@@ -9060,6 +9101,7 @@ function _minutosEconomicosHTDL(k, turnosDelDia, minDia){
   if(!minDia) return 0;
   var t = _turnoOrigenHTDLParaDia(k, turnosDelDia);
   if(!t) return minDia; // no se pudo determinar el origen: se deja tal cual (comportamiento anterior)
+  if(esPMD(t)) return 0; // Artículo 52 (P.M.D.): plus fijo, sus horas no se pagan a tarifa de HTDL
   var comp = (t.tipo==='art5152') ? t.compensacion : t.comp;
   if(comp === 'dias') return 0;
   if(comp === 'mix'){
@@ -9121,7 +9163,7 @@ function _construirCardCalendario(){
   // FIX — se usa htdlPuro.importe en vez de earn.totalHTDL (que
   // mezcla algo de Art.51/52 en casos de enlace de jornada cruzado).
   var totalVariablesResto = earn.totalNoc+earn.totalAct+earn.totalJT+earn.totalIntl;
-  var bruto = Math.round((totalFijos + htdlPuro.importe + totalVariablesResto)*100)/100;
+  var bruto = Math.round((totalFijos + htdlPuro.importe + _nominaPMD(ks).importe + totalVariablesResto)*100)/100;
 
   // NUEVO — Confirmado por Alex: las mismas deducciones (Seg. Social,
   // Cuota Sindical, IRPF) también aquí, no solo en la pestaña del
@@ -9137,6 +9179,7 @@ function _construirCardCalendario(){
   fijos.forEach(function(f){ html += _nominaFila(f.label, null, f.val); });
   html += '<div class="nom-sec-hdr">Conceptos variables (de '+MESES[mesTrabajado.mes-1]+', se cobran a mes vencido)</div>';
   html += _nominaFila('HTDL', htdlPuro.horas+' h × '+t.vh.toFixed(2)+' €', htdlPuro.importe);
+    var _pmdC = _nominaPMD(ks); if(_pmdC.n>0) html += _nominaFila('Art. 52 · P.M.D.', _pmdC.n+' × '+pmdImporteActual().toFixed(2)+' €', _pmdC.importe);
   html += _nominaFila('Nocturnidad', null, earn.totalNoc);
   html += _nominaFila('Plus Activación', null, earn.totalAct);
   html += _nominaFila('Plus JT', null, earn.totalJT);
@@ -9219,7 +9262,7 @@ function _nominaArt5152Importe(ks){
   var total = 0;
   ks.forEach(function(k){
     var t = TV[k];
-    if(t && t.tipo==='art5152'){
+    if(t && t.tipo==='art5152' && t.articulo!==52){ // el P.M.D. (Art. 52) va aparte: _nominaPMD()
       if(t.compensacion==='dinero') total += calcImporteArt5152Vivo(t, false);
       else if(t.compensacion==='mix') total += calcImporteArt5152Vivo(t, true);
     }
@@ -9255,6 +9298,7 @@ function renderNominaPublica(){
   var earn = calculateEarnings(ks);
   var htdlPuro = _nominaHTDLPuro(ks, t.vh);
   var art5152Importe = _nominaArt5152Importe(ks);
+    var pmdNom = _nominaPMD(ks); // NUEVO — Artículo 52 (P.M.D.)
   // FIX — Confirmado por el usuario: Rebase (Art. 64) y Plus Traslación
   // (Art. 58) ya se calculaban desde hace tiempo (calculateEarnings ya
   // los daba), pero se quedaban ocultos "solo Admin" en Stats porque
@@ -9269,7 +9313,7 @@ function renderNominaPublica(){
   // días COMPE sigue existiendo, pero ahora solo se usa de forma
   // informativa en la Auditoría de Horas (más abajo en esta misma
   // pantalla), no para calcular ningún pago.
-  var bruto = Math.round((totalFijos + htdlPuro.importe + art5152Importe + totalVariablesResto)*100)/100;
+  var bruto = Math.round((totalFijos + htdlPuro.importe + art5152Importe + pmdNom.importe + totalVariablesResto)*100)/100;
 
   var mv = _nominaValoresManuales;
   var ssImporte = Math.round(bruto*mv.ssPct/100*100)/100;
@@ -9308,7 +9352,8 @@ function renderNominaPublica(){
     + '<div class="ns-card">'
     + '<div class="ns-row"><span class="ns-row-lbl">🏆 HTDL <small>(días libres trabajados)</small></span><span class="ns-row-val">'+htdlPuro.importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">🌙 Nocturnidad <small>(horas de noche)</small></span><span class="ns-row-val">'+earn.totalNoc.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
-    + '<div class="ns-row"><span class="ns-row-lbl">📄 Art. 51-52 <small>(cambios de descanso)</small></span><span class="ns-row-val">'+art5152Importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">📄 Art. 51 <small>(retirada de descanso, por horas)</small></span><span class="ns-row-val">'+art5152Importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
+    + '<div class="ns-row"><span class="ns-row-lbl">⚖️ Art. 52 <small>(P.M.D. · '+pmdNom.n+' × '+pmdImporteActual().toFixed(2)+' €)</small></span><span class="ns-row-val">'+pmdNom.importe.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">🔘 Plus Activación</span><span class="ns-row-val">'+earn.totalAct.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">👔 Plus JT</span><span class="ns-row-val">'+earn.totalJT.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
     + '<div class="ns-row"><span class="ns-row-lbl">🌍 Plus Internacional</span><span class="ns-row-val">'+earn.totalIntl.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €</span></div>'
@@ -9993,8 +10038,8 @@ function calcularEnlaceJornada(turnoA, turnoB, keyA, keyB){
   //     HTDL/Art.51-52, en cualquier orden) → NO cuenta nada, solo el
   //     aviso informativo. Antes "HTDL/Art.51-52 → Ordinaria" sí
   //     computaba económicamente — eso ya no aplica.
-  var esHTDL_A = (turnoA.tipo === 'trabajado' || turnoA.tipo === 'art5152');
-  var esHTDL_B = (turnoB.tipo === 'trabajado' || turnoB.tipo === 'art5152');
+  var esHTDL_A = (turnoA.tipo === 'trabajado' || (turnoA.tipo === 'art5152' && !esPMD(turnoA)));
+  var esHTDL_B = (turnoB.tipo === 'trabajado' || (turnoB.tipo === 'art5152' && !esPMD(turnoB)));
 
   var tipoEnlace = 'ORDINARIA_ORDINARIA';
   if(esHTDL_A && esHTDL_B) tipoEnlace = 'HTDL_HTDL';
@@ -10818,6 +10863,151 @@ function secArt5152Flow(){
 
 // ── Aviso normativo (Dinero/Días — una vez al mes). Mix y HTDL no lo disparan ──
 var _a5152SaltarAvisoMensual = false;
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO — ARTÍCULO 52 · PLUS POR MODIFICACIÓN DE DESCANSO (P.M.D.)
+   Es el MISMO tipo 'art5152' con la marca t.articulo===52 (los turnos
+   antiguos no la tienen y siguen siendo Art. 51, por horas), así que
+   calendario, pernoctas, descansos, etc. funcionan igual sin tocarlos.
+   Reglas del convenio (confirmadas por Alex):
+     · Se paga un plus FIJO de 95,53 € brutos por cada P.M.D. (sin horas).
+     · Máximo 4 modificaciones al año.
+     · No puede generar más de 5 días seguidos de trabajo.
+     · El descanso modificado se devuelve dentro del mismo ciclo.
+   Una pernocta cuenta como UN solo P.M.D. Los límites solo AVISAN.
+═══════════════════════════════════════════════════════════ */
+var PMD_IMPORTE_DEF = 95.53;
+var PMD_MAX_ANUAL = 4;
+var PMD_MAX_DIAS_SEGUIDOS = 5;
+var _pmdSaltarAviso = false;
+var miniPMD = null;
+var _PMD_TRAB = {ordinario:1, trabajado:1, art5152:1, reserva:1, 'vuelta-pernocta':1, 'pernocta3-intermedio':1};
+
+function pmdImporteActual(){
+  var v = parseFloat(AJ.pmdImporte);
+  return (isFinite(v) && v>0) ? v : PMD_IMPORTE_DEF;
+}
+function esPMD(t){ return !!(t && t.tipo==='art5152' && t.articulo===52); }
+function pmdContarAnio(anio, kExcluir){
+  var n = 0;
+  Object.keys(TV).forEach(function(k){
+    if(k.slice(0,4)!==String(anio) || k===kExcluir) return;
+    if(esPMD(TV[k])) n++;
+  });
+  return n;
+}
+function _pmdOffset(k, delta){
+  var p = k.split('-').map(Number);
+  var dt = new Date(p[0], p[1]-1, p[2]); dt.setDate(dt.getDate()+delta);
+  return key(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+}
+// Días seguidos de trabajo que habría contando este P.M.D. (1 día, o 2/3 si es pernocta)
+function pmdDiasSeguidos(k, modo){
+  var propios = [k];
+  if(modo==='pernocta'||modo==='pernocta3'){ propios.push(_pmdOffset(k,1)); if(modo==='pernocta3') propios.push(_pmdOffset(k,2)); }
+  var esTrab = function(kk){ return !!(TV[kk] && _PMD_TRAB[TV[kk].tipo]); };
+  var n = propios.length, g = 0, kk;
+  kk = _pmdOffset(propios[0], -1);
+  while(esTrab(kk) && propios.indexOf(kk)<0 && g++<60){ n++; kk = _pmdOffset(kk, -1); }
+  kk = _pmdOffset(propios[propios.length-1], 1); g = 0;
+  while(esTrab(kk) && propios.indexOf(kk)<0 && g++<60){ n++; kk = _pmdOffset(kk, 1); }
+  return n;
+}
+function pmdAvisos(k, modo){
+  var av = [];
+  var anio = k.slice(0,4);
+  var n = pmdContarAnio(anio, k) + 1;
+  if(n > PMD_MAX_ANUAL) av.push('Con este serían '+n+' P.M.D. en '+anio+' (el máximo son '+PMD_MAX_ANUAL+' al año).');
+  var seg = pmdDiasSeguidos(k, modo);
+  if(seg > PMD_MAX_DIAS_SEGUIDOS) av.push('Con este llevarías '+seg+' días seguidos trabajados (el máximo son '+PMD_MAX_DIAS_SEGUIDOS+').');
+  return av;
+}
+function _abrirAvisoPMD(avisos){
+  var txt = document.getElementById('aviso-pmd-txt');
+  if(txt) txt.innerHTML = avisos.join('<br>') + '<br><br>¿Desea continuar con el registro?';
+  openOv('ov-aviso-pmd');
+}
+function elegirArt52(){
+  if(!selDay){ toast('Selecciona un día primero'); return; }
+  closeOv('ov-tipo');
+  resetF('art5152');
+  F.modoArt5152 = 'normal';
+  F.articulo = 52;
+  F.compArt5152 = 'dinero';
+  F.pmdDevolucion = null;
+  abrirForm(false);
+}
+function secArt52Flow(){
+  if(!F.modo) return '';
+  var k = selDay ? selDay.k : null;
+  var esPernocta = (F.modo==='pernocta'||F.modo==='pernocta3');
+  var imp = pmdImporteActual();
+  var anio = k ? k.slice(0,4) : String(new Date().getFullYear());
+  var nTot = (k ? pmdContarAnio(anio, k) : 0) + 1;
+  var seg = k ? pmdDiasSeguidos(k, F.modo) : 1;
+  var cAnual = nTot>PMD_MAX_ANUAL ? 'var(--amber2)' : 'var(--green2)';
+  var cSeg = seg>PMD_MAX_DIAS_SEGUIDOS ? 'var(--amber2)' : 'var(--green2)';
+  return '<div class="fsec" style="border-top:1px solid var(--div)">'
+    +'<div class="fsec-lbl">Artículo 52 · Plus por modificación de descanso</div>'
+    +'<div class="calc-result">'
+    +'<div class="cr-row"><span class="cr-l">💶 Plus fijo (P.M.D.)</span><span class="cr-v" style="color:var(--green2)">'+imp.toFixed(2)+' €</span></div>'
+    +'<div style="font-size:9px;color:var(--tx3);margin-top:6px">Importe fijo por cada P.M.D. aplicado, sin contar horas.'+(esPernocta?' Una pernocta cuenta como un solo P.M.D.':'')+' Se cambia en Ajustes.</div>'
+    +'</div>'
+    +'<div class="calc-result" style="margin-top:8px">'
+    +'<div class="cr-row"><span class="cr-l">P.M.D. en '+anio+' (máx. '+PMD_MAX_ANUAL+')</span><span class="cr-v" style="color:'+cAnual+'">'+nTot+' de '+PMD_MAX_ANUAL+(nTot>PMD_MAX_ANUAL?' ⚠️':' ✓')+'</span></div>'
+    +'<div class="cr-row"><span class="cr-l">Días seguidos trabajados (máx. '+PMD_MAX_DIAS_SEGUIDOS+')</span><span class="cr-v" style="color:'+cSeg+'">'+seg+' de '+PMD_MAX_DIAS_SEGUIDOS+(seg>PMD_MAX_DIAS_SEGUIDOS?' ⚠️':' ✓')+'</span></div>'
+    +'</div>'
+    +'<div class="fsec-lbl" style="margin-top:12px">↩ Devolución del descanso</div>'
+    +'<div style="font-size:10px;color:var(--tx2);margin-bottom:8px;line-height:1.5">El descanso modificado se te tiene que devolver dentro del mismo ciclo de trabajo. Elige el día (opcional):</div>'
+    +'<div id="mini-cal-pmd-cont"></div>'
+    +'</div>';
+}
+function renderMiniCalPMD(){
+  var cont = document.getElementById('mini-cal-pmd-cont');
+  if(!cont || !selDay) return;
+  if(!miniPMD){
+    var pr = (F.pmdDevolucion || selDay.k).split('-').map(Number);
+    miniPMD = new Date(pr[0], pr[1]-1, 1);
+  }
+  var y = miniPMD.getFullYear(), m = miniPMD.getMonth();
+  var ultimo = new Date(y, m+1, 0).getDate();
+  var sd = new Date(y, m, 1).getDay(); sd = sd===0 ? 6 : sd-1;
+  var propios = {}; propios[selDay.k] = 1;
+  if(F.modo==='pernocta'||F.modo==='pernocta3'){
+    var k2 = _diaSiguienteKey(selDay.k); propios[k2] = 1;
+    if(F.modo==='pernocta3') propios[_diaSiguienteKey(k2)] = 1;
+  }
+  var cells = '';
+  for(var i=0;i<sd;i++) cells += '<div class="mc-d mc-dis">·</div>';
+  for(var d=1; d<=ultimo; d++){
+    var iso = key(y, m+1, d);
+    var sel = (F.pmdDevolucion===iso);
+    var libre = !propios[iso] && estaDiaDisponible(iso, selDay.k);
+    var bloq = !libre && !sel;
+    cells += '<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis bloqueado':'')+'"'+(bloq?'':' onclick="elegirDevolucionPMD(\''+iso+'\')"')+'>'+d+'</div>';
+  }
+  cont.innerHTML = '<div class="mini-cal-wrap">'
+    +'<div class="mc-hdr"><button class="mc-nav" onclick="chMiniCalPMD(-1)">‹</button><div class="mc-mes">'+MESES[m]+' '+y+'</div><button class="mc-nav" onclick="chMiniCalPMD(1)">›</button></div>'
+    +'<div class="mc-dow"><div class="mc-dh">L</div><div class="mc-dh">M</div><div class="mc-dh">X</div><div class="mc-dh">J</div><div class="mc-dh">V</div><div class="mc-dh">S</div><div class="mc-dh">D</div></div>'
+    +'<div class="mc-grid">'+cells+'</div>'
+    +'<div class="mc-count"><span>'+(F.pmdDevolucion?1:0)+'/1</span> día de devolución'+(F.pmdDevolucion?' · '+_keyAFechaLbl(F.pmdDevolucion)+' ✅':'')+'</div>'
+    +'</div>';
+}
+function chMiniCalPMD(dir){
+  if(!miniPMD) return;
+  miniPMD = new Date(miniPMD.getFullYear(), miniPMD.getMonth()+dir, 1);
+  renderMiniCalPMD();
+}
+function elegirDevolucionPMD(iso){
+  F.pmdDevolucion = (F.pmdDevolucion===iso) ? null : iso;
+  renderMiniCalPMD();
+}
+function _nominaPMD(ks){
+  var n = 0;
+  ks.forEach(function(k){ if(esPMD(TV[k])) n++; });
+  return {n:n, importe: Math.round(n*pmdImporteActual()*100)/100};
+}
+
 function _abrirAvisoLimiteArt5152(motivo){
   // Mismo overlay estático de siempre (.ov/.confirm-sh, igual que
   // "Eliminar turno" y "Borrar todo") — solo cambia el TEXTO según
@@ -10949,6 +11139,7 @@ if(typeof loadAjUI === 'function'){
     var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
     if(iM) iM.value = AJ.art5152Monto || 0;
     if(iB) iB.value = AJ.art5152ValorBase || 0;
+      var iPMD = document.getElementById('aj-pmd-importe'); if(iPMD) iPMD.value = pmdImporteActual();
     // NUEVO: refresca la tabla de "Estaciones y Horarios" cada vez
     // que se abre Ajustes, por si se guardó algún tren nuevo.
     if(typeof renderTablaEstacionesHorarios==='function') renderTablaEstacionesHorarios();
@@ -10969,6 +11160,8 @@ if(typeof saveAj === 'function'){
     var iM=document.getElementById('aj-art5152-monto'), iB=document.getElementById('aj-art5152-base');
     if(iM) AJ.art5152Monto = parseFloat(iM.value)||0;
     if(iB) AJ.art5152ValorBase = parseFloat(iB.value)||0;
+      var iPMD = document.getElementById('aj-pmd-importe');
+      if(iPMD){ var _vP = parseFloat(iPMD.value); AJ.pmdImporte = (isFinite(_vP) && _vP>0) ? _vP : PMD_IMPORTE_DEF; }
 
     _saveAj_base_art5152.apply(this, arguments);
 
@@ -11173,6 +11366,7 @@ function calcularImpactoEnlacesEconomico(ks){
     var tInt = TV[kInt];
     if(!tInt) return;
     if(tInt.tipo!=='trabajado' && tInt.tipo!=='art5152') return;
+      if(esPMD(tInt)) return; // P.M.D.: plus fijo, no paga horas por descanso corto
     var esPernoctaInt=(tInt.modo==='pernocta'||tInt.modo==='pernocta3');
     if(!esPernoctaInt) return;
     var rInterno = checkDescansoInternoPernocta(tInt);
@@ -11207,9 +11401,16 @@ if(typeof calculateEarnings === 'function'){
     // Ajustes, igual que montoArtActual/baseArtActual de arriba.
     var pArt51Live = AJ.pluses[AJ.rol]||PLUS_DEF[AJ.rol];
     var extraHTDL = 0, extraDetalle = [], extraLbl = [];
+      var totalPMD = 0, nPMD = 0, pmdDetalle = []; // NUEVO — Artículo 52 (P.M.D.)
     ks.forEach(function(k){
       var t = TV[k];
       if(!t || t.tipo!=='art5152') return;
+        if(t.articulo===52){ // P.M.D.: plus fijo, sin horas
+          var impPMD = Math.round(pmdImporteActual()*100)/100;
+          totalPMD += impPMD; nPMD++;
+          pmdDetalle.push({k:k, lbl:_keyAFechaLbl(k), tren:t.numTren||'', esPernocta:(t.modo==='pernocta'||t.modo==='pernocta3'), importe:impPMD, devolucion:t.pmdDevolucion||null});
+          return;
+        }
 
       // FIX — Retraso del tramo de VUELTA (T2), recalculado EN VIVO
       // cada vez (nunca se congela), igual que ya hace HTDL en el
@@ -11264,6 +11465,9 @@ if(typeof calculateEarnings === 'function'){
     e.diasHTDLPuroDetail = (e.diasHTDLdetail||[]).slice();
     e.totalArt5152Dinero = extraHTDL>0 ? Math.round(extraHTDL*100)/100 : 0;
     e.diasArt5152Detail = extraDetalle;
+      // NUEVO — Artículo 52 (P.M.D.): línea propia, y suma al total bruto
+      e.totalPMD = Math.round(totalPMD*100)/100; e.nPMD = nPMD; e.diasPMDDetail = pmdDetalle;
+      if(totalPMD>0) e.totalBruto = Math.round((e.totalBruto + totalPMD)*100)/100;
     if(extraHTDL>0){
       extraHTDL = Math.round(extraHTDL*100)/100;
       e.totalHTDL  = Math.round((e.totalHTDL + extraHTDL)*100)/100;
@@ -11369,6 +11573,11 @@ function mostrarDetalleArt5152(k){
         +'No se ha movido nada automáticamente — revísalo y corrígelo a mano si hace falta.'
         +'</div>';
     }
+  } else if(esPMD(t)){
+    html += '<div class="cs-t">⚖️ Artículo 52 · P.M.D.</div>';
+    html += fila('Plus fijo', pmdImporteActual().toFixed(2)+' €', 'var(--green2)');
+    html += fila('Horas del día (informativo)', (t.horas||0)+' h');
+    html += fila('Devolución del descanso', t.pmdDevolucion ? _keyAFechaLbl(t.pmdDevolucion) : 'Sin elegir', t.pmdDevolucion ? 'var(--cyan2)' : 'var(--amber2)');
   } else if(t.compensacion==='dinero'){
     var horasDineroDetalle = Math.round(((t.horasEfectivas||0) + hRetT2Detalle)*100)/100;
     var importeDineroDetalle = Math.round((horasDineroDetalle*montoArtDetalle + baseArtDetalle + pTotalArtDetalle)*100)/100;
@@ -11448,8 +11657,13 @@ function _renderArt5152Stats(){
     html += '<div class="cs-r"><span class="cl">Usos este mes (Dinero/Días)</span>'
       +'<span class="cv" style="color:'+(usosMes>1?'var(--amber2)':'var(--tx2)')+'">'+usosMes+' / 1</span></div>';
   }
+    var _nPMDanio = pmdContarAnio(pref.slice(0,4), null);
+    if(_nPMDanio>0){
+      html += '<div class="cs-r"><span class="cl">P.M.D. este año (máx. '+PMD_MAX_ANUAL+')</span>'
+        +'<span class="cv" style="color:'+(_nPMDanio>PMD_MAX_ANUAL?'var(--amber2)':'var(--tx2)')+'">'+_nPMDanio+' / '+PMD_MAX_ANUAL+'</span></div>';
+    }
   registros.forEach(function(r){
-    var lbl = _keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
+    var lbl = (esPMD(r.t)?'Art. 52 · P.M.D. · ':'Art. 51 · ')+_keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
     var val;
     if(r.t.compensacion==='mix'){
       var _impMix = calcImporteArt5152Vivo(r.t, true);
@@ -12596,6 +12810,7 @@ function renderSlide(gridId, fecha){
     // pinchar/verificar todavía, ya que comparte el mismo icono ⚖️
     // que el turno ya desglosado con tramos.
     if(t&&t.tipo==='art5152'&&t.modoArt5152==='reserva') cls+=' dc-art5152-reserva-pendiente';
+      if(esPMD(t)) cls+=' dc-pmd'; // NUEVO — Artículo 52 (P.M.D.)
     // NUEVO — Días Libres: compara este día contra lo que ya se cargó
     // con "🧘 Cargar días libres" (ver diasLibresPrevistosParaFecha()).
     // Si ese día estaba previsto libre y ahora hay un turno de TRABAJO
@@ -13805,8 +14020,9 @@ function renderDiaArea(){
     // No toca nada de HTDL (usa t.compensacion, campo exclusivo de art5152).
     if(t.tipo==='art5152'){
       if(t.compensacion==='dinero' && t.importe){
-        body += '<div class="ac-imp" style="margin-top:6px"><span class="al">💶 Art. 51/52 — Dinero</span>'
+        body += '<div class="ac-imp" style="margin-top:6px"><span class="al">'+(esPMD(t)?'⚖️ Art. 52 · P.M.D.':'💶 Art. 51/52 — Dinero')+'</span>'
           +'<span class="ar">'+calcImporteArt5152Vivo(t,false).toFixed(2)+' €</span></div>';
+        if(esPMD(t) && t.pmdDevolucion) body += '<div class="ac-row"><span class="ak">↩ Devolución</span><span class="av" style="color:var(--cyan2);font-weight:800">'+_keyAFechaLbl(t.pmdDevolucion)+'</span></div>';
       } else if(t.compensacion==='dias' && t.diasGenerados){
         body += '<div class="ac-row" style="margin-top:6px"><span class="ak">📅 Art. 51/52 — Días</span>'
           +'<span class="av" style="color:var(--cyan2);font-weight:800">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
@@ -14124,7 +14340,7 @@ function renderAcordeon(){
     // NUEVO — FIX: resumen de compensación Art. 51/52 (campo propio
     // t.compensacion, distinto de t.comp de HTDL — por eso no aparecía).
     if(t.tipo==='art5152'){
-      if(t.compensacion==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">⚖️ Art.51/52 — Dinero</span><span class="ar">'+calcImporteArt5152Vivo(t,false).toFixed(2)+' €</span></div>';
+      if(t.compensacion==='dinero'&&t.importe)det+='<div class="ac-imp"><span class="al">'+(esPMD(t)?'⚖️ Art.52 — P.M.D.':'⚖️ Art.51/52 — Dinero')+'</span><span class="ar">'+calcImporteArt5152Vivo(t,false).toFixed(2)+' €</span></div>';
       if(t.compensacion==='dias'&&t.diasGenerados)det+='<div class="ac-row"><span class="ak">⚖️ Art.51/52 — Días</span><span class="av" style="color:var(--cyan2)">+'+t.diasGenerados+' → '+t.mesDestino+'</span></div>';
       if(t.compensacion==='mix'&&t.mixDinero&&t.mixDias){
         det+='<div class="ac-imp"><span class="al">🔀 Mix — Dinero</span><span class="ar">'+calcImporteArt5152Vivo(t,true).toFixed(2)+' €</span></div>';
@@ -14421,6 +14637,7 @@ function editarTurno(){
          estadoServicioVuelta:tOri.estadoServicioVuelta||'ordinario',
          estadoServicioVueltaDetalle:tOri.estadoServicioVueltaDetalle||'',
          plusAct:tOri.plusAct||false, plusJT:tOri.plusJT||false,
+           articulo:tOri.articulo||null, pmdDevolucion:tOri.pmdDevolucion||null,
          plusIntlAuto:(tOri.linea||'').includes('Internacional')};
       renderCal();
       abrirForm(true);
@@ -14462,6 +14679,7 @@ function editarTurno(){
      // por defecto, para que sigan editándose exactamente igual que
      // siempre (con tramos), sin romper nada.
      modoArt5152:t.modoArt5152||'normal',
+       articulo:t.articulo||null, pmdDevolucion:t.pmdDevolucion||null,
      horaTomaArt:t.horaTomaArt||'', horaDejeArt:t.horaDejeArt||'',
      // NUEVO — modoTrabajado: al EDITAR un HTDL ya guardado, siempre
      // se abre en modo 'normal' (con tramos), independientemente de
@@ -15319,12 +15537,14 @@ function abrirForm(edicion,verificando){
   var dt=new Date(y,mo-1,d);
   var wd=(dt.getDay()+6)%7;
   var ti=TIPO_INFO[F.tipo] || {ico:'📋',lbl:F.tipo||'Turno',col:'var(--acc)',cls:''};
+  if(F.tipo==='art5152') ti = Object.assign({}, ti, {lbl: (F.articulo===52 ? 'Art. 52 · P.M.D.' : 'Art. 51')});
   document.getElementById('form-ico').textContent=verificando?'✅':ti.ico;
   document.getElementById('form-tit').textContent=DIAS_L[wd]+' '+d+' de '+MESES[mo-1].toLowerCase();
   document.getElementById('form-sub').textContent=verificando?'Pinchar / Verificar':(edicion?'Editando '+ti.lbl.toLowerCase():'Nuevo '+ti.lbl.toLowerCase());
   document.getElementById('m-del').style.display=edicion?'flex':'none';
   var mc=mo===12?new Date(y+1,0,1):new Date(y,mo,1);
   miniM=mc;
+  miniPMD=null; // NUEVO — mini-calendario de la devolución del P.M.D.
   diasComp=(F.diasComp||[]).slice();
   renderFormBody();
   openOv('ov-form');
@@ -15371,7 +15591,7 @@ function renderFormBody(){
       h+='</div>';
     }
     if(t==='trabajado') h+=secDescFlow();
-    if(t==='art5152') h+=secArt5152Flow();
+    if(t==='art5152') h+=(F.articulo===52 ? secArt52Flow() : secArt5152Flow());
   } else if(t==='trabajado'&&F.modoTrabajado==='reserva'){
     // NUEVO — Reserva (HTDL): formulario simple de toma/deje. Al
     // guardar, F.hF/F.hL ya están rellenos (ver secReservaHTDL) y el
@@ -15394,6 +15614,7 @@ function renderFormBody(){
   h+='<div class="notas-wrap"><textarea class="notas-inp" rows="2" placeholder="Notas opcionales…" oninput="F.notas=this.value">'+( F.notas||'')+'</textarea></div>';
   b.innerHTML=h;
   if(F.comp==='dias' || F.comp==='mix' || (F.tipo==='art5152' && (F.compArt5152==='dias'||F.compArt5152==='mix'))) renderMiniCal();
+    if(F.tipo==='art5152' && F.articulo===52) renderMiniCalPMD(); // NUEVO — devolución del P.M.D.
 }
 
 function secLinea(){
@@ -16313,7 +16534,23 @@ function guardarTurno(){
       return;
     }
     var compEl = F.compArt5152||'dinero';
-    if((compEl==='dinero'||compEl==='dias') && !_a5152SaltarAvisoMensual){
+    if(F.articulo===52){
+      // Artículo 52 · P.M.D.: sus propios límites (4 al año, 5 días seguidos) — solo AVISAN
+      var _dev52 = F.pmdDevolucion || null;
+      if(_dev52){
+        var _prop52 = {}; _prop52[k]=1;
+        if(F.modo==='pernocta'||F.modo==='pernocta3'){ var _k52b=_diaSiguienteKey(k); _prop52[_k52b]=1; if(F.modo==='pernocta3') _prop52[_diaSiguienteKey(_k52b)]=1; }
+        if(_prop52[_dev52] || !estaDiaDisponible(_dev52, k)){
+          toast('Error: El día '+_keyAFechaLbl(_dev52)+' ya tiene un turno asignado. Elige otra fecha para la devolución.');
+          return;
+        }
+      }
+      if(!_pmdSaltarAviso){
+        var _avPMD = pmdAvisos(k, F.modo);
+        if(_avPMD.length){ _abrirAvisoPMD(_avPMD); return; }
+      }
+      _pmdSaltarAviso = false;
+    } else if((compEl==='dinero'||compEl==='dias') && !_a5152SaltarAvisoMensual){
       var mesOrigenChk = k.slice(0,7);
       var anioOrigenChk = k.slice(0,4);
       if((ART5152_USO[mesOrigenChk]||0) >= 1){
@@ -16615,7 +16852,21 @@ function guardarTurno(){
       _art5152MixInfo = {kIda:k, kVuelta:kVueltaHTDL, origen:'trabajado'};
     }
   }
-  if(t==='art5152'){
+  // ── NUEVO — Artículo 52 · P.M.D. (plus fijo, no cuenta horas) ──
+  if(t==='art5152' && F.articulo===52){
+    var dev52 = F.pmdDevolucion || null;
+    d.articulo = 52;
+    d.compensacion = 'dinero';
+    d.horasEfectivas = d.horas;            // solo informativo: el plus es fijo
+    d.importe = pmdImporteActual();
+    // quita las devoluciones antiguas de ESTE turno y marca la nueva
+    Object.keys(TV).forEach(function(isoOld){
+      if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && isoOld!==dev52) delete TV[isoOld];
+    });
+    if(dev52){ TV[dev52] = {tipo:'comp', origen:k}; d.diasComp=[dev52]; d.pmdDevolucion=dev52; }
+    else { d.diasComp=[]; d.pmdDevolucion=null; }
+  }
+  if(t==='art5152' && F.articulo!==52){
     var compArt = F.compArt5152 || 'dinero';
     d.compensacion = compArt;
     var esPernoctaArt = (F.modo==='pernocta'||F.modo==='pernocta3');
@@ -16865,7 +17116,7 @@ function confirmarEliminar(){
   // mismos contadores aquí. Antes solo se incrementaban al crear y
   // nunca se liberaban al borrar, así que un Art.51/52 eliminado
   // seguía bloqueando el mes/año como si siguiera existiendo.
-  if(t && t.tipo==='art5152' && (t.compensacion==='dinero' || t.compensacion==='dias')){
+  if(t && t.tipo==='art5152' && t.articulo!==52 && (t.compensacion==='dinero' || t.compensacion==='dias')){
     var mesOrigenDel = k.slice(0,7);
     var anioOrigenDel = k.slice(0,4);
     if(ART5152_USO[mesOrigenDel]){
@@ -16989,7 +17240,7 @@ function _cancelarSeleccionBorrado(){
 function _eliminarDiaParaBorradoMasivo(k){
   var t = TV[k];
   if(!t) return;
-  if(t.tipo==='art5152' && (t.compensacion==='dinero' || t.compensacion==='dias')){
+  if(t.tipo==='art5152' && t.articulo!==52 && (t.compensacion==='dinero' || t.compensacion==='dias')){
     var mesOrigenDel = k.slice(0,7);
     var anioOrigenDel = k.slice(0,4);
     if(ART5152_USO[mesOrigenDel]){
@@ -18843,6 +19094,7 @@ function calcImp(horas,hF,hL,linea,plusAct,plusJT,plusIntlAuto){
 // ningún dato guardado, solo cambia de dónde saca el número a MOSTRAR.
 function calcImporteArt5152Vivo(t, esMix){
   if(!t || t.tipo!=='art5152') return 0;
+  if(t.articulo===52) return Math.round(pmdImporteActual()*100)/100; // P.M.D.: plus fijo
   var monto = parseFloat(AJ.art5152Monto)||0;
   var base  = parseFloat(AJ.art5152ValorBase)||0;
   var horas = esMix ? ((t.mixDinero&&t.mixDinero.horas)||0) : (t.horasEfectivas||0);
@@ -20063,7 +20315,7 @@ function calculateEarnings(ks){
       var horasInternoHTDL = Math.round((rInterno.descMin/60)*100)/100;
       hHTDL += horasInternoHTDL;
       tH += horasInternoHTDL*HTDL;
-    } else if(tInt.tipo==='art5152'){
+    } else if(tInt.tipo==='art5152' && !esPMD(tInt)){
       var horasInternoArt = Math.round((rInterno.descMin/60)*100)/100;
       var tarifaArtInt = parseFloat(AJ.art5152Monto)||0;
       tH += horasInternoArt*tarifaArtInt;
