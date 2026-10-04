@@ -741,6 +741,7 @@ html[data-estetica="b"] #splash-screen{--neon:#84cc16;--neon2:#d9f99d;background
 /* NUEVO — Badge de Reserva Art.51/52 pendiente de pinchar/verificar */
 .dc-art5152-reserva-pendiente::after{content:'⏳';position:absolute;bottom:1px;right:1px;font-size:7px;line-height:1}
 .dc-pmd{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.6);color:#FCD34D}
+.dc-pisado::after{content:'↩';position:absolute;bottom:1px;right:2px;font-size:8px;line-height:1;color:#FCD34D}
 /* Input de retraso inline */
 .retraso-wrap{display:flex;align-items:center;gap:7px;padding:8px 11px;
               background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.25);
@@ -10982,15 +10983,17 @@ function renderMiniCalPMD(){
   for(var d=1; d<=ultimo; d++){
     var iso = key(y, m+1, d);
     var sel = (F.pmdDevolucion===iso);
-    var libre = !propios[iso] && estaDiaDisponible(iso, selDay.k);
+    var libre = pmdDiaElegible(iso, selDay.k, F.modo);
+    var _tp = TV[iso];
+    var pisa = !!(libre && _tp && !(_tp.tipo==='comp' && _tp.origen===selDay.k));
     var bloq = !libre && !sel;
-    cells += '<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis bloqueado':'')+'"'+(bloq?'':' onclick="elegirDevolucionPMD(\''+iso+'\')"')+'>'+d+'</div>';
+    cells += '<div class="mc-d '+(sel?'mc-sel':'')+(bloq?' mc-dis bloqueado':'')+'"'+(pisa?' style="position:relative;box-shadow:inset 0 0 0 1px rgba(245,158,11,.7)"':'')+(bloq?'':' onclick="elegirDevolucionPMD(\''+iso+'\')"')+'>'+d+(pisa?'<span style="position:absolute;top:1px;right:3px;font-size:7px;color:#FCD34D">●</span>':'')+'</div>';
   }
   cont.innerHTML = '<div class="mini-cal-wrap">'
     +'<div class="mc-hdr"><button class="mc-nav" onclick="chMiniCalPMD(-1)">‹</button><div class="mc-mes">'+MESES[m]+' '+y+'</div><button class="mc-nav" onclick="chMiniCalPMD(1)">›</button></div>'
     +'<div class="mc-dow"><div class="mc-dh">L</div><div class="mc-dh">M</div><div class="mc-dh">X</div><div class="mc-dh">J</div><div class="mc-dh">V</div><div class="mc-dh">S</div><div class="mc-dh">D</div></div>'
     +'<div class="mc-grid">'+cells+'</div>'
-    +'<div class="mc-count"><span>'+(F.pmdDevolucion?1:0)+'/1</span> día de devolución'+(F.pmdDevolucion?' · '+_keyAFechaLbl(F.pmdDevolucion)+' ✅':'')+'</div>'
+    +'<div class="mc-count"><span>'+(F.pmdDevolucion?1:0)+'/1</span> día de devolución'+(F.pmdDevolucion?' · '+_keyAFechaLbl(F.pmdDevolucion)+' ✅':'')+'</div>'+pmdPisaInfoHTML()
     +'</div>';
 }
 function chMiniCalPMD(dir){
@@ -11002,6 +11005,50 @@ function elegirDevolucionPMD(iso){
   F.pmdDevolucion = (F.pmdDevolucion===iso) ? null : iso;
   renderMiniCalPMD();
 }
+
+// ── Devolución del P.M.D. que PISA un turno ya existente ──────────────
+// El descanso se pone ENCIMA y el turno de debajo se conserva (t.turnoPisado,
+// y los turnos adicionales en t.extrasPisados), igual que hace la baja. Mientras
+// el descanso esté encima, el turno de debajo NO cuenta horas ni dinero. Al quitar
+// la devolución o el P.M.D., el turno vuelve a su sitio.
+function _liberarCompPisado(iso){
+  var c = TV[iso];
+  if(!c || c.tipo!=='comp') return;
+  if(c.turnoPisado){ TV[iso] = c.turnoPisado; } else { delete TV[iso]; }
+  if(c.extrasPisados && c.extrasPisados.length){ TV2[iso] = c.extrasPisados; if(typeof saveTV2==='function') saveTV2(); }
+}
+function _pmdPropios(k, modo){
+  var p = {}; p[k] = 1;
+  if(modo==='pernocta'||modo==='pernocta3'){ var k2 = _diaSiguienteKey(k); p[k2] = 1; if(modo==='pernocta3') p[_diaSiguienteKey(k2)] = 1; }
+  return p;
+}
+// Solo se pisan jornadas normales (Ordinario / Reserva) que no sean parte de una pernocta
+function pmdPisable(t){
+  return !!(t && (t.tipo==='ordinario' || t.tipo==='reserva') && t.modo!=='pernocta' && t.modo!=='pernocta3' && !t.diaSiguiente);
+}
+function pmdDiaElegible(iso, k, modo){
+  if(_pmdPropios(k, modo)[iso]) return false;
+  var t = TV[iso];
+  if(!t) return !(TV2[iso] && TV2[iso].length);
+  if(t.tipo==='comp' && t.origen===k) return true;   // ya es la devolución de este mismo P.M.D.
+  return pmdPisable(t);
+}
+function pmdTurnoResumen(t){
+  if(!t) return '';
+  var ti = TIPO_INFO[t.tipo] || {ico:'📋', lbl:t.tipo};
+  var fin = t.hL2 || t.hL;
+  return ti.ico+' '+ti.lbl+(t.numTren?' · tren '+t.numTren:'')+((t.hF && fin)?' · '+t.hF+'–'+fin:'');
+}
+function pmdPisaInfoHTML(){
+  var leyenda = '<div style="font-size:9px;color:var(--tx3);margin-top:6px"><span style="color:#FCD34D">●</span> día con turno: se puede pisar (el turno queda guardado debajo)</div>';
+  var iso = F.pmdDevolucion; if(!iso || !selDay) return leyenda;
+  var t = TV[iso], debajo = null;
+  if(t && t.tipo==='comp' && t.origen===selDay.k) debajo = t.turnoPisado; else if(t && pmdPisable(t)) debajo = t;
+  if(!debajo) return leyenda;
+  return leyenda+'<div style="margin-top:8px;padding:9px 10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:9px;font-size:10.5px;color:#FCD34D;line-height:1.5">'
+    +'⚠️ El '+_keyAFechaLbl(iso)+' tiene <b>'+pmdTurnoResumen(debajo)+'</b>. Quedará tapado por tu descanso: el turno se guarda debajo y <b>no cuenta</b> horas ni dinero mientras tanto.</div>';
+}
+
 function _nominaPMD(ks){
   var n = 0;
   ks.forEach(function(k){ if(esPMD(TV[k])) n++; });
@@ -11646,7 +11693,7 @@ function _renderArt5152Stats(){
   var _cab = totalDinero>0
     ? totalDinero.toFixed(2)+' €'
     : (registros.length ? registros.length+' turno'+(registros.length!==1?'s':'') : '');
-  var html = '<div class="acc-section" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
+  var html = '<div class="acc-section'+(registros.length?' open':'')+'" style="margin:0 0 10px;background:var(--s1);border:1px solid var(--div);border-radius:14px;overflow:hidden">'
     +'<div class="acc-head" style="cursor:pointer" onclick="this.closest(\'.acc-section\').classList.toggle(\'open\')">'
     +'<div class="acc-ico" style="background:transparent;font-size:18px">⚖️</div>'
     +'<div class="acc-title">Artículo 51 y 52</div>'
@@ -11662,8 +11709,15 @@ function _renderArt5152Stats(){
       html += '<div class="cs-r"><span class="cl">P.M.D. este año (máx. '+PMD_MAX_ANUAL+')</span>'
         +'<span class="cv" style="color:'+(_nPMDanio>PMD_MAX_ANUAL?'var(--amber2)':'var(--tx2)')+'">'+_nPMDanio+' / '+PMD_MAX_ANUAL+'</span></div>';
     }
-  registros.forEach(function(r){
-    var lbl = (esPMD(r.t)?'Art. 52 · P.M.D. · ':'Art. 51 · ')+_keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
+  var _grupos = [
+      {tit:'ART. 52 · P.M.D. (plus fijo)', col:'#FCD34D', lista: registros.filter(function(r){ return esPMD(r.t); })},
+      {tit:'ART. 51 · POR HORAS', col:'#C4B5FD', lista: registros.filter(function(r){ return !esPMD(r.t); })}
+    ];
+    _grupos.forEach(function(g){
+    if(!g.lista.length) return;
+    html += '<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:'+g.col+';margin:8px 0 2px">'+g.tit+'</div>';
+    g.lista.forEach(function(r){
+    var lbl = _keyAFechaLbl(r.k)+' · '+(r.t.modo==='pernocta'?'Pernocta':'Ida y vuelta');
     var val;
     if(r.t.compensacion==='mix'){
       var _impMix = calcImporteArt5152Vivo(r.t, true);
@@ -11694,7 +11748,11 @@ function _renderArt5152Stats(){
       +'style="background:var(--s2);border:1px solid var(--div);border-radius:6px;color:var(--acc2);'
       +'font-size:9px;font-weight:700;padding:2px 7px;cursor:pointer">Ver detalle</button>'
       +'</span></div>';
-  });
+      if(esPMD(r.t)){
+        html += '<div class="cs-sub-detail" style="padding-left:12px;margin-top:-2px">'+(r.t.pmdDevolucion ? '↩ Devolución: '+_keyAFechaLbl(r.t.pmdDevolucion) : '⚠️ Devolución sin elegir')+'</div>';
+      }
+    });
+    });
   if(diasRecibidos>0){
     html += '<div class="cr-div" style="margin:4px 0"></div>'
       +'<div class="cs-r"><span class="cl" style="font-weight:800">📅 Días recibidos este mes</span>'
@@ -12811,6 +12869,7 @@ function renderSlide(gridId, fecha){
     // que el turno ya desglosado con tramos.
     if(t&&t.tipo==='art5152'&&t.modoArt5152==='reserva') cls+=' dc-art5152-reserva-pendiente';
       if(esPMD(t)) cls+=' dc-pmd'; // NUEVO — Artículo 52 (P.M.D.)
+      if(t && t.tipo==='comp' && t.turnoPisado) cls+=' dc-pisado'; // descanso devuelto que tapa un turno
     // NUEVO — Días Libres: compara este día contra lo que ya se cargó
     // con "🧘 Cargar días libres" (ver diasLibresPrevistosParaFecha()).
     // Si ese día estaba previsto libre y ahora hay un turno de TRABAJO
@@ -14187,7 +14246,8 @@ function renderDiaArea(){
       }
     }
   } else if(t.tipo==='comp'){
-    body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>Día de compensación marcado automáticamente.</span></div>';
+    body='<div class="ibox" style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.22)"><span class="ibox-i">📅</span><span>'+((t.turnoPisado||(t.origen&&esPMD(TV[t.origen])))?'🧘 Descanso devuelto'+(t.origen?' · P.M.D. del '+_keyAFechaLbl(t.origen):''):'Día de compensación marcado automáticamente.')+'</span></div>';
+    if(t.turnoPisado) body += '<div style="margin-top:8px;border:1px dashed var(--div);border-radius:10px;padding:8px 10px;opacity:.8"><div style="font-size:8px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:3px">DEBAJO · NO CUENTA</div><div style="font-size:11px;color:var(--tx2)">'+pmdTurnoResumen(t.turnoPisado)+'</div></div>';
   }
 
   // VISTA RESUMIDA — cabecera ligera. Los nº de tren ya se muestran
@@ -14747,6 +14807,7 @@ function abrirEditComp(){
   var fs=DIAS_L[wd]+' '+dd+' de '+MESES[mo-1].toLowerCase();
   var oI='';
   if(t.origen&&TV[t.origen]){var kop=t.origen.split('-').map(Number);var lbl=kop[2]+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][kop[1]-1]+' '+kop[0];oI='<div style="font-size:10px;color:var(--tx3);margin-top:4px">Generado por turno del <strong style="color:var(--tx2)">'+lbl+'</strong></div>';}
+  if(t.turnoPisado){ oI += '<div style="font-size:10px;color:var(--amber2);margin-top:6px;line-height:1.5">Debajo hay <strong>'+pmdTurnoResumen(t.turnoPisado)+'</strong> (no cuenta mientras tanto). Si eliminas la compensación, el turno se recupera.</div>'; }
   document.getElementById('edit-comp-tit').textContent=fs;
   document.getElementById('edit-comp-body').innerHTML=
     '<div style="padding:14px 16px">'
@@ -14759,7 +14820,7 @@ function abrirEditComp(){
     // de descanso) o Art. 51/52 (manual). Se ofrecen ambas por
     // separado, en vez de la opción genérica de antes.
     +'<div onclick="compConvertir(\'trabajado\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(37,99,235,.16)\'" onmouseout="this.style.background=\'rgba(37,99,235,.08)\'"><span style="font-size:22px">🚂</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--acc2)">Turno normal (HTDL)</div><div style="font-size:10px;color:var(--tx3)">Se marca solo como HTDL, por trabajar un día de descanso</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
-    +'<div onclick="compConvertir(\'art5152\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(139,92,246,.16)\'" onmouseout="this.style.background=\'rgba(139,92,246,.08)\'"><span style="font-size:22px">📋</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#C4B5FD">Art. 51/52</div><div style="font-size:10px;color:var(--tx3)">Compensación por Artículo 51/52</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
+    +'<div onclick="compConvertir(\'art5152\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(139,92,246,.16)\'" onmouseout="this.style.background=\'rgba(139,92,246,.08)\'"><span style="font-size:22px">📋</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#C4B5FD">Art. 51</div><div style="font-size:10px;color:var(--tx3)">Se paga por horas (Artículo 51)</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
     +'<div onclick="compConvertir(\'descanso\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(22,163,74,.16)\'" onmouseout="this.style.background=\'rgba(22,163,74,.08)\'"><span style="font-size:22px">🧘</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--green2)">Marcar como descanso</div><div style="font-size:10px;color:var(--tx3)">El dia sigue libre</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
     +'<div onclick="compEliminar()" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:12px;cursor:pointer" onmouseover="this.style.background=\'rgba(220,38,38,.14)\'" onmouseout="this.style.background=\'rgba(220,38,38,.06)\'"><span style="font-size:22px">🗑</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--red2)">Quitar compensacion</div><div style="font-size:10px;color:var(--tx3)">Liberar este dia</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
     +'</div>';
@@ -14809,8 +14870,8 @@ function compConvertir(nuevoTipo){
 // Eliminar la compensación de este día
 function compEliminar(){
   var k=selDay.k,t=TV[k];
-  if(t.origen&&TV[t.origen]){var ori=TV[t.origen];if(ori.diasComp)ori.diasComp=ori.diasComp.filter(function(d){return d!==k;});}
-  delete TV[k];selDay.t=null;saveTV();closeOv('ov-edit-comp');renderCal();renderStats();toast('📅 Compensación eliminada');
+  if(t.origen&&TV[t.origen]){var ori=TV[t.origen];if(ori.diasComp)ori.diasComp=ori.diasComp.filter(function(d){return d!==k;}); if(esPMD(ori) && ori.pmdDevolucion===k) ori.pmdDevolucion=null;}
+  _liberarCompPisado(k);selDay.t=TV[k]||null;saveTV();closeOv('ov-edit-comp');renderCal();renderStats();toast('📅 Compensación eliminada');
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -14836,7 +14897,7 @@ function abrirConversionCambioDescanso(k){
     +'<div class="ibox" style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);margin-bottom:12px"><span class="ibox-i">🧘</span><div><div style="font-size:12px;font-weight:700;color:var(--green2)">Descansas hoy (cambio)</div><div style="font-size:10px;color:var(--tx3);margin-top:2px">Tu turno original sigue contando sus horas igual — esto solo añade un turno adicional aparte si lo trabajas.</div></div></div>'
     +'<div style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--tx3);margin-bottom:8px">¿TRABAJASTE ESTE DESCANSO?</div>'
     +'<div onclick="_convertirCambioDescanso(\'trabajado\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(37,99,235,.16)\'" onmouseout="this.style.background=\'rgba(37,99,235,.08)\'"><span style="font-size:22px">🚂</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--acc2)">Turno normal (HTDL)</div><div style="font-size:10px;color:var(--tx3)">Se añade como HTDL, aparte de tu turno de hoy</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
-    +'<div onclick="_convertirCambioDescanso(\'art5152\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(139,92,246,.16)\'" onmouseout="this.style.background=\'rgba(139,92,246,.08)\'"><span style="font-size:22px">📋</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#C4B5FD">Art. 51/52</div><div style="font-size:10px;color:var(--tx3)">Se añade como Art.51/52, aparte de tu turno de hoy</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
+    +'<div onclick="_convertirCambioDescanso(\'art5152\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.25);border-radius:12px;cursor:pointer;margin-bottom:8px" onmouseover="this.style.background=\'rgba(139,92,246,.16)\'" onmouseout="this.style.background=\'rgba(139,92,246,.08)\'"><span style="font-size:22px">📋</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#C4B5FD">Art. 51</div><div style="font-size:10px;color:var(--tx3)">Se añade como Art.51/52, aparte de tu turno de hoy</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
     +'<div onclick="closeOv(\'ov-edit-comp\')" style="display:flex;align-items:center;gap:11px;padding:13px 14px;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);border-radius:12px;cursor:pointer" onmouseover="this.style.background=\'rgba(22,163,74,.16)\'" onmouseout="this.style.background=\'rgba(22,163,74,.08)\'"><span style="font-size:22px">🧘</span><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--green2)">Sigue en descanso</div><div style="font-size:10px;color:var(--tx3)">No trabajaste nada más — no se añade ningún turno</div></div><span style="color:var(--tx3);font-size:16px">›</span></div>'
     +'</div>';
   openOv('ov-edit-comp');
@@ -16530,7 +16591,7 @@ function guardarTurno(){
   // (no afectan en absoluto a ordinario/trabajado/otros tipos)
   if(t==='art5152'){
     if(!F.numTren || !F.sal || !F.lle){
-      toast('⚠️ Art. 51/52 requiere número de tren, estación de salida y de llegada');
+      toast('⚠️ '+(F.articulo===52?'Art. 52':'Art. 51/52')+' requiere número de tren, estación de salida y de llegada');
       return;
     }
     var compEl = F.compArt5152||'dinero';
@@ -16540,8 +16601,8 @@ function guardarTurno(){
       if(_dev52){
         var _prop52 = {}; _prop52[k]=1;
         if(F.modo==='pernocta'||F.modo==='pernocta3'){ var _k52b=_diaSiguienteKey(k); _prop52[_k52b]=1; if(F.modo==='pernocta3') _prop52[_diaSiguienteKey(_k52b)]=1; }
-        if(_prop52[_dev52] || !estaDiaDisponible(_dev52, k)){
-          toast('Error: El día '+_keyAFechaLbl(_dev52)+' ya tiene un turno asignado. Elige otra fecha para la devolución.');
+        if(!pmdDiaElegible(_dev52, k, F.modo)){
+          toast('Error: El '+_keyAFechaLbl(_dev52)+' no se puede usar para la devolución (es parte de una pernocta o de otro tipo de día). Elige otra fecha.');
           return;
         }
       }
@@ -16859,12 +16920,20 @@ function guardarTurno(){
     d.compensacion = 'dinero';
     d.horasEfectivas = d.horas;            // solo informativo: el plus es fijo
     d.importe = pmdImporteActual();
-    // quita las devoluciones antiguas de ESTE turno y marca la nueva
+    // libera (y restaura lo que había debajo) las devoluciones antiguas de ESTE turno y marca la nueva
     Object.keys(TV).forEach(function(isoOld){
-      if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && isoOld!==dev52) delete TV[isoOld];
+      if(TV[isoOld] && TV[isoOld].tipo==='comp' && TV[isoOld].origen===k && isoOld!==dev52) _liberarCompPisado(isoOld);
     });
-    if(dev52){ TV[dev52] = {tipo:'comp', origen:k}; d.diasComp=[dev52]; d.pmdDevolucion=dev52; }
-    else { d.diasComp=[]; d.pmdDevolucion=null; }
+    if(dev52){
+      var _act52 = TV[dev52];
+      if(!(_act52 && _act52.tipo==='comp' && _act52.origen===k)){
+        var _nuevo52 = {tipo:'comp', origen:k};
+        if(_act52) _nuevo52.turnoPisado = JSON.parse(JSON.stringify(_act52));   // PISA el turno: queda guardado debajo
+        if(TV2[dev52] && TV2[dev52].length){ _nuevo52.extrasPisados = JSON.parse(JSON.stringify(TV2[dev52])); delete TV2[dev52]; if(typeof saveTV2==='function') saveTV2(); }
+        TV[dev52] = _nuevo52;
+      }
+      d.diasComp=[dev52]; d.pmdDevolucion=dev52;
+    } else { d.diasComp=[]; d.pmdDevolucion=null; }
   }
   if(t==='art5152' && F.articulo!==52){
     var compArt = F.compArt5152 || 'dinero';
@@ -17035,6 +17104,9 @@ function guardarTurno(){
   d.plusJT=F.plusJT||false;
 
   var anterior=TV[k];
+  if(anterior && esPMD(anterior) && !(t==='art5152' && F.articulo===52)){ // el P.M.D. se cambia por otro tipo: se libera su devolución
+    (anterior.diasComp||[]).forEach(function(iso){ if(TV[iso] && TV[iso].tipo==='comp' && TV[iso].origen===k) _liberarCompPisado(iso); });
+  }
   // FIX — antes esto desvinculaba SIEMPRE que un día 'comp' se
   // sobrescribía con cualquier cosa, sin importar con qué. Por eso,
   // al trabajar un día de compensación (HTDL o Art.51/52), este
@@ -17130,7 +17202,7 @@ function confirmarEliminar(){
   }
   if(t && t.diasComp && t.diasComp.length){
     t.diasComp.forEach(function(iso){
-      if(TV[iso] && TV[iso].origen===k) delete TV[iso];
+      if(TV[iso] && TV[iso].origen===k) _liberarCompPisado(iso);
     });
   }
   // NUEVO — FIX: limpiar también los días de compensación del Mix de
@@ -17253,7 +17325,7 @@ function _eliminarDiaParaBorradoMasivo(k){
     }
   }
   if(t.diasComp && t.diasComp.length){
-    t.diasComp.forEach(function(iso){ if(TV[iso] && TV[iso].origen===k) delete TV[iso]; });
+    t.diasComp.forEach(function(iso){ if(TV[iso] && TV[iso].origen===k) _liberarCompPisado(iso); });
   }
   if(t.mixDias && t.mixDias.diasComp && t.mixDias.diasComp.length){
     t.mixDias.diasComp.forEach(function(iso){ if(TV[iso] && TV[iso].origen===k) delete TV[iso]; });
@@ -18482,6 +18554,32 @@ function renderStats(){
     +' · <span style="color:'+dopCol+';font-weight:700">'+dopY.restantes+' disponible'+(dopY.restantes!==1?'s':'')+'</span></div>'
     +'</div></div></div>';
 
+
+  // NUEVO — Tarjeta P.M.D. del año (Artículo 52): cuántos llevas y cuántos descansos faltan por devolver
+  var _pmdY = pmdContarAnio(y, null);
+  if(_pmdY>0){
+    var _pmdSinDev = 0;
+    Object.keys(TV).forEach(function(kk){ if(kk.slice(0,4)===String(y) && esPMD(TV[kk]) && !TV[kk].pmdDevolucion) _pmdSinDev++; });
+    var _pmdCol = _pmdY>PMD_MAX_ANUAL ? 'var(--red2)' : (_pmdY===PMD_MAX_ANUAL ? 'var(--amber2)' : 'var(--amber2)');
+    var _pmdPct = Math.min(100, Math.round((_pmdY/PMD_MAX_ANUAL)*100));
+    document.getElementById('sg').innerHTML += ''
+      +'<div class="sc" style="grid-column:1/-1;border-color:rgba(245,158,11,.4)">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
+      +'<div class="sc-i">⚖️</div>'
+      +'<div style="flex:1">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+      +'<span style="font-size:11px;font-weight:800;color:var(--tx)">P.M.D. '+y+'</span>'
+      +'<span style="font-size:18px;font-weight:900;color:'+_pmdCol+';font-variant-numeric:tabular-nums">'
+      +_pmdY+' <span style="font-size:12px;font-weight:600;color:var(--tx3)">/ '+PMD_MAX_ANUAL+'</span></span>'
+      +'</div>'
+      +'<div style="margin:6px 0 4px;height:6px;background:var(--div);border-radius:3px;overflow:hidden">'
+      +'<div style="width:'+_pmdPct+'%;height:100%;background:'+_pmdCol+';border-radius:3px"></div>'
+      +'</div>'
+      +'<div style="font-size:9px;color:var(--tx3)">'
+      +(_pmdSinDev>0 ? '<span style="color:var(--amber2);font-weight:700">'+_pmdSinDev+' descanso'+(_pmdSinDev>1?'s':'')+' por devolver</span>' : '<span style="color:var(--green2);font-weight:700">Todos con devolución elegida ✓</span>')
+      +'</div></div></div></div>';
+  }
+
   var cs=document.getElementById('cs-box');
   var dT=function(d){return d.length?'<div class="cs-sub-detail">📅 '+d.join(', ')+'</div>':'';};
   // NUEVO — contador de zebra striping: alterna un fondo muy sutil en
@@ -18773,13 +18871,25 @@ function renderStats(){
     // Sigue usando exactamente el mismo e.totalBruto de siempre
     // (tH+tN+tA+tJ+tI, ya calculado por calculateEarnings sin tocar)
     // — solo cambia dónde y cuándo se pinta, no la suma.
+    var _a51T = e.totalArt5152Dinero||0, _a52T = e.totalPMD||0;
+    var _txtCobro = 'estimado';
+    try{ _txtCobro = 'se cobra en la nómina de '+MESES[m % 12].toLowerCase(); }catch(_e){}
+    var _desgTotal = '';
+    if(_a51T>0 || _a52T>0){
+      var _restoT = Math.round((e.totalBruto-_a51T-_a52T)*100)/100;
+      var _fT = function(l,v,c){ return '<div style="display:flex;justify-content:space-between;padding:2px 0"><span>'+l+'</span><b style="color:'+(c||'var(--tx)')+'">'+v.toFixed(2)+' €</b></div>'; };
+      if(_restoT>0.004) _desgTotal += _fT('HTDL, nocturnidad y pluses', _restoT);
+      if(_a51T>0) _desgTotal += _fT('Art. 51', _a51T);
+      if(_a52T>0) _desgTotal += _fT('Art. 52 · P.M.D.'+(e.nPMD>1?' ('+e.nPMD+' × '+pmdImporteActual().toFixed(2)+' €)':''), _a52T, '#FCD34D');
+    }
     if(e.totalBruto>0){
       desTotal='<div class="acc-section" style="margin:0 0 10px;background:linear-gradient(135deg,rgba(34,197,94,.14),rgba(34,197,94,.05));border:1px solid rgba(74,222,128,.4);border-radius:14px;overflow:hidden">'
         +'<div class="acc-head" style="cursor:default">'
         +'<div class="acc-ico" style="background:rgba(34,197,94,.2);color:#4ade80;font-size:15px">💶</div>'
         +'<div style="flex:1;min-width:0"><div class="acc-title" style="font-size:12.5px;color:#bbf7d0">Total a pagar</div>'
-        +'<div style="font-size:9.5px;color:var(--tx3)">Mes vencido · estimado</div></div>'
-        +'<div style="font-size:15px;font-weight:900;color:#4ade80">'+e.totalBruto.toFixed(2)+' €</div>'
+        +'<div style="font-size:9.5px;color:var(--tx3)">Mes vencido · '+_txtCobro+'</div></div>'
+        +'<div style="font-size:15px;font-weight:900;color:#4ade80">'+e.totalBruto.toFixed(2)+' €</div></div>'
+          +(_desgTotal ? '<div style="padding:2px 15px 12px;font-size:11px;color:var(--tx2);border-top:1px solid rgba(74,222,128,.2)">'+_desgTotal : '<div>')
         +'</div></div>';
     }
   }
